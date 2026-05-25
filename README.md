@@ -1,12 +1,15 @@
-# EconAgent - ECCV 2026
+# FinEvo EMNLP Experiment Toolkit
 
-Multi-LLM Economic Agent Simulation with GAP Fixes
+Experiment runner and output normalizer for the FinEvo EMNLP revision.
+Current results are preliminary until regenerated from the ignored `runs/`
+artifact tree with the documented seed set.
 
 ## Features
 
-- **Multi-Model Support**: OpenAI (GPT-4o, GPT-5.2), Google Gemini, Local MLX/vLLM
-- **GAP Fixes**: Memory module, market sentiment, strategy evolution
-- **Scalable**: 10-100+ agents, 24-240+ months simulation
+- **Multi-model support**: OpenAI, OpenRouter-compatible APIs, Google Gemini, and local OpenAI-compatible servers
+- **FinEvo components**: market sentiment, episodic memory, semantic rule memory, and reflection
+- **Revision experiments**: E1-E5 matrices for main results, component ablations, sentiment robustness, text-event controls, and prompt/decoding robustness
+- **Structured artifacts**: action logs, memory retrieval logs, semantic rule logs, event logs, summaries, trajectories, and seed-level configs
 
 ## Installation
 
@@ -17,7 +20,8 @@ pip install -r requirements.txt
 Set API keys:
 ```bash
 export OPENAI_API_KEY="your-key"
-export GEMINI_API_KEY="your-key"
+export OPENROUTER_API_KEY="your-key"
+export OPENROUTER_BASE_URL="https://openrouter.ai/api/v1"
 ```
 
 ## Usage
@@ -25,17 +29,21 @@ export GEMINI_API_KEY="your-key"
 ### OpenAI Models
 
 ```bash
-# GPT-5.2 with GAP fixes
+# GPT-5.2 FinEvo run
 python simulate.py --model=gpt-5.2 --provider=openai --num_agents=100 --episode_length=240 --gap_fixes=True
 
-# GPT-4o baseline (no GAP fixes)
+# GPT-4o text-only baseline
 python simulate.py --model=gpt-4o --provider=openai --gap_fixes=False
 ```
 
-### Google Gemini
+### OpenRouter-Compatible Models
 
 ```bash
-python simulate.py --model=gemini-3-pro-preview --provider=gemini --workers=1
+python simulate.py \
+  --provider=thirdparty \
+  --api_base="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}" \
+  --model=google/gemini-3-flash-preview \
+  --workers=3
 ```
 
 ### Local Models (MLX)
@@ -82,8 +90,8 @@ Generated `data/`, `runs/`, `figs/`, logs, pickles, and zip artifacts are intent
 eccv26_EconAgent/
 ├── simulate.py          # Main simulation script
 ├── llm_providers.py     # Multi-model LLM interface
-├── memory_module.py     # Dual-track memory (GAP 3)
-├── market_sentiment.py  # Market sentiment (GAP 1 & 2)
+├── memory_module.py     # Episodic and semantic memory
+├── market_sentiment.py  # Market sentiment dynamics
 ├── run_emnlp_experiments.py # EMNLP E1-E8 run matrix
 ├── export_emnlp_outputs.py  # Normalizes outputs to required schema
 ├── utils.py             # Utility functions
@@ -91,21 +99,6 @@ eccv26_EconAgent/
 ├── requirements.txt     # Dependencies
 └── README.md
 ```
-
-## GAP Fixes
-
-1. **GAP 1 & 2**: Market sentiment module with endogenous sentiment index
-2. **GAP 3**: Dual-track memory (episodic + semantic)
-3. **GAP 4**: Strategy evolution with quarterly reflection
-
-## Results
-
-| Model | Avg Wealth | Unemployment | Gini | Cost |
-|-------|-----------|--------------|------|------|
-| GPT-5.2 + GAP | $2,614,208 | 0.16% | 0.39 | $143 |
-| Llama-3.3-70B | $2,297,338 | 1.29% | 0.51 | $0 |
-| Llama-4-Maverick | $1,401,208 | 1.98% | 0.76 | $0 |
-| GPT-5.2 Baseline | $428,417 | 15.61% | 0.40 | $94 |
 
 ## License
 
