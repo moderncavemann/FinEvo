@@ -14,7 +14,7 @@ import os
 import shlex
 import subprocess
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
@@ -49,6 +49,13 @@ class RunSpec:
 
 MODELS: Dict[str, ModelSpec] = {
     "gpt52": ModelSpec("GPT-5.2", "openai", "gpt-5.2", api_key_env="OPENAI_API_KEY"),
+    "gpt52_or": ModelSpec(
+        "GPT-5.2",
+        "thirdparty",
+        "openai/gpt-5.2",
+        api_base_env="OPENROUTER_BASE_URL",
+        api_key_env="OPENROUTER_API_KEY",
+    ),
     "gpt4o": ModelSpec("GPT-4o", "openai", "gpt-4o", api_key_env="OPENAI_API_KEY"),
     "llama4": ModelSpec(
         "Llama-4-Maverick",
@@ -242,16 +249,30 @@ def _selected_specs(args: argparse.Namespace) -> List[RunSpec]:
     selected_variants = {item.strip() for item in args.variants.split(",") if item.strip()} if args.variants else set()
 
     specs = []
+    seen = set()
     for spec in _matrix():
         if selected_exps and spec.exp_id not in selected_exps:
-            continue
-        if selected_models and spec.model_key not in selected_models and MODELS[spec.model_key].display not in selected_models:
             continue
         if selected_variants and spec.variant not in selected_variants and spec.tag not in selected_variants:
             continue
         if not spec.supported and not args.include_pending:
             continue
-        specs.append(spec)
+
+        candidates = [spec]
+        if selected_models:
+            candidates = []
+            current_model = MODELS[spec.model_key]
+            for selected in selected_models:
+                if selected == spec.model_key or selected == current_model.display:
+                    candidates.append(spec)
+                elif selected in MODELS and MODELS[selected].display == current_model.display:
+                    candidates.append(replace(spec, model_key=selected))
+
+        for candidate in candidates:
+            key = (candidate.exp_id, candidate.setting, candidate.variant, candidate.model_key, candidate.tag)
+            if key not in seen:
+                seen.add(key)
+                specs.append(candidate)
     return specs
 
 
