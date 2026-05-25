@@ -28,7 +28,8 @@ env/
 secrets.py
 
 # Data, generated figures, and logs
-data/
+data/*
+!data/profiles.json
 figs/
 runs/
 logs/
