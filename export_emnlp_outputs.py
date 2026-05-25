@@ -511,13 +511,13 @@ def _metrics_row(
         "crash_count": sum(int(row.get("crash_flag", 0)) for row in trajectory),
         "mean_crash_recovery_months": "",
         "invalid_action_rate": summary.get("error_rate", ""),
-        "api_error_rate": "",
+        "api_error_rate": summary.get("api_error_rate", ""),
         "rule_turnover": rule_turnover,
         "rule_diversity": rule_diversity,
         "mean_prompt_tokens": "",
         "mean_completion_tokens": "",
         "total_cost_usd": summary.get("total_cost", ""),
-        "wall_time_min": "",
+        "wall_time_min": summary.get("wall_time_min", ""),
         "legacy_source_dir": str(source_dir),
     }
 
