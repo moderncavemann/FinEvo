@@ -114,13 +114,6 @@ def _matrix() -> List[RunSpec]:
             "use_semantic": False,
             "use_reflection": True,
         }),
-        ("sliding-window-memory", "E2_sliding_window", False, {
-            "gap_fixes": False,
-            "use_sentiment": True,
-            "use_episodic": False,
-            "use_semantic": False,
-            "use_reflection": True,
-        }),
     ]
     for variant, tag, gap_fixes, flags in e2_core:
         if "gap_fixes" in flags:
@@ -129,6 +122,7 @@ def _matrix() -> List[RunSpec]:
     runs.extend([
         RunSpec("E2", "finevo", "episodic-only-retrieval", "gpt52", 10, 24, "E2_epi_only_retrieval", True, supported=False, note="Needs separate episodic write vs prompt-include flags."),
         RunSpec("E2", "finevo", "semantic-only-retrieval", "gpt52", 10, 24, "E2_sem_only_retrieval", True, supported=False, note="Needs semantic retrieval without episodic prompt inclusion."),
+        RunSpec("E2", "finevo", "sliding-window-memory", "gpt52", 10, 24, "E2_sliding_window", True, supported=False, note="Needs a real sliding-window prompt baseline; current memory flags are not sufficient."),
     ])
 
     # E3: sentiment robustness. Adaptive weights are intentionally pending until
@@ -210,6 +204,9 @@ def _simulate_cmd(spec: RunSpec, model: ModelSpec, seed: int, workers: int) -> L
         "--seed", str(seed),
         "--tag", spec.tag,
         "--workers", str(workers),
+        "--exp_id", spec.exp_id,
+        "--setting", spec.setting,
+        "--variant", spec.variant,
     ]
     if model.local_url:
         cmd.extend(["--local_url", model.local_url])
