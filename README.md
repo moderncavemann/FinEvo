@@ -48,6 +48,34 @@ mlx_lm.server --model mlx-community/Llama-3.3-70B-Instruct-4bit --port 8002
 python simulate.py --model=mlx-community/Llama-3.3-70B-Instruct-4bit --provider=local --local_url=http://localhost:8002/v1
 ```
 
+### EMNLP Revision Runs
+
+Print the supported E2-E5 experiment matrix without spending API budget:
+
+```bash
+python run_emnlp_experiments.py --exps E2,E3,E4,E5 --seeds 13,21,42,87,2026
+```
+
+Execute a focused subset and export it to the required `runs/<exp_id>/<model>/<setting>/<variant>/seed_<seed>/` layout:
+
+```bash
+python run_emnlp_experiments.py --run --exps E2 --variants default --seeds 13
+```
+
+Existing legacy `data/<run>/summary.json` folders can be normalized directly:
+
+```bash
+python export_emnlp_outputs.py "data/<run-folder>" --runs-root runs --exp-id E2 --model GPT-5.2 --setting finevo --variant default --seed 13
+```
+
+Generate paper figures locally when result folders are present:
+
+```bash
+python paper/generate_emnlp_figures.py
+```
+
+Generated `data/`, `runs/`, `figs/`, logs, pickles, and zip artifacts are intentionally ignored by Git.
+
 ## Project Structure
 
 ```
@@ -56,6 +84,8 @@ eccv26_EconAgent/
 ├── llm_providers.py     # Multi-model LLM interface
 ├── memory_module.py     # Dual-track memory (GAP 3)
 ├── market_sentiment.py  # Market sentiment (GAP 1 & 2)
+├── run_emnlp_experiments.py # EMNLP E1-E8 run matrix
+├── export_emnlp_outputs.py  # Normalizes outputs to required schema
 ├── utils.py             # Utility functions
 ├── config.yaml          # Environment configuration
 ├── requirements.txt     # Dependencies

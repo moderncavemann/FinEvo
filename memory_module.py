@@ -162,6 +162,7 @@ class DualTrackMemory:
         recency_weight: float = 0.4,
         similarity_weight: float = 0.4,
         importance_weight: float = 0.2,
+        return_scores: bool = False,
     ) -> List[EpisodicMemory]:
         """
         Retrieve most relevant episodic memories
@@ -199,10 +200,19 @@ class DualTrackMemory:
                 similarity_weight * similarity_score +
                 importance_weight * importance_score
             )
-            scores.append((memory, total_score))
+            components = {
+                "episode_id": f"E{memory.timestamp}",
+                "recency": recency_weight * recency_score,
+                "similarity": similarity_weight * similarity_score,
+                "importance": importance_weight * importance_score,
+                "regime_match": 0.0,
+            }
+            scores.append((memory, total_score, components))
 
         scores.sort(key=lambda x: x[1], reverse=True)
-        return [m for m, s in scores[:k]]
+        if return_scores:
+            return scores[:k]
+        return [m for m, _, _ in scores[:k]]
 
     def _compute_state_similarity(self, state1: Dict, state2: Dict) -> float:
         """Compute cosine similarity between two economic states"""
@@ -356,25 +366,57 @@ class DualTrackMemory:
         relevant.sort(key=lambda r: r.confidence, reverse=True)
         return relevant
 
-    def generate_memory_prompt(self, current_state: Dict) -> str:
+    def generate_memory_prompt(
+        self,
+        current_state: Dict,
+        retrieval_k: int = 5,
+        rule_budget: int = 3,
+        include_episodic: bool = True,
+        include_semantic: bool = True,
+        return_trace: bool = False,
+    ):
         """Generate memory context prompt for LLM"""
         prompt_parts = []
+        trace = {
+            "retrieved_episode_ids": [],
+            "retrieval_scores": [],
+            "score_components": [],
+            "selected_rule_ids": [],
+        }
 
         # Add relevant episodic memories
-        relevant_episodes = self.retrieve_episodic_memories(current_state, k=2)
+        relevant_episodes = []
+        if include_episodic:
+            scored_episodes = self.retrieve_episodic_memories(
+                current_state,
+                k=retrieval_k,
+                return_scores=True,
+            )
+            relevant_episodes = [item[0] for item in scored_episodes]
+            trace["retrieved_episode_ids"] = [f"E{item[0].timestamp}" for item in scored_episodes]
+            trace["retrieval_scores"] = [float(item[1]) for item in scored_episodes]
+            trace["score_components"] = [item[2] for item in scored_episodes]
+
         if relevant_episodes:
             prompt_parts.append("Recent experiences:")
             for ep in relevant_episodes:
                 prompt_parts.append(ep.to_prompt_text())
 
         # Add relevant strategies
-        relevant_strategies = self.get_relevant_strategies(current_state)
+        relevant_strategies = []
+        if include_semantic:
+            relevant_strategies = self.get_relevant_strategies(current_state)[:rule_budget]
+            trace["selected_rule_ids"] = [rule.rule_id for rule in relevant_strategies]
+
         if relevant_strategies:
             prompt_parts.append("Learned strategies:")
-            for strategy in relevant_strategies[:2]:
+            for strategy in relevant_strategies:
                 prompt_parts.append(f"- {strategy.to_prompt_text()}")
 
-        return " ".join(prompt_parts) if prompt_parts else ""
+        prompt = " ".join(prompt_parts) if prompt_parts else ""
+        if return_trace:
+            return prompt, trace
+        return prompt
 
     def to_dict(self) -> Dict:
         """Serialize memory system to dict"""

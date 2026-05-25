@@ -26,6 +26,7 @@ MODEL_COSTS = {
     # Gemini
     "gemini-3-pro-preview": {"prompt": 0.00125, "completion": 0.005},
     "gemini-2.0-flash": {"prompt": 0.0001, "completion": 0.0004},
+    "google/gemini-3-flash-preview": {"prompt": 0.00125, "completion": 0.005},
     # Local models - free
     "default_local": {"prompt": 0, "completion": 0},
 }
@@ -244,6 +245,62 @@ class LocalAPIProvider(LLMProvider):
         return f"local/{self.model}"
 
 
+class ThirdPartyProvider(LLMProvider):
+    """OpenAI-compatible third-party provider, e.g. OpenRouter."""
+
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        base_url: str = "https://openrouter.ai/api/v1",
+        app_name: str = "FinEvo",
+    ):
+        self.api_key = api_key
+        self.model = model
+        self.base_url = base_url
+        self.costs = MODEL_COSTS.get(model, {"prompt": 0, "completion": 0})
+
+        from openai import OpenAI
+        self.client = OpenAI(
+            api_key=api_key,
+            base_url=base_url,
+            default_headers={
+                "HTTP-Referer": "https://github.com/moderncavemann/FinEvo",
+                "X-Title": app_name,
+            },
+        )
+
+    def get_completion(
+        self,
+        messages: List[Dict],
+        temperature: float = 0,
+        max_tokens: int = 800
+    ) -> Tuple[str, float]:
+        max_retries = 20
+        for i in range(max_retries):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                prompt_tokens = getattr(response.usage, "prompt_tokens", 0) or 0
+                completion_tokens = getattr(response.usage, "completion_tokens", 0) or 0
+                cost = (prompt_tokens / 1000 * self.costs["prompt"] +
+                        completion_tokens / 1000 * self.costs["completion"])
+                return response.choices[0].message.content, cost
+            except Exception as e:
+                if i < max_retries - 1:
+                    time.sleep(2)
+                else:
+                    print(f"Third-party API error: {type(e).__name__}: {e}")
+                    return "Error", 0
+
+    def get_model_name(self) -> str:
+        return f"thirdparty/{self.model}"
+
+
 class OllamaProvider(LLMProvider):
     """Ollama local model provider"""
 
@@ -359,7 +416,7 @@ def create_llm_provider(
     Factory function to create LLM provider instance
 
     Args:
-        provider_type: "openai", "gemini", "ollama", or "local"
+        provider_type: "openai", "gemini", "ollama", "local", or "thirdparty"
         model: Model name/identifier
         api_key: API key (required for openai and gemini)
         base_url: Base URL for local API server
@@ -391,6 +448,15 @@ def create_llm_provider(
         model = model or "mlx-community/Llama-3.3-70B-Instruct-4bit"
         base_url = base_url or "http://localhost:8000/v1"
         return LocalAPIProvider(model=model, base_url=base_url, api_key=api_key or "not-needed")
+
+    elif provider_type == "thirdparty":
+        if api_key is None:
+            api_key = os.environ.get('OPENROUTER_API_KEY')
+        if not api_key:
+            raise ValueError("Third-party API key required")
+        model = model or "google/gemini-3-flash-preview"
+        base_url = base_url or os.environ.get('OPENROUTER_BASE_URL', "https://openrouter.ai/api/v1")
+        return ThirdPartyProvider(api_key=api_key, model=model, base_url=base_url)
 
     else:
         raise ValueError(f"Unknown provider type: {provider_type}")
