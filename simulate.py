@@ -258,11 +258,15 @@ def agent_decision(
 
     # Build economic state for memory retrieval
     year = (env.world.timestep - 1) // env.world.period
+    if 0 <= year < len(env.world.unemployment):
+        unemployment_rate = env.world.unemployment[year] / env.world.period / env.world.n_agents
+    else:
+        unemployment_rate = 0.05
     current_economic_state = {
         'timestamp': env.world.timestep,
         'price': env.world.price[-1],
         'interest_rate': env.world.interest_rate[-1],
-        'unemployment_rate': env.world.unemployment[year] / env.world.period / env.world.n_agents if year < len(env.world.unemployment) else 0.05,
+        'unemployment_rate': unemployment_rate,
         'inflation': env.world.inflation[-1] if env.world.inflation else 0,
         'sentiment': sentiment_module.current_sentiment if use_sentiment else 0,
     }
