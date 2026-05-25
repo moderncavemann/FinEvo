@@ -76,7 +76,8 @@ class OpenAIProvider(LLMProvider):
         self,
         messages: List[Dict],
         temperature: float = 0,
-        max_tokens: int = 800
+        max_tokens: int = 800,
+        top_p: float = 1.0,
     ) -> Tuple[str, float]:
         max_retries = 20
         for i in range(max_retries):
