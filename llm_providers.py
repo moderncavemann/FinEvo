@@ -40,7 +40,8 @@ class LLMProvider(ABC):
         self,
         messages: List[Dict],
         temperature: float = 0,
-        max_tokens: int = 800
+        max_tokens: int = 800,
+        top_p: float = 1.0,
     ) -> Tuple[str, float]:
         """
         Get completion from LLM
@@ -86,14 +87,16 @@ class OpenAIProvider(LLMProvider):
                         model=self.model,
                         messages=messages,
                         temperature=temperature,
-                        max_completion_tokens=max_tokens
+                        max_completion_tokens=max_tokens,
+                        top_p=top_p,
                     )
                 else:
                     response = self.client.chat.completions.create(
                         model=self.model,
                         messages=messages,
                         temperature=temperature,
-                        max_tokens=max_tokens
+                        max_tokens=max_tokens,
+                        top_p=top_p,
                     )
                 prompt_tokens = response.usage.prompt_tokens
                 completion_tokens = response.usage.completion_tokens
@@ -131,7 +134,8 @@ class GeminiProvider(LLMProvider):
         self,
         messages: List[Dict],
         temperature: float = 0,
-        max_tokens: int = 800
+        max_tokens: int = 800,
+        top_p: float = 1.0,
     ) -> Tuple[str, float]:
         import google.generativeai as genai
 
@@ -169,6 +173,7 @@ class GeminiProvider(LLMProvider):
                     generation_config=genai.GenerationConfig(
                         temperature=temperature,
                         max_output_tokens=max_tokens,
+                        top_p=top_p,
                     )
                 )
 
@@ -209,7 +214,8 @@ class LocalAPIProvider(LLMProvider):
         self,
         messages: List[Dict],
         temperature: float = 0,
-        max_tokens: int = 800
+        max_tokens: int = 800,
+        top_p: float = 1.0,
     ) -> Tuple[str, float]:
         import requests
 
@@ -227,6 +233,7 @@ class LocalAPIProvider(LLMProvider):
                         "messages": messages,
                         "temperature": temperature,
                         "max_tokens": max_tokens,
+                        "top_p": top_p,
                     },
                     timeout=300
                 )
@@ -274,7 +281,8 @@ class ThirdPartyProvider(LLMProvider):
         self,
         messages: List[Dict],
         temperature: float = 0,
-        max_tokens: int = 800
+        max_tokens: int = 800,
+        top_p: float = 1.0,
     ) -> Tuple[str, float]:
         max_retries = 20
         for i in range(max_retries):
@@ -284,6 +292,7 @@ class ThirdPartyProvider(LLMProvider):
                     messages=messages,
                     temperature=temperature,
                     max_tokens=max_tokens,
+                    top_p=top_p,
                 )
                 prompt_tokens = getattr(response.usage, "prompt_tokens", 0) or 0
                 completion_tokens = getattr(response.usage, "completion_tokens", 0) or 0
@@ -313,7 +322,8 @@ class OllamaProvider(LLMProvider):
         self,
         messages: List[Dict],
         temperature: float = 0,
-        max_tokens: int = 800
+        max_tokens: int = 800,
+        top_p: float = 1.0,
     ) -> Tuple[str, float]:
         import requests
 
@@ -329,6 +339,7 @@ class OllamaProvider(LLMProvider):
                         "options": {
                             "temperature": temperature,
                             "num_predict": max_tokens,
+                            "top_p": top_p,
                         }
                     },
                     timeout=300
@@ -359,15 +370,17 @@ class MultiModelLLM:
         self,
         messages: List[Dict],
         temperature: float = 0,
-        max_tokens: int = 800
+        max_tokens: int = 800,
+        top_p: float = 1.0,
     ) -> Tuple[str, float]:
-        return self.provider.get_completion(messages, temperature, max_tokens)
+        return self.provider.get_completion(messages, temperature, max_tokens, top_p)
 
     def get_multiple_completions(
         self,
         dialogs: List[List[Dict]],
         temperature: float = 0,
-        max_tokens: int = 800
+        max_tokens: int = 800,
+        top_p: float = 1.0,
     ) -> Tuple[List[str], float]:
         """
         Get completions for multiple dialogs in parallel
@@ -383,7 +396,8 @@ class MultiModelLLM:
         get_completion_partial = partial(
             self.provider.get_completion,
             temperature=temperature,
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
+            top_p=top_p,
         )
 
         results = [None] * len(dialogs)

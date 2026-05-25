@@ -532,7 +532,7 @@ def _config_doc(
     variant: str,
     args: argparse.Namespace,
 ) -> Dict[str, Any]:
-    sentiment = summary.get("sentiment_config") or {}
+    sentiment = summary.get("sentiment_params") or summary.get("sentiment_config") or {}
     return {
         "exp_id": exp_id,
         "model_display_name": model,
@@ -545,18 +545,20 @@ def _config_doc(
         "temperature": args.temperature,
         "top_p": args.top_p,
         "max_tokens": args.max_tokens,
+        "decision_max_tokens": args.decision_max_tokens,
+        "reflection_max_tokens": args.reflection_max_tokens,
         "seed": seed,
         "num_agents": summary.get("num_agents", ""),
         "num_months": summary.get("episode_length", ""),
         "setting": setting,
         "variant": variant,
         "environment_params": {
-            "alpha_sentiment": sentiment.get("inertia", 0.70),
-            "beta_price": sentiment.get("inflation_sens", 0.15),
-            "gamma_unemployment": sentiment.get("unemp_sens", -0.20),
-            "delta_gdp": sentiment.get("gdp_sens", 0.10),
-            "sigma_sentiment": sentiment.get("news_std", 0.05),
-            "rho_diffusion": sentiment.get("diffusion", 0.30),
+            "alpha_sentiment": sentiment.get("sentiment_inertia", sentiment.get("inertia", 0.70)),
+            "beta_price": sentiment.get("inflation_sensitivity", sentiment.get("inflation_sens", 0.15)),
+            "gamma_unemployment": sentiment.get("unemployment_sensitivity", sentiment.get("unemp_sens", -0.20)),
+            "delta_gdp": sentiment.get("gdp_sensitivity", sentiment.get("gdp_sens", 0.10)),
+            "sigma_sentiment": sentiment.get("news_shock_std", sentiment.get("news_std", 0.05)),
+            "rho_diffusion": sentiment.get("sentiment_diffusion", sentiment.get("diffusion", 0.30)),
             "episodic_capacity": args.episodic_capacity,
             "semantic_capacity": args.semantic_capacity,
             "retrieval_k": args.retrieval_k,
@@ -654,7 +656,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--reflection-prompt-version", default="v1_default")
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--top-p", type=float, default=1.0)
-    parser.add_argument("--max-tokens", default="")
+    parser.add_argument("--max-tokens", default="800")
+    parser.add_argument("--decision-max-tokens", type=int, default=800)
+    parser.add_argument("--reflection-max-tokens", type=int, default=200)
     parser.add_argument("--episodic-capacity", type=int, default=24)
     parser.add_argument("--semantic-capacity", type=int, default=10)
     parser.add_argument("--retrieval-k", type=int, default=5)

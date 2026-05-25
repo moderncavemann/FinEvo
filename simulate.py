@@ -205,6 +205,7 @@ def agent_decision(
     use_semantic: Optional[bool] = None,
     use_reflection: Optional[bool] = None,
     temperature: float = 0.0,
+    top_p: float = 1.0,
     prompt_style: str = "default",
     output_format: str = "json",
     event_entry: Optional[Dict[str, Any]] = None,
@@ -405,7 +406,7 @@ def agent_decision(
     else:
         dialogs_to_send = [list(dialogs) for dialogs in dialog_queue]
 
-    results, cost = llm.get_multiple_completions(dialogs_to_send, temperature=temperature, max_tokens=800)
+    results, cost = llm.get_multiple_completions(dialogs_to_send, temperature=temperature, max_tokens=800, top_p=top_p)
     total_cost += cost
 
     # Parse responses
@@ -481,7 +482,7 @@ def agent_decision(
                 "agent_id": idx,
                 "prompt_hash": prompt_hashes[idx] if idx < len(prompt_hashes) else "",
                 "temperature": temperature,
-                "top_p": 1.0,
+                "top_p": top_p,
                 "raw_output": content,
                 "parsed_action": {
                     "work": work_propensity,
@@ -582,7 +583,7 @@ def agent_decision(
 
         results, cost = llm.get_multiple_completions(
             [list(dialogs) for dialogs in dialog4ref_queue],
-            temperature=temperature, max_tokens=200
+            temperature=temperature, max_tokens=200, top_p=top_p
         )
         total_cost += cost
 
@@ -620,6 +621,7 @@ def run_experiment(
     use_semantic: Optional[bool] = None,
     use_reflection: Optional[bool] = None,
     temperature: float = 0.0,
+    top_p: float = 1.0,
     prompt_style: str = "default",
     output_format: str = "json",
     event_variant: str = "numeric-only",
@@ -792,6 +794,7 @@ def run_experiment(
             use_semantic=use_semantic,
             use_reflection=use_reflection,
             temperature=temperature,
+            top_p=top_p,
             prompt_style=prompt_style,
             output_format=output_format,
             event_entry=event_entry,
@@ -860,6 +863,7 @@ def run_experiment(
         "setting": setting or ("finevo" if use_gap_fixes else "text-only"),
         "variant": variant or ("default" if use_gap_fixes else "baseline"),
         "temperature": temperature,
+        "top_p": top_p,
         "prompt_style": prompt_style,
         "output_format": output_format,
         "event_variant": event_variant,
@@ -917,6 +921,7 @@ def main(
     use_semantic: Optional[bool] = None,
     use_reflection: Optional[bool] = None,
     temperature: float = 0.0,
+    top_p: float = 1.0,
     prompt_style: str = "default",
     output_format: str = "json",
     event_variant: str = "numeric-only",
@@ -968,6 +973,7 @@ def main(
         use_semantic=use_semantic,
         use_reflection=use_reflection,
         temperature=temperature,
+        top_p=top_p,
         prompt_style=prompt_style,
         output_format=output_format,
         event_variant=event_variant,

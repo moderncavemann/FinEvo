@@ -10,6 +10,7 @@ layout with ``export_emnlp_outputs.py``.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import os
 import shlex
 import subprocess
@@ -221,9 +222,22 @@ def _simulate_cmd(spec: RunSpec, model: ModelSpec, seed: int, workers: int) -> L
         cmd.extend(["--api_base", os.environ[model.api_base_env]])
     if "temperature" not in spec.flags:
         cmd.extend(["--temperature", "0.2"])
+    if "top_p" not in spec.flags:
+        cmd.extend(["--top_p", "1.0"])
     for key, value in spec.flags.items():
         cmd.extend([f"--{key}", _bool_arg(value) if isinstance(value, bool) else str(value)])
     return cmd
+
+
+def _code_commit() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path(__file__).resolve().parent,
+            text=True,
+        ).strip()
+    except Exception:
+        return ""
 
 
 def _export_cmd(spec: RunSpec, model: ModelSpec, seed: int, runs_root: str) -> List[str]:
@@ -238,8 +252,14 @@ def _export_cmd(spec: RunSpec, model: ModelSpec, seed: int, runs_root: str) -> L
         "--variant", spec.variant,
         "--seed", str(seed),
         "--temperature", str(spec.flags.get("temperature", 0.2)),
-        "--top-p", "1.0",
-        "--max-tokens", "4000",
+        "--top-p", str(spec.flags.get("top_p", 1.0)),
+        "--max-tokens", "800",
+        "--decision-max-tokens", "800",
+        "--reflection-max-tokens", "200",
+        "--api-access-date", dt.datetime.now(dt.UTC).strftime("%Y-%m-%d"),
+        "--code-commit", _code_commit(),
+        "--prompt-version", "finevo_emnlp_v1",
+        "--reflection-prompt-version", "finevo_reflection_v1",
     ]
 
 
