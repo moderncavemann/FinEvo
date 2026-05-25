@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-set -x
 
 if [ "$#" -ne 4 ]; then
   echo "usage: $0 <display-name> <openrouter-model-id> <seed> <workers>" >&2
@@ -13,6 +12,7 @@ cd "$(dirname "$0")"
 set -a
 source .env
 set +a
+set -x
 
 display="$1"
 model="$2"
