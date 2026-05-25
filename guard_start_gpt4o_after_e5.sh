@@ -5,10 +5,19 @@ mkdir -p logs
 
 echo "[$(date)] Guard started: wait for E3=50, E4=20, E5=35 before launching GPT-4o E1 seed13."
 
+count_metrics() {
+  local dir="$1"
+  if [ -d "$dir" ]; then
+    find "$dir" -name metrics_summary.csv 2>/dev/null | wc -l | tr -d ' '
+  else
+    echo 0
+  fi
+}
+
 while true; do
-  e3="$(find runs/E3 -name metrics_summary.csv 2>/dev/null | wc -l | tr -d ' ')"
-  e4="$(find runs/E4 -name metrics_summary.csv 2>/dev/null | wc -l | tr -d ' ')"
-  e5="$(find runs/E5 -name metrics_summary.csv 2>/dev/null | wc -l | tr -d ' ')"
+  e3="$(count_metrics runs/E3)"
+  e4="$(count_metrics runs/E4)"
+  e5="$(count_metrics runs/E5)"
 
   echo "[$(date)] Counts: E3=${e3} E4=${e4} E5=${e5}"
 

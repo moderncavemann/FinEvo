@@ -15,7 +15,7 @@ while true; do
     exit 1
   fi
 
-  latest_step="$(grep -oE "Step [0-9]+/240" "$GEMINI_LOG" 2>/dev/null | awk '{print $2}' | cut -d/ -f1 | tail -1)"
+  latest_step="$({ grep -oE "Step [0-9]+/240" "$GEMINI_LOG" 2>/dev/null || true; } | awk '{print $2}' | cut -d/ -f1 | tail -1)"
   latest_step="${latest_step:-0}"
 
   echo "[$(date)] Gemini latest step: ${latest_step}/240"
