@@ -1,0 +1,49 @@
+% Reproducibility appendix snippet for completed E2--E5 runs.
+
+\section{Reproducibility Details}
+\label{app:reproducibility}
+
+\paragraph{Random seeds.}
+All completed E2--E5 experiments use five seeds:
+$\{13,21,42,87,2026\}$.
+
+\paragraph{Model identifiers and providers.}
+The completed E2--E5 robustness suite uses the OpenAI-hosted model identifier
+\texttt{openai/gpt-5.2}.  The large-scale diagnostic runs in progress use
+\texttt{openai/gpt-4o}, \texttt{google/gemini-3-flash-preview} through
+OpenRouter, and \texttt{qwen/qwen3-235b-a22b-2507} through OpenRouter.  The
+OpenRouter entries should be interpreted as OpenRouter-hosted routes rather than
+direct vendor APIs.
+
+\paragraph{API dates and code commits.}
+Each exported run writes \texttt{config.yaml} with the API access date and code
+commit.  The completed E2--E5 exports currently record API access date
+\texttt{2026-05-25} in UTC and code commit
+\texttt{4a506b95563ae787764310d23390b71b2dfe29b3}.  Later E1 diagnostic exports
+should be read from their own \texttt{config.yaml} files because they may use a
+newer code commit.
+
+\paragraph{Decoding and generation limits.}
+The default temperature is $0.2$ and \texttt{top\_p}=1.0.  E5 additionally
+tests temperature 0.0 and 0.7.  The decision-call limit is 800 tokens and the
+reflection-call limit is 200 tokens.
+
+\paragraph{Parallelism.}
+GPT-5.2 E2--E5 small-scale runs use 8 workers.  The in-progress GPT-4o
+large-scale diagnostic uses 4 workers.  The in-progress OpenRouter Gemini and
+Qwen large-scale diagnostics use 2 workers.
+
+\paragraph{Retry and failure handling.}
+The provider layer retries failed OpenAI-compatible calls up to 20 times with a
+2-second sleep between retries.  The parser expects a constrained JSON action.
+If parsing fails, the runner attempts to extract or repair a JSON block.  If
+repair still fails, the environment applies a safe default action and increments
+the invalid-action counter.  Out-of-range action values are clipped and marked
+in the action log.
+
+\paragraph{Environment parameters.}
+The default sentiment parameters are inertia $\alpha=0.7$, inflation
+sensitivity $0.15$, unemployment sensitivity $-0.2$, GDP sensitivity $0.1$,
+news-shock standard deviation $0.05$, and sentiment diffusion $0.3$.  Episodic
+memory capacity is 24 months, semantic memory capacity is 10 rules, retrieval
+uses $K=5$, and reflection occurs every 3 months.

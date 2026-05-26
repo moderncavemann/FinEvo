@@ -1,0 +1,23 @@
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+Variant & Wealth $\uparrow$ & Gini $\downarrow$ & Unemp. $\downarrow$ & Infl. dev. $\downarrow$ & Invalid $\downarrow$ & API err. $\downarrow$ \\
+\midrule
+$\alpha$ -50\% & 177.2k $\pm$ 8.7k & 0.337 $\pm$ 0.024 & 0.17 $\pm$ 0.37\% & 41.61 $\pm$ 4.74\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+$\alpha$ +50\% & 182.8k $\pm$ 20.4k & 0.342 $\pm$ 0.035 & 0.33 $\pm$ 0.46\% & 42.52 $\pm$ 3.75\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+$\beta$ -50\% & 179.5k $\pm$ 10.4k & 0.317 $\pm$ 0.026 & 0.17 $\pm$ 0.37\% & 40.69 $\pm$ 4.51\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+$\beta$ +50\% & 191.0k $\pm$ 13.9k & 0.344 $\pm$ 0.049 & 0.17 $\pm$ 0.37\% & 44.13 $\pm$ 1.57\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+$\gamma$ -50\% & 173.6k $\pm$ 13.9k & 0.320 $\pm$ 0.044 & 0.17 $\pm$ 0.37\% & 43.92 $\pm$ 2.03\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+$\gamma$ +50\% & 182.9k $\pm$ 5.5k & 0.346 $\pm$ 0.020 & 0.00 $\pm$ 0.00\% & 42.22 $\pm$ 4.10\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+$\delta$ -50\% & 169.7k $\pm$ 12.3k & 0.337 $\pm$ 0.036 & 0.17 $\pm$ 0.37\% & 41.51 $\pm$ 4.27\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+$\delta$ +50\% & 178.7k $\pm$ 13.9k & 0.346 $\pm$ 0.041 & 0.00 $\pm$ 0.00\% & 40.62 $\pm$ 3.28\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+No macro terms & 180.1k $\pm$ 15.6k & 0.315 $\pm$ 0.026 & 0.17 $\pm$ 0.37\% & 42.08 $\pm$ 3.26\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+Random sentiment & 145.3k $\pm$ 23.2k & 0.323 $\pm$ 0.038 & 0.00 $\pm$ 0.00\% & 39.31 $\pm$ 4.38\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+\bottomrule
+\end{tabular}
+\caption{Sentiment parameterization robustness over 10 agents and 24 months using GPT-5.2. Values are mean $\pm$ standard deviation over five seeds.}
+\label{tab:sentiment_robustness}
+\end{table*}
