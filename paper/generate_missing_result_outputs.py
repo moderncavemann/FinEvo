@@ -278,6 +278,18 @@ def write_main_significance_and_ablation() -> None:
     for row in rows:
         row.update(pvals)
 
+    pvalue_row: dict[str, Any] | None = None
+    if pvals.get("paired_seeds") and any(not math.isnan(float(pvals.get(f"{metric}_paired_p", math.nan))) for metric in ["avg_wealth_final", "gini_final", "unemployment_final_pct", "inflation_dev_abs_pct"]):
+        pvalue_row = {
+            "row_label": "Paired p-value: FinEvo vs text-only",
+            "status": f"matched seeds: {pvals.get('paired_seeds', '')}",
+            "n_runs": len(str(pvals.get("paired_seeds", "")).split(",")) if pvals.get("paired_seeds") else 0,
+            "avg_wealth_final_p": pvals.get("avg_wealth_final_paired_p", math.nan),
+            "gini_final_p": pvals.get("gini_final_paired_p", math.nan),
+            "unemployment_final_pct_p": pvals.get("unemployment_final_pct_paired_p", math.nan),
+            "inflation_dev_abs_pct_p": pvals.get("inflation_dev_abs_pct_paired_p", math.nan),
+        }
+
     e2 = allm[(allm["exp_id"] == "E2") & (allm["model"] == "GPT-5.2")].copy()
     order = [
         "default",
@@ -321,6 +333,24 @@ def write_main_significance_and_ablation() -> None:
             f"{format_mean_std(row.get('inflation_dev_abs_pct_mean', math.nan), row.get('inflation_dev_abs_pct_std', 0.0), 1, 2, r'\%')} & "
             f"{latex_escape(row.get('status', 'complete'))} \\\\"
         )
+        if row.get("row_label") == "GPT-5.2 large-scale FinEvo" and pvalue_row:
+            def fmt_p(value: Any) -> str:
+                try:
+                    val = float(value)
+                except (TypeError, ValueError):
+                    return "TBD"
+                if math.isnan(val):
+                    return "TBD"
+                return f"$p={val:.3g}$"
+
+            lines.append(
+                f"{latex_escape(pvalue_row['row_label'])} & {int(pvalue_row['n_runs'])} & "
+                f"{fmt_p(pvalue_row.get('avg_wealth_final_p'))} & "
+                f"{fmt_p(pvalue_row.get('gini_final_p'))} & "
+                f"{fmt_p(pvalue_row.get('unemployment_final_pct_p'))} & "
+                f"{fmt_p(pvalue_row.get('inflation_dev_abs_pct_p'))} & "
+                f"{latex_escape(pvalue_row['status'])} \\\\"
+            )
     lines += [
         r"\bottomrule",
         r"\end{tabular}",

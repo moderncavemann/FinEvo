@@ -20,11 +20,20 @@ Completed:
 Still missing or pending:
 
 - GPT-5.2 large-scale text-only baseline five-seed export for the main significance table.
+- GPT-5.2 large-scale FinEvo five-seed export for the main significance table.
 - Qwen3-235B large-scale FinEvo seed-13 export.
 - Optional matched five-seed large-scale rows for GPT-4o, Gemini, Qwen, and any clean Llama route.
 - Log-grounded crash-state case-study figure/table.
 - Clean Llama route, if Llama is to be reported quantitatively.
 - Optional heterogeneous-cognitive-depth and rule-survival controls.
+
+Current GPT-5.2 large-scale provenance note:
+
+- `ACL24-EconAgent/data/openai-gpt-5.2-gap_fixed-100agents-240months/summary.json` exists and reports `avg_wealth = 2,614,208.149`, `avg_unemployment = 0.1625%`, `avg_inflation = 9.591%`, with no recorded random seed.
+- `ACL24-EconAgent/data/openai-gpt-5.2-baseline-100agents-240months/summary.json` exists and reports `avg_wealth = 428,417.062`, `avg_unemployment = 15.6083%`, `avg_inflation = 1.7338%`, with no recorded random seed.
+- These legacy folders are single-run provenance for the headline direction only. They are not the five-seed source for standard deviations or paired p-values.
+- No GPT-5.2 large-scale five-seed FinEvo exports are currently visible under `runs/E1/GPT-5.2/finevo/default/seed_*`.
+- `ENMLP26.zip` did not contain visible `gpt-5.2`/`100agents-240months` entries during the current local search.
 
 ## R1. GPT-5.2 Large-Scale Text-Only Baseline Five-Seed Row
 
@@ -61,6 +70,29 @@ Completion criteria:
 - `api_error_rate` and `invalid_action_rate` are near zero.
 - Main row can be summarized for wealth, Gini, unemployment, and inflation deviation.
 - Paired p-values can be recomputed against matched GPT-5.2 FinEvo seeds.
+
+## R1b. GPT-5.2 Large-Scale FinEvo Five-Seed Row
+
+Purpose: provide the matched FinEvo row for the main significance table. If the
+five-seed source exists outside this repository, export it into the normalized
+schema; otherwise rerun the five seeds.
+
+Expected output per seed:
+
+```text
+runs/E1/GPT-5.2/finevo/default/seed_<SEED>/metrics_summary.csv
+runs/E1/GPT-5.2/finevo/default/seed_<SEED>/trajectory.csv
+runs/E1/GPT-5.2/finevo/default/seed_<SEED>/agent_state.csv
+runs/E1/GPT-5.2/finevo/default/seed_<SEED>/actions.jsonl
+runs/E1/GPT-5.2/finevo/default/seed_<SEED>/memory_retrieval.jsonl
+runs/E1/GPT-5.2/finevo/default/seed_<SEED>/semantic_rules.jsonl
+runs/E1/GPT-5.2/finevo/default/seed_<SEED>/api_errors.jsonl
+runs/E1/GPT-5.2/finevo/default/seed_<SEED>/config.yaml
+```
+
+Completion criteria: five matched seeds exist and can be paired against the
+text-only baseline row for paired t-tests. Do not use the legacy single-run
+`gap_fixed` folder as a five-seed result.
 
 ## R2. Qwen3-235B Large-Scale FinEvo Seed-13 Row
 
