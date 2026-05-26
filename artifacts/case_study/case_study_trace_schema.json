@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FinEvo case-study trace",
+  "type": "object",
+  "required": [
+    "trace_id",
+    "selection_rule",
+    "run_metadata",
+    "case_index",
+    "shared_state",
+    "private_state",
+    "text_event",
+    "retrieved_episodic_memory",
+    "retrieved_semantic_rules",
+    "parsed_action",
+    "next_window_outcome",
+    "provenance",
+    "validation"
+  ],
+  "properties": {
+    "trace_id": {
+      "type": "string"
+    },
+    "selection_rule": {
+      "type": "object",
+      "required": [
+        "primary",
+        "fallback_order",
+        "agent_tie_break"
+      ]
+    },
+    "run_metadata": {
+      "type": "object"
+    },
+    "case_index": {
+      "type": "object"
+    },
+    "shared_state": {
+      "type": "object"
+    },
+    "private_state": {
+      "type": "object"
+    },
+    "text_event": {
+      "type": "object"
+    },
+    "retrieved_episodic_memory": {
+      "type": "object"
+    },
+    "retrieved_semantic_rules": {
+      "type": "array"
+    },
+    "parsed_action": {
+      "type": "object"
+    },
+    "next_window_outcome": {
+      "type": "object"
+    },
+    "provenance": {
+      "type": "object"
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "schema_valid",
+        "json_compliant_route",
+        "has_retrieved_memory",
+        "has_semantic_rule",
+        "api_errors_recorded",
+        "parser_repairs_recorded",
+        "acceptable",
+        "missing_fields",
+        "excluded_candidates"
+      ]
+    }
+  }
+}

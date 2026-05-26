@@ -1,0 +1,444 @@
+{
+  "trace_id": "GPT-4o_seed13_m69_a61",
+  "selection_rule": {
+    "primary": "lowest_regime_cue",
+    "fallback_order": [
+      "lowest_regime_cue",
+      "largest_unemployment_jump",
+      "largest_wealth_drawdown"
+    ],
+    "agent_tie_break": "largest absolute action change from previous month among agents with non-empty retrieved episodic memory and matched semantic rule; ties by smaller agent_id"
+  },
+  "run_metadata": {
+    "exp_id": "E1",
+    "model": "GPT-4o",
+    "setting": "finevo",
+    "variant": "default",
+    "seed": 13,
+    "source_run_dir": "runs/E1/GPT-4o/finevo/default/seed_13",
+    "code_commit": "c059606a8d67ad6e9ac245a66c8d4d7f43c0e174",
+    "json_compliant_route": true
+  },
+  "case_index": {
+    "month": 69,
+    "agent_id": 61,
+    "selection_rule_used": "lowest_regime_cue",
+    "selected_rule_ids": [
+      "high_inflation_strategy"
+    ],
+    "retrieved_episode_ids": [
+      "E68",
+      "E67",
+      "E66",
+      "E65",
+      "E64"
+    ]
+  },
+  "shared_state": {
+    "month": 69,
+    "global_sentiment": -0.147817,
+    "unemployment_pct": 0.0,
+    "inflation_pct": 0.0,
+    "inflation_dev_abs_pct": 2.0,
+    "avg_wealth": 441261.359553,
+    "gini": 0.361543,
+    "crash_flag": 0
+  },
+  "private_state": {
+    "agent_id": 61,
+    "wealth": 373131.287852,
+    "income": 10658.031474,
+    "labor_hours": 168.0,
+    "consumption_fraction": 0.06,
+    "employed": 1.0,
+    "private_sentiment": null,
+    "reward": -9709.911845
+  },
+  "text_event": {
+    "value": null,
+    "event_id": null,
+    "event_type": "numeric-only",
+    "missing_reason": "numeric-only or empty textual-event channel"
+  },
+  "retrieved_episodic_memory": {
+    "retrieved_episode_ids": [
+      "E68",
+      "E67",
+      "E66",
+      "E65",
+      "E64"
+    ],
+    "retrieval_scores": [
+      0.9786287580522663,
+      0.9549072044107436,
+      0.9386733717674378,
+      0.9227840749264065,
+      0.9051822033380406
+    ],
+    "score_components": [
+      {
+        "episode_id": "E68",
+        "recency": 0.38,
+        "similarity": 0.3986287580522663,
+        "importance": 0.2,
+        "regime_match": 0.0
+      },
+      {
+        "episode_id": "E67",
+        "recency": 0.361,
+        "similarity": 0.39390720441074367,
+        "importance": 0.2,
+        "regime_match": 0.0
+      },
+      {
+        "episode_id": "E66",
+        "recency": 0.34295,
+        "similarity": 0.39572337176743777,
+        "importance": 0.2,
+        "regime_match": 0.0
+      },
+      {
+        "episode_id": "E65",
+        "recency": 0.3258025,
+        "similarity": 0.3969815749264065,
+        "importance": 0.2,
+        "regime_match": 0.0
+      },
+      {
+        "episode_id": "E64",
+        "recency": 0.30951237499999995,
+        "similarity": 0.3956698283380406,
+        "importance": 0.2,
+        "regime_match": 0.0
+      }
+    ],
+    "episode_summaries": [
+      {
+        "episode_id": "E68",
+        "month": 68,
+        "macro": {
+          "global_sentiment": -0.120467,
+          "unemployment_pct": 0.0,
+          "inflation_pct": 0.0,
+          "gini": 0.361419
+        },
+        "agent_state": {
+          "wealth": 361823.778378,
+          "income": 10517.506418,
+          "labor_hours": 168.0,
+          "consumption_fraction": 0.06
+        },
+        "prior_action": {
+          "work": 1.0,
+          "labor_hours": 168.0,
+          "consumption_fraction": 0.06
+        },
+        "prior_rationale_excerpt": "Consistent consumption helps stabilize wealth during inflationary periods."
+      },
+      {
+        "episode_id": "E67",
+        "month": 67,
+        "macro": {
+          "global_sentiment": -0.051963,
+          "unemployment_pct": 0.0,
+          "inflation_pct": 0.0,
+          "gini": 0.358836
+        },
+        "agent_state": {
+          "wealth": 373761.849508,
+          "income": 10175.905771,
+          "labor_hours": 168.0,
+          "consumption_fraction": 0.06
+        },
+        "prior_action": {
+          "work": 1.0,
+          "labor_hours": 168.0,
+          "consumption_fraction": 0.06
+        },
+        "prior_rationale_excerpt": "Maintaining a steady consumption rate helps manage wealth during inflation."
+      },
+      {
+        "episode_id": "E66",
+        "month": 66,
+        "macro": {
+          "global_sentiment": 0.041554,
+          "unemployment_pct": 0.0,
+          "inflation_pct": 0.0,
+          "gini": 0.361119
+        },
+        "agent_state": {
+          "wealth": 362924.38815,
+          "income": 9947.732767,
+          "labor_hours": 168.0,
+          "consumption_fraction": 0.04
+        },
+        "prior_action": {
+          "work": 1.0,
+          "labor_hours": 168.0,
+          "consumption_fraction": 0.06
+        },
+        "prior_rationale_excerpt": "Despite inflation, maintaining a moderate consumption level is crucial to avoid wealth depletion."
+      }
+    ],
+    "memory_block_hash": "40e37c0d2d9700bd3f22a3256faea8049e5862b84f899805ed16e832240ecab6"
+  },
+  "retrieved_semantic_rules": [
+    {
+      "rule_id": "high_inflation_strategy",
+      "condition": "inflation is high (>3%)",
+      "action_guidance": "reduce consumption to 20%",
+      "confidence": 0.6666666666666666,
+      "source_episode_ids": [
+        "E60",
+        "E61",
+        "E62",
+        "E60",
+        "E61",
+        "E62",
+        "E63",
+        "E64",
+        "E65",
+        "E63",
+        "E64",
+        "E65",
+        "E66",
+        "E67",
+        "E68"
+      ],
+      "coded_category": [],
+      "validity_note": "supported_by_episode"
+    }
+  ],
+  "parsed_action": {
+    "work": 1.0,
+    "labor_hours": 168.0,
+    "consumption_fraction": 0.2,
+    "rationale_excerpt": "Adjusting consumption to 20% may better align with high inflation conditions.",
+    "valid_json": true,
+    "repair_attempts": 1,
+    "clipped": false,
+    "prompt_hash": "f3aa826ff0f82da4b6325dd35f67d351f23613f8919398a7baf7a23784d4c943",
+    "raw_action_hash": "a4d71e1244a3141136ac9f892f9a362319ee4e26c619a14d11f98f9062601b68"
+  },
+  "next_window_outcome": {
+    "window_months": [
+      69,
+      75
+    ],
+    "avg_wealth_delta": 55737.373542,
+    "unemployment_delta_pct": 0.0,
+    "inflation_dev_delta_pct": 0.0,
+    "gini_delta": -0.004561,
+    "end_state": {
+      "month": 75,
+      "avg_wealth": 496998.733096,
+      "unemployment_pct": 0.0,
+      "inflation_dev_abs_pct": 2.0,
+      "gini": 0.356981
+    }
+  },
+  "provenance": {
+    "selection_rule": {
+      "path": "runs/E1/GPT-4o/finevo/default/seed_13/trajectory.csv",
+      "rule_source": "deterministic ordering implemented in extract_case_study.py"
+    },
+    "run_metadata": {
+      "config": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/config.yaml"
+      },
+      "metrics": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/metrics_summary.csv",
+        "row_index": 0
+      }
+    },
+    "case_index": {
+      "retrieval": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/memory_retrieval.jsonl",
+        "line_index": 6961
+      },
+      "action": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/actions.jsonl",
+        "line_index": 6961
+      }
+    },
+    "shared_state": {
+      "path": "runs/E1/GPT-4o/finevo/default/seed_13/trajectory.csv",
+      "row_index": 69
+    },
+    "private_state": {
+      "path": "runs/E1/GPT-4o/finevo/default/seed_13/agent_state.csv",
+      "row_index": 6961
+    },
+    "text_event": {
+      "path": "runs/E1/GPT-4o/finevo/default/seed_13/event_log.csv",
+      "row_index": 69
+    },
+    "retrieved_episodic_memory": {
+      "path": "runs/E1/GPT-4o/finevo/default/seed_13/memory_retrieval.jsonl",
+      "line_index": 6961,
+      "derived_episode_sources": [
+        {
+          "episode_id": "E68",
+          "trajectory": {
+            "path": "runs/E1/GPT-4o/finevo/default/seed_13/trajectory.csv",
+            "row_index": 68
+          },
+          "agent_state": {
+            "path": "runs/E1/GPT-4o/finevo/default/seed_13/agent_state.csv",
+            "row_index": 6861
+          },
+          "action": {
+            "path": "runs/E1/GPT-4o/finevo/default/seed_13/actions.jsonl",
+            "line_index": 6861
+          }
+        },
+        {
+          "episode_id": "E67",
+          "trajectory": {
+            "path": "runs/E1/GPT-4o/finevo/default/seed_13/trajectory.csv",
+            "row_index": 67
+          },
+          "agent_state": {
+            "path": "runs/E1/GPT-4o/finevo/default/seed_13/agent_state.csv",
+            "row_index": 6761
+          },
+          "action": {
+            "path": "runs/E1/GPT-4o/finevo/default/seed_13/actions.jsonl",
+            "line_index": 6761
+          }
+        },
+        {
+          "episode_id": "E66",
+          "trajectory": {
+            "path": "runs/E1/GPT-4o/finevo/default/seed_13/trajectory.csv",
+            "row_index": 66
+          },
+          "agent_state": {
+            "path": "runs/E1/GPT-4o/finevo/default/seed_13/agent_state.csv",
+            "row_index": 6661
+          },
+          "action": {
+            "path": "runs/E1/GPT-4o/finevo/default/seed_13/actions.jsonl",
+            "line_index": 6661
+          }
+        }
+      ]
+    },
+    "retrieved_semantic_rules": [
+      {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/semantic_rules.jsonl",
+        "line_index": 261
+      }
+    ],
+    "parsed_action": {
+      "path": "runs/E1/GPT-4o/finevo/default/seed_13/actions.jsonl",
+      "line_index": 6961
+    },
+    "next_window_outcome": {
+      "path": "runs/E1/GPT-4o/finevo/default/seed_13/trajectory.csv",
+      "start_row_index": 69,
+      "end_row_index": 75
+    },
+    "api_errors": {
+      "path": "runs/E1/GPT-4o/finevo/default/seed_13/api_errors.jsonl",
+      "record_count": 0
+    },
+    "parser_repairs": {
+      "path": "runs/E1/GPT-4o/finevo/default/seed_13/actions.jsonl",
+      "line_index": 6961,
+      "fields": [
+        "valid_json",
+        "repair_attempts",
+        "clipped"
+      ]
+    },
+    "hashes": {
+      "prompt_hash": "f3aa826ff0f82da4b6325dd35f67d351f23613f8919398a7baf7a23784d4c943",
+      "raw_action_hash": "a4d71e1244a3141136ac9f892f9a362319ee4e26c619a14d11f98f9062601b68",
+      "memory_block_hash": "40e37c0d2d9700bd3f22a3256faea8049e5862b84f899805ed16e832240ecab6",
+      "rule_block_hash": "c86d4078da6721ee1b1f3d4e6aff5a93dac436f977a5c2f25b5df36e00666032"
+    }
+  },
+  "validation": {
+    "schema_valid": true,
+    "json_compliant_route": true,
+    "has_retrieved_memory": true,
+    "has_semantic_rule": true,
+    "api_errors_recorded": true,
+    "parser_repairs_recorded": true,
+    "acceptable": true,
+    "missing_fields": [
+      {
+        "field": "text_event.value",
+        "reason": "numeric-only or empty textual-event channel"
+      }
+    ],
+    "excluded_candidates": [
+      {
+        "run_dir": "runs/E2/GPT-5.2/finevo/default/seed_13",
+        "reasons": [
+          "missing non-empty semantic_rules.jsonl or reflection_logs.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E2/GPT-5.2/finevo/default/seed_2026",
+        "reasons": [
+          "missing non-empty semantic_rules.jsonl or reflection_logs.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E2/GPT-5.2/finevo/default/seed_21",
+        "reasons": [
+          "missing non-empty semantic_rules.jsonl or reflection_logs.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E2/GPT-5.2/finevo/default/seed_42",
+        "reasons": [
+          "missing non-empty semantic_rules.jsonl or reflection_logs.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E2/GPT-5.2/finevo/default/seed_87",
+        "reasons": [
+          "missing non-empty semantic_rules.jsonl or reflection_logs.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E5/GPT-5.2/finevo/default-prompt/seed_13",
+        "reasons": [
+          "missing non-empty semantic_rules.jsonl or reflection_logs.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E5/GPT-5.2/finevo/default-prompt/seed_2026",
+        "reasons": [
+          "missing non-empty semantic_rules.jsonl or reflection_logs.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E5/GPT-5.2/finevo/default-prompt/seed_21",
+        "reasons": [
+          "missing non-empty semantic_rules.jsonl or reflection_logs.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E5/GPT-5.2/finevo/default-prompt/seed_42",
+        "reasons": [
+          "missing non-empty semantic_rules.jsonl or reflection_logs.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E5/GPT-5.2/finevo/default-prompt/seed_87",
+        "reasons": [
+          "missing non-empty semantic_rules.jsonl or reflection_logs.jsonl"
+        ]
+      }
+    ],
+    "notes": [
+      "The trace is a log-grounded example only and is not used for cross-model causal claims.",
+      "Raw prompts and API outputs are redacted by hash."
+    ],
+    "schema_errors": []
+  }
+}

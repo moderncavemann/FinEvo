@@ -1,2 +1,3 @@
 model,baseline_rows,finevo_rows,status
+GPT-5.2,3,0,missing paired FinEvo or baseline
 Qwen3-235B,1,0,missing paired FinEvo or baseline
