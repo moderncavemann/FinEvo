@@ -19,7 +19,7 @@ Completed:
 
 Still missing or pending:
 
-- GPT-5.2 large-scale text-only baseline five-seed export for the main significance table.
+- GPT-5.2 large-scale text-only baseline export for the main significance table. Current operational target: three seeds (`13,21,42`).
 - GPT-5.2 large-scale FinEvo five-seed export for the main significance table.
 - Qwen3-235B large-scale FinEvo seed-13 export.
 - Optional matched five-seed large-scale rows for GPT-4o, Gemini, Qwen, and any clean Llama route.
@@ -35,11 +35,12 @@ Current GPT-5.2 large-scale provenance note:
 - No GPT-5.2 large-scale five-seed FinEvo exports are currently visible under `runs/E1/GPT-5.2/finevo/default/seed_*`.
 - `ENMLP26.zip` did not contain visible `gpt-5.2`/`100agents-240months` entries during the current local search.
 
-## R1. GPT-5.2 Large-Scale Text-Only Baseline Five-Seed Row
+## R1. GPT-5.2 Large-Scale Text-Only Baseline Row
 
 Purpose: complete the main significance table. The matched text-only GPT-5.2
 baseline row must be exported as mean +/- standard deviation before final
-submission.
+submission. The current run target is three seeds (`13,21,42`) to keep the
+large-scale table on schedule.
 
 Inputs:
 
@@ -47,7 +48,7 @@ Inputs:
 - setting: text-only baseline
 - agents: 100
 - months: 240
-- seeds: `13,21,42,87,2026`
+- seeds: `13,21,42`
 - temperature: `0.2`
 - top_p: `1.0`
 - decision max tokens: `800`
@@ -66,7 +67,7 @@ runs/E1/GPT-5.2/text-only/baseline/seed_<SEED>/config.yaml
 
 Completion criteria:
 
-- Five `metrics_summary.csv` files exist.
+- Three `metrics_summary.csv` files exist for the current operational target.
 - `api_error_rate` and `invalid_action_rate` are near zero.
 - Main row can be summarized for wealth, Gini, unemployment, and inflation deviation.
 - Paired p-values can be recomputed against matched GPT-5.2 FinEvo seeds.

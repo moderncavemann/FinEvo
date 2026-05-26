@@ -13,7 +13,7 @@ set +a
 
 mkdir -p logs
 
-seeds="${SEEDS:-13 21 42 87 2026}"
+seeds="${SEEDS:-13 21 42}"
 workers="${WORKERS:-8}"
 api_access_date="$(date -u +%Y-%m-%d)"
 code_commit="$(git rev-parse HEAD)"
