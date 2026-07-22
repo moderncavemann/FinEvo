@@ -55,12 +55,17 @@ jobs:
         run: |
           set -euo pipefail
           git diff --check
+          git show --check --format= --no-renames HEAD
           zero_sha=0000000000000000000000000000000000000000
           if [[ -n "${EVENT_BASE_SHA:-}" && "${EVENT_BASE_SHA}" != "${zero_sha}" ]] \
             && git cat-file -e "${EVENT_BASE_SHA}^{commit}" 2>/dev/null; then
-            git diff --check "${EVENT_BASE_SHA}...HEAD"
-          else
-            git show --check --format= --no-renames HEAD
+            # The branch contains byte-preserved historical CSV/JSON fixtures
+            # with legacy CRLF/trailing whitespace. Check the accumulated PR
+            # source/document patch without rewriting those evidence bytes;
+            # HEAD itself is still checked across every path above.
+            git diff --check "${EVENT_BASE_SHA}...HEAD" -- \
+              '*.py' '*.md' '*.tex' '*.yml' '*.yaml' '*.toml' '*.sh' \
+              ':(exclude)artifacts/**'
           fi
 
       - name: Re-hash six tracked sealed manifests
