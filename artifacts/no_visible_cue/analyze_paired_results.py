@@ -263,6 +263,9 @@ def analyze(
     expected = set(expected_seeds)
     status = {
         "analysis": "e9_same_day_cue_visibility_pair_v1",
+        "evidence_scope": "historical_pre_p0_v1",
+        "current_method_scientific_evidence": False,
+        "method_implementation": "legacy_simulate_py_deterministic_template_memory",
         "status": "complete" if set(paired_seeds) == expected else "pending_or_partial",
         "expected_seeds": expected_seeds,
         "visible_seeds": sorted(visible),
@@ -287,6 +290,12 @@ def write_report(
     summary: list[dict[str, Any]],
 ) -> None:
     lines = [
+        "> [!WARNING]",
+        "> **HISTORICAL PRE-P0 V1 EVIDENCE ONLY**",
+        ">",
+        "> This E9 pair used legacy `simulate.py` and deterministic-template memory. Its",
+        "> completion does not constitute current M1 route-decomposition evidence.",
+        "",
         "# E9 paired cue-visibility analysis",
         "",
         f"Status: **{status['status']}**",

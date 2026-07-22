@@ -1,3 +1,9 @@
+> [!WARNING]
+> **HISTORICAL PRE-P0 V1 EVIDENCE ONLY**
+>
+> These notes cover the legacy deterministic-template audit, not current
+> Evidence-Grounded Rule Memory v2.
+
 # FinEvo rule-audit source notes
 
 ## Report contract

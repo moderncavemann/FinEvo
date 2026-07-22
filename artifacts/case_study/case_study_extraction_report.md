@@ -1,3 +1,10 @@
+> [!WARNING]
+> **HISTORICAL PRE-P0 V1 EVIDENCE ONLY**
+>
+> This trace comes from the legacy GPT-4o E1 deterministic-template system. It
+> is not a current-method trace and must not be used as evidence for Evidence-
+> Grounded Rule Memory v2.
+
 # Case Study Extraction and Validation Report
 
 ## Verdict

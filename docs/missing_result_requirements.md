@@ -1,3 +1,10 @@
+> [!WARNING]
+> **HISTORICAL PRE-P0 V1 EVIDENCE ONLY**
+>
+> This document records the legacy deterministic-template experiment package.
+> Its completed/pending labels are not the status of current Evidence-Grounded
+> Rule Memory v2 experiments and must not be used as a current run contract.
+
 # FinEvo Missing-Result and Integration Requirements
 
 This file is for internal integration only. Do not copy internal experiment IDs

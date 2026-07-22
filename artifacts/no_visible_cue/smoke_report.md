@@ -1,3 +1,9 @@
+> [!WARNING]
+> **HISTORICAL PRE-P0 V1 EVIDENCE ONLY**
+>
+> This code-path smoke used legacy `simulate.py`; it is not current-method
+> scientific evidence or current M1 route validation.
+
 # No-visible-cue paired smoke report
 
 Date: 2026-07-10

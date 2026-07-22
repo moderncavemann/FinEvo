@@ -48,6 +48,9 @@ SCHEMA: dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
     "required": [
+        "evidence_scope",
+        "current_method_scientific_evidence",
+        "method_implementation",
         "trace_id",
         "trace_scope",
         "selection_rule",
@@ -95,6 +98,9 @@ SCHEMA: dict[str, Any] = {
         },
     },
     "properties": {
+        "evidence_scope": {"const": "historical_pre_p0_v1"},
+        "current_method_scientific_evidence": {"const": False},
+        "method_implementation": {"const": "legacy_deterministic_template_memory"},
         "trace_id": {"type": "string", "minLength": 1},
         "trace_scope": {
             "type": "object",
@@ -1093,6 +1099,9 @@ def build_trace(
     raw_output = str(action_line.data.get("raw_output") or "")
 
     trace: dict[str, Any] = {
+        "evidence_scope": "historical_pre_p0_v1",
+        "current_method_scientific_evidence": False,
+        "method_implementation": "legacy_deterministic_template_memory",
         "trace_id": (
             f"{metrics.get('model')}_seed{metrics.get('seed')}_m{month}_a{agent_id}"
         ).replace(" ", "_"),
@@ -1592,6 +1601,17 @@ def write_figure(trace: dict[str, Any]) -> None:
     axis.axis("off")
     positions = [0.1, 0.3, 0.5, 0.7, 0.9]
     colors = ["#e8f1fb", "#fff2cc", "#e8f5e9", "#fce4ec", "#eeeeee"]
+    axis.text(
+        0.5,
+        0.965,
+        "HISTORICAL PRE-P0 V1 EVIDENCE ONLY - legacy GPT-4o E1 trace, not current-method evidence",
+        ha="center",
+        va="center",
+        fontsize=10.0,
+        fontweight="bold",
+        color="#8b1e1e",
+        transform=axis.transAxes,
+    )
     for index, ((title, body), x_value, color) in enumerate(zip(boxes, positions, colors)):
         label = f"{title}\n\n{wrap_multiline(body, 29)}"
         axis.text(
@@ -1639,8 +1659,24 @@ def write_figure(trace: dict[str, Any]) -> None:
         transform=axis.transAxes,
     )
     figure.tight_layout()
-    figure.savefig(OUT_DIR / "case_study_trace_figure.pdf", bbox_inches="tight")
-    figure.savefig(OUT_DIR / "case_study_trace_figure.png", bbox_inches="tight", dpi=220)
+    figure.savefig(
+        OUT_DIR / "case_study_trace_figure.pdf",
+        bbox_inches="tight",
+        metadata={
+            "Title": "FinEvo historical observational case trace",
+            "Subject": "HISTORICAL PRE-P0 V1 EVIDENCE ONLY",
+            "CreationDate": None,
+        },
+    )
+    figure.savefig(
+        OUT_DIR / "case_study_trace_figure.png",
+        bbox_inches="tight",
+        dpi=220,
+        metadata={
+            "Title": "FinEvo historical observational case trace",
+            "Description": "HISTORICAL PRE-P0 V1 EVIDENCE ONLY",
+        },
+    )
     plt.close(figure)
 
 
@@ -1651,6 +1687,13 @@ def report_text(trace: dict[str, Any]) -> str:
     action = trace["parsed_action"]
     outcome = trace["next_window_outcome"]
     lines = [
+        "> [!WARNING]",
+        "> **HISTORICAL PRE-P0 V1 EVIDENCE ONLY**",
+        ">",
+        "> This trace comes from the legacy GPT-4o E1 deterministic-template system. It",
+        "> is not a current-method trace and must not be used as evidence for Evidence-",
+        "> Grounded Rule Memory v2.",
+        "",
         "# Case Study Extraction and Validation Report",
         "",
         "## Verdict",
@@ -1759,11 +1802,14 @@ def verify_outputs(expected: dict[str, Any]) -> None:
         path = OUT_DIR / name
         if not file_nonempty(path):
             errors.append(f"missing or empty figure: {name}")
+        elif b"HISTORICAL PRE-P0 V1 EVIDENCE ONLY" not in path.read_bytes():
+            errors.append(f"historical evidence marker missing from figure: {name}")
     if errors:
         raise SystemExit("verification failed:\n- " + "\n- ".join(errors))
     print(
         f"verified {actual['trace_id']}: schema, fresh extraction, CSV/report, "
-        f"{len(actual['provenance']['files'])} file hashes, and figure presence"
+        f"{len(actual['provenance']['files'])} file hashes, and labeled figures "
+        "[historical_pre_p0_v1; current_method_scientific_evidence=false]"
     )
 
 
@@ -1800,7 +1846,9 @@ def main() -> None:
     print(
         "publishable_as_observational_trace="
         f"{trace['validation']['publishable_as_observational_trace']} "
-        f"supports_causal_attribution={trace['validation']['supports_causal_attribution']}"
+        f"supports_causal_attribution={trace['validation']['supports_causal_attribution']} "
+        "evidence_scope=historical_pre_p0_v1 "
+        "current_method_scientific_evidence=false"
     )
 
 

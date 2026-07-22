@@ -1,5 +1,8 @@
 {
   "experiment": "E9 same-day visible-cue-control vs no-visible-cue",
+  "evidence_scope": "historical_pre_p0_v1",
+  "current_method_scientific_evidence": false,
+  "method_implementation": "legacy_simulate_py_deterministic_template_memory",
   "api_access_date": "2026-07-10",
   "base_git_commit": "38a393a7fc2054d40c40e70466813edc386ab325",
   "base_commit_does_not_contain_e9_patch": true,

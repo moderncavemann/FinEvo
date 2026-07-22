@@ -1,3 +1,9 @@
+> [!WARNING]
+> **HISTORICAL PRE-P0 V1 EVIDENCE ONLY**
+>
+> This validation record covers the legacy deterministic-template audit, not
+> current Evidence-Grounded Rule Memory v2.
+
 # Rule-audit validation record
 
 Validated on 2026-07-10 against the local source artifacts.

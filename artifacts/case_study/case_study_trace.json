@@ -1,4 +1,7 @@
 {
+  "evidence_scope": "historical_pre_p0_v1",
+  "current_method_scientific_evidence": false,
+  "method_implementation": "legacy_deterministic_template_memory",
   "trace_id": "GPT-4o_seed13_m69_a61",
   "trace_scope": {
     "classification": "observational_closed_loop_trace",
@@ -26,7 +29,7 @@
     "source_run_dir": "runs/E1/GPT-4o/finevo/default/seed_13",
     "raw_source_dir": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months",
     "simulation_code_commit": "5f7f750ba6aea321c4c12d4e4e7121c3e63d83b2",
-    "extractor_script_sha256": "c76e3ae9341844bb20f8f4955b3f83646a131039819f98fc5bb82cff6c731f23",
+    "extractor_script_sha256": "4a9d3298fd306a98d4489e4255ec30b7922fe30922a17b56053bbec4b5b4e858",
     "legacy_export_note": "Some JSONL fields are blank because old rebuttal runs did not log raw prompts, raw outputs, retrieval traces, or API errors in the EMNLP schema."
   },
   "case_index": {
@@ -373,8 +376,8 @@
     "files": {
       "extractor_script": {
         "path": "artifacts/case_study/extract_case_study.py",
-        "sha256": "c76e3ae9341844bb20f8f4955b3f83646a131039819f98fc5bb82cff6c731f23",
-        "size_bytes": 76907,
+        "sha256": "4a9d3298fd306a98d4489e4255ec30b7922fe30922a17b56053bbec4b5b4e858",
+        "size_bytes": 78761,
         "role": "case-study extractor"
       },
       "config": {

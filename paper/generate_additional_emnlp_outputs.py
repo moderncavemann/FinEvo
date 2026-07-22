@@ -67,6 +67,33 @@ COLORS = {
     "natural-language-plus-json": "#8c564b",
 }
 
+LEGACY_TEX_GUARD = [
+    r"\ifdefined\FinEvoAllowHistoricalPrePZeroEvidence\else",
+    r"\errmessage{HISTORICAL PRE-P0 V1 evidence requires explicit legacy opt-in}",
+    r"\fi",
+]
+HISTORICAL_FIGURE_LABEL = (
+    "HISTORICAL PRE-P0 V1 EVIDENCE ONLY - not current-method scientific evidence"
+)
+LEGACY_TABLE_METADATA = {
+    "evidence_scope": "historical_pre_p0_v1",
+    "current_method_scientific_evidence": False,
+    "method_implementation": "legacy_simulate_py_deterministic_template_memory",
+}
+
+
+def write_legacy_tex(path: Path, lines: list[str]) -> None:
+    """Write legacy tables with the same fail-closed opt-in as checked-in TeX."""
+    path.write_text("\n".join([*LEGACY_TEX_GUARD, *lines]) + "\n")
+
+
+def write_legacy_csv(dataframe: pd.DataFrame, path: Path, **kwargs: object) -> None:
+    """Write a derived table with explicit standalone evidence-scope columns."""
+    labeled = dataframe.copy()
+    for column, value in reversed(list(LEGACY_TABLE_METADATA.items())):
+        labeled.insert(0, column, value)
+    labeled.to_csv(path, index=False, **kwargs)
+
 
 def read_all_metrics() -> pd.DataFrame:
     paths = sorted(RUNS.glob("**/seed_*/metrics_summary.csv"))
@@ -129,8 +156,31 @@ def summarize(df: pd.DataFrame, exp_id: str) -> pd.DataFrame:
 
 
 def save_figure(fig: plt.Figure, name: str) -> None:
-    fig.savefig(FIGS / f"{name}.pdf", bbox_inches="tight")
-    fig.savefig(FIGS / f"{name}.png", bbox_inches="tight", dpi=180)
+    fig.subplots_adjust(bottom=max(fig.subplotpars.bottom, 0.10))
+    fig.text(
+        0.5,
+        0.012,
+        HISTORICAL_FIGURE_LABEL,
+        ha="center",
+        va="bottom",
+        fontsize=8,
+        fontweight="bold",
+        color="#8b1e1e",
+    )
+    fig.savefig(
+        FIGS / f"{name}.pdf",
+        bbox_inches="tight",
+        metadata={
+            "Subject": "HISTORICAL PRE-P0 V1 EVIDENCE ONLY",
+            "CreationDate": None,
+        },
+    )
+    fig.savefig(
+        FIGS / f"{name}.png",
+        bbox_inches="tight",
+        dpi=180,
+        metadata={"Description": "HISTORICAL PRE-P0 V1 EVIDENCE ONLY"},
+    )
     plt.close(fig)
     print(f"[fig] {FIGS / (name + '.pdf')}")
 
@@ -256,7 +306,7 @@ def write_cost_error_tables(allm: pd.DataFrame) -> None:
             row[f"{col}_std"] = vals.std(ddof=1) if len(vals) > 1 else 0.0
         rows.append(row)
     out = pd.DataFrame(rows).sort_values(["exp_id", "variant"])
-    out.to_csv(TABLES / "appendix_cost_error_summary.csv", index=False)
+    write_legacy_csv(out, TABLES / "appendix_cost_error_summary.csv")
     print(f"[table] {TABLES / 'appendix_cost_error_summary.csv'}")
 
     lines = [
@@ -284,7 +334,7 @@ def write_cost_error_tables(allm: pd.DataFrame) -> None:
         r"\label{tab:appendix_cost_error}",
         r"\end{table*}",
     ]
-    (TEX / "table_appendix_cost_error.tex").write_text("\n".join(lines) + "\n")
+    write_legacy_tex(TEX / "table_appendix_cost_error.tex", lines)
     print(f"[tex] {TEX / 'table_appendix_cost_error.tex'}")
 
 
@@ -316,7 +366,11 @@ def write_event_fixture_examples() -> None:
                 "shuffled_from_month": row.get("shuffled_from_month", ""),
             })
     out = pd.DataFrame(rows)
-    out.to_csv(TABLES / "E4_event_fixture_examples.csv", index=False, quoting=csv.QUOTE_MINIMAL)
+    write_legacy_csv(
+        out,
+        TABLES / "E4_event_fixture_examples.csv",
+        quoting=csv.QUOTE_MINIMAL,
+    )
     print(f"[table] {TABLES / 'E4_event_fixture_examples.csv'}")
 
     lines = [
@@ -344,15 +398,24 @@ def write_event_fixture_examples() -> None:
         r"\label{tab:e4_event_fixture_examples}",
         r"\end{table*}",
     ]
-    (TEX / "table_e4_event_fixture_examples.tex").write_text("\n".join(lines) + "\n")
+    write_legacy_tex(TEX / "table_e4_event_fixture_examples.tex", lines)
     print(f"[tex] {TEX / 'table_e4_event_fixture_examples.tex'}")
 
 
 def main() -> None:
     allm = read_all_metrics()
     summaries = {exp: summarize(allm, exp) for exp in ["E2", "E3", "E4", "E5"]}
+    # Preserve the historical E1 summary's baseline-only contract. Paired
+    # FinEvo rows live in E1_diagnostic_summary.csv instead.
+    e1_summary = summarize(allm, "E1")
+    e1_summary = e1_summary[
+        (e1_summary["setting"] == "text-only")
+        & (e1_summary["variant"] == "baseline")
+        & e1_summary["model"].isin(["GPT-4o", "Gemini-3-Flash", "Qwen3-235B"])
+    ]
+    write_legacy_csv(e1_summary, TABLES / "E1_summary.csv")
     for exp, summary in summaries.items():
-        summary.to_csv(TABLES / f"{exp}_summary.csv", index=False)
+        write_legacy_csv(summary, TABLES / f"{exp}_summary.csv")
 
     plot_grouped_summary(
         summaries["E4"],

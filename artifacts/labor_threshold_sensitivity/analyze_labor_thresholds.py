@@ -425,6 +425,13 @@ def write_report(
     }
 
     lines = [
+        "> [!WARNING]",
+        "> **HISTORICAL PRE-P0 V1 EVIDENCE ONLY**",
+        ">",
+        "> This audit covers the legacy binary 0/168-hour execution path. It is not",
+        "> utility calibration or action-distribution evidence for current Evidence-",
+        "> Grounded Rule Memory v2.",
+        "",
         "# Labor-hours threshold sensitivity audit",
         "",
         "## Scope and provenance",
@@ -546,6 +553,9 @@ def main() -> None:
         json.dump(
             {
                 "analysis": "labor_threshold_sensitivity_v1",
+                "evidence_scope": "historical_pre_p0_v1",
+                "current_method_scientific_evidence": False,
+                "method_implementation": "legacy_binary_labor_simulate_py",
                 "thresholds_strict_lt_hours": thresholds,
                 "max_labor_hours": args.max_labor_hours,
                 "matched_seeds": sorted(

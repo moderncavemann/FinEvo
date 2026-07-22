@@ -1127,6 +1127,9 @@ def _html_report(
         })
 
     payload = {
+        "evidence_scope": "historical_pre_p0_v1",
+        "current_method_scientific_evidence": False,
+        "method_implementation": "legacy_deterministic_template_memory",
         "charts": [{
             "id": "rule-update-events",
             "height": max(320, 68 + 46 * len(chart_rows)),
@@ -1236,6 +1239,7 @@ def _html_report(
   </style>
 </head>
 <body><div class="shell"><header class="topbar"><div class="brand"><span class="mark"></span>FinEvo audit</div><div class="meta">Trusted local logs · deterministic regeneration</div></header>
+<div role="note" data-evidence-scope="historical-pre-p0-v1" style="margin:20px 24px 0;padding:14px 16px;border:2px solid var(--warning);border-radius:14px;background:var(--warning-bg)"><strong>HISTORICAL PRE-P0 V1 EVIDENCE ONLY.</strong> This report audits the legacy deterministic-template implementation and must not be cited as evidence for current Evidence-Grounded Rule Memory v2.</div>
 <main data-report-audience="technical">
   <article class="reading">
     <div class="kicker">Technical evidence report</div>
@@ -1243,7 +1247,7 @@ def _html_report(
     <p class="deck">The available logs support a narrow mechanical-provenance claim for two single-seed E1 runs, but they do not support a claim that LLM reflection proposals were accepted or rejected by a hallucination filter.</p>
     <section class="summary" data-contract-section="technical-summary"><div class="summary-label">Technical summary</div><div class="summary-body">
       <p><strong>What is observed:</strong> {_tooltip(_fmt_int(total_updates), 'src-summary-1', 'semantic_rules.jsonl; memory_*.pkl')} accepted create/merge update events were reconstructed in GPT-4o and Gemini E1 seed 13. Of these, {_tooltip(_fmt_int(total_verified), 'src-summary-2', 'semantic_rules.jsonl; memory_*.pkl')} match the implemented condition, strategy, provenance, and confidence equations; {_tooltip(_fmt_int(total_contradicted), 'src-summary-3', 'semantic_rules.jsonl; memory_*.pkl')} are mechanically contradicted.</p>
-      <p><strong>What is not observed:</strong> the current implementation has no LLM-generated candidate-rule stream or rejection event, so proposed/rejected/hallucinated-rule rates are not computable. All observed semantic rules are one hard-coded template, <code>high_inflation_strategy</code>.</p>
+      <p><strong>What is not observed:</strong> the audited legacy implementation has no LLM-generated candidate-rule stream or rejection event, so proposed/rejected/hallucinated-rule rates are not computable. All observed semantic rules are one hard-coded template, <code>high_inflation_strategy</code>.</p>
       <p><strong>Material risk:</strong> {_tooltip(_fmt_pct(_ratio(total_reused,total_refs)), 'src-summary-4', 'semantic_rules.jsonl; memory_*.pkl')} of source references in accepted updates reuse an episode already cited by an earlier update for the same agent/rule. Confidence updates therefore reuse overlapping evidence rather than independent quarterly samples.</p>
       <p><strong>GPT-5.2 limitation:</strong> all {_tooltip(_fmt_int(len(zero)), 'src-summary-5', 'semantic_rules.jsonl; memory_final.pkl')} audited E2 full seeds contain zero semantic rules because neither trigger threshold was reached. They cannot validate semantic-rule reliability or backbone differences.</p>
     </div></section>
@@ -1330,7 +1334,13 @@ def _metric_availability_rows(audits: Sequence[RunAudit], horizon: int) -> List[
 
 
 def _source_notes(audits: Sequence[RunAudit], horizon: int, high_confidence: float, embed_status: str) -> str:
-    return f"""# FinEvo rule-audit source notes
+    return f"""> [!WARNING]
+> **HISTORICAL PRE-P0 V1 EVIDENCE ONLY**
+>
+> These notes cover the legacy deterministic-template audit, not current
+> Evidence-Grounded Rule Memory v2.
+
+# FinEvo rule-audit source notes
 
 ## Report contract
 
@@ -1423,6 +1433,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     manifest = {
         "schema_version": 1,
+        "evidence_scope": "historical_pre_p0_v1",
+        "current_method_scientific_evidence": False,
+        "method_implementation": "legacy_deterministic_template_memory",
         "command": "python artifacts/rule_audit/audit_semantic_rules.py",
         "run_dirs": [str(path.relative_to(REPO_ROOT)) if path.is_relative_to(REPO_ROOT) else str(path) for path in run_dirs],
         "horizon": args.horizon,
@@ -1440,6 +1453,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     (output_dir / "audit_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     print(json.dumps({
+        "evidence_scope": "historical_pre_p0_v1",
+        "current_method_scientific_evidence": False,
+        "method_implementation": "legacy_deterministic_template_memory",
         "report": str(report_path),
         "runs": len(audits),
         "semantic_snapshot_rows": len(snapshots),

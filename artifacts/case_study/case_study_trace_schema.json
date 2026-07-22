@@ -4,6 +4,9 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "evidence_scope",
+    "current_method_scientific_evidence",
+    "method_implementation",
     "trace_id",
     "trace_scope",
     "selection_rule",
@@ -91,6 +94,15 @@
     }
   },
   "properties": {
+    "evidence_scope": {
+      "const": "historical_pre_p0_v1"
+    },
+    "current_method_scientific_evidence": {
+      "const": false
+    },
+    "method_implementation": {
+      "const": "legacy_deterministic_template_memory"
+    },
     "trace_id": {
       "type": "string",
       "minLength": 1

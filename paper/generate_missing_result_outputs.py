@@ -50,6 +50,62 @@ METRICS = [
     "total_cost_usd",
 ]
 
+LEGACY_TEX_GUARD = [
+    r"\ifdefined\FinEvoAllowHistoricalPrePZeroEvidence\else",
+    r"\errmessage{HISTORICAL PRE-P0 V1 evidence requires explicit legacy opt-in}",
+    r"\fi",
+]
+HISTORICAL_FIGURE_LABEL = (
+    "HISTORICAL PRE-P0 V1 EVIDENCE ONLY - not current-method scientific evidence"
+)
+LEGACY_TABLE_METADATA = {
+    "evidence_scope": "historical_pre_p0_v1",
+    "current_method_scientific_evidence": False,
+    "method_implementation": "legacy_simulate_py_deterministic_template_memory",
+}
+
+
+def write_legacy_tex(path: Path, lines: list[str]) -> None:
+    """Write legacy tables with the same fail-closed opt-in as checked-in TeX."""
+    path.write_text("\n".join([*LEGACY_TEX_GUARD, *lines]) + "\n")
+
+
+def write_legacy_csv(dataframe: pd.DataFrame, path: Path, **kwargs: object) -> None:
+    """Write a derived table with explicit standalone evidence-scope columns."""
+    labeled = dataframe.copy()
+    for column, value in reversed(list(LEGACY_TABLE_METADATA.items())):
+        labeled.insert(0, column, value)
+    labeled.to_csv(path, index=False, **kwargs)
+
+
+def save_legacy_figure(figure: plt.Figure, name: str) -> None:
+    """Write a legacy figure with visible and machine-readable scope labels."""
+    figure.subplots_adjust(bottom=max(figure.subplotpars.bottom, 0.10))
+    figure.text(
+        0.5,
+        0.012,
+        HISTORICAL_FIGURE_LABEL,
+        ha="center",
+        va="bottom",
+        fontsize=8,
+        fontweight="bold",
+        color="#8b1e1e",
+    )
+    figure.savefig(
+        FIGS / f"{name}.pdf",
+        bbox_inches="tight",
+        metadata={
+            "Subject": "HISTORICAL PRE-P0 V1 EVIDENCE ONLY",
+            "CreationDate": None,
+        },
+    )
+    figure.savefig(
+        FIGS / f"{name}.png",
+        bbox_inches="tight",
+        dpi=180,
+        metadata={"Description": "HISTORICAL PRE-P0 V1 EVIDENCE ONLY"},
+    )
+
 
 def latex_escape(value: Any) -> str:
     text = "" if value is None else str(value)
@@ -125,7 +181,7 @@ def write_cross_model_diagnostic() -> None:
     e1 = read_e1_metrics()
     out_csv = TABLES / "E1_diagnostic_summary.csv"
     if e1.empty:
-        e1.to_csv(out_csv, index=False)
+        write_legacy_csv(e1, out_csv)
         return
 
     keep = [
@@ -145,7 +201,12 @@ def write_cross_model_diagnostic() -> None:
         "total_cost_usd",
         "source_file",
     ]
-    e1[[c for c in keep if c in e1.columns]].sort_values(["model", "setting", "variant", "seed"]).to_csv(out_csv, index=False)
+    write_legacy_csv(
+        e1[[c for c in keep if c in e1.columns]].sort_values(
+            ["model", "setting", "variant", "seed"]
+        ),
+        out_csv,
+    )
     print(f"[table] {out_csv}")
 
     paired_rows = []
@@ -162,7 +223,9 @@ def write_cross_model_diagnostic() -> None:
             frow = finevo[finevo["seed"].astype(str) == seed].iloc[0]
             paired_rows.append({"model": model, "seed": seed, "baseline": brow, "finevo": frow})
 
-    pd.DataFrame(pending_rows).to_csv(TABLES / "E1_diagnostic_pending.csv", index=False)
+    write_legacy_csv(
+        pd.DataFrame(pending_rows), TABLES / "E1_diagnostic_pending.csv"
+    )
     print(f"[table] {TABLES / 'E1_diagnostic_pending.csv'}")
 
     lines = [
@@ -196,7 +259,7 @@ def write_cross_model_diagnostic() -> None:
         r"\end{table*}",
     ]
     out_tex = TEX / "table_cross_model_diagnostic.tex"
-    out_tex.write_text("\n".join(lines) + "\n")
+    write_legacy_tex(out_tex, lines)
     print(f"[tex] {out_tex}")
 
 
@@ -253,7 +316,9 @@ def write_main_significance_and_ablation() -> None:
     allm = read_all_metrics()
     rows: list[dict[str, Any]] = []
     if allm.empty:
-        pd.DataFrame(rows).to_csv(TABLES / "main_significance_and_ablation.csv", index=False)
+        write_legacy_csv(
+            pd.DataFrame(rows), TABLES / "main_significance_and_ablation.csv"
+        )
         return
 
     large = allm[
@@ -311,7 +376,7 @@ def write_main_significance_and_ablation() -> None:
             rows.append(summarize_group(sub, labels[variant]))
 
     out = pd.DataFrame(rows)
-    out.to_csv(TABLES / "main_significance_and_ablation.csv", index=False)
+    write_legacy_csv(out, TABLES / "main_significance_and_ablation.csv")
     print(f"[table] {TABLES / 'main_significance_and_ablation.csv'}")
 
     lines = [
@@ -359,7 +424,7 @@ def write_main_significance_and_ablation() -> None:
         r"\end{table*}",
     ]
     out_tex = TEX / "table_main_significance_and_ablation.tex"
-    out_tex.write_text("\n".join(lines) + "\n")
+    write_legacy_tex(out_tex, lines)
     print(f"[tex] {out_tex}")
 
 
@@ -484,7 +549,9 @@ def write_case_study() -> None:
         })
 
     out = pd.DataFrame(rows)
-    out.to_csv(TABLES / "case_study_trace.csv", index=False, quoting=csv.QUOTE_MINIMAL)
+    write_legacy_csv(
+        out, TABLES / "case_study_trace.csv", quoting=csv.QUOTE_MINIMAL
+    )
     print(f"[table] {TABLES / 'case_study_trace.csv'}")
 
     lines = [
@@ -515,7 +582,7 @@ def write_case_study() -> None:
         r"\end{table*}",
     ]
     out_tex = TEX / "table_case_study_trace.tex"
-    out_tex.write_text("\n".join(lines) + "\n")
+    write_legacy_tex(out_tex, lines)
     print(f"[tex] {out_tex}")
 
     if not out.empty:
@@ -544,9 +611,8 @@ def write_case_study() -> None:
                 fontsize=8,
                 bbox={"boxstyle": "round,pad=0.35", "facecolor": "#f7f7f7", "edgecolor": "#bbbbbb", "linewidth": 0.6},
             )
-        fig.subplots_adjust(left=0.035, right=0.99, top=0.96, bottom=0.04, hspace=0.35)
-        fig.savefig(FIGS / "fig_case_study.pdf", bbox_inches="tight")
-        fig.savefig(FIGS / "fig_case_study.png", bbox_inches="tight", dpi=180)
+        fig.subplots_adjust(left=0.035, right=0.99, top=0.96, bottom=0.10, hspace=0.35)
+        save_legacy_figure(fig, "fig_case_study")
         plt.close(fig)
         print(f"[fig] {FIGS / 'fig_case_study.pdf'}")
 

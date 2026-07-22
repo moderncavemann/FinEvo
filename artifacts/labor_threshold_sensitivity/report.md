@@ -1,3 +1,10 @@
+> [!WARNING]
+> **HISTORICAL PRE-P0 V1 EVIDENCE ONLY**
+>
+> This audit covers the legacy binary 0/168-hour execution path. It is not
+> utility calibration or action-distribution evidence for current Evidence-
+> Grounded Rule Memory v2.
+
 # Labor-hours threshold sensitivity audit
 
 ## Scope and provenance

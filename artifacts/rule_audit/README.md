@@ -1,3 +1,9 @@
+> [!WARNING]
+> **HISTORICAL PRE-P0 V1 EVIDENCE ONLY**
+>
+> This audit covers the legacy deterministic-template implementation and must
+> not be cited as evidence for current Evidence-Grounded Rule Memory v2.
+
 # FinEvo semantic-rule audit
 
 This artifact audits the semantic-rule hallucination and error-reinforcement
@@ -63,7 +69,7 @@ python artifacts/rule_audit/audit_semantic_rules.py \
 
 ## Definitions and boundaries
 
-The current implementation has two deterministic rule templates:
+The audited legacy implementation has two deterministic rule templates:
 `high_inflation_strategy` and `high_unemployment_strategy`. It does not use LLM
 reflection text to propose semantic rules. Therefore:
 
@@ -84,4 +90,3 @@ equation. It is not a human judgment that the rule is economically sound.
 ```bash
 python -m unittest artifacts.rule_audit.test_audit_semantic_rules
 ```
-

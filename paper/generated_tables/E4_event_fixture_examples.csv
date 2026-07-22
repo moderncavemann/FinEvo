@@ -1,11 +1,11 @@
-variant,month,event_text,sentiment_label,v_t,shuffled_from_month
-numeric-only,0,(numeric sentiment only; no text event),none,0.0,
-text-event,0,Credit spreads widened as households became more cautious about near-term income.,negative,-0.35,
-text-event,1,Several employers signaled slower hiring plans for the next quarter.,negative,-0.3,
-text-event,2,Essential-goods prices were reported to be rising faster than expected.,negative,-0.25,
-shuffled-event,0,Several employers signaled slower hiring plans for the next quarter.,negative,-0.3,17
-shuffled-event,1,Policy rates and household credit conditions were broadly unchanged.,neutral,0.0,12
-shuffled-event,2,Retail demand recovered after several slow months.,positive,0.25,14
-random-event,0,A university seminar discussed historical approaches to accounting education.,neutral,0.0,
-random-event,1,A university seminar discussed historical approaches to accounting education.,neutral,0.0,
-random-event,2,A bank announced a redesign of its mobile-app dashboard.,neutral,0.0,
+evidence_scope,current_method_scientific_evidence,method_implementation,variant,month,event_text,sentiment_label,v_t,shuffled_from_month
+historical_pre_p0_v1,False,legacy_simulate_py_deterministic_template_memory,numeric-only,0,(numeric sentiment only; no text event),none,0.0,
+historical_pre_p0_v1,False,legacy_simulate_py_deterministic_template_memory,text-event,0,Credit spreads widened as households became more cautious about near-term income.,negative,-0.35,
+historical_pre_p0_v1,False,legacy_simulate_py_deterministic_template_memory,text-event,1,Several employers signaled slower hiring plans for the next quarter.,negative,-0.3,
+historical_pre_p0_v1,False,legacy_simulate_py_deterministic_template_memory,text-event,2,Essential-goods prices were reported to be rising faster than expected.,negative,-0.25,
+historical_pre_p0_v1,False,legacy_simulate_py_deterministic_template_memory,shuffled-event,0,Several employers signaled slower hiring plans for the next quarter.,negative,-0.3,17
+historical_pre_p0_v1,False,legacy_simulate_py_deterministic_template_memory,shuffled-event,1,Policy rates and household credit conditions were broadly unchanged.,neutral,0.0,12
+historical_pre_p0_v1,False,legacy_simulate_py_deterministic_template_memory,shuffled-event,2,Retail demand recovered after several slow months.,positive,0.25,14
+historical_pre_p0_v1,False,legacy_simulate_py_deterministic_template_memory,random-event,0,A university seminar discussed historical approaches to accounting education.,neutral,0.0,
+historical_pre_p0_v1,False,legacy_simulate_py_deterministic_template_memory,random-event,1,A university seminar discussed historical approaches to accounting education.,neutral,0.0,
+historical_pre_p0_v1,False,legacy_simulate_py_deterministic_template_memory,random-event,2,A bank announced a redesign of its mobile-app dashboard.,neutral,0.0,

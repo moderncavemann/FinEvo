@@ -176,6 +176,9 @@ def main() -> None:
     print(
         json.dumps(
             {
+                "evidence_scope": "historical_pre_p0_v1",
+                "current_method_scientific_evidence": False,
+                "method_implementation": "legacy_simulate_py_deterministic_template_memory",
                 "status": "pass",
                 "variants": sorted(by_variant),
                 "model": MODELS[hidden_spec.model_key].display,

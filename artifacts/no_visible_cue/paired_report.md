@@ -1,3 +1,9 @@
+> [!WARNING]
+> **HISTORICAL PRE-P0 V1 EVIDENCE ONLY**
+>
+> This E9 pair used legacy `simulate.py` and deterministic-template memory. Its
+> completion does not constitute current M1 route-decomposition evidence.
+
 # E9 paired cue-visibility analysis
 
 Status: **complete**

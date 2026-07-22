@@ -1,5 +1,8 @@
 {
   "analysis": "labor_threshold_sensitivity_v1",
+  "evidence_scope": "historical_pre_p0_v1",
+  "current_method_scientific_evidence": false,
+  "method_implementation": "legacy_binary_labor_simulate_py",
   "thresholds_strict_lt_hours": [
     1.0,
     20.0,

@@ -1,5 +1,8 @@
 {
   "schema_version": 1,
+  "evidence_scope": "historical_pre_p0_v1",
+  "current_method_scientific_evidence": false,
+  "method_implementation": "legacy_deterministic_template_memory",
   "command": "python artifacts/rule_audit/audit_semantic_rules.py",
   "run_dirs": [
     "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months",

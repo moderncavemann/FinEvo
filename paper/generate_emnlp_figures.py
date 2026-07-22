@@ -94,6 +94,10 @@ COLORS = {
     "no-macro-terms": "#ff7f0e",
 }
 
+HISTORICAL_FIGURE_LABEL = (
+    "HISTORICAL PRE-P0 V1 EVIDENCE ONLY - not current-method scientific evidence"
+)
+
 
 def as_float(value: Any, default: float = math.nan) -> float:
     try:
@@ -127,8 +131,31 @@ def mean_ci(values: Iterable[Any]) -> Tuple[float, float, float, int]:
 
 def save(fig: plt.Figure, out_dir: Path, name: str) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_dir / f"{name}.pdf", bbox_inches="tight")
-    fig.savefig(out_dir / f"{name}.png", bbox_inches="tight", dpi=180)
+    fig.subplots_adjust(bottom=max(fig.subplotpars.bottom, 0.10))
+    fig.text(
+        0.5,
+        0.012,
+        HISTORICAL_FIGURE_LABEL,
+        ha="center",
+        va="bottom",
+        fontsize=8,
+        fontweight="bold",
+        color="#8b1e1e",
+    )
+    fig.savefig(
+        out_dir / f"{name}.pdf",
+        bbox_inches="tight",
+        metadata={
+            "Subject": "HISTORICAL PRE-P0 V1 EVIDENCE ONLY",
+            "CreationDate": None,
+        },
+    )
+    fig.savefig(
+        out_dir / f"{name}.png",
+        bbox_inches="tight",
+        dpi=180,
+        metadata={"Description": "HISTORICAL PRE-P0 V1 EVIDENCE ONLY"},
+    )
     plt.close(fig)
     print(f"[fig] {out_dir}/{name}.pdf")
 
