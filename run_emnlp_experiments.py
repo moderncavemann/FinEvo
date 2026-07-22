@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run or print the EMNLP E1-E8 experiment matrix.
+"""Run or print the EMNLP E1-E9 experiment matrix.
 
 By default this script is a dry run and only prints commands. Use ``--run`` to
 execute one or more experiment groups. Each successful simulation is exported
@@ -174,6 +174,35 @@ def _matrix() -> List[RunSpec]:
     for variant, model_label, model_key, flags in e5_variants:
         tag = f"E5_{model_label}_{variant}".replace(".", "").replace("-", "_").replace(" ", "_")
         runs.append(RunSpec("E5", "finevo", variant, model_key, 10, 24, tag, True, flags))
+
+    # E9: same-day paired cue-visibility control. Both rows retain endogenous
+    # sentiment and its numeric contribution to episodic state similarity;
+    # only prompt visibility of the scalar/label cue differs. (The current
+    # retrieval trace's separate regime_match component remains 0.0.)
+    runs.extend([
+        RunSpec(
+            "E9",
+            "finevo",
+            "visible-cue-control",
+            "gpt52",
+            10,
+            24,
+            "E9_visible_cue_control",
+            True,
+            {"show_regime_cue": True},
+        ),
+        RunSpec(
+            "E9",
+            "finevo",
+            "no-visible-cue",
+            "gpt52",
+            10,
+            24,
+            "E9_no_visible_cue",
+            True,
+            {"show_regime_cue": False},
+        ),
+    ])
 
     # E6-E8 are kept visible but not executable until the simulator exposes the
     # required cognitive profiles, crash-state replay, and rule-survival modes.

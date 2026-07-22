@@ -105,6 +105,17 @@ def _write_csv(path: str, rows: List[Dict[str, Any]], fields: List[str]) -> None
             writer.writerow({field: row.get(field, "") for field in fields})
 
 
+def _regime_cue_prompt(
+    sentiment_module: MarketSentiment,
+    use_sentiment: bool,
+    show_regime_cue: bool,
+) -> str:
+    """Return the explicit cue without changing internal sentiment dynamics."""
+    if not use_sentiment or not show_regime_cue:
+        return ""
+    return sentiment_module.get_sentiment_prompt()
+
+
 def _gini(values: List[float]) -> float:
     wealth = sorted(max(float(value), 0.0) for value in values)
     total = sum(wealth)
@@ -201,6 +212,7 @@ def agent_decision(
     total_cost,
     use_gap_fixes: bool = True,
     use_sentiment: Optional[bool] = None,
+    show_regime_cue: bool = True,
     use_episodic: Optional[bool] = None,
     use_semantic: Optional[bool] = None,
     use_reflection: Optional[bool] = None,
@@ -332,9 +344,11 @@ def agent_decision(
                 retrieval_traces[idx] = trace
 
         # Sentiment prompt (GAP 2)
-        sentiment_prompt = ""
-        if use_sentiment:
-            sentiment_prompt = sentiment_module.get_sentiment_prompt()
+        sentiment_prompt = _regime_cue_prompt(
+            sentiment_module,
+            bool(use_sentiment),
+            show_regime_cue,
+        )
 
         # Build prompts
         problem_prompt = f'''You're {name}, a {age}-year-old individual living in {city}. A portion of your monthly income is taxed by the federal government through a tiered system, with tax revenue redistributed equally to all citizens. Now it's {current_time_str}.'''
@@ -365,7 +379,7 @@ def agent_decision(
         # Combine all prompts
         full_prompt = f'''{prettify_document(problem_prompt)} {prettify_document(job_prompt)} {prettify_document(consumption_prompt)} {prettify_document(tax_prompt)} {prettify_document(price_prompt)}'''
 
-        if use_sentiment and sentiment_prompt:
+        if sentiment_prompt:
             full_prompt += f" {prettify_document(sentiment_prompt)}"
 
         if event_entry and event_entry.get("event_text"):
@@ -617,6 +631,7 @@ def run_experiment(
     setting: str = "",
     variant: str = "",
     use_sentiment: Optional[bool] = None,
+    show_regime_cue: bool = True,
     use_episodic: Optional[bool] = None,
     use_semantic: Optional[bool] = None,
     use_reflection: Optional[bool] = None,
@@ -676,6 +691,8 @@ def run_experiment(
         use_semantic = use_gap_fixes
     if use_reflection is None:
         use_reflection = use_gap_fixes
+
+    print(f"Explicit regime cue: {'visible' if use_sentiment and show_regime_cue else 'hidden'}")
 
     # Create LLM provider
     if provider_type == "openai":
@@ -790,6 +807,7 @@ def run_experiment(
             error_count, total_cost,
             use_gap_fixes=use_gap_fixes,
             use_sentiment=use_sentiment,
+            show_regime_cue=show_regime_cue,
             use_episodic=use_episodic,
             use_semantic=use_semantic,
             use_reflection=use_reflection,
@@ -867,6 +885,7 @@ def run_experiment(
         "prompt_style": prompt_style,
         "output_format": output_format,
         "event_variant": event_variant,
+        "show_regime_cue": bool(show_regime_cue),
         "sentiment_params": sentiment_params,
         "event_log": event_schedule,
         "num_agents": num_agents,
@@ -917,6 +936,7 @@ def main(
     setting: str = "",
     variant: str = "",
     use_sentiment: Optional[bool] = None,
+    show_regime_cue: bool = True,
     use_episodic: Optional[bool] = None,
     use_semantic: Optional[bool] = None,
     use_reflection: Optional[bool] = None,
@@ -969,6 +989,7 @@ def main(
         setting=setting,
         variant=variant,
         use_sentiment=use_sentiment,
+        show_regime_cue=show_regime_cue,
         use_episodic=use_episodic,
         use_semantic=use_semantic,
         use_reflection=use_reflection,

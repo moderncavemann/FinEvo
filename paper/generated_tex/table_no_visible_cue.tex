@@ -1,0 +1,24 @@
+% Generated from artifacts/no_visible_cue/paired_metrics_summary.csv.
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lrrrr}
+\toprule
+Metric & Visible cue & Hidden cue & Hidden $-$ visible (95\% paired CI) & Paired $p$ \\
+\midrule
+Final wealth & $183.1\mathrm{k}\pm13.3\mathrm{k}$ & $178.0\mathrm{k}\pm6.6\mathrm{k}$ & $-5.14\mathrm{k}\;[-19.31,9.04]\mathrm{k}$ & .371 \\
+Final Gini & $.318\pm.044$ & $.363\pm.014$ & $.045\;[-.018,.109]$ & .119 \\
+Low labor, full horizon (\%) & $.750\pm.456$ & $1.417\pm1.337$ & $.667\;[-.824,2.157]$ pp & .282 \\
+Inflation deviation (pp) & $41.62\pm3.61$ & $40.78\pm5.23$ & $-.839\;[-4.321,2.643]$ & .540 \\
+Invalid / API error rate & $0/0$ & $0/0$ & $0/0$ & -- \\
+\bottomrule
+\end{tabular}
+\caption{Same-day GPT-5.2 cue-visibility control (10 agents, 24 months,
+five matched seeds). Both variants retain endogenous sentiment as a numeric
+state-similarity feature; only the explicit sentiment sentence is hidden.
+Intervals are Student-$t$ intervals over paired seed differences. These results
+are not an equivalence or non-inferiority test.}
+\label{tab:no_visible_cue}
+\end{table*}
+

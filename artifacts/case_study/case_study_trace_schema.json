@@ -1,9 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "FinEvo case-study trace",
+  "title": "FinEvo log-grounded observational closed-loop trace",
   "type": "object",
+  "additionalProperties": false,
   "required": [
     "trace_id",
+    "trace_scope",
     "selection_rule",
     "run_metadata",
     "case_index",
@@ -17,61 +19,664 @@
     "provenance",
     "validation"
   ],
+  "$defs": {
+    "file_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes",
+        "role"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "role": {
+          "type": "string"
+        }
+      }
+    },
+    "macro_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "price_level",
+        "interest_rate_pct",
+        "unemployment_pct",
+        "inflation_pct",
+        "sentiment"
+      ],
+      "properties": {
+        "price_level": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "interest_rate_pct": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unemployment_pct": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "inflation_pct": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "sentiment": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    }
+  },
   "properties": {
     "trace_id": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
+    },
+    "trace_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "supports_mechanism_trace",
+        "supports_single_agent_causal_attribution",
+        "interpretation"
+      ],
+      "properties": {
+        "classification": {
+          "const": "observational_closed_loop_trace"
+        },
+        "supports_mechanism_trace": {
+          "const": true
+        },
+        "supports_single_agent_causal_attribution": {
+          "const": false
+        },
+        "interpretation": {
+          "type": "string"
+        }
+      }
     },
     "selection_rule": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "primary",
         "fallback_order",
         "agent_tie_break"
-      ]
+      ],
+      "properties": {
+        "primary": {
+          "type": "string"
+        },
+        "fallback_order": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "agent_tie_break": {
+          "type": "string"
+        }
+      }
     },
     "run_metadata": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exp_id",
+        "model",
+        "setting",
+        "variant",
+        "seed",
+        "num_agents",
+        "num_months",
+        "source_run_dir",
+        "raw_source_dir",
+        "simulation_code_commit",
+        "extractor_script_sha256",
+        "legacy_export_note"
+      ],
+      "properties": {
+        "exp_id": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "setting": {
+          "type": "string"
+        },
+        "variant": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "num_agents": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "num_months": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_run_dir": {
+          "type": "string"
+        },
+        "raw_source_dir": {
+          "type": "string"
+        },
+        "simulation_code_commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "extractor_script_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "legacy_export_note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
     },
     "case_index": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "month",
+        "agent_id",
+        "selection_rule_used",
+        "selected_rule_ids",
+        "retrieved_episode_ids"
+      ],
+      "properties": {
+        "month": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "agent_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "selection_rule_used": {
+          "type": "string"
+        },
+        "selected_rule_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "retrieved_episode_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     },
     "shared_state": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "month",
+        "retrieval_query_state",
+        "decision_prompt_sentiment_cue",
+        "selection_signal",
+        "exported_trajectory_snapshot",
+        "source_alignment_note"
+      ],
+      "properties": {
+        "month": {
+          "type": "integer"
+        },
+        "retrieval_query_state": {
+          "$ref": "#/$defs/macro_state"
+        },
+        "decision_prompt_sentiment_cue": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "selection_signal": {
+          "type": "object",
+          "required": [
+            "name",
+            "value",
+            "rank_within_run",
+            "crash_flag",
+            "label"
+          ]
+        },
+        "exported_trajectory_snapshot": {
+          "type": "object"
+        },
+        "source_alignment_note": {
+          "type": "string"
+        }
+      }
     },
     "private_state": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_id",
+        "wealth",
+        "income",
+        "employed"
+      ],
+      "properties": {
+        "agent_id": {
+          "type": "integer"
+        },
+        "wealth": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "income": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "employed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
     },
     "text_event": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "event_id",
+        "event_type",
+        "sentiment_label",
+        "v_t",
+        "missing_reason"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sentiment_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "v_t": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "missing_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
     },
     "retrieved_episodic_memory": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "retrieved_episode_ids",
+        "retrieval_scores",
+        "score_components",
+        "episode_summaries",
+        "memory_block_hash",
+        "temporal_alignment_warning"
+      ],
+      "properties": {
+        "retrieved_episode_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "retrieval_scores": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "number"
+          }
+        },
+        "score_components": {
+          "type": "array",
+          "minItems": 1
+        },
+        "episode_summaries": {
+          "type": "array",
+          "minItems": 1
+        },
+        "memory_block_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "temporal_alignment_warning": {
+          "type": "string"
+        }
+      }
     },
     "retrieved_semantic_rules": {
-      "type": "array"
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "rule_id",
+          "condition",
+          "action_guidance",
+          "confidence",
+          "source_episode_ids",
+          "condition_evaluation",
+          "action_guidance_evaluation",
+          "validity_note",
+          "validity_note_interpretation"
+        ]
+      }
     },
     "parsed_action": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_propensity",
+        "labor_hours_if_realized",
+        "consumption_fraction",
+        "rationale_excerpt",
+        "parser_accepted",
+        "repair_attempts",
+        "strict_json_without_repair",
+        "clipped",
+        "used_memory_ids",
+        "used_memory_ids_match_retrieval",
+        "prompt_hash",
+        "raw_action_hash"
+      ],
+      "properties": {
+        "work_propensity": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "labor_hours_if_realized": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "consumption_fraction": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "rationale_excerpt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parser_accepted": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "repair_attempts": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "strict_json_without_repair": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "clipped": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "used_memory_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "used_memory_ids_match_retrieval": {
+          "type": "boolean"
+        },
+        "prompt_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "raw_action_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
     },
     "next_window_outcome": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timing",
+        "concurrent_population_action",
+        "immediate_transition",
+        "six_month_followup",
+        "causal_interpretation"
+      ],
+      "properties": {
+        "timing": {
+          "type": "object"
+        },
+        "concurrent_population_action": {
+          "type": "object"
+        },
+        "immediate_transition": {
+          "type": "object"
+        },
+        "six_month_followup": {
+          "type": "object"
+        },
+        "causal_interpretation": {
+          "type": "object",
+          "required": [
+            "classification",
+            "supports_single_agent_causal_attribution",
+            "reason"
+          ]
+        }
+      }
     },
     "provenance": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "files",
+        "pointers",
+        "normalization_lineage"
+      ],
+      "properties": {
+        "files": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/file_record"
+          }
+        },
+        "pointers": {
+          "type": "object"
+        },
+        "normalization_lineage": {
+          "type": "object"
+        }
+      }
     },
     "validation": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "schema_valid",
-        "json_compliant_route",
-        "has_retrieved_memory",
-        "has_semantic_rule",
-        "api_errors_recorded",
-        "parser_repairs_recorded",
-        "acceptable",
+        "schema_errors",
+        "provenance_paths_exist",
+        "source_file_hashes_recorded",
+        "native_logs_match_raw_source",
+        "source_values_verified",
+        "retrieval_score_components_sum",
+        "retrieved_episodes_found_in_checkpoint",
+        "selected_rules_found",
+        "semantic_precondition_matches_query_state",
+        "action_matches_rule_guidance",
+        "action_memory_ids_match_retrieval",
+        "parser_accepted",
+        "strict_json_without_repair",
+        "immediate_delta_matches_next_episode_record",
+        "has_observed_transition",
+        "supports_causal_attribution",
+        "publishable_as_observational_trace",
         "missing_fields",
-        "excluded_candidates"
-      ]
+        "excluded_candidates",
+        "warnings"
+      ],
+      "properties": {
+        "schema_valid": {
+          "type": "boolean"
+        },
+        "schema_errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "provenance_paths_exist": {
+          "type": "boolean"
+        },
+        "source_file_hashes_recorded": {
+          "type": "boolean"
+        },
+        "native_logs_match_raw_source": {
+          "type": "boolean"
+        },
+        "source_values_verified": {
+          "type": "boolean"
+        },
+        "retrieval_score_components_sum": {
+          "type": "boolean"
+        },
+        "retrieved_episodes_found_in_checkpoint": {
+          "type": "boolean"
+        },
+        "selected_rules_found": {
+          "type": "boolean"
+        },
+        "semantic_precondition_matches_query_state": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "action_matches_rule_guidance": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "action_memory_ids_match_retrieval": {
+          "type": "boolean"
+        },
+        "parser_accepted": {
+          "type": "boolean"
+        },
+        "strict_json_without_repair": {
+          "type": "boolean"
+        },
+        "immediate_delta_matches_next_episode_record": {
+          "type": "boolean"
+        },
+        "has_observed_transition": {
+          "type": "boolean"
+        },
+        "supports_causal_attribution": {
+          "const": false
+        },
+        "publishable_as_observational_trace": {
+          "type": "boolean"
+        },
+        "missing_fields": {
+          "type": "array"
+        },
+        "excluded_candidates": {
+          "type": "array"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }

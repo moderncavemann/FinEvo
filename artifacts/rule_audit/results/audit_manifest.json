@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "command": "python artifacts/rule_audit/audit_semantic_rules.py",
+  "run_dirs": [
+    "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months",
+    "data/thirdparty-google_gemini-3-flash-preview-E1_finevo-seed13-100agents-240months",
+    "data/openai-gpt-5.2-E2_full-seed13-10agents-24months",
+    "data/openai-gpt-5.2-E2_full-seed21-10agents-24months",
+    "data/openai-gpt-5.2-E2_full-seed42-10agents-24months",
+    "data/openai-gpt-5.2-E2_full-seed87-10agents-24months",
+    "data/openai-gpt-5.2-E2_full-seed2026-10agents-24months"
+  ],
+  "horizon": 3,
+  "high_confidence_threshold": 0.75,
+  "embed_status": "embedded_runtime:embed_html_report_runtime.py",
+  "outputs": [
+    "audit_manifest.json",
+    "audit_report.html",
+    "audit_report_payload.json",
+    "audit_report_shell.html",
+    "metric_availability.csv",
+    "negative_evidence_examples.jsonl",
+    "qa_validation.md",
+    "rule_snapshot_audit.csv",
+    "rule_update_audit.csv",
+    "rule_use_outcomes.csv",
+    "run_inventory.csv",
+    "source_manifest.csv",
+    "source_notes.md",
+    "summary_by_run.csv"
+  ],
+  "counts": {
+    "runs": 7,
+    "semantic_snapshot_rows": 12400,
+    "accepted_update_events": 9400,
+    "rule_use_rows": 27000,
+    "negative_evidence_examples": 4
+  }
+}

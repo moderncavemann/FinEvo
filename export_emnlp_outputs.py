@@ -197,6 +197,56 @@ def _world_value(world: Dict[str, Any], *keys: str, default: float = 0.0) -> flo
     return default
 
 
+def _num_agents_from_state(state: Dict[str, Any]) -> int:
+    return sum(
+        1
+        for agent_id, agent_state in state.items()
+        if agent_id != "p" and isinstance(agent_state, dict)
+    )
+
+
+def _simulator_unemployment_pct(
+    actions: List[Dict[str, Any]],
+    month: int,
+    num_agents: int,
+    period: int = 12,
+) -> Optional[float]:
+    """Reconstruct the unemployment statistic used by the simulator prompt.
+
+    ``dense_log['world']`` only records ``Unemployment Rate`` at annual
+    boundaries.  During a year, however, ``simulate.agent_decision`` reads the
+    cumulative number of no-work actions for the current year and divides it by
+    ``period * num_agents``.  Reconstructing that quantity keeps normalized
+    monthly trajectories aligned with the state shown to the agents instead of
+    silently replacing sparse annual fields with zero.
+    """
+    if month <= 0 or num_agents <= 0 or not actions:
+        return None
+
+    year = (month - 1) // period
+    start = year * period
+    end = min(month, len(actions))
+    if end <= start:
+        return None
+
+    no_work = 0
+    observed = 0
+    for action_month in actions[start:end]:
+        if not isinstance(action_month, dict):
+            continue
+        for agent_id, action in action_month.items():
+            if agent_id == "p" or not isinstance(action, dict):
+                continue
+            observed += 1
+            # The component's dense log omits zero-valued actions, so a missing
+            # ``SimpleLabor`` key is the canonical representation of no work.
+            no_work += int(_as_float(action.get("SimpleLabor"), 0.0) < 1.0)
+
+    if observed == 0:
+        return None
+    return 100.0 * no_work / (period * num_agents)
+
+
 def _infer_seed(source_dir: Path, summary: Dict[str, Any], override: Optional[str]) -> str:
     if override is not None:
         return str(override)
@@ -280,15 +330,50 @@ def _trajectory_rows(
 ) -> List[Dict[str, Any]]:
     worlds = dense_log.get("world") or []
     states = dense_log.get("states") or []
+    actions = dense_log.get("actions") or []
     sentiment = summary.get("final_metrics", {}).get("sentiment_history") or []
     rows = []
+
+    # The environment writes these macro variables only at annual boundaries.
+    # Retain the last observed value between boundaries; using 0.0 for every
+    # sparse month materially mislabels the state used for memory retrieval.
+    carried = {
+        "Interest Rate": 0.0,
+        "Unemployment Rate": 0.0,
+        "Price Inflation": 0.0,
+        "Real GDP": 0.0,
+        "Nominal GDP": 0.0,
+        "Real GDP Growth": 0.0,
+        "Nominal GDP Growth": 0.0,
+    }
+    seen_macro_fields = set()
 
     for month, world in enumerate(worlds):
         state = states[month] if month < len(states) else {}
         wealths = _state_wealths(state)
-        unemp_pct = _world_value(world, "Unemployment Rate") * 100
-        infl_pct = _world_value(world, "Price Inflation") * 100
-        gdp_growth_pct = _world_value(world, "Real GDP Growth", "Nominal GDP Growth") * 100
+        for key in carried:
+            if key in world:
+                carried[key] = _as_float(world[key], carried[key])
+                seen_macro_fields.add(key)
+
+        num_agents = _num_agents_from_state(state)
+        reconstructed_unemployment = _simulator_unemployment_pct(
+            actions,
+            month,
+            num_agents,
+        )
+        unemp_pct = (
+            reconstructed_unemployment
+            if reconstructed_unemployment is not None
+            else carried["Unemployment Rate"] * 100
+        )
+        infl_pct = carried["Price Inflation"] * 100
+        gdp_growth = (
+            carried["Real GDP Growth"]
+            if "Real GDP Growth" in seen_macro_fields
+            else carried["Nominal GDP Growth"]
+        )
+        gdp_growth_pct = gdp_growth * 100
         sentiment_value = _as_float(sentiment[month], 0.0) if month < len(sentiment) else 0.0
         rows.append({
             "month": month,
@@ -302,11 +387,15 @@ def _trajectory_rows(
             "unemployment_pct": unemp_pct,
             "inflation_pct": infl_pct,
             "inflation_dev_abs_pct": abs(infl_pct - 2.0),
-            "gdp": _world_value(world, "Real GDP", "Nominal GDP"),
+            "gdp": (
+                carried["Real GDP"]
+                if "Real GDP" in seen_macro_fields
+                else carried["Nominal GDP"]
+            ),
             "gdp_growth_pct": gdp_growth_pct,
             "price_level": _world_value(world, "Price"),
             "wage_level": _world_value(world, "Wage", "Wage Level"),
-            "interest_rate": _world_value(world, "Interest Rate"),
+            "interest_rate": carried["Interest Rate"],
             "global_sentiment": sentiment_value,
             "crash_flag": int(_crash_flag(unemp_pct, gdp_growth_pct, sentiment_value)),
             "num_invalid_actions": "",
@@ -486,7 +575,11 @@ def _metrics_row(
     final_wealths = _state_wealths(final_state)
     num_agents = int(summary.get("num_agents") or len(final_wealths) or 0)
     num_months = int(summary.get("episode_length") or max(len(worlds) - 1, 0))
-    gdp_growth = [_world_value(world, "Real GDP Growth", "Nominal GDP Growth") * 100 for world in worlds if world]
+    gdp_growth = [
+        _world_value(world, "Real GDP Growth", "Nominal GDP Growth") * 100
+        for world in worlds
+        if "Real GDP Growth" in world or "Nominal GDP Growth" in world
+    ]
     unemp_pct = _world_value(final_world, "Unemployment Rate", default=_as_float(final_metrics.get("avg_unemployment"))) * 100
     infl_pct = _world_value(final_world, "Price Inflation", default=_as_float(final_metrics.get("avg_inflation"))) * 100
     rule_turnover, rule_diversity = _rule_stats(memory_systems, num_agents, num_months)
@@ -533,6 +626,15 @@ def _config_doc(
     args: argparse.Namespace,
 ) -> Dict[str, Any]:
     sentiment = summary.get("sentiment_params") or summary.get("sentiment_config") or {}
+    native_emnlp_jsonl = all(
+        (source_dir / name).exists()
+        for name in [
+            "actions.jsonl",
+            "api_errors.jsonl",
+            "memory_retrieval.jsonl",
+            "semantic_rules.jsonl",
+        ]
+    )
     return {
         "exp_id": exp_id,
         "model_display_name": model,
@@ -547,6 +649,7 @@ def _config_doc(
         "max_tokens": args.max_tokens,
         "decision_max_tokens": args.decision_max_tokens,
         "reflection_max_tokens": args.reflection_max_tokens,
+        "show_regime_cue": bool(summary.get("show_regime_cue", True)),
         "seed": seed,
         "num_agents": summary.get("num_agents", ""),
         "num_months": summary.get("episode_length", ""),
@@ -567,7 +670,12 @@ def _config_doc(
             "tax_brackets": "us-federal-single-filer-2018-scaled",
         },
         "legacy_source_dir": str(source_dir),
-        "legacy_export_note": "Some JSONL fields are blank because old rebuttal runs did not log raw prompts, raw outputs, retrieval traces, or API errors in the EMNLP schema.",
+        "native_emnlp_jsonl": native_emnlp_jsonl,
+        "legacy_export_note": (
+            "Native EMNLP JSONL logs were copied from the source run without reconstruction."
+            if native_emnlp_jsonl
+            else "Some JSONL fields are blank because the source run predates native EMNLP-schema logging."
+        ),
     }
 
 

@@ -1,0 +1,40 @@
+{
+  "analysis": "e9_same_day_cue_visibility_pair_v1",
+  "status": "complete",
+  "expected_seeds": [
+    13,
+    21,
+    42,
+    87,
+    2026
+  ],
+  "visible_seeds": [
+    13,
+    21,
+    42,
+    87,
+    2026
+  ],
+  "no_visible_seeds": [
+    13,
+    21,
+    42,
+    87,
+    2026
+  ],
+  "paired_seeds": [
+    13,
+    21,
+    42,
+    87,
+    2026
+  ],
+  "missing_visible_seeds": [],
+  "missing_no_visible_seeds": [],
+  "same_day_config_pairs_validated": 5,
+  "paired_inference_available": true,
+  "paired_inference_method": "two-sided one-sample Student-t test over matched-seed differences",
+  "scipy_version": "1.13.1",
+  "comparison_fallback_used": false,
+  "note": "Only E9 visible-cue-control vs E9 no-visible-cue is compared; old E2 rows are never substituted."
+}

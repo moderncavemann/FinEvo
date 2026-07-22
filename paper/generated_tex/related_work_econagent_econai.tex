@@ -1,0 +1,18 @@
+% Portable related-work insertion for the revised submission.
+EconAgent~\citep{li2024econagent} combines prompt-based perception, quarterly
+LLM reflection, and rolling dialogue memory for household work and consumption
+decisions.  Our evaluated implementation retains the same controlled economic
+interface but adds a bounded, outcome-indexed episodic retriever and an
+inspectable deterministic semantic-rule state.  The distinction is therefore
+the memory representation and audit protocol, not the first use of reflection
+in an economic LLM agent.
+
+Concurrent EconAI~\citep{liu2026econai} instead combines long- and short-term
+vector event memories, a fine-tuned event summarizer, dynamic persona storage,
+an Economic Sentiment Index and confidence adjustment, and both household and
+firm agents.  It also studies a textual COVID intervention.  FinEvo's current
+evaluation focuses on matched cue and memory controls, bounded outcome records,
+and decision-level provenance in a shared household action interface.  The two
+systems overlap in combining memory and sentiment, and we do not claim that
+this combination alone is unique to FinEvo.
+
