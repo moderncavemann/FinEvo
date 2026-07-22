@@ -126,6 +126,8 @@ class SemanticRuleTest(unittest.TestCase):
 
         self.assertIn("Allowed JSON schema", prompt)
         self.assertIn("supporting_episode_ids", prompt)
+        self.assertIn("Every claimed support episode must independently satisfy", prompt)
+        self.assertIn("increase means executed value >= threshold", prompt)
         self.assertIn("consumption_fraction", prompt)
         self.assertIn(first.episode_id, prompt)
         self.assertIn(second.episode_id, prompt)

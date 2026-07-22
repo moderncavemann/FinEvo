@@ -13,7 +13,7 @@ def test_cli_diagnostic_creates_verified_manifest(tmp_path: Path) -> None:
             "--run-id",
             "cli-diagnostic",
             "--episode-length",
-            "4",
+            "5",
             "--output-dir",
             str(output),
         ]

@@ -88,7 +88,7 @@ class VerifiedRunConfig:
     enable_semantic: bool = True
     retrieval_k: int = 5
     rule_budget: int = 3
-    semantic_proposal_after: int = 2
+    semantic_proposal_after: int = 3
     semantic_proposal_interval: int = 3
     max_rule_proposals_per_agent: int = 1
     labor_step: float = 8.0

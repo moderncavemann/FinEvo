@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_diagnostic_result_is_sealed_and_reverified(tmp_path: Path) -> None:
     result = run_verified_experiment(
-        VerifiedRunConfig(run_id="artifact-diagnostic", episode_length=4),
+        VerifiedRunConfig(run_id="artifact-diagnostic", episode_length=5),
         llm=MultiModelLLM(ScriptedDiagnosticProvider(), num_workers=2),
         budget=RunBudget(BudgetLimits(max_calls=20, max_cost_usd=0.01)),
         env_config_source=ROOT / "config.yaml",
@@ -31,4 +31,4 @@ def test_diagnostic_result_is_sealed_and_reverified(tmp_path: Path) -> None:
     assert manifest["result"]["complete"] is True
     assert manifest["validation_status"]["status"] == "pass"
     assert verify_manifest(run_dir).valid is True
-    assert (run_dir / "streams/actions.jsonl").read_text().count("\n") == 8
+    assert (run_dir / "streams/actions.jsonl").read_text().count("\n") == 10
