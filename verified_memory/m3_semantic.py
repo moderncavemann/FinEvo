@@ -1065,6 +1065,16 @@ class VerifiedSemanticRuleTrack:
             )
             return rule
 
+        # "Observed after proposal" is an evidence-time property, not merely the
+        # time at which a caller invokes this method. Otherwise an older, unlisted
+        # episode can be replayed immediately after proposal and falsely satisfy
+        # the activation delay.
+        if episode.outcome_t <= rule.created_at:
+            raise ValueError(
+                f"episode {episode_id} is not post-proposal evidence for "
+                f"rule created_at={rule.created_at}"
+            )
+
         classification = self._classification(rule, episode)
         if classification == "irrelevant":
             self._append_event(
@@ -1268,9 +1278,11 @@ class VerifiedSemanticRuleTrack:
         return selected
 
     def validate_referential_integrity(self) -> None:
-        known_episode_ids = {
-            episode.episode_id for episode in self.episodic_track.finalized_episodes
+        episodes_by_id = {
+            episode.episode_id: episode
+            for episode in self.episodic_track.finalized_episodes
         }
+        known_episode_ids = set(episodes_by_id)
         event_ids: set[str] = set()
         for rule in self._rules.values():
             expected_rule_key = self._rule_key(
@@ -1293,6 +1305,28 @@ class VerifiedSemanticRuleTrack:
             if rule.contradiction_score != len(rule.contradicting_episode_ids):
                 raise ValueError(
                     f"rule {rule.rule_id} has inconsistent contradiction_score"
+                )
+            if rule.updated_at < rule.created_at:
+                raise ValueError(f"rule {rule.rule_id} was updated before creation")
+            evidence_episodes = [episodes_by_id[episode_id] for episode_id in evidence]
+            observed_after_creation = [
+                episode
+                for episode in evidence_episodes
+                if episode.outcome_t > rule.created_at
+            ]
+            if len(observed_after_creation) != rule.post_proposal_evidence_count:
+                raise ValueError(
+                    f"rule {rule.rule_id} has inconsistent post-proposal evidence count"
+                )
+            not_yet_observable = [
+                episode.episode_id
+                for episode in evidence_episodes
+                if episode.outcome_t > rule.updated_at
+            ]
+            if not_yet_observable:
+                raise ValueError(
+                    f"rule {rule.rule_id} contains evidence newer than updated_at: "
+                    f"{sorted(not_yet_observable)}"
                 )
             if not rule.injected or rule.post_proposal_evidence_count > 0:
                 expected_confidence = self._confidence(

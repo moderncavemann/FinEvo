@@ -61,6 +61,60 @@ class VerifiedMemorySystemTest(unittest.TestCase):
         self.assertFalse(bundle.context_route.to_prompt)
         system.validate()
 
+    def test_failed_prepare_begin_and_finalize_are_retry_safe(self):
+        system = self.make_system(semantic=False)
+        state = {"price": 100.0, "inflation": 0.04, "wealth": 1000.0}
+
+        # This router declares no event features, so the event is rejected after
+        # observation validation. The failed attempt must not consume month zero.
+        with self.assertRaises(ValueError):
+            system.prepare_decision(
+                decision_t=0,
+                context_observation={"timestamp": 0, **state},
+                retrieval_state=state,
+                event={"timestamp": 0},
+            )
+        self.assertEqual(system.history, ())
+        system.prepare_decision(
+            decision_t=0,
+            context_observation={"timestamp": 0, **state},
+            retrieval_state=state,
+        )
+
+        with self.assertRaises(ValueError):
+            system.begin_episode(
+                decision_t=0,
+                pre_state=state,
+                proposed_action={},
+                executed_action={},
+                rng_draw=2.0,
+            )
+        system.begin_episode(
+            decision_t=0,
+            pre_state=state,
+            proposed_action={},
+            executed_action={},
+        )
+
+        with self.assertRaises(ValueError):
+            system.finalize_episode(
+                decision_t=0,
+                next_state={"wealth": 1001.0},
+                outcome={},
+                reward=float("nan"),
+                flow_utility=0.0,
+            )
+        self.assertEqual(system.episodic.pending_count, 1)
+        record = system.finalize_episode(
+            decision_t=0,
+            next_state={"wealth": 1001.0},
+            outcome={},
+            reward=0.0,
+            flow_utility=0.0,
+        )
+        self.assertEqual(record.outcome_t, 1)
+        system.validate()
+
     def test_prompt_only_never_routes_context_to_retrieval(self):
         system = self.make_system(mode="prompt-only", semantic=False)
         first, _ = self.finish_month(system, 0)
@@ -116,6 +170,35 @@ class VerifiedMemorySystemTest(unittest.TestCase):
         restored = VerifiedDualTrackMemory.from_dict(system.to_dict())
         self.assertEqual(restored.to_dict(), system.to_dict())
         restored.validate()
+
+    def test_pending_round_trip_requires_exact_facade_to_m2_mapping(self):
+        system = self.make_system(semantic=False)
+        state = {"price": 100.0, "inflation": 0.04, "wealth": 1000.0}
+        system.prepare_decision(
+            decision_t=0,
+            context_observation={"timestamp": 0, **state},
+            retrieval_state=state,
+        )
+        system.begin_episode(
+            decision_t=0,
+            pre_state=state,
+            proposed_action={},
+            executed_action={},
+        )
+        payload = system.to_dict()
+        restored = VerifiedDualTrackMemory.from_dict(payload)
+        restored.finalize_episode(
+            decision_t=0,
+            next_state={"wealth": 1001.0},
+            outcome={},
+            reward=0.0,
+            flow_utility=0.0,
+        )
+        restored.validate()
+
+        payload["decision_ids"] = {}
+        with self.assertRaisesRegex(ValueError, "do not match M2 pending"):
+            VerifiedDualTrackMemory.from_dict(payload)
 
 
 if __name__ == "__main__":

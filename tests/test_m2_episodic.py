@@ -73,6 +73,27 @@ class EpisodicTrackTest(unittest.TestCase):
         self.assertEqual(record.outcome_t, 1)
         self.assertEqual(track.finalized_count, 1)
 
+    def test_finalized_future_outcome_is_not_retrievable(self):
+        track = self.make_track()
+        future = finalize(track, 5)
+
+        self.assertEqual(
+            track.retrieve(
+                current_t=0,
+                current_state={"price": 100.0},
+                context_vector=None,
+                use_context=False,
+            ),
+            (),
+        )
+        visible = track.retrieve(
+            current_t=future.outcome_t,
+            current_state={"price": 100.0},
+            context_vector=None,
+            use_context=False,
+        )
+        self.assertEqual(visible[0].episode.episode_id, future.episode_id)
+
     def test_temporal_alignment_and_duplicate_guard(self):
         track = self.make_track()
         decision_id = track.begin_episode(
@@ -117,6 +138,39 @@ class EpisodicTrackTest(unittest.TestCase):
                 proposed_action={},
                 executed_action={},
             )
+
+    def test_malformed_finalization_is_retry_safe(self):
+        track = self.make_track()
+        decision_id = track.begin_episode(
+            decision_t=0,
+            pre_state={"price": 100.0},
+            context_id="c0",
+            context_vector=(),
+            retrieved_episode_ids=(),
+            selected_rule_ids=(),
+            proposed_action={},
+            executed_action={},
+        )
+
+        with self.assertRaises(ValueError):
+            track.finalize_episode(
+                decision_id,
+                outcome_t=1,
+                next_state={"price": float("nan")},
+                outcome={},
+                reward=0.0,
+                flow_utility=0.0,
+            )
+        self.assertEqual(track.pending_count, 1)
+        record = track.finalize_episode(
+            decision_id,
+            outcome_t=1,
+            next_state={"price": 101.0},
+            outcome={},
+            reward=0.0,
+            flow_utility=0.0,
+        )
+        self.assertEqual(record.outcome_t, 1)
 
     def test_ledger_survives_prompt_eviction(self):
         track = self.make_track(capacity=2)
@@ -168,6 +222,15 @@ class EpisodicTrackTest(unittest.TestCase):
             restored.finalized_episodes[0].record_hash,
             track.finalized_episodes[0].record_hash,
         )
+
+    def test_restore_rejects_tampered_record_with_stale_hash(self):
+        track = self.make_track()
+        finalize(track, 0)
+        payload = track.to_dict()
+        payload["episodes"][0]["pre_state"]["price"] = 999.0
+
+        with self.assertRaisesRegex(ValueError, "record hash mismatch"):
+            EvidenceLinkedEpisodicTrack.from_dict(payload)
 
 
 if __name__ == "__main__":

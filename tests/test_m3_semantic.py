@@ -263,6 +263,23 @@ class SemanticRuleTest(unittest.TestCase):
         self.assertEqual(active.post_proposal_evidence_count, 1)
         self.assertEqual(semantic.events[-1].event_type, "rule_activated")
 
+    def test_preproposal_unlisted_evidence_cannot_satisfy_activation_delay(self):
+        episodes, semantic = self.make_tracks()
+        first = add_episode(episodes, 0)
+        second = add_episode(episodes, 1)
+        already_observed = add_episode(episodes, 2)
+        rule = semantic.propose(
+            candidate_json([first.episode_id, second.episode_id]), current_t=3
+        )
+
+        with self.assertRaisesRegex(ValueError, "not post-proposal evidence"):
+            semantic.observe_episode(
+                rule.rule_id, already_observed.episode_id, current_t=3
+            )
+        unchanged = semantic.get(rule.rule_id)
+        self.assertEqual(unchanged.status, "provisional")
+        self.assertEqual(unchanged.post_proposal_evidence_count, 0)
+
     def test_duplicate_later_evidence_is_idempotent(self):
         episodes, semantic = self.make_tracks()
         active = self.activate_rule(episodes, semantic)
@@ -393,6 +410,22 @@ class SemanticRuleTest(unittest.TestCase):
             )[0].rule_id,
             active.rule_id,
         )
+
+    def test_restore_rejects_falsified_postproposal_timing(self):
+        episodes, semantic = self.make_tracks()
+        active = self.activate_rule(episodes, semantic)
+        serialized = semantic.to_dict()
+        serialized_rule = next(
+            item for item in serialized["rules"] if item["rule_id"] == active.rule_id
+        )
+        # The activation evidence has outcome_t=3. Moving creation to t=3 makes
+        # it contemporaneous, not later, while leaving the claimed count at one.
+        serialized_rule["created_at"] = 3
+
+        with self.assertRaisesRegex(ValueError, "post-proposal evidence count"):
+            VerifiedSemanticRuleTrack.from_dict(
+                serialized, episodic_track=episodes
+            )
 
 
 if __name__ == "__main__":

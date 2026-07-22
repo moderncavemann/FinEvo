@@ -119,6 +119,22 @@ class EpisodeRecord:
     importance: float
     record_hash: str = field(compare=False)
 
+    def integrity_payload(self) -> Dict[str, Any]:
+        """Return the exact hash payload used when the record was finalized."""
+
+        values = asdict(self)
+        values.pop("record_hash")
+        return values
+
+    def verify_integrity(self) -> None:
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError("unsupported episode-record schema version")
+        if self.outcome_t != self.decision_t + 1:
+            raise ValueError("episode outcome_t must equal decision_t + 1")
+        expected_hash = _stable_hash(self.integrity_payload())
+        if self.record_hash != expected_hash:
+            raise ValueError(f"episode record hash mismatch: {self.episode_id}")
+
     def to_dict(self) -> Dict[str, Any]:
         result = asdict(self)
         for key in (
@@ -135,7 +151,9 @@ class EpisodeRecord:
         values["context_vector"] = tuple(float(v) for v in values.get("context_vector", []))
         values["retrieved_episode_ids"] = tuple(values.get("retrieved_episode_ids", []))
         values["selected_rule_ids"] = tuple(values.get("selected_rule_ids", []))
-        return cls(**values)
+        record = cls(**values)
+        record.verify_integrity()
+        return record
 
     def to_prompt_text(self) -> str:
         work = float(self.executed_action.get("labor_hours", 0.0))
@@ -261,10 +279,6 @@ class EvidenceLinkedEpisodicTrack:
         if not math.isfinite(reward_value) or not math.isfinite(utility_value):
             raise ValueError("reward and flow_utility must be finite")
 
-        # Consume the staged transition only after every basic finalization
-        # invariant has passed, so a malformed caller can correct and retry.
-        self._pending.pop(decision_id)
-
         previous_utilities = [record.flow_utility for record in self._ledger.values()]
         baseline = statistics.median(previous_utilities) if previous_utilities else 0.0
         utility_advantage = utility_value - baseline
@@ -286,6 +300,12 @@ class EvidenceLinkedEpisodicTrack:
             "importance": importance,
         }
         record = EpisodeRecord(**core, record_hash=_stable_hash(core))
+        record.verify_integrity()
+
+        # Commit only after every conversion, statistic, and hash check succeeds.
+        # In particular, malformed next_state/outcome JSON must leave the pending
+        # transition available for a corrected retry.
+        self._pending.pop(decision_id)
         self._ledger[record.episode_id] = record
         self._prompt_ids.append(record.episode_id)
         return record
@@ -293,6 +313,10 @@ class EvidenceLinkedEpisodicTrack:
     @property
     def pending_count(self) -> int:
         return len(self._pending)
+
+    @property
+    def pending_episodes(self) -> Tuple[PendingEpisode, ...]:
+        return tuple(self._pending.values())
 
     @property
     def finalized_count(self) -> int:
@@ -328,7 +352,12 @@ class EvidenceLinkedEpisodicTrack:
         hits = []
         for episode_id in self._prompt_ids:
             episode = self._ledger[episode_id]
-            age = max(0, int(current_t) - episode.decision_t)
+            # A finalized object can still be from the caller's future after an
+            # out-of-order restore or direct-track use. Retrieval is causal at the
+            # outcome boundary, not merely "finalized somewhere in the ledger".
+            if episode.outcome_t > int(current_t):
+                continue
+            age = int(current_t) - episode.decision_t
             recency = self.time_decay_rate ** age
             similarity = state_similarity(current_state, episode.pre_state)
             importance = min(1.0, episode.importance / 2.0)
@@ -348,6 +377,7 @@ class EvidenceLinkedEpisodicTrack:
 
     def validate_references(self) -> None:
         for episode in self._ledger.values():
+            episode.verify_integrity()
             missing = [
                 episode_id
                 for episode_id in episode.retrieved_episode_ids
@@ -358,6 +388,35 @@ class EvidenceLinkedEpisodicTrack:
             if missing:
                 raise ValueError(
                     f"episode {episode.episode_id} references missing evidence: {missing}"
+                )
+            future = [
+                episode_id
+                for episode_id in episode.retrieved_episode_ids
+                if self._ledger[episode_id].outcome_t > episode.decision_t
+            ]
+            if future:
+                raise ValueError(
+                    f"episode {episode.episode_id} references future evidence: {future}"
+                )
+
+        for pending in self._pending.values():
+            missing = [
+                episode_id
+                for episode_id in pending.retrieved_episode_ids
+                if episode_id not in self._ledger
+            ]
+            if missing:
+                raise ValueError(
+                    f"pending decision {pending.decision_id} references missing evidence: {missing}"
+                )
+            future = [
+                episode_id
+                for episode_id in pending.retrieved_episode_ids
+                if self._ledger[episode_id].outcome_t > pending.decision_t
+            ]
+            if future:
+                raise ValueError(
+                    f"pending decision {pending.decision_id} references future evidence: {future}"
                 )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -386,8 +445,27 @@ class EvidenceLinkedEpisodicTrack:
         )
         for item in payload.get("episodes", []):
             record = EpisodeRecord.from_dict(item)
+            expected_episode_id = track.make_episode_id(
+                track.run_id, track.seed, track.agent_id, record.decision_t
+            )
+            if (
+                record.run_id != track.run_id
+                or record.seed != track.seed
+                or record.agent_id != track.agent_id
+                or record.episode_id != expected_episode_id
+                or record.decision_id != f"D:{expected_episode_id}"
+            ):
+                raise ValueError(
+                    f"episode identity does not match restored track: {record.episode_id}"
+                )
+            if record.episode_id in track._ledger:
+                raise ValueError(f"duplicate episode ID: {record.episode_id}")
             track._ledger[record.episode_id] = record
-        prompt_ids = payload.get("prompt_ids", [])
+        prompt_ids = list(payload.get("prompt_ids", []))
+        if len(prompt_ids) > track.prompt_capacity:
+            raise ValueError("prompt buffer exceeds configured capacity")
+        if len(prompt_ids) != len(set(prompt_ids)):
+            raise ValueError("prompt buffer contains duplicate episode IDs")
         if any(episode_id not in track._ledger for episode_id in prompt_ids):
             raise ValueError("prompt buffer references a missing episode")
         track._prompt_ids.extend(prompt_ids)
@@ -397,5 +475,25 @@ class EvidenceLinkedEpisodicTrack:
             values["retrieved_episode_ids"] = tuple(values.get("retrieved_episode_ids", []))
             values["selected_rule_ids"] = tuple(values.get("selected_rule_ids", []))
             pending = PendingEpisode(**values)
+            expected_episode_id = track.make_episode_id(
+                track.run_id, track.seed, track.agent_id, pending.decision_t
+            )
+            if (
+                pending.run_id != track.run_id
+                or pending.seed != track.seed
+                or pending.agent_id != track.agent_id
+                or pending.episode_id != expected_episode_id
+                or pending.decision_id != f"D:{expected_episode_id}"
+            ):
+                raise ValueError(
+                    f"pending identity does not match restored track: {pending.decision_id}"
+                )
+            if pending.decision_id in track._pending:
+                raise ValueError(f"duplicate pending decision ID: {pending.decision_id}")
+            if pending.episode_id in track._ledger:
+                raise ValueError(
+                    f"pending decision collides with finalized episode: {pending.episode_id}"
+                )
             track._pending[pending.decision_id] = pending
+        track.validate_references()
         return track

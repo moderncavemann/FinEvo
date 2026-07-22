@@ -143,9 +143,9 @@ class VerifiedDualTrackMemory:
             raise ValueError("context observation timestamp must equal decision_t")
         if self._history and int(observation["timestamp"]) <= int(self._history[-1]["timestamp"]):
             raise ValueError("context observations must be strictly increasing")
-        self._history.append(observation)
+        candidate_history = [*self._history, observation]
         packet = self.context_router.encode(
-            self._history,
+            candidate_history,
             decision_t=int(decision_t),
             observed_through=int(decision_t),
             event=event,
@@ -196,6 +196,10 @@ class VerifiedDualTrackMemory:
             prompt=prompt,
             bundle_hash=_digest(bundle_payload),
         )
+        # Commit history and prepared state only after packet construction,
+        # retrieval, and prompt hashing all succeed. A rejected event/feature can
+        # therefore be corrected and retried for the same decision month.
+        self._history.append(observation)
         self._prepared[int(decision_t)] = bundle
         return bundle
 
@@ -211,7 +215,7 @@ class VerifiedDualTrackMemory:
     ) -> str:
         if decision_t not in self._prepared:
             raise ValueError("prepare_decision must run before begin_episode")
-        bundle = self._prepared.pop(decision_t)
+        bundle = self._prepared[decision_t]
         decision_id = self.episodic.begin_episode(
             decision_t=decision_t,
             pre_state=pre_state,
@@ -224,6 +228,8 @@ class VerifiedDualTrackMemory:
             rng_draw=rng_draw,
             reflection=reflection,
         )
+        # Do not consume the prepared bundle until M2 has accepted every input.
+        self._prepared.pop(decision_t)
         self._decision_ids[decision_t] = decision_id
         return decision_id
 
@@ -238,7 +244,7 @@ class VerifiedDualTrackMemory:
     ) -> EpisodeRecord:
         if decision_t not in self._decision_ids:
             raise ValueError("begin_episode must run before finalize_episode")
-        decision_id = self._decision_ids.pop(decision_t)
+        decision_id = self._decision_ids[decision_t]
         record = self.episodic.finalize_episode(
             decision_id,
             outcome_t=int(decision_t) + 1,
@@ -254,6 +260,9 @@ class VerifiedDualTrackMemory:
                     record.episode_id,
                     current_t=int(decision_t) + 1,
                 )
+        # Retain the facade mapping whenever M2 rejects malformed finalization
+        # input, so callers can correct the input and retry the same month.
+        self._decision_ids.pop(decision_t)
         return record
 
     def build_rule_proposal_prompt(self, *, max_episodes: int = 6) -> str:
@@ -277,15 +286,55 @@ class VerifiedDualTrackMemory:
         )
 
     def validate(self) -> None:
+        self._validate_runtime_integrity()
         if self._prepared or self._decision_ids or self.episodic.pending_count:
             raise ValueError("memory system contains an unfinished decision")
+
+    def _validate_runtime_integrity(self) -> None:
+        if (
+            self.episodic.run_id != self.run_id
+            or self.episodic.seed != self.seed
+            or self.episodic.agent_id != self.agent_id
+        ):
+            raise ValueError("system and episodic track identities differ")
+
+        pending_by_t: Dict[int, str] = {}
+        for pending in self.episodic.pending_episodes:
+            if pending.decision_t in pending_by_t:
+                raise ValueError(
+                    f"multiple pending decisions for month {pending.decision_t}"
+                )
+            pending_by_t[pending.decision_t] = pending.decision_id
+        if pending_by_t != self._decision_ids:
+            raise ValueError("facade decision IDs do not match M2 pending decisions")
+
+        previous_timestamp: Optional[int] = None
+        for index, row in enumerate(self._history):
+            timestamp = row.get("timestamp") if isinstance(row, Mapping) else None
+            if isinstance(timestamp, bool) or not isinstance(timestamp, int):
+                raise ValueError(f"history[{index}] has an invalid timestamp")
+            if previous_timestamp is not None and timestamp <= previous_timestamp:
+                raise ValueError("restored history timestamps are not strictly increasing")
+            previous_timestamp = timestamp
+
         self.episodic.validate_references()
         if self.semantic is not None:
             self.semantic.validate_referential_integrity()
+            known_rule_ids = {rule.rule_id for rule in self.semantic.rules}
+        else:
+            known_rule_ids = set()
+        for episode in (*self.episodic.finalized_episodes, *self.episodic.pending_episodes):
+            missing_rules = sorted(set(episode.selected_rule_ids) - known_rule_ids)
+            if missing_rules:
+                raise ValueError(
+                    f"episode/decision {episode.decision_id} references missing rules: "
+                    f"{missing_rules}"
+                )
 
     def to_dict(self) -> Dict[str, Any]:
         if self._prepared:
             raise ValueError("cannot serialize while a decision is prepared but not begun")
+        self._validate_runtime_integrity()
         return {
             "schema_version": SYSTEM_SCHEMA_VERSION,
             "run_id": self.run_id,
@@ -319,14 +368,22 @@ class VerifiedDualTrackMemory:
         restored._history = _copy_json(value.get("history", []))
         restored.episodic = EvidenceLinkedEpisodicTrack.from_dict(value["episodic"])
         if restored.enable_semantic:
+            if value.get("semantic") is None:
+                raise ValueError("semantic track is enabled but serialized state is missing")
             restored.semantic = VerifiedSemanticRuleTrack.from_dict(
                 value["semantic"], episodic_track=restored.episodic
             )
         else:
+            if value.get("semantic") is not None:
+                raise ValueError("semantic track is disabled but serialized state is present")
             restored.semantic = None
-        restored._decision_ids = {
-            int(key): str(item) for key, item in value.get("decision_ids", {}).items()
-        }
+        restored._decision_ids = {}
+        for key, item in value.get("decision_ids", {}).items():
+            normalized_key = int(key)
+            if normalized_key in restored._decision_ids:
+                raise ValueError("duplicate decision month after integer normalization")
+            restored._decision_ids[normalized_key] = str(item)
+        restored._validate_runtime_integrity()
         return restored
 
 
