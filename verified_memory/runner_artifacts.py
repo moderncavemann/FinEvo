@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
+import json
+
 from .artifacts import JsonField, JsonlStreamSchema, RunArtifactWriter, verify_manifest
 from .runner import VerifiedRunResult
 
@@ -185,4 +187,45 @@ def write_verified_run_artifacts(
     return manifest_path
 
 
-__all__ = ["verified_run_schemas", "write_verified_run_artifacts"]
+def load_verified_run_artifacts(run_dir: str | Path) -> VerifiedRunResult:
+    """Load a sealed run only after its manifest and every file hash verify."""
+
+    root = Path(run_dir)
+    verify_manifest(root)
+    config = json.loads((root / "config.json").read_text(encoding="utf-8"))
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    records: dict[str, tuple[Mapping[str, Any], ...]] = {}
+    summary: Mapping[str, Any] | None = None
+    for schema in verified_run_schemas(
+        semantic_required=bool(config.get("enable_semantic"))
+    ):
+        path = root / schema.relative_path
+        rows: tuple[Mapping[str, Any], ...] = ()
+        if path.exists():
+            rows = tuple(
+                json.loads(line)
+                for line in path.read_text(encoding="utf-8").splitlines()
+                if line
+            )
+        if schema.name == "summary":
+            if len(rows) != 1:
+                raise ValueError("sealed verified run must contain exactly one summary")
+            summary = rows[0]
+        else:
+            records[schema.name] = rows
+    if summary is None:
+        raise ValueError("sealed verified run is missing summary")
+    return VerifiedRunResult(
+        config=config,
+        summary=summary,
+        validation_status=manifest["validation_status"],
+        budget_snapshot=manifest["budget_snapshot"],
+        records=records,
+    )
+
+
+__all__ = [
+    "load_verified_run_artifacts",
+    "verified_run_schemas",
+    "write_verified_run_artifacts",
+]
