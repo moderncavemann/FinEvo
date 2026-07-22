@@ -1,7 +1,10 @@
 from pathlib import Path
 
+import pytest
+
 from llm_providers import MultiModelLLM
 from verified_memory.budget import BudgetLimits, RunBudget
+from verified_memory.foundation_adapter import locate_component
 from verified_memory.runner import VerifiedRunConfig, run_verified_experiment
 from verified_memory.scripted_provider import ScriptedDiagnosticProvider
 
@@ -9,13 +12,17 @@ from verified_memory.scripted_provider import ScriptedDiagnosticProvider
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_two_agent_six_month_diagnostic_closes_full_verified_loop() -> None:
+@pytest.mark.parametrize("consumption_step", [0.02, 0.05])
+def test_two_agent_six_month_diagnostic_closes_full_verified_loop(
+    consumption_step: float,
+) -> None:
     config = VerifiedRunConfig(
         run_id="diagnostic-loop",
         seed=11,
         num_agents=2,
         episode_length=6,
         context_mode="retrieval-only",
+        consumption_step=consumption_step,
     )
     budget = RunBudget(
         BudgetLimits(
@@ -48,6 +55,12 @@ def test_two_agent_six_month_diagnostic_closes_full_verified_loop() -> None:
     assert result.summary["action_diagnostics"]["unique_labor_hours"] == [40.0, 88.0, 128.0]
     assert result.config["foundation_env"]["n_agents"] == 2
     assert result.config["foundation_env"]["episode_length"] == 6
+    _, consumption_config = locate_component(
+        result.config["foundation_env"], "SimpleConsumption"
+    )
+    assert consumption_config["consumption_rate_step"] == pytest.approx(
+        consumption_step
+    )
     assert len(result.config["foundation_env_hash"]) == 64
     assert all(row["request_seed"] == 11 for row in result.stream("api_usage"))
     assert all(row["response_model"] == "scripted-v1" for row in result.stream("api_usage"))
@@ -69,3 +82,8 @@ def test_verified_runner_rejects_hidden_provider_retries() -> None:
         assert "hard-budget call" in str(exc)
     else:
         raise AssertionError("budgeted verified runner should require one attempt")
+
+
+def test_verified_runner_rejects_consumption_grids_that_cannot_reach_one() -> None:
+    with pytest.raises(ValueError, match="divide one"):
+        VerifiedRunConfig(run_id="invalid-consumption-grid", consumption_step=0.03)

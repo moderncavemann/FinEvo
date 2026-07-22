@@ -119,6 +119,7 @@ def prepare_foundation_env_config(
     episode_length: int,
     labor_step: float = DEFAULT_LABOR_STEP,
     max_labor_hours: float = DEFAULT_MAX_LABOR_HOURS,
+    consumption_step: float = DEFAULT_CONSUMPTION_STEP,
 ) -> dict[str, Any]:
     """Load and deep-copy an env configuration for the verified direct-hours runner.
 
@@ -136,14 +137,25 @@ def prepare_foundation_env_config(
     episode_length = _positive_int(episode_length, "episode_length")
     labor_step = _finite(labor_step, "labor_step")
     max_labor_hours = _finite(max_labor_hours, "max_labor_hours")
-    if labor_step <= 0 or max_labor_hours <= 0:
-        raise ValueError("labor_step and max_labor_hours must be positive")
+    consumption_step = _finite(consumption_step, "consumption_step")
+    if labor_step <= 0 or max_labor_hours <= 0 or consumption_step <= 0:
+        raise ValueError("action steps and maximum labor must be positive")
     action_count = max_labor_hours / labor_step
     if not math.isclose(action_count, round(action_count), abs_tol=1e-12):
         raise ValueError("labor_step must divide max_labor_hours exactly")
+    consumption_action_count = 1.0 / consumption_step
+    if not math.isclose(
+        consumption_action_count,
+        round(consumption_action_count),
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    ):
+        raise ValueError("consumption_step must divide one exactly")
 
     labor_index, labor_config = _mutable_component(env_config, "SimpleLabor")
-    consumption_index, _ = _mutable_component(env_config, "SimpleConsumption")
+    consumption_index, consumption_config = _mutable_component(
+        env_config, "SimpleConsumption"
+    )
     # Foundation zips an action list to registered agent action spaces.  Enforce
     # the ordering required for [labor_index, consumption_index].
     if labor_index >= consumption_index:
@@ -157,6 +169,7 @@ def prepare_foundation_env_config(
     env_config["multi_action_mode_planner"] = True
     labor_config["labor_step"] = labor_step
     labor_config["num_labor_hours"] = max_labor_hours
+    consumption_config["consumption_rate_step"] = consumption_step
     return env_config
 
 
@@ -347,6 +360,9 @@ def capture_foundation_snapshots(
     *,
     expected_timestamp: int | None = None,
     current_decisions: Mapping[Any, ActionDecision] | None = None,
+    labor_step: float = DEFAULT_LABOR_STEP,
+    max_labor_hours: float = DEFAULT_MAX_LABOR_HOURS,
+    consumption_step: float = DEFAULT_CONSUMPTION_STEP,
 ) -> dict[str, FoundationEconomicSnapshot]:
     """Capture explicit current state, optionally zeroing current NO-OP flows.
 
@@ -404,7 +420,12 @@ def capture_foundation_snapshots(
             if agent_id not in normalized_decisions:
                 raise ValueError(f"missing current decision for agent {agent_id}")
             decision = normalized_decisions[agent_id]
-            foundation_action_for_decision(decision)
+            foundation_action_for_decision(
+                decision,
+                labor_step=labor_step,
+                max_labor_hours=max_labor_hours,
+                consumption_step=consumption_step,
+            )
             if decision.labor_action_index == 0:
                 income = 0.0
             if decision.consumption_action_index == 0:
@@ -510,6 +531,9 @@ def derive_foundation_transitions(
     pre_snapshots: Mapping[str, FoundationEconomicSnapshot],
     decisions: Mapping[Any, ActionDecision],
     expected_outcome_t: int,
+    labor_step: float = DEFAULT_LABOR_STEP,
+    max_labor_hours: float = DEFAULT_MAX_LABOR_HOURS,
+    consumption_step: float = DEFAULT_CONSUMPTION_STEP,
     tolerance: float = _TOLERANCE,
 ) -> dict[str, FoundationTransition]:
     """Capture state at ``t+1`` and derive aligned M0/M2 budget outcomes."""
@@ -540,6 +564,9 @@ def derive_foundation_transitions(
         env,
         expected_timestamp=expected_outcome_t,
         current_decisions=normalized_decisions,
+        labor_step=labor_step,
+        max_labor_hours=max_labor_hours,
+        consumption_step=consumption_step,
     )
     if set(post_snapshots) != set(pre_snapshots):
         raise ValueError("post-snapshot cohort differs from pre-snapshot cohort")
@@ -558,7 +585,12 @@ def derive_foundation_transitions(
         pre = pre_snapshots[agent_id]
         post = post_snapshots[agent_id]
         decision = normalized_decisions[agent_id]
-        foundation_action_for_decision(decision)
+        foundation_action_for_decision(
+            decision,
+            labor_step=labor_step,
+            max_labor_hours=max_labor_hours,
+            consumption_step=consumption_step,
+        )
         agent_tax = tax_record.get(agent_id)
         if not isinstance(agent_tax, Mapping):
             raise ValueError(f"tax record missing agent {agent_id}")

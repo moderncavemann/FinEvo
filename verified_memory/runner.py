@@ -174,6 +174,13 @@ class VerifiedRunConfig:
             raise ValueError("labor_step must divide max_labor_hours")
         if self.consumption_step <= 0 or self.consumption_step > 1:
             raise ValueError("consumption_step must lie in (0, 1]")
+        if not math.isclose(
+            1.0 / self.consumption_step,
+            round(1.0 / self.consumption_step),
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            raise ValueError("consumption_step must divide one")
         if not 0 <= self.low_labor_threshold_hours <= self.max_labor_hours:
             raise ValueError("low labor threshold is outside feasible hours")
         if self.temperature < 0 or not 0 < self.top_p <= 1:
@@ -376,6 +383,7 @@ def run_verified_experiment(
         episode_length=config.episode_length,
         labor_step=config.labor_step,
         max_labor_hours=config.max_labor_hours,
+        consumption_step=config.consumption_step,
     )
     env = foundation.make_env_instance(**foundation_config)
     env.reset()
@@ -406,7 +414,11 @@ def run_verified_experiment(
 
     for decision_t in range(config.episode_length):
         pre_snapshots = capture_foundation_snapshots(
-            env, expected_timestamp=decision_t
+            env,
+            expected_timestamp=decision_t,
+            labor_step=config.labor_step,
+            max_labor_hours=config.max_labor_hours,
+            consumption_step=config.consumption_step,
         )
         current_inflation = _monthly_inflation(env.world)
         bundles: dict[int, MemoryBundle] = {}
@@ -598,6 +610,9 @@ def run_verified_experiment(
             pre_snapshots=pre_snapshots,
             decisions=decisions,
             expected_outcome_t=decision_t + 1,
+            labor_step=config.labor_step,
+            max_labor_hours=config.max_labor_hours,
+            consumption_step=config.consumption_step,
         )
         post_batch: dict[str, dict[str, Any]] = {}
         for agent_id, transition in transitions.items():

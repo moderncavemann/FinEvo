@@ -53,19 +53,36 @@ def test_config_is_deep_copied_loaded_and_components_are_found_by_name(tmp_path)
     assert index == 0
     assert labor["labor_step"] == 8.0
     assert labor["num_labor_hours"] == 168.0
+    assert locate_component(prepared, "SimpleConsumption")[1][
+        "consumption_rate_step"
+    ] == pytest.approx(0.02)
 
     path = tmp_path / "config.yaml"
     path.write_text(yaml.safe_dump(source), encoding="utf-8")
     loaded = prepare_foundation_env_config(
-        path, n_agents=2, episode_length=6, labor_step=8
+        path,
+        n_agents=2,
+        episode_length=6,
+        labor_step=8,
+        consumption_step=0.05,
     )
     assert loaded["n_agents"] == 2
-    assert locate_component(loaded, "SimpleConsumption")[0] == 2
+    consumption_index, consumption = locate_component(loaded, "SimpleConsumption")
+    assert consumption_index == 2
+    assert consumption["consumption_rate_step"] == pytest.approx(0.05)
     assert source == source_before
 
     with pytest.raises(ValueError, match="divide"):
         prepare_foundation_env_config(
             source, n_agents=2, episode_length=6, labor_step=10
+        )
+
+    with pytest.raises(ValueError, match="divide one"):
+        prepare_foundation_env_config(
+            source,
+            n_agents=2,
+            episode_length=6,
+            consumption_step=0.03,
         )
 
 

@@ -133,8 +133,10 @@ changing only memory:
 The implemented prompt-level replay reports paired action changes. Immediate
 utility and downstream transitions require a compatible environment checkpoint
 and are deliberately not claimed by the current smoke. A trace alone is
-descriptive; an integrity-matched replay is evidence for memory-induced action
-change, not for improved economic outcomes.
+descriptive; an integrity-matched replay tests action sensitivity, but residual
+provider nondeterminism must be bounded before attributing the change strictly
+to memory. The current single replay is therefore reported as controlled action
+sensitivity, not improved economic outcomes or strict causal identification.
 
 The replay contract sends the protected decoding seed to the provider, records
 the requested alias and served model, and rejects conflicting non-null system
@@ -153,19 +155,22 @@ that context into the protected base prompt first.
   `SemanticMemory` paths remain loadable for old pickle artifacts.
 - The new implementation lives in `verified_memory/` and uses the separate
   `simulate_verified.py` entrypoint. The legacy `simulate.py` path is unchanged.
-- Legacy flags map to documented compatibility behavior. New experiments use
-  separate switches for episodic writes/retrieval and semantic
-  generation/verification/retrieval.
+- Legacy flags map to documented compatibility behavior. In the verified path,
+  episodic writes remain on for provenance, episodic retrieval has its own
+  switch, and semantic proposal/verification/retrieval currently share one
+  enable switch. Finer semantic-stage ablations remain future work.
 - Existing `semantic_rules.jsonl` remains a compatibility snapshot. New runs
   additionally write `context_trace.jsonl`, `episodes.jsonl`,
   `semantic_rule_events.jsonl`, and `decision_snapshots.jsonl`.
 - Every formal run records the exact code commit, dirty-worktree status,
   effective Foundation configuration and hash, source-config hash, requested
   and served model IDs, request seed, system fingerprint, usage/cache details,
-  API date, and prompt version when the provider exposes them.
-- Each budget reservation permits exactly one provider attempt. A failed CLI
-  run seals its error and completed-call budget ledger; partial in-memory
-  simulation streams are explicitly not checkpointed by the current writer.
+  and provider request ID when the provider exposes them. The current artifact
+  schema does not yet store a separate API-date or prompt-version field.
+- Each budget reservation permits exactly one provider attempt. Post-setup
+  execution failures seal their error and completed-call budget ledger;
+  preflight failures remain stderr-only, and partial in-memory simulation
+  streams are explicitly not checkpointed by the current writer.
 
 ## Validation gates before full experiments
 
@@ -194,15 +199,17 @@ quality, and post-shock adaptation.
 ## Current gate status (2026-07-22)
 
 - Gates 1--6 and 10 pass in the bounded implementation suite.
-- Gate 7 passes only at prompt-level for one GPT-5.2 snapshot: the strengthened
-  injected rule did not alter its action. Retirement remains unit-tested, but a
-  downstream false-rule rollout is still pending.
+- Gate 7 passes only at prompt-level for one corrected GPT-5.2 replay: the
+  strengthened injected rule did not alter its action. Retirement remains
+  unit-tested, but a downstream false-rule rollout is still pending.
 - Gate 8 passes at the routing/unit level; the four API context variants have
   not been run.
-- Gate 9's code-level integrity checks pass, but the stored v2 API replay
-  predates enforced seed forwarding and correct section-preserving shuffling.
-  A replacement sealed replay is required before claiming paired action
-  sensitivity. Downstream checkpoint replay remains pending.
+- Gate 9 passes at request-integrity level in the sealed v3 replay: seed 11 was
+  forwarded and recorded client-side, one served model snapshot was recorded,
+  shuffling preserved section boundaries, and the tracked code commit was clean. Because
+  provider seed behavior is best-effort and no system fingerprint was returned,
+  this establishes controlled action sensitivity rather than strict causal
+  identification. Downstream checkpoint replay remains pending.
 
 Therefore full multi-seed experiments remain disabled. See
 `artifacts/verified_memory_smoke_report.md` for the bounded evidence and claim

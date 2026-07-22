@@ -21,9 +21,10 @@ method work uses:
 - `simulate_verified.py`: direct-hours, hard-budget, bounded runner;
 - `replay_verified.py`: hash-bound five-treatment paired replay.
 
-Budgeted calls use one HTTP attempt per reserved call; failures write a
-content-addressed error/config/budget receipt. Partial in-memory simulation
-streams are not yet checkpointed on failure. Effective Foundation parameters,
+Budgeted calls use one HTTP attempt per reserved call; post-setup execution
+failures write a content-addressed error/config/budget receipt. Preflight
+failures remain stderr-only. Partial in-memory simulation streams are not yet
+checkpointed on failure. Effective Foundation parameters,
 request seed, served model, system fingerprint, cache usage, and provider
 request ID are retained when available.
 

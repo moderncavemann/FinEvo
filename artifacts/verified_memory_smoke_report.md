@@ -6,14 +6,15 @@ Scope: method/integration validation only; **not scientific performance evidence
 
 ## Outcome
 
-The redesigned execution path passes its local closed loop and limited GPT-5.2
-simulation smoke, but it is not yet ready for the full experiment matrix. Final
-audit found that the stored replay did not forward its recorded decoding seed
-and its shuffle crossed a section boundary. Both code defects are fixed and
-covered by tests, but a fresh sealed replay is required before treating action
-differences as an authoritative intervention result. Four-way API context
-ablations and downstream checkpoint replay also remain pending, so
-multi-seed/full-scale runs stay disabled.
+The redesigned execution path passes its local closed loop, limited GPT-5.2
+simulation smoke, and corrected five-treatment replay. It is ready for a small
+matched pilot, but not for the full experiment matrix. The replay now forwards
+and records the requested seed client-side, preserves memory-section boundaries,
+records the served model, and runs from a clean tracked commit. OpenAI returned no
+system fingerprint and documents seed determinism as best-effort, so the replay
+supports controlled prompt-level action sensitivity rather than strict causal
+identification. Four-way API context ablations and downstream checkpoint replay
+remain pending; multi-seed/full-scale runs stay disabled.
 
 ## Research contract
 
@@ -36,8 +37,8 @@ multi-seed/full-scale runs stay disabled.
   exhaustion, or cash-flow/accounting mismatch.
 - **One-sentence claim:** in the bounded implementation tests reported here,
   the redesigned dual-track memory produces an auditable
-  state-to-memory-to-action-to-next-state chain; the strengthened intervention
-  runner is implemented but awaits a replacement sealed API replay.
+  state-to-memory-to-action-to-next-state chain and shows controlled action
+  sensitivity to memory treatments in one seeded GPT-5.2 replay.
 - **Non-claims:** these checks do not establish higher utility, better macro
   outcomes, general resistance to hallucinated rules, model independence, or
   effective use of rich narrative events.
@@ -46,7 +47,7 @@ multi-seed/full-scale runs stay disabled.
 
 | Reviewer gap | Required mechanism | Observable intermediate | Metric/test | Current evidence | Status |
 |---|---|---|---|---|---|
-| Reflection may reinforce errors | M3 proposal, independent verifier, provisional state, later-only activation, counterevidence and retirement | Rule event ledger with cited M2 IDs and lifecycle transitions | Reference/hash validity; temporal separation; support/contradiction counts; injected-error replay | Unit/adversarial tests plus one sealed injected-rule snapshot | Partial |
+| Reflection may reinforce errors | M3 proposal, independent verifier, provisional state, later-only activation, counterevidence and retirement | Rule event ledger with cited M2 IDs and lifecycle transitions | Reference/hash validity; temporal separation; support/contradiction counts; injected-error replay | Unit/adversarial tests plus one corrected sealed injected-rule snapshot | Partial |
 | Closed-loop causal chain is opaque | M1 causal context + M2 pre/post transition + action/prompt/retrieval provenance + M0 utility | One decision record links state, memory IDs, prompt hash, action, next state, and utility | No future retrieval; exact transition alignment; cash-flow identity; content-addressed manifest | G0 and G4b sealed runs | Supported as implementation traceability |
 | Text context may be a switch rather than information | Four matched M1 routes: no context, prompt-only, retrieval-only, full | Route-specific prompt and retrieval payloads | Paired action, utility, and downstream-state deltas | Route unit tests only | Missing behavioral evidence |
 | Gains may depend on the base LLM | Provider-neutral interface and identical gate definitions | Same treatment ledger under another model | Matched second-model effect estimates and failure rates | GPT-5.2 smoke only | Missing |
@@ -113,52 +114,86 @@ passing the former is a prerequisite for, not evidence of, the latter.
   `0.8571` and `0.8750`.
 - Direct actions used 152 and 168 hours, demonstrating that the verified path is
   no longer restricted to the legacy 0/168 Bernoulli outcome.
+- In G4a/G4b, seed 11 controlled simulator RNG; those runs predate forwarding a
+  decoding seed to the provider.
 - Manifest SHA-256:
   `aa45a372e89fa901ac1abbc119f1123f6f009e17583b993bbb1ce07437a2ed94`.
 
 ### Paired memory replay
 
-Superseded strengthened iteration:
-`artifacts/verified_replays/g4b-agent0-t5-v2/`.
+Current corrected artifact:
+`artifacts/verified_replays/g4b-agent0-t5-v3/`.
 
-- Intended fixed fields: environment-state hash, base prompt, context ID/hash,
-  requested GPT-5.2 alias, temperature/top-p, parser, and discretization.
-- 5 API calls; 2,606 prompt + 193 completion tokens. The artifact's old
-  estimator records `$0.010134`; current standard uncached list-rate estimate
-  is `$0.0072625`.
-- All five checks implemented by the old harness passed, but those checks did
-  not attest provider seed forwarding or section-preserving shuffling.
-- No-memory changed executed consumption from `0.60` to `0.72` and left labor
-  at 152 hours.
-- Wrong-agent memory changed labor from 152 to 168 hours and consumption from
-  `0.60` to `0.82`.
-- These action differences are retained only as an iteration receipt. The
-  recorded seed was not sent to the provider, and the old shuffler moved some
-  episodes below the active-rule header. The artifact therefore cannot support
-  an only-memory-varied causal claim.
-- Manifest SHA-256:
-  `39d9352b9ec39439240c930ea62a59670f721331e9982d01718f510ed42ae1f6`.
+- Source: sealed G4b run, agent 0 at `t=5`; execution code commit
+  `d328e0b56dd0dbab58a69eea334abf0cbded5738`, with tracked worktree
+  `dirty=false`.
+- Fixed at the request layer: environment-state hash, base prompt, context
+  ID/hash, requested model alias, temperature/top-p, parser, discretization,
+  and decoding seed 11. Only the hash-bound memory treatment varies.
+- The shuffler reverses only finalized episode entries and preserves the active
+  rule section byte-for-byte. The wrong-context arm requires both a different
+  agent and a different context hash.
+- 5 one-attempt API calls; 2,606 prompt + 188 completion tokens; zero cached
+  prompt tokens; current list-rate estimate `$0.0071925`.
+- All five requests record client-side forwarding of seed 11; all responses
+  report the same served model snapshot, `gpt-5.2-2025-12-11`. OpenAI returned
+  no response-side seed field and no system fingerprint. The artifact field
+  `decoding_seed_verified=true` denotes the local adapter invariant, not a
+  provider attestation.
+- Matched: 152 labor hours, consumption `0.60`.
+- No-memory: 152 hours, consumption `0.56` (change `-0.04`).
+- Shuffled: 152 hours, consumption `0.60` (unchanged).
+- Wrong-context: 168 hours, consumption `0.84` (changes `+16` hours and
+  `+0.24` consumption rate).
+- Injected high-confidence erroneous rule: 152 hours, consumption `0.60`
+  (unchanged in this snapshot).
+- Independent manifest rehash: pass. Manifest SHA-256:
+  `5b4772d46f1fd124fca78f4b5572de034ae2629e09ff01f031939256ddbee651`.
 
-The earlier replay at `artifacts/verified_replays/g4b-agent0-t5/` is also
-retained as an iteration receipt. Its injected rule was visibly marked
-unverified and was therefore too weak. Neither stored replay is authoritative.
+This is controlled prompt-level action sensitivity, not strict causal
+identification: the
+[Chat Completions reference](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)
+documents `seed` as best-effort and does not guarantee determinism, while the
+optional system fingerprint was absent. It also provides no utility or
+downstream macro effect because the replay is prompt-level.
+
+The v1 and v2 directories remain superseded iteration receipts. V1 used a
+visibly unverified injected rule; v2 recorded but did not send the decoding
+seed and allowed the shuffle to cross the active-rule header.
 
 ## API usage and cost-estimate ledger
 
-Across the two 14-call API loops and both five-call replay iterations:
+Across the two 14-call API loops and all three five-call replay iterations:
 
-- 38 calls;
-- 18,968 prompt tokens;
-- 2,269 completion tokens;
-- total historical estimator cost recorded in the artifacts: `$0.084132`;
-- current standard uncached list-rate estimate for those same token totals:
-  `$0.064960`.
+- 43 calls;
+- 21,574 prompt tokens;
+- 2,457 completion tokens;
+- the first four artifacts' historical estimator total is `$0.084132`, while
+  v3 uses the corrected current-rate estimator and records `$0.0071925`;
+- repricing all recorded tokens at the current standard uncached rate gives
+  `$0.0721525`.
 
-The old artifacts do not retain cached-input token counts, so neither figure is
-presented as the actual billed amount. New provider records retain cache usage
-when exposed by the API.
+The old artifacts do not retain cached-input token counts, so the aggregate is
+not presented as the actual billed amount. V3 records zero cached tokens.
+The pricing basis is the official
+[GPT-5.2 model page](https://developers.openai.com/api/docs/models/gpt-5.2):
+`$1.75`/M input, `$0.175`/M cached input, and `$14`/M output.
 
 No full experiment was launched.
+
+## Final implementation checks
+
+- `138` repository tests pass.
+- Python compilation and `git diff --check` pass.
+- Budgeted calls enforce one provider attempt per reservation.
+- Effective Foundation configuration and its canonical hash are sealed in new
+  run configs; labor and consumption grids are validated and synchronized into
+  that effective environment configuration.
+- Post-setup execution failures write a content-addressed
+  error/config/budget receipt; preflight failures remain stderr-only, and
+  partial in-memory streams are explicitly not checkpointed.
+- Credential-value and common token/private-key pattern scans over the intended
+  release scope found no match.
 
 ## Remaining work, ordered by evidence value
 
@@ -191,6 +226,7 @@ failure rates, token/cost totals, and all prespecified endpoints. A positive
 smoke result is not a reason to skip the matched controls.
 
 Until these are complete, the defensible claim is: the redesigned method is
-causally traceable and fail-closed in bounded simulation tests. A corrected
-seeded replay must be sealed before claiming responsiveness to memory
-interventions, and no result yet shows baseline outperformance.
+causally traceable and fail-closed in bounded simulation tests, with controlled
+prompt-level action sensitivity to memory treatments in one corrected seeded
+replay. Residual provider nondeterminism, utility effects, macro effects, and
+baseline outperformance remain unestablished.
