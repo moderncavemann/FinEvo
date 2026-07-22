@@ -344,7 +344,7 @@ class FoundationEconomicSnapshot:
             "price": self.price,
             "interest_rate": self.interest_rate,
             "unemployment_rate": self.unemployment_rate,
-            "low_labor_rate": self.unemployment_rate,
+            "unemployment_rate_available": float(self.timestamp > 0),
             "inflation": self.inflation,
             "wealth": self.wealth,
             "income": self.income,

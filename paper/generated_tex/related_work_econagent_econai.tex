@@ -1,3 +1,13 @@
+\ifdefined\FinEvoAllowHistoricalPrePZeroEvidence\else
+\errmessage{HISTORICAL PRE-P0 V1 evidence requires explicit legacy opt-in}
+\fi
+% ============================================================================
+% HISTORICAL / LEGACY EVIDENCE ONLY
+% This file describes the deterministic-template FinEvo/EconAgent implementation
+% and evidence produced before commit 3a3f30c. It must not be used as evidence
+% for the current Evidence-Grounded Rule Memory method.
+% See paper/legacy/README.md for scope and migration guidance.
+% ============================================================================
 % Portable related-work insertion for the revised submission.
 EconAgent~\citep{li2024econagent} combines prompt-based perception, quarterly
 LLM reflection, and rolling dialogue memory for household work and consumption
@@ -15,4 +25,3 @@ evaluation focuses on matched cue and memory controls, bounded outcome records,
 and decision-level provenance in a shared household action interface.  The two
 systems overlap in combining memory and sentiment, and we do not claim that
 this combination alone is unique to FinEvo.
-

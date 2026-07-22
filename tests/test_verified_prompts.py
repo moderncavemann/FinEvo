@@ -58,6 +58,25 @@ class VerifiedPromptTest(unittest.TestCase):
         self.assertNotIn(MEMORY_START, base)
         self.assertNotIn(MEMORY_END, base)
 
+    def test_bootstrap_prompt_marks_prior_period_unavailable(self):
+        values = self.state().to_dict()
+        values.update(
+            decision_t=0,
+            previous_period_available=False,
+            last_consumption_quantity=0.0,
+            last_labor_hours=0.0,
+            last_tax_paid=0.0,
+            last_lump_sum=0.0,
+        )
+        base = build_base_decision_prompt(
+            DecisionPromptState(**values),
+            UtilityConfig(),
+            causal_context_summary="prior_low_labor_rate=unavailable",
+        )
+        self.assertIn("No completed prior month is available", base)
+        self.assertIn("prior_low_labor_rate=unavailable", base)
+        self.assertNotIn("last completed month you worked 0", base)
+
     def test_reserved_delimiters_rejected(self):
         with self.assertRaises(ValueError):
             compose_decision_prompt("choose carefully", MEMORY_START)

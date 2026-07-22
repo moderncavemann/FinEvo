@@ -1,6 +1,8 @@
-# Verified dual-track memory redesign
+# Evidence-Grounded Rule Memory under Endogenous Multi-Agent Feedback
 
-Status: implementation specification for the post-EMNLP redesign.
+Status: **locally validated implementation specification; scientific evidence
+pending**. Remote status is attached to the relevant pushed commit/PR rather
+than asserted by this file.
 
 The paper's primary question is no longer whether a memory-augmented agent
 maximizes wealth in one simulator. It is whether an LLM agent can maintain an
@@ -8,10 +10,15 @@ auditable, evidence-linked, and intervention-testable memory under changing
 conditions. The economic simulator is the controlled testbed; wealth and
 aggregate macro variables are secondary diagnostics.
 
-The working method name in code is **verified dual-track memory**. This is a
-descriptive label, not a final paper brand. The old hand-crafted sentiment cue,
-legacy deterministic semantic templates, and the name `FinEvo` remain only for
-reproducing prior baselines.
+The research-method name is **Evidence-Grounded Rule Memory under Endogenous
+Multi-Agent Feedback**. Code retains the historical `verified_memory` and
+`VerifiedDualTrackMemory` identifiers for compatibility. Here, `verified`
+means evidence-consistency and provenance checks only; it does not mean that a
+rule is true, economically correct, optimal, hallucination-free, or causally
+identified. The old hand-crafted sentiment cue, legacy deterministic semantic
+templates, and the name `FinEvo` remain only for reproducing prior baselines.
+The current completion ledger and scientific claim boundary are in
+[`p0_methodology_completion_audit.md`](p0_methodology_completion_audit.md).
 
 ## Method modules
 
@@ -42,6 +49,15 @@ predictive projection may be fitted on separate training seeds and loaded at
 evaluation time. The unfitted fallback is an explicit causal rolling-feature
 encoder, not a learned model.
 
+For a value feature paired with `<feature>_available`, the fixed `last`,
+`mean`, and `slope` slots use only rows whose mask is positive. `last` is the
+latest available value, `mean` averages available values, and `slope` is the
+first-to-last available-value change divided by their timestamp difference;
+zero or one available observation gives slope `0`. An all-missing window maps
+all three value slots to finite neutral zeros. Availability-mask features keep
+ordinary rolling statistics, and the prompt still renders the current value as
+`unavailable` whenever its current mask is off.
+
 ### M2: evidence-linked episodic track
 
 M2 stores finalized transitions, not prompt-time impressions. Its write path is
@@ -63,33 +79,53 @@ rank is logged. The episode stores proposed action, executed action, any random
 draw, realized labor hours, nominal/real consumption, wealth transition,
 utility, reward, and the IDs of memory that influenced the decision.
 
-### M3: verified semantic-rule track
+### M3 v2: evidence-grounded semantic-rule track
 
-M3 accepts structured LLM candidates but never trusts them directly. A rule has:
+M3 accepts structured LLM candidates but never treats candidate generation as
+verification. Each persisted rule records:
 
-- `rule_id` and version;
-- one machine-checkable state predicate in schema v1 (a conjunction is a future
-  schema extension, not a current claim);
-- structured labor/consumption guidance;
-- rationale;
-- unique supporting and contradicting episode IDs;
-- context scope;
-- `provisional`, `active`, `retired`, or `rejected` status;
-- support, contradiction, confidence, and transition reason.
+- a stable `rule_family_id`, monotonic `rule_version`, `rule_id`,
+  `supersedes_rule_id`, and `derived_from_rule_ids` lineage;
+- one machine-checkable state condition plus a machine-checkable
+  `ContextScope`; schema support for a scope is not evidence that the scope is
+  scientifically useful;
+- absolute action guidance using `at_least`, `at_most`, or `approximately`.
+  Legacy `increase`, `decrease`, and `maintain` labels are accepted only through
+  an explicitly logged migration and must not be described as relative actions;
+- a rationale, unique evidence IDs by category, lifecycle timestamps,
+  confidence, margins, transition reasons, and `provisional`, `active`,
+  `retired`, or `rejected` status.
 
-The verifier checks that cited episodes exist, are unique, satisfy the
-condition, contain actions consistent with the guidance, and meet an
-outcome/utility criterion. It also searches the ledger for condition-matched
-counterevidence. Duplicate evidence is idempotent.
+The verifier preregisters the outcome criterion; the candidate cannot choose
+its own success metric or threshold. The default is
+`utility_advantage > 0` with zero tolerance. Candidate evidence must resolve to
+unique finalized M2 episodes, satisfy the condition and scope, and contain
+executed actions consistent with the absolute guidance. The verifier also
+searches the eligible ledger for unlisted condition-matched evidence.
 
-A valid candidate first enters the provisional buffer. Admission requires at
-least two independent supporting episodes. It becomes active only after a
-positive support-minus-contradiction margin and at least one qualifying episode
-whose outcome is strictly later than rule creation (the default activation
-threshold is three total supports). Only active
-rules can enter the decision prompt. Repeated negative outcomes or new
-counterevidence lower confidence and retire the rule. Rejected and retired
-rules remain in the audit ledger.
+Evidence is classified into five distinct categories:
+
+- `support`: compliant action and successful registered outcome;
+- `harmful_compliance`: compliant action and failed outcome;
+- `alternative_success`: non-compliant action and successful outcome;
+- `alternative_failure`: non-compliant action and failed outcome;
+- `irrelevant`: condition or context scope does not apply.
+
+The default weights are respectively `1.0`, `1.0`, `0.5`, `0.0`, and `0.0`.
+These weights are configurable, logged protocol assumptions, not discovered
+truth; they require preregistration, calibration, and sensitivity analysis.
+Duplicate evidence is idempotent.
+
+A valid candidate first enters the provisional buffer. It cannot activate from
+candidate-generation evidence alone. Activation requires a currently observed
+post-proposal episode classified as `support`, at least one post-proposal
+support in total, the configured minimum total support, a positive configured
+margin, and the confidence threshold. Only active, condition-matched,
+scope-matched rules can enter the decision prompt. Harmful compliance and
+alternative success contribute different negative weights; repeated failures
+or confidence decay can retire a rule. A terminal rejected or retired family
+may form a later version only with new support, while preserving lineage.
+Rejected and retired versions remain in the audit ledger.
 
 ## M0 evaluation contract (not a memory track)
 
@@ -130,13 +166,13 @@ changing only memory:
 - context-mismatched memory;
 - injected erroneous semantic rule.
 
-The implemented prompt-level replay reports paired action changes. Immediate
+The prompt-level replay is designed to report paired action changes. Immediate
 utility and downstream transitions require a compatible environment checkpoint
-and are deliberately not claimed by the current smoke. A trace alone is
-descriptive; an integrity-matched replay tests action sensitivity, but residual
-provider nondeterminism must be bounded before attributing the change strictly
-to memory. The current single replay is therefore reported as controlled action
-sensitivity, not improved economic outcomes or strict causal identification.
+and are not established by the current implementation-completion audit. A trace
+alone is descriptive; an integrity-matched replay tests action sensitivity, but
+residual provider nondeterminism must be bounded before attributing the change
+strictly to memory. Older single-snapshot replays are historical regression
+fixtures, not evidence for the current method.
 
 The replay contract sends the protected decoding seed to the provider, records
 the requested alias and served model, and rejects conflicting non-null system
@@ -144,10 +180,11 @@ fingerprints. OpenAI documents the seed as best-effort, not guaranteed
 determinism, and the fingerprint may be absent; the result is therefore
 controlled prompt-level sensitivity rather than strict causal identification.
 It changes only episodic-entry order in the shuffled arm and keeps the
-active-rule section byte-identical. Prompt-only/full M1 runs
-currently fail closed at snapshot construction because prompt-routed context is
-still co-located with memory text; support for those routes requires moving
-that context into the protected base prompt first.
+active-rule section byte-identical. The current P0 implementation moves
+prompt-routed context into a protected base-prompt field and binds replay to
+the source full-prompt hash. This path has passed the local validation gates.
+Prompt-level replay still does not establish
+downstream utility, next-state effects, or strict causal identification.
 
 ## Compatibility and provenance
 
@@ -162,11 +199,16 @@ that context into the protected base prompt first.
 - Existing `semantic_rules.jsonl` remains a compatibility snapshot. New runs
   additionally write `context_trace.jsonl`, `episodes.jsonl`,
   `semantic_rule_events.jsonl`, and `decision_snapshots.jsonl`.
+- Current system-schema-v2 snapshots require the exact M1 decision-event and
+  M2/M3 decision-retrieval arrays used for restore replay. Earlier
+  in-development v2 snapshots without those arrays fail closed; no implicit
+  migration is claimed.
 - Every formal run records the exact code commit, dirty-worktree status,
   effective Foundation configuration and hash, source-config hash, requested
   and served model IDs, request seed, system fingerprint, usage/cache details,
-  and provider request ID when the provider exposes them. The current artifact
-  schema does not yet store a separate API-date or prompt-version field.
+  and provider request ID when the provider exposes them. Decision snapshots
+  record the prompt schema version; the current artifact schema does not yet
+  store a separate API-date field.
 - Each budget reservation permits exactly one provider attempt. Post-setup
   execution failures seal their error and completed-call budget ledger;
   preflight failures remain stderr-only, and partial in-memory simulation
@@ -183,7 +225,9 @@ of the following pass:
    and retirement tests;
 4. referential integrity for every memory and rule ID;
 5. deterministic two-agent smoke through M1 -> M2 -> M3;
-6. limited API smoke with zero provider/parser failures and complete ledgers;
+6. before any hosted-provider arm, a limited API preflight smoke with complete
+   provider/parser ledgers and a preregistered parse-failure policy, with every
+   failure accounted for;
 7. forced false-rule injection is rejected, retired, or shown not to alter the
    paired action under an integrity-matched treatment;
 8. 2x2 context configurations differ only in their intended route;
@@ -191,26 +235,26 @@ of the following pass:
    prompt/state change—is the only treatment;
 10. legacy exporter/audit tests still pass.
 
-Passing these gates establishes implementation validity, not method
-superiority. Only after the gates pass should a small matched experiment test
-whether verified dual memory improves utility, rule reliability, retrieval
-quality, and post-shock adaptation.
+The local gates have passed for the current worktree. Hosted-provider gate 6
+has not been run for the current method and must be the first bounded stage of
+any API-backed pilot. Passing the applicable gates establishes implementation
+validity, not method superiority. A small matched experiment must then test
+whether Evidence-Grounded Rule Memory improves utility, rule reliability,
+retrieval quality, and post-shock adaptation.
 
-## Current gate status (2026-07-22)
+## Current completion status (2026-07-22)
 
-- Gates 1--6 and 10 pass in the bounded implementation suite.
-- Gate 7 passes only at prompt-level for one corrected GPT-5.2 replay: the
-  strengthened injected rule did not alter its action. Retirement remains
-  unit-tested, but a downstream false-rule rollout is still pending.
-- Gate 8 passes at the routing/unit level; the four API context variants have
-  not been run.
-- Gate 9 passes at request-integrity level in the sealed v3 replay: seed 11 was
-  forwarded and recorded client-side, one served model snapshot was recorded,
-  shuffling preserved section boundaries, and the tracked code commit was clean. Because
-  provider seed behavior is best-effort and no system fingerprint was returned,
-  this establishes controlled action sensitivity rather than strict causal
-  identification. Downstream checkpoint replay remains pending.
+The current P0 implementation contains source paths and named tests for the
+requirements in the completion audit and has passed the local validation
+record documented there. Remote status belongs to the pushed commit/PR. No
+scientific result or commit hash is asserted by this specification.
+Older sealed runs, replays, and the historical smoke report predate the current
+P0 changes; they are regression fixtures, not scientific evidence for this
+method.
 
-Therefore full multi-seed experiments remain disabled. See
-`artifacts/verified_memory_smoke_report.md` for the bounded evidence and claim
-limits.
+Here, `code-ready` means only that a small matched pilot may begin, with a
+bounded API preflight required before any hosted-provider arm. Experiments A-D,
+utility calibration/sensitivity, a second model, a method-matched 5-seed
+result, and a full run have not been completed. Full
+multi-seed or large-scale experiments remain gated by
+[`p0_methodology_completion_audit.md`](p0_methodology_completion_audit.md).

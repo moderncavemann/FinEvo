@@ -8,6 +8,7 @@ from verified_memory.replay import (
     MEMORY_END,
     MEMORY_START,
     DecisionSnapshot,
+    PairedReplayResult,
     PairedReplayRunner,
     ProviderCompletion,
     ReplayExecutionError,
@@ -91,6 +92,9 @@ def test_tampering_and_protected_setting_mismatches_are_rejected() -> None:
     with pytest.raises(ValueError, match="base_prompt_hash"):
         replace(snapshot, base_prompt="tampered prompt")
 
+    with pytest.raises(ValueError, match="source_full_prompt_hash"):
+        _snapshot(source_full_prompt_hash=_hash("not the matched source prompt"))
+
     different_model = _snapshot(model="another-model")
     different_context = _snapshot(context_packet_hash=_hash("other context"))
     different_decoding = _snapshot(temperature=0.3)
@@ -125,6 +129,7 @@ def test_runner_is_deterministic_and_records_action_deltas_and_metadata() -> Non
         )
 
     result = PairedReplayRunner(complete).run(snapshot)
+    assert _hash(snapshot.build_prompt("matched")) == snapshot.source_full_prompt_hash
     assert tuple(request.treatment for request in requests) == TREATMENT_ORDER
     assert tuple(record.treatment for record in result.records) == TREATMENT_ORDER
     assert len({request.prompt_hash for request in requests}) == len(TREATMENT_ORDER)
@@ -151,6 +156,53 @@ def test_runner_is_deterministic_and_records_action_deltas_and_metadata() -> Non
     assert manifest["integrity_verified"] is True
     assert len(manifest["record_hashes"]) == 5
     assert len(manifest["manifest_hash"]) == 64
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("prompt_hash", _hash("forged prompt"), "prompt_hash"),
+        ("source_full_prompt_hash", _hash("forged source"), "protected snapshot"),
+        ("base_prompt_hash", _hash("forged base"), "protected snapshot"),
+        ("memory_hash", _hash("forged memory"), "memory identity"),
+        ("executed_labor_hours_delta_vs_matched", 123.0, "matched-action delta"),
+    ],
+)
+def test_result_rejects_tampered_record_before_serialization(
+    field: str, value, message: str
+) -> None:
+    result = PairedReplayRunner(
+        lambda request: '{"work":0.5,"consumption":0.5}'
+    ).run(_snapshot())
+    records = list(result.records)
+    records[0] = replace(records[0], **{field: value})
+
+    with pytest.raises(ReplayIntegrityError, match=message):
+        PairedReplayResult(snapshot=result.snapshot, records=tuple(records))
+
+
+def test_result_rejects_action_inconsistent_with_protected_discretization() -> None:
+    result = PairedReplayRunner(
+        lambda request: '{"work":0.5,"consumption":0.5}'
+    ).run(_snapshot())
+    records = list(result.records)
+    forged_action = replace(records[0].action, executed_labor_hours=999.0)
+    records[0] = replace(records[0], action=forged_action)
+
+    with pytest.raises(ReplayIntegrityError, match="protected discretization"):
+        PairedReplayResult(snapshot=result.snapshot, records=tuple(records))
+
+
+def test_result_reparses_retained_raw_output_before_accepting_action() -> None:
+    result = PairedReplayRunner(
+        lambda request: '{"reflection":"original","work":0.5,"consumption":0.5}'
+    ).run(_snapshot())
+    records = list(result.records)
+    forged_action = replace(records[0].action, reflection="forged parsed decision")
+    records[0] = replace(records[0], action=forged_action)
+
+    with pytest.raises(ReplayIntegrityError, match="reparsed raw output"):
+        PairedReplayResult(snapshot=result.snapshot, records=tuple(records))
 
 
 def test_parser_error_fails_closed_with_serializable_failure() -> None:

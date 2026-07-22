@@ -31,8 +31,13 @@ from .foundation_adapter import (
 )
 from .m0_utility import EnvironmentLedger, UtilityConfig
 from .m1_context import CONTEXT_MODES, CausalContextRouter
-from .m3_semantic import CandidateParseError
+from .m3_semantic import (
+    DEFAULT_REGISTERED_OUTCOME_CRITERION,
+    CandidateParseError,
+    OutcomeCriterion,
+)
 from .prompts import (
+    PROMPT_SCHEMA_VERSION,
     DecisionPromptState,
     build_base_decision_prompt,
     compose_decision_prompt,
@@ -41,19 +46,46 @@ from .scripted_provider import DIAGNOSTIC_PROVIDER_NAME
 from .system import MemoryBundle, VerifiedDualTrackMemory
 
 
-RUNNER_SCHEMA_VERSION = "verified-simulation-runner-v1"
+RUNNER_SCHEMA_VERSION = "verified-simulation-runner-v2"
+SEMANTIC_PARSE_FAILURE_POLICIES = frozenset({"record-and-skip", "fail-run"})
 CONTEXT_FEATURES = (
     "log_price",
     "interest_rate",
-    "low_labor_rate",
+    "prior_low_labor_rate",
+    "prior_low_labor_rate_available",
     "inflation",
     "log_wealth",
     "employed",
 )
 
 
+@dataclass(frozen=True, slots=True)
+class RunnerFailure:
+    """Structured failure details preserved by the CLI failure receipt."""
+
+    schema_version: str
+    error_stage: str
+    call_kind: str
+    decision_t: int
+    agent_id: int
+    error_type: str
+    message: str
+    prompt_hash: str
+    raw_output_hash: str
+    provider: str
+    model: str
+    attempts: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
 class VerifiedRunError(RuntimeError):
     """Raised when a fail-closed simulation gate is violated."""
+
+    def __init__(self, message: str, *, failure: RunnerFailure | None = None) -> None:
+        self.failure = failure
+        super().__init__(message)
 
 
 def _json_copy(value: Any) -> Any:
@@ -87,6 +119,7 @@ class VerifiedRunConfig:
     enable_episodic_retrieval: bool = True
     enable_semantic: bool = True
     retrieval_k: int = 5
+    episodic_prompt_capacity: int = 24
     rule_budget: int = 3
     semantic_proposal_after: int = 3
     semantic_proposal_interval: int = 3
@@ -101,7 +134,10 @@ class VerifiedRunConfig:
     rule_max_tokens: int = 450
     max_retries: int = 1
     fail_on_clipped_action: bool = True
-    fail_on_rule_parse_error: bool = False
+    semantic_parse_failure_policy: str = "record-and-skip"
+    registered_outcome_criterion: OutcomeCriterion = field(
+        default_factory=lambda: DEFAULT_REGISTERED_OUTCOME_CRITERION
+    )
     utility: UtilityConfig = field(default_factory=UtilityConfig)
 
     def __post_init__(self) -> None:
@@ -112,6 +148,7 @@ class VerifiedRunConfig:
             "num_agents",
             "episode_length",
             "retrieval_k",
+            "episodic_prompt_capacity",
             "rule_budget",
             "semantic_proposal_after",
             "semantic_proposal_interval",
@@ -129,6 +166,8 @@ class VerifiedRunConfig:
             raise ValueError("episode_length must be positive")
         if self.retrieval_k < 0 or self.rule_budget < 0:
             raise ValueError("retrieval_k and rule_budget must be nonnegative")
+        if self.episodic_prompt_capacity < 1:
+            raise ValueError("episodic_prompt_capacity must be positive")
         if self.semantic_proposal_after < 2:
             raise ValueError("semantic proposals require at least two completed periods")
         for name in (
@@ -149,6 +188,19 @@ class VerifiedRunConfig:
         if normalized_mode not in CONTEXT_MODES:
             raise ValueError(f"unsupported context mode: {self.context_mode}")
         object.__setattr__(self, "context_mode", normalized_mode)
+        if not isinstance(self.semantic_parse_failure_policy, str):
+            raise TypeError("semantic_parse_failure_policy must be a string")
+        normalized_parse_policy = (
+            self.semantic_parse_failure_policy.strip().lower().replace("_", "-")
+        )
+        if normalized_parse_policy not in SEMANTIC_PARSE_FAILURE_POLICIES:
+            raise ValueError(
+                "semantic_parse_failure_policy must be one of "
+                f"{sorted(SEMANTIC_PARSE_FAILURE_POLICIES)}"
+            )
+        object.__setattr__(
+            self, "semantic_parse_failure_policy", normalized_parse_policy
+        )
         for name in (
             "labor_step",
             "max_labor_hours",
@@ -187,6 +239,8 @@ class VerifiedRunConfig:
             raise ValueError("invalid decoding parameters")
         if not isinstance(self.utility, UtilityConfig):
             raise TypeError("utility must be UtilityConfig")
+        if not isinstance(self.registered_outcome_criterion, OutcomeCriterion):
+            raise TypeError("registered_outcome_criterion must be an OutcomeCriterion")
         if not math.isclose(
             self.utility.max_labor_hours, self.max_labor_hours, abs_tol=1e-12
         ):
@@ -195,6 +249,9 @@ class VerifiedRunConfig:
     def to_dict(self) -> dict[str, Any]:
         result = asdict(self)
         result["utility"] = self.utility.to_dict()
+        result["registered_outcome_criterion"] = (
+            self.registered_outcome_criterion.to_dict()
+        )
         result["schema_version"] = RUNNER_SCHEMA_VERSION
         return result
 
@@ -262,6 +319,23 @@ def _provider_row(
     }
 
 
+def _semantic_parse_mode(raw_response: str) -> str:
+    """Classify how a successfully parsed candidate reached the JSON parser."""
+
+    stripped = raw_response.strip()
+    try:
+        value = json.loads(stripped)
+    except json.JSONDecodeError:
+        value = None
+    if isinstance(value, Mapping):
+        return "exact_json"
+    if stripped.startswith("```") and stripped.endswith("```"):
+        return "fenced_recovery"
+    if "{" in stripped and "}" in stripped:
+        return "substring_recovery"
+    return "parse_failure"
+
+
 def _monthly_inflation(world: Any) -> float:
     prices = getattr(world, "price", None)
     if not isinstance(prices, list) or len(prices) < 2:
@@ -275,26 +349,40 @@ def _context_observation(
     decision_t: int,
     price: float,
     interest_rate: float,
-    low_labor_rate: float,
+    low_labor_rate: Optional[float],
     inflation: float,
     wealth: float,
     employed: bool,
 ) -> dict[str, Any]:
+    low_labor_observed = low_labor_rate is not None
+    low_labor_value = 0.0 if low_labor_rate is None else float(low_labor_rate)
     return {
         "timestamp": int(decision_t),
         "log_price": math.log1p(float(price)),
         "interest_rate": float(interest_rate),
-        "low_labor_rate": float(low_labor_rate),
+        "prior_low_labor_rate": low_labor_value,
+        "prior_low_labor_rate_available": float(low_labor_observed),
         "inflation": float(inflation),
         "log_wealth": math.log1p(float(wealth)),
         "employed": float(bool(employed)),
     }
 
 
-def _m2_state(snapshot: Any, *, low_labor_rate: float, inflation: float) -> dict[str, Any]:
+def _m2_state(
+    snapshot: Any, *, low_labor_rate: Optional[float], inflation: float
+) -> dict[str, Any]:
     state = snapshot.to_m2_state()
-    state["low_labor_rate"] = float(low_labor_rate)
-    state["unemployment_rate"] = float(low_labor_rate)
+    if low_labor_rate is None:
+        # Unknown prior labor behavior must not participate in state similarity
+        # or satisfy a semantic predicate as though it were an observed zero.
+        state.pop("low_labor_rate", None)
+        # Foundation's annual unemployment accumulator is not an observed
+        # period outcome at reset; its numeric zero is only initialization.
+        state.pop("unemployment_rate", None)
+        state["unemployment_rate_available"] = 0.0
+    else:
+        state["low_labor_rate"] = float(low_labor_rate)
+    state["low_labor_rate_available"] = float(low_labor_rate is not None)
     state["inflation"] = float(inflation)
     return state
 
@@ -309,6 +397,8 @@ def _prompt_state(
     last_decision: Optional[ActionDecision],
     max_labor_hours: float,
 ) -> DecisionPromptState:
+    if (last_transition is None) != (last_decision is None):
+        raise ValueError("prior transition and action availability must match")
     agent = env.get_agent(str(agent_id))
     endogenous = agent.endogenous
     return DecisionPromptState(
@@ -335,6 +425,7 @@ def _prompt_state(
         last_lump_sum=(
             0.0 if last_transition is None else last_transition.lump_sum_transfer
         ),
+        previous_period_available=last_transition is not None,
         max_labor_hours=max_labor_hours,
     )
 
@@ -353,8 +444,12 @@ def _prepare_memories(config: VerifiedRunConfig) -> dict[int, VerifiedDualTrackM
             agent_id=agent_id,
             context_router=router,
             context_mode=config.context_mode,
+            episodic_capacity=config.episodic_prompt_capacity,
             enable_episodic_retrieval=config.enable_episodic_retrieval,
             enable_semantic=config.enable_semantic,
+            semantic_config={
+                "registered_outcome_criterion": config.registered_outcome_criterion
+            },
         )
     return systems
 
@@ -409,7 +504,10 @@ def run_verified_experiment(
     last_transitions: dict[str, Any] = {}
     proposals_made = {agent_id: 0 for agent_id in range(config.num_agents)}
     semantic_event_offsets = {agent_id: 0 for agent_id in range(config.num_agents)}
-    previous_low_labor_rate = 1.0
+    # There is no prior executed-labor cohort before t=0.  Encode that fact with
+    # a neutral numeric value plus an explicit observation mask instead of
+    # injecting an artificial 100% low-labor signal.
+    previous_low_labor_rate: Optional[float] = None
     completed_periods = 0
 
     for decision_t in range(config.episode_length):
@@ -460,8 +558,9 @@ def run_verified_experiment(
                     max_labor_hours=config.max_labor_hours,
                 ),
                 config.utility,
+                causal_context_summary=bundle.protected_context_prompt,
             )
-            prompt = compose_decision_prompt(base_prompt, bundle.prompt)
+            prompt = compose_decision_prompt(base_prompt, bundle.memory_prompt)
             bundles[agent_id] = bundle
             prompt_rows[agent_id] = prompt
             dialogs.append([{"role": "user", "content": prompt.full_prompt}])
@@ -476,11 +575,16 @@ def run_verified_experiment(
             records["decision_snapshots"].append(
                 {
                     "schema_version": RUNNER_SCHEMA_VERSION,
+                    "prompt_schema_version": PROMPT_SCHEMA_VERSION,
                     "decision_t": decision_t,
                     "agent_id": agent_id,
                     "environment_state_hash": _sha256(retrieval_state),
                     "base_prompt": prompt.base_prompt,
                     "memory_text": prompt.memory_text,
+                    "protected_context_text": bundle.protected_context_prompt,
+                    "protected_context_hash": hashlib.sha256(
+                        bundle.protected_context_prompt.encode("utf-8")
+                    ).hexdigest(),
                     "full_prompt_hash": prompt.full_prompt_hash,
                     "base_prompt_hash": prompt.base_prompt_hash,
                     "memory_hash": prompt.memory_hash,
@@ -716,6 +820,8 @@ def run_verified_experiment(
                     "rule_id": None,
                     "rule_status": None,
                     "parse_error": None,
+                    "candidate_parse_status": "not_attempted",
+                    "candidate_parse_mode": "not_attempted",
                     "diagnostic_only": diagnostic_only,
                 }
                 if completion.ok and completion.text != "Error":
@@ -727,8 +833,14 @@ def run_verified_experiment(
                         )
                         proposal_row["rule_id"] = rule.rule_id
                         proposal_row["rule_status"] = rule.status
+                        proposal_row["candidate_parse_status"] = "success"
+                        proposal_row["candidate_parse_mode"] = _semantic_parse_mode(
+                            completion.text
+                        )
                     except CandidateParseError as exc:
                         proposal_row["parse_error"] = str(exc)
+                        proposal_row["candidate_parse_status"] = "failure"
+                        proposal_row["candidate_parse_mode"] = "parse_failure"
                         records["errors"].append(
                             {
                                 **usage_row,
@@ -736,10 +848,49 @@ def run_verified_experiment(
                                 "message": str(exc),
                             }
                         )
-                        if config.fail_on_rule_parse_error:
-                            raise VerifiedRunError(str(exc)) from exc
+                        records["semantic_proposals"].append(proposal_row)
+                        if config.semantic_parse_failure_policy == "fail-run":
+                            raise VerifiedRunError(
+                                str(exc),
+                                failure=RunnerFailure(
+                                    schema_version=RUNNER_SCHEMA_VERSION,
+                                    error_stage="semantic_candidate_parser",
+                                    call_kind="semantic",
+                                    decision_t=current_t,
+                                    agent_id=agent_id,
+                                    error_type="CandidateParseError",
+                                    message=str(exc),
+                                    prompt_hash=prompt_hash,
+                                    raw_output_hash=usage_row["raw_output_hash"],
+                                    provider=completion.provider,
+                                    model=completion.model,
+                                    attempts=completion.attempts,
+                                ),
+                            ) from exc
+                        continue
                 else:
                     records["errors"].append(usage_row)
+                    records["semantic_proposals"].append(proposal_row)
+                    raise VerifiedRunError(
+                        (
+                            f"provider semantic failure at t={current_t}, "
+                            f"agent={agent_id}: {completion.error_type}"
+                        ),
+                        failure=RunnerFailure(
+                            schema_version=RUNNER_SCHEMA_VERSION,
+                            error_stage="semantic_provider",
+                            call_kind="semantic",
+                            decision_t=current_t,
+                            agent_id=agent_id,
+                            error_type=str(completion.error_type or "ProviderError"),
+                            message=str(completion.error_type or "provider failure"),
+                            prompt_hash=prompt_hash,
+                            raw_output_hash=usage_row["raw_output_hash"],
+                            provider=completion.provider,
+                            model=completion.model,
+                            attempts=completion.attempts,
+                        ),
+                    )
                 records["semantic_proposals"].append(proposal_row)
 
         for agent_id, memory in memories.items():
@@ -791,20 +942,32 @@ def run_verified_experiment(
         for row in action_rows
         if 0 < row["decision"]["executed_labor_hours"] < config.max_labor_hours
     ]
-    active_rule_ids = {
-        row["rule_id"] for row in records["semantic_rules"] if row["status"] == "active"
-    }
     selected_rule_ids = {
         rule_id
         for row in action_rows
         for rule_id in row["selected_rule_ids"]
     }
+    parse_attempts = records["semantic_proposals"]
+    parse_successes = [
+        row for row in parse_attempts if row["candidate_parse_status"] == "success"
+    ]
+    parse_failures = [
+        row for row in parse_attempts if row["candidate_parse_status"] == "failure"
+    ]
+    provider_errors = [
+        row
+        for row in records["errors"]
+        if row.get("error_type") != "CandidateParseError"
+    ]
     checks = {
         "completed_all_periods": completed_periods == config.episode_length,
         "action_count_t_by_n": len(action_rows) == expected_rows,
         "episode_count_t_by_n": len(records["episodes"]) == expected_rows,
         "utility_count_t_by_n": len(records["utility_ledger"]) == expected_rows,
-        "no_provider_or_parse_errors": len(records["errors"]) == 0,
+        "no_provider_errors": len(provider_errors) == 0,
+        "semantic_parse_outcomes_accounted": (
+            len(parse_successes) + len(parse_failures) == len(parse_attempts)
+        ),
         "causal_context": all(
             row["context_packet"]["observed_through"] <= row["decision_t"]
             for row in records["context_trace"]
@@ -813,17 +976,14 @@ def run_verified_experiment(
             row["outcome_t"] == row["decision_t"] + 1
             for row in records["episodes"]
         ),
-        "direct_intermediate_labor_observed": bool(intermediate_actions),
         "budget_identity": all(
             abs(row["budget_residual"]) <= config.utility.budget_tolerance
             for row in records["utility_ledger"]
         ),
     }
-    semantic_check = (
-        not config.enable_semantic
-        or bool(active_rule_ids & selected_rule_ids)
-    )
-    checks["semantic_rule_activated_and_retrieved"] = semantic_check
+    # This is an observed diagnostic, not a pass/fail gate.  In particular,
+    # disabling M3 must not be serialized as if an activation had occurred.
+    semantic_activation_observed = bool(selected_rule_ids)
     validation_pass = all(checks.values())
     validation_status = {
         "status": "pass" if validation_pass else "fail",
@@ -832,6 +992,19 @@ def run_verified_experiment(
         "scientific_evidence": False,
     }
     utility_values = [row["flow_utility"] for row in records["utility_ledger"]]
+    labor_hours_counts = {
+        f"{hours:g}": sum(
+            row["decision"]["executed_labor_hours"] == hours
+            for row in action_rows
+        )
+        for hours in sorted(
+            {row["decision"]["executed_labor_hours"] for row in action_rows}
+        )
+    }
+    ceiling_labor_count = sum(
+        row["decision"]["executed_labor_hours"] == config.max_labor_hours
+        for row in action_rows
+    )
     summary = {
         "schema_version": RUNNER_SCHEMA_VERSION,
         "run_id": config.run_id,
@@ -856,11 +1029,20 @@ def run_verified_experiment(
                 {row["decision"]["executed_labor_hours"] for row in action_rows}
             ),
             "intermediate_action_count": len(intermediate_actions),
+            "intermediate_action_observed": bool(intermediate_actions),
+            "labor_hours_counts": labor_hours_counts,
+            "ceiling_labor_count": ceiling_labor_count,
+            "ceiling_labor_rate": (
+                ceiling_labor_count / len(action_rows) if action_rows else 0.0
+            ),
             "clipped_action_count": sum(
                 bool(row["decision"]["clipped"]) for row in action_rows
             ),
         },
         "memory_diagnostics": {
+            "registered_outcome_criterion": (
+                config.registered_outcome_criterion.to_dict()
+            ),
             "semantic_rule_status_counts": {
                 status: sum(
                     row["status"] == status for row in records["semantic_rules"]
@@ -873,6 +1055,29 @@ def run_verified_experiment(
             "episodic_retrieval_count": sum(
                 len(row["retrieved_episode_ids"]) for row in action_rows
             ),
+            "semantic_activation_observed": semantic_activation_observed,
+            "semantic_candidate_parse": {
+                "attempt_count": len(parse_attempts),
+                "success_count": len(parse_successes),
+                "failure_count": len(parse_failures),
+                "failure_rate": (
+                    len(parse_failures) / len(parse_attempts)
+                    if parse_attempts
+                    else 0.0
+                ),
+                "mode_counts": {
+                    mode: sum(
+                        row["candidate_parse_mode"] == mode
+                        for row in parse_attempts
+                    )
+                    for mode in (
+                        "exact_json",
+                        "fenced_recovery",
+                        "substring_recovery",
+                        "parse_failure",
+                    )
+                },
+            },
         },
         "api": budget.snapshot().to_dict(),
         "validation": validation_status,
@@ -881,6 +1086,20 @@ def run_verified_experiment(
         name: tuple(_json_copy(row) for row in rows) for name, rows in records.items()
     }
     sealed_config = config.to_dict()
+    sealed_config["context_features"] = list(CONTEXT_FEATURES)
+    sealed_config["prompt_schema_version"] = PROMPT_SCHEMA_VERSION
+    semantic_configs = [
+        memory.semantic.to_dict()["config"]
+        for memory in memories.values()
+        if memory.semantic is not None
+    ]
+    if semantic_configs and any(
+        item != semantic_configs[0] for item in semantic_configs[1:]
+    ):
+        raise VerifiedRunError("agents do not share one semantic verifier config")
+    sealed_config["effective_semantic_verifier"] = (
+        _json_copy(semantic_configs[0]) if semantic_configs else None
+    )
     sealed_config["foundation_env"] = _json_copy(foundation_config)
     sealed_config["foundation_env_hash"] = _sha256(foundation_config)
     return VerifiedRunResult(
@@ -895,6 +1114,8 @@ def run_verified_experiment(
 __all__ = [
     "CONTEXT_FEATURES",
     "RUNNER_SCHEMA_VERSION",
+    "RunnerFailure",
+    "SEMANTIC_PARSE_FAILURE_POLICIES",
     "VerifiedRunConfig",
     "VerifiedRunError",
     "VerifiedRunResult",

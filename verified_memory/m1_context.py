@@ -17,11 +17,11 @@ from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
 
-CONTEXT_SCHEMA_VERSION = "m1-context-packet-v1"
-FEATURE_SCHEMA_VERSION = "m1-causal-rolling-v1"
+CONTEXT_SCHEMA_VERSION = "m1-context-packet-v2"
+FEATURE_SCHEMA_VERSION = "m1-causal-rolling-v2"
 PROJECTION_SCHEMA_VERSION = "m1-frozen-linear-projection-v1"
-ROUTER_SCHEMA_VERSION = "m1-context-router-v1"
-ROUTE_SCHEMA_VERSION = "m1-context-route-v1"
+ROUTER_SCHEMA_VERSION = "m1-context-router-v2"
+ROUTE_SCHEMA_VERSION = "m1-context-route-v2"
 
 CONTEXT_MODES = frozenset(
     {"no-context", "prompt-only", "retrieval-only", "full"}
@@ -719,18 +719,63 @@ class CausalContextRouter:
         window = self._validated_window(history, observed_through)
         event_values = self._validated_event(event, observed_through)
 
+        feature_set = set(self.base_feature_names)
         raw_features = []
         for feature in self.base_feature_names:
-            values = [
-                _finite_float(row[feature], f"history feature {feature!r}")
-                for row in window
-            ]
-            raw_features.extend(
-                (
+            availability_feature = f"{feature}_available"
+            if (
+                not feature.endswith("_available")
+                and availability_feature in feature_set
+            ):
+                # A paired availability feature makes the numeric value in a
+                # missing row a storage placeholder, not an observation.  Keep
+                # the fixed three-statistic schema, but calculate it from only
+                # the causally available (timestamp, value) pairs.  Endpoint
+                # slope is per timestamp unit; zero or one available point has
+                # the deterministic neutral slope 0.0.
+                observed = [
+                    (
+                        _timestamp(row["timestamp"], "history timestamp"),
+                        _finite_float(
+                            row[feature], f"history feature {feature!r}"
+                        ),
+                    )
+                    for row in window
+                    if _finite_float(
+                        row[availability_feature],
+                        f"history feature {availability_feature!r}",
+                    )
+                    > 0.0
+                ]
+                if not observed:
+                    statistics = (0.0, 0.0, 0.0)
+                else:
+                    first_t, first_value = observed[0]
+                    last_t, last_value = observed[-1]
+                    slope = (
+                        0.0
+                        if len(observed) == 1
+                        else (last_value - first_value) / (last_t - first_t)
+                    )
+                    statistics = (
+                        last_value,
+                        sum(value for _, value in observed) / len(observed),
+                        slope,
+                    )
+            else:
+                # Unmasked values, including the availability-mask features
+                # themselves, retain the ordinary rolling-statistic semantics.
+                values = [
+                    _finite_float(row[feature], f"history feature {feature!r}")
+                    for row in window
+                ]
+                statistics = (
                     values[-1],
                     sum(values) / len(values),
                     (values[-1] - values[0]) / max(len(values) - 1, 1),
                 )
+            raw_features.extend(
+                statistics
             )
         raw_features.extend(event_values)
         raw_vector = tuple(raw_features)
@@ -738,7 +783,7 @@ class CausalContextRouter:
         if self.projection is None:
             context_vector = raw_vector
             vector_feature_names = self.feature_names
-            encoder_version = "identity-rolling-v1"
+            encoder_version = "identity-rolling-v2"
             projection_metadata = None
         else:
             context_vector = self.projection.transform(raw_vector)
@@ -751,10 +796,26 @@ class CausalContextRouter:
             }
 
         last = window[-1]
-        summary_fields = ", ".join(
-            f"{feature}={float(last[feature]):.6g}"
-            for feature in self.base_feature_names
-        )
+        # A numeric placeholder plus an explicit mask is useful for a fixed-size
+        # vector, but the placeholder must never be narrated as an observation.
+        # Features following ``<name>``/``<name>_available`` therefore render as
+        # either the observed value or one unambiguous ``unavailable`` token.
+        rendered_fields = []
+        for feature in self.base_feature_names:
+            if (
+                feature.endswith("_available")
+                and feature[: -len("_available")] in feature_set
+            ):
+                continue
+            availability_feature = f"{feature}_available"
+            if (
+                availability_feature in feature_set
+                and float(last[availability_feature]) <= 0.0
+            ):
+                rendered_fields.append(f"{feature}=unavailable")
+            else:
+                rendered_fields.append(f"{feature}={float(last[feature]):.6g}")
+        summary_fields = ", ".join(rendered_fields)
         if self.event_feature_names:
             if event is None:
                 summary_fields += ", event_present=0"

@@ -48,6 +48,7 @@ class ScriptedDiagnosticProvider(LLMProvider):
             raise ValueError("diagnostic proposal requires two finalized episodes")
         episode_ids = [str(item["episode_id"]) for item in evidence[:2]]
         payload: Mapping[str, Any] = {
+            "context_scope": {"scope_id": "global", "predicates": []},
             "condition": {
                 "field": "wealth",
                 "operator": ">=",
@@ -56,15 +57,9 @@ class ScriptedDiagnosticProvider(LLMProvider):
             },
             "action_guidance": {
                 "target": "labor_hours",
-                "direction": "maintain",
+                "direction": "approximately",
                 "threshold": 84.0,
                 "tolerance": 84.0,
-            },
-            "outcome_criterion": {
-                "metric": "flow_utility",
-                "operator": ">=",
-                "value": -1000.0,
-                "tolerance": 0.0,
             },
             "rationale": "Synthetic lifecycle fixture grounded in the listed episodes.",
             "supporting_episode_ids": episode_ids,

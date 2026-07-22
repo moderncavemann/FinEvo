@@ -37,10 +37,11 @@ def test_scripted_proposal_copies_real_episode_ids() -> None:
     )
     payload = json.loads(result.text)
     assert payload["supporting_episode_ids"] == ["E0", "E1"]
+    assert payload["action_guidance"]["direction"] == "approximately"
     assert set(payload) == {
+        "context_scope",
         "condition",
         "action_guidance",
-        "outcome_criterion",
         "rationale",
         "supporting_episode_ids",
     }

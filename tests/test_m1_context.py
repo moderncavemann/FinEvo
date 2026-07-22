@@ -149,6 +149,142 @@ class CausalContextRouterTest(unittest.TestCase):
         different = router.encode(changed, decision_t=3)
         self.assertNotEqual(first.context_id, different.context_id)
 
+    def test_missing_value_mask_is_hashed_but_placeholder_is_not_narrated(self):
+        router = CausalContextRouter(
+            base_feature_names=(
+                "prior_low_labor_rate",
+                "prior_low_labor_rate_available",
+            ),
+            window_size=1,
+        )
+        missing = router.encode(
+            [
+                {
+                    "timestamp": 0,
+                    "prior_low_labor_rate": 0.0,
+                    "prior_low_labor_rate_available": 0.0,
+                }
+            ],
+            decision_t=0,
+        )
+        observed_zero = router.encode(
+            [
+                {
+                    "timestamp": 0,
+                    "prior_low_labor_rate": 0.0,
+                    "prior_low_labor_rate_available": 1.0,
+                }
+            ],
+            decision_t=0,
+        )
+        observed_one = router.encode(
+            [
+                {
+                    "timestamp": 0,
+                    "prior_low_labor_rate": 1.0,
+                    "prior_low_labor_rate_available": 1.0,
+                }
+            ],
+            decision_t=0,
+        )
+
+        self.assertIn("prior_low_labor_rate=unavailable", missing.prompt_summary)
+        self.assertNotIn("prior_low_labor_rate=0", missing.prompt_summary)
+        self.assertIn("prior_low_labor_rate=0", observed_zero.prompt_summary)
+        self.assertNotEqual(missing.context_hash, observed_zero.context_hash)
+        self.assertNotEqual(observed_zero.context_hash, observed_one.context_hash)
+
+    def test_masked_rolling_statistics_ignore_missing_placeholders(self):
+        router = CausalContextRouter(
+            base_feature_names=(
+                "prior_low_labor_rate",
+                "prior_low_labor_rate_available",
+            ),
+            window_size=4,
+        )
+        t0 = {
+            "timestamp": 0,
+            "prior_low_labor_rate": 0.0,
+            "prior_low_labor_rate_available": 0.0,
+        }
+        missing = router.encode([t0], decision_t=0)
+        missing_features = dict(
+            zip(missing.feature_names, missing.raw_features, strict=True)
+        )
+
+        self.assertEqual(
+            tuple(
+                missing_features[f"prior_low_labor_rate.{statistic}"]
+                for statistic in ("last", "mean", "slope")
+            ),
+            (0.0, 0.0, 0.0),
+        )
+        self.assertIn("prior_low_labor_rate=unavailable", missing.prompt_summary)
+
+        observed = router.encode(
+            [
+                t0,
+                {
+                    "timestamp": 1,
+                    "prior_low_labor_rate": 0.8,
+                    "prior_low_labor_rate_available": 1.0,
+                },
+            ],
+            decision_t=1,
+        )
+        observed_features = dict(
+            zip(observed.feature_names, observed.raw_features, strict=True)
+        )
+
+        # The t0 placeholder is not an observed zero: the only observed value
+        # is 0.8, so it is also the last and mean, with a neutral one-point
+        # slope.  The paired mask itself keeps ordinary rolling statistics.
+        self.assertEqual(observed_features["prior_low_labor_rate.last"], 0.8)
+        self.assertEqual(observed_features["prior_low_labor_rate.mean"], 0.8)
+        self.assertEqual(observed_features["prior_low_labor_rate.slope"], 0.0)
+        self.assertEqual(
+            tuple(
+                observed_features[
+                    f"prior_low_labor_rate_available.{statistic}"
+                ]
+                for statistic in ("last", "mean", "slope")
+            ),
+            (1.0, 0.5, 1.0),
+        )
+        self.assertNotEqual(observed_features["prior_low_labor_rate.mean"], 0.4)
+
+        timestamp_slope = router.encode(
+            [
+                {
+                    "timestamp": 0,
+                    "prior_low_labor_rate": 0.2,
+                    "prior_low_labor_rate_available": 1.0,
+                },
+                {
+                    "timestamp": 1,
+                    "prior_low_labor_rate": 999.0,
+                    "prior_low_labor_rate_available": 0.0,
+                },
+                {
+                    "timestamp": 4,
+                    "prior_low_labor_rate": 0.8,
+                    "prior_low_labor_rate_available": 1.0,
+                },
+            ],
+            decision_t=4,
+        )
+        slope_features = dict(
+            zip(
+                timestamp_slope.feature_names,
+                timestamp_slope.raw_features,
+                strict=True,
+            )
+        )
+        self.assertAlmostEqual(
+            slope_features["prior_low_labor_rate.slope"],
+            (0.8 - 0.2) / (4 - 0),
+        )
+
     def test_router_round_trip_preserves_default_mode(self):
         router = CausalContextRouter(
             base_feature_names=("price", "inflation"),

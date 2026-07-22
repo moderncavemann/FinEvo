@@ -1,13 +1,19 @@
 # FinEvo EMNLP Experiment Toolkit
 
 Experiment runner and output normalizer for the FinEvo EMNLP revision.
-Current results are preliminary until regenerated from the ignored `runs/`
-artifact tree with the documented seed set.
+Tracked aggregate results and sealed run/replay artifacts are historical
+pre-P0 evidence. No current-method performance result is claimed here.
 
-## Verified dual-track redesign
+## Evidence-Grounded Rule Memory under Endogenous Multi-Agent Feedback
 
-The post-review method is implemented as a separate, auditable path. The legacy
-`simulate.py` and `memory_module.py` remain available for reproduction; new
+This is the current research-method name. Code retains `verified_memory` and
+`VerifiedDualTrackMemory` identifiers for compatibility, but `verified` means
+evidence-consistency and provenance checks only. It does not mean truth,
+correctness, hallucination immunity, economic optimality, or causal
+identification.
+
+The method is implemented as a separate, auditable path. The legacy
+`simulate.py` and `memory_module.py` remain available for reproduction; current
 method work uses:
 
 - `verified_memory/m1_context.py`: causal context encoding with independent
@@ -21,6 +27,18 @@ method work uses:
 - `simulate_verified.py`: direct-hours, hard-budget, bounded runner;
 - `replay_verified.py`: hash-bound five-treatment paired replay.
 
+The durable completion ledger and current claim boundary are in
+[`docs/p0_methodology_completion_audit.md`](docs/p0_methodology_completion_audit.md).
+The implementation specification is in
+[`docs/verified_dual_track_architecture.md`](docs/verified_dual_track_architecture.md).
+Current status is **locally validated and code-ready for a small matched
+pilot**; the status of any pushed commit must be read from its remote CI checks.
+`Code-ready` does not mean scientifically validated. Experiments A-D, utility
+calibration/sensitivity, a second model, a method-matched 5-seed result, and a
+full run have not been completed for this method. If that pilot uses a hosted
+provider, its first bounded stage is the preregistered API preflight smoke; no
+current-method API smoke is claimed by this repository state.
+
 Budgeted calls use one HTTP attempt per reserved call; post-setup execution
 failures write a content-addressed error/config/budget receipt. Preflight
 failures remain stderr-only. Partial in-memory simulation streams are not yet
@@ -28,7 +46,9 @@ checkpointed on failure. Effective Foundation parameters,
 request seed, served model, system fingerprint, cache usage, and provider
 request ID are retained when available.
 
-Run the no-network integration diagnostic (synthetic fixture, not a result):
+Run the diagnostic-provider integration check (its scripted path makes no
+provider/network call; synthetic fixture, not a result). CI additionally
+installs a fail-closed outbound-socket guard for this check:
 
 ```bash
 python simulate_verified.py \
@@ -53,14 +73,21 @@ python simulate_verified.py \
 
 The runner blocks more than four agents or twelve months unless
 `--allow-larger-run` is explicit. Passing a smoke establishes implementation
-validity, not superiority. Current evidence and remaining gates are recorded in
-`artifacts/verified_memory_smoke_report.md`.
+validity, not superiority. Older sealed run/replay artifacts and the historical
+smoke report predate the current P0 completion changes and are not evidence for
+the current method.
 
-The replay command currently accepts only runs with `context_to_prompt=false`;
-it fails closed for prompt-only/full M1 routes until prompt-routed context can
-be retained as a protected non-memory field.
+The current replay implementation separates prompt-routed context into a
+protected base-prompt field and hash-binds the reconstructed matched prompt.
+That implementation contract has passed local validation. Hosted replay still
+supports controlled prompt-level action sensitivity only until a compatible
+checkpoint continuation establishes downstream utility and next-state effects.
 
-## Features
+## Historical FinEvo/EMNLP toolkit
+
+The commands and features below describe the retained legacy experiment path,
+not results or validation for Evidence-Grounded Rule Memory. Use them only for
+explicitly labeled historical reproduction.
 
 - **Multi-model support**: OpenAI, OpenRouter-compatible APIs, Google Gemini, and local OpenAI-compatible servers
 - **FinEvo components**: market sentiment, episodic memory, semantic rule memory, and reflection

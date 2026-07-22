@@ -1,3 +1,12 @@
+> [!WARNING]
+> **HISTORICAL PRE-P0 V1 EVIDENCE ONLY**
+>
+> This report and its sealed run/replay artifacts predate the current P0
+> completion changes. They must not be cited as validation or scientific
+> evidence for Evidence-Grounded Rule Memory v2. The current status and claim
+> boundary are in the
+> [P0 methodology completion audit](../docs/p0_methodology_completion_audit.md).
+
 # Verified dual-track memory: bounded validation report
 
 Date: 2026-07-22

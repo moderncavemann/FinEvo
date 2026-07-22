@@ -1,3 +1,12 @@
+> [!WARNING]
+> **HISTORICAL / LEGACY EVIDENCE ONLY**
+>
+> This audit describes the deterministic-template implementation and evidence
+> produced before commit `3a3f30c`. References below to "current code" are
+> historical to that audit and must not be read as claims about the current
+> Evidence-Grounded Rule Memory method. See
+> [`paper/legacy/README.md`](../paper/legacy/README.md).
+
 # Reviewer evidence and claim audit
 
 This note records what the current code and logs can support after the HoMs
@@ -77,4 +86,3 @@ python artifacts/labor_threshold_sensitivity/analyze_labor_thresholds.py
 python artifacts/no_visible_cue/validate_no_visible_cue.py
 python artifacts/no_visible_cue/analyze_paired_results.py
 ```
-

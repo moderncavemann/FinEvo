@@ -22,10 +22,16 @@ from .actions import (
     ActionParseError,
     parse_direct_action,
 )
+from .prompts import (
+    MEMORY_END,
+    MEMORY_START,
+    PROMPT_SCHEMA_VERSION,
+    SUPPORTED_PROMPT_SCHEMA_VERSIONS,
+)
 
 
-REPLAY_SCHEMA_VERSION = "paired-counterfactual-replay-v1"
-SNAPSHOT_SCHEMA_VERSION = "decision-snapshot-v1"
+REPLAY_SCHEMA_VERSION = "paired-counterfactual-replay-v2"
+SNAPSHOT_SCHEMA_VERSION = "decision-snapshot-v2"
 MEMORY_BUNDLE_SCHEMA_VERSION = "memory-bundle-v1"
 TREATMENT_ORDER = (
     "matched",
@@ -34,8 +40,6 @@ TREATMENT_ORDER = (
     "wrong-context",
     "injected-rule",
 )
-MEMORY_START = "<<<VERIFIED_MEMORY_BUNDLE_START>>>"
-MEMORY_END = "<<<VERIFIED_MEMORY_BUNDLE_END>>>"
 _HASH_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -187,6 +191,8 @@ class DecisionSnapshot:
     schema_version: str
     snapshot_id: str
     snapshot_hash: str
+    prompt_schema_version: str
+    source_full_prompt_hash: str
     environment_state_hash: str
     base_prompt: str
     base_prompt_hash: str
@@ -208,6 +214,11 @@ class DecisionSnapshot:
     def __post_init__(self) -> None:
         if self.schema_version != SNAPSHOT_SCHEMA_VERSION:
             raise ValueError(f"unsupported snapshot schema {self.schema_version!r}")
+        if self.prompt_schema_version not in SUPPORTED_PROMPT_SCHEMA_VERSIONS:
+            raise ValueError(
+                f"unsupported source prompt schema {self.prompt_schema_version!r}"
+            )
+        _hash(self.source_full_prompt_hash, "source_full_prompt_hash")
         _hash(self.environment_state_hash, "environment_state_hash")
         if not isinstance(self.base_prompt, str) or not self.base_prompt.strip():
             raise TypeError("base_prompt must be a non-empty string")
@@ -263,6 +274,12 @@ class DecisionSnapshot:
             )
         object.__setattr__(self, "memory_bundles", bundles)
 
+        reconstructed_matched_hash = _sha256(self.build_prompt("matched"))
+        if reconstructed_matched_hash != self.source_full_prompt_hash:
+            raise ValueError(
+                "matched replay prompt does not reconstruct source_full_prompt_hash"
+            )
+
         expected_hash = _sha256(_canonical_json(self._integrity_payload()))
         _hash(self.snapshot_hash, "snapshot_hash")
         if self.snapshot_hash != expected_hash:
@@ -288,6 +305,8 @@ class DecisionSnapshot:
         top_p: float = 1.0,
         max_tokens: int = 800,
         decoding_seed: int | None = None,
+        prompt_schema_version: str = PROMPT_SCHEMA_VERSION,
+        source_full_prompt_hash: str | None = None,
     ) -> "DecisionSnapshot":
         if isinstance(memory_bundles, Mapping):
             if set(memory_bundles) != set(TREATMENT_ORDER):
@@ -301,8 +320,21 @@ class DecisionSnapshot:
         else:
             bundles = tuple(memory_bundles)
 
+        if tuple(bundle.treatment for bundle in bundles) != TREATMENT_ORDER:
+            raise ValueError(
+                f"memory bundles must use deterministic order {TREATMENT_ORDER}"
+            )
+        matched_text = bundles[TREATMENT_ORDER.index("matched")].text
+        reconstructed_matched = (
+            f"{base_prompt}\n\n{MEMORY_START}\n{matched_text}\n{MEMORY_END}"
+        )
+        reconstructed_hash = _sha256(reconstructed_matched)
+        bound_source_hash = source_full_prompt_hash or reconstructed_hash
+
         common = {
             "schema_version": SNAPSHOT_SCHEMA_VERSION,
+            "prompt_schema_version": prompt_schema_version,
+            "source_full_prompt_hash": bound_source_hash,
             "environment_state_hash": environment_state_hash,
             "base_prompt": base_prompt,
             "base_prompt_hash": _sha256(base_prompt),
@@ -333,6 +365,8 @@ class DecisionSnapshot:
     def _payload_from_values(**values: Any) -> dict[str, Any]:
         return {
             "schema_version": values["schema_version"],
+            "prompt_schema_version": values["prompt_schema_version"],
+            "source_full_prompt_hash": values["source_full_prompt_hash"],
             "environment_state_hash": values["environment_state_hash"],
             "base_prompt": values["base_prompt"],
             "base_prompt_hash": values["base_prompt_hash"],
@@ -357,6 +391,8 @@ class DecisionSnapshot:
     def _integrity_payload(self) -> dict[str, Any]:
         return self._payload_from_values(
             schema_version=self.schema_version,
+            prompt_schema_version=self.prompt_schema_version,
+            source_full_prompt_hash=self.source_full_prompt_hash,
             environment_state_hash=self.environment_state_hash,
             base_prompt=self.base_prompt,
             base_prompt_hash=self.base_prompt_hash,
@@ -528,6 +564,8 @@ class ReplayRecord:
     snapshot_id: str
     snapshot_hash: str
     common_integrity_hash: str
+    prompt_schema_version: str
+    source_full_prompt_hash: str
     environment_state_hash: str
     base_prompt_hash: str
     context_packet_id: str
@@ -541,6 +579,7 @@ class ReplayRecord:
     model: str
     provider_request_id: str | None
     provider_metadata_json: str
+    raw_output: str
     raw_output_hash: str
     action: ActionDecision
     proposed_work_delta_vs_matched: float
@@ -569,16 +608,245 @@ class PairedReplayResult:
         if not isinstance(self.snapshot, DecisionSnapshot):
             raise TypeError("snapshot must be a DecisionSnapshot")
         records = tuple(self.records)
-        if tuple(record.treatment for record in records) != TREATMENT_ORDER:
-            raise ReplayIntegrityError("records are not in deterministic treatment order")
-        if not all(record.integrity_verified for record in records):
-            raise ReplayIntegrityError("result contains an unverified treatment")
         object.__setattr__(self, "records", records)
+        self.validate_integrity()
+
+    def validate_integrity(self) -> None:
+        """Recompute every record binding before serialization or interpretation."""
+
+        if not all(isinstance(record, ReplayRecord) for record in self.records):
+            raise TypeError("records must contain ReplayRecord values")
+        if tuple(record.treatment for record in self.records) != TREATMENT_ORDER:
+            raise ReplayIntegrityError("records are not in deterministic treatment order")
+        matched = self.records[0].action
+        protected = {
+            "snapshot_id": self.snapshot.snapshot_id,
+            "snapshot_hash": self.snapshot.snapshot_hash,
+            "common_integrity_hash": self.snapshot.common_integrity_hash,
+            "prompt_schema_version": self.snapshot.prompt_schema_version,
+            "source_full_prompt_hash": self.snapshot.source_full_prompt_hash,
+            "environment_state_hash": self.snapshot.environment_state_hash,
+            "base_prompt_hash": self.snapshot.base_prompt_hash,
+            "context_packet_id": self.snapshot.context_packet_id,
+            "context_packet_hash": self.snapshot.context_packet_hash,
+            "provider": self.snapshot.provider,
+            "model": self.snapshot.model,
+        }
+        for index, record in enumerate(self.records):
+            treatment = TREATMENT_ORDER[index]
+            bundle = self.snapshot.bundle(treatment)
+            if record.schema_version != REPLAY_SCHEMA_VERSION:
+                raise ReplayIntegrityError("record schema does not match replay schema")
+            mismatches = [
+                field
+                for field, expected in protected.items()
+                if getattr(record, field) != expected
+            ]
+            if mismatches:
+                raise ReplayIntegrityError(
+                    "record differs from protected snapshot fields: "
+                    + ", ".join(mismatches)
+                )
+            if record.treatment_index != index:
+                raise ReplayIntegrityError("record treatment_index is not deterministic")
+            if (
+                record.memory_bundle_id != bundle.bundle_id
+                or record.memory_hash != bundle.memory_hash
+            ):
+                raise ReplayIntegrityError(
+                    "record memory identity does not match its snapshot bundle"
+                )
+            expected_prompt_hash = _sha256(self.snapshot.build_prompt(treatment))
+            if record.prompt_hash != expected_prompt_hash:
+                raise ReplayIntegrityError(
+                    "record prompt_hash does not match its reconstructed prompt"
+                )
+            if not isinstance(record.action, ActionDecision):
+                raise TypeError("record action must be an ActionDecision")
+            action = record.action
+            if action.schema_version != ACTION_SCHEMA_VERSION:
+                raise ReplayIntegrityError("record action schema is unsupported")
+            work = _finite(action.proposed_work_fraction, "proposed_work_fraction")
+            consumption = _finite(
+                action.proposed_consumption_fraction,
+                "proposed_consumption_fraction",
+            )
+            if not 0.0 <= work <= 1.0 or not 0.0 <= consumption <= 1.0:
+                raise ReplayIntegrityError("record action fractions must lie in [0, 1]")
+            max_labor_index = int(
+                self.snapshot.max_labor_hours // self.snapshot.labor_step
+            )
+            max_consumption_index = int(round(1.0 / self.snapshot.consumption_step))
+            expected_labor_index = min(
+                max_labor_index, int(math.floor(work * max_labor_index + 0.5))
+            )
+            expected_consumption_index = min(
+                max_consumption_index,
+                int(
+                    math.floor(
+                        consumption / self.snapshot.consumption_step + 0.5
+                    )
+                ),
+            )
+            if (
+                isinstance(action.labor_action_index, bool)
+                or not isinstance(action.labor_action_index, int)
+                or action.labor_action_index != expected_labor_index
+                or isinstance(action.consumption_action_index, bool)
+                or not isinstance(action.consumption_action_index, int)
+                or action.consumption_action_index != expected_consumption_index
+                or not math.isclose(
+                    _finite(action.executed_labor_hours, "executed_labor_hours"),
+                    expected_labor_index * self.snapshot.labor_step,
+                    rel_tol=0.0,
+                    abs_tol=1e-12,
+                )
+                or not math.isclose(
+                    _finite(
+                        action.executed_consumption_rate,
+                        "executed_consumption_rate",
+                    ),
+                    expected_consumption_index * self.snapshot.consumption_step,
+                    rel_tol=0.0,
+                    abs_tol=1e-12,
+                )
+            ):
+                raise ReplayIntegrityError(
+                    "record action does not match the protected discretization"
+                )
+            if (
+                not isinstance(action.reflection, str)
+                or isinstance(action.repair_attempts, bool)
+                or not isinstance(action.repair_attempts, int)
+                or action.repair_attempts < 0
+                or not isinstance(action.clipped, bool)
+            ):
+                raise ReplayIntegrityError("record action audit fields are invalid")
+            if not isinstance(record.raw_output, str):
+                raise TypeError("record raw_output must be a string")
+            _hash(record.raw_output_hash, "record.raw_output_hash")
+            if (
+                record.raw_output_hash != _sha256(record.raw_output)
+                or record.raw_output_hash != record.action.raw_output_hash
+            ):
+                raise ReplayIntegrityError(
+                    "record raw_output_hash does not match raw output and parsed action"
+                )
+            try:
+                reparsed_action = parse_direct_action(
+                    record.raw_output,
+                    max_labor_hours=self.snapshot.max_labor_hours,
+                    labor_step=self.snapshot.labor_step,
+                    consumption_step=self.snapshot.consumption_step,
+                )
+            except (TypeError, ValueError) as exc:
+                raise ReplayIntegrityError(
+                    "record raw output cannot be reparsed under the protected grid"
+                ) from exc
+            if reparsed_action != record.action:
+                raise ReplayIntegrityError(
+                    "record action does not equal the reparsed raw output"
+                )
+            if record.provider_request_id is not None and not isinstance(
+                record.provider_request_id, str
+            ):
+                raise TypeError("provider_request_id must be a string or None")
+            if not isinstance(record.provider_metadata_json, str):
+                raise TypeError("provider_metadata_json must be a string")
+            try:
+                metadata = json.loads(record.provider_metadata_json)
+            except json.JSONDecodeError as exc:
+                raise ReplayIntegrityError("provider metadata is not valid JSON") from exc
+            if not isinstance(metadata, Mapping):
+                raise ReplayIntegrityError("provider metadata root must be an object")
+            if record.provider_metadata_json != _canonical_json(metadata):
+                raise ReplayIntegrityError("provider metadata is not canonical JSON")
+            if record.integrity_verified is not True:
+                raise ReplayIntegrityError("result contains an unverified treatment")
+
+            float_deltas = {
+                "proposed_work_delta_vs_matched": (
+                    record.action.proposed_work_fraction
+                    - matched.proposed_work_fraction
+                ),
+                "proposed_consumption_delta_vs_matched": (
+                    record.action.proposed_consumption_fraction
+                    - matched.proposed_consumption_fraction
+                ),
+                "executed_labor_hours_delta_vs_matched": (
+                    record.action.executed_labor_hours
+                    - matched.executed_labor_hours
+                ),
+                "executed_consumption_rate_delta_vs_matched": (
+                    record.action.executed_consumption_rate
+                    - matched.executed_consumption_rate
+                ),
+            }
+            for field, expected in float_deltas.items():
+                actual = _finite(getattr(record, field), field)
+                if not math.isclose(actual, expected, rel_tol=0.0, abs_tol=1e-12):
+                    raise ReplayIntegrityError(
+                        f"record {field} does not match the matched-action delta"
+                    )
+            integer_deltas = {
+                "labor_action_index_delta_vs_matched": (
+                    record.action.labor_action_index - matched.labor_action_index
+                ),
+                "consumption_action_index_delta_vs_matched": (
+                    record.action.consumption_action_index
+                    - matched.consumption_action_index
+                ),
+            }
+            for field, expected in integer_deltas.items():
+                actual = getattr(record, field)
+                if isinstance(actual, bool) or not isinstance(actual, int):
+                    raise TypeError(f"{field} must be an integer")
+                if actual != expected:
+                    raise ReplayIntegrityError(
+                        f"record {field} does not match the matched-action delta"
+                    )
+
+    def validate_provider_metadata(self) -> None:
+        """Require one applied seed and served-model identity before sealing."""
+
+        self.validate_integrity()
+        if self.snapshot.decoding_seed is None:
+            raise ReplayIntegrityError(
+                "a sealed paired replay requires an explicit decoding seed"
+            )
+        metadata = [json.loads(record.provider_metadata_json) for record in self.records]
+        if any(
+            row.get("decoding_seed_applied") != self.snapshot.decoding_seed
+            for row in metadata
+        ):
+            raise ReplayIntegrityError(
+                "provider metadata does not confirm the protected decoding seed"
+            )
+        response_models = {row.get("response_model") for row in metadata}
+        if (
+            len(response_models) != 1
+            or None in response_models
+            or not all(isinstance(value, str) and value for value in response_models)
+        ):
+            raise ReplayIntegrityError(
+                "provider metadata does not report one non-empty served model"
+            )
+        fingerprints = {
+            row.get("system_fingerprint")
+            for row in metadata
+            if row.get("system_fingerprint") is not None
+        }
+        if len(fingerprints) > 1:
+            raise ReplayIntegrityError(
+                "provider metadata reports multiple system fingerprints"
+            )
 
     def to_jsonl(self) -> str:
+        self.validate_integrity()
         return "".join(f"{record.to_json()}\n" for record in self.records)
 
     def manifest_dict(self) -> dict[str, Any]:
+        self.validate_integrity()
         core = {
             "schema_version": REPLAY_SCHEMA_VERSION,
             "snapshot": self.snapshot.manifest_dict(),
@@ -722,6 +990,8 @@ class PairedReplayRunner:
                     snapshot_id=snapshot.snapshot_id,
                     snapshot_hash=snapshot.snapshot_hash,
                     common_integrity_hash=snapshot.common_integrity_hash,
+                    prompt_schema_version=snapshot.prompt_schema_version,
+                    source_full_prompt_hash=snapshot.source_full_prompt_hash,
                     environment_state_hash=snapshot.environment_state_hash,
                     base_prompt_hash=snapshot.base_prompt_hash,
                     context_packet_id=snapshot.context_packet_id,
@@ -735,6 +1005,7 @@ class PairedReplayRunner:
                     model=completion.model,
                     provider_request_id=completion.request_id,
                     provider_metadata_json=completion.metadata_json,
+                    raw_output=completion.content,
                     raw_output_hash=decision.raw_output_hash,
                     action=decision,
                     proposed_work_delta_vs_matched=(

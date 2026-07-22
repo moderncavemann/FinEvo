@@ -17,7 +17,11 @@ from .actions import action_contract_prompt
 from .m0_utility import UtilityConfig
 
 
-PROMPT_SCHEMA_VERSION = "verified-decision-prompt-v1"
+LEGACY_PROMPT_SCHEMA_VERSION = "verified-decision-prompt-v1"
+PROMPT_SCHEMA_VERSION = "verified-decision-prompt-v2"
+SUPPORTED_PROMPT_SCHEMA_VERSIONS = frozenset(
+    {LEGACY_PROMPT_SCHEMA_VERSION, PROMPT_SCHEMA_VERSION}
+)
 MEMORY_START = "<<<VERIFIED_MEMORY_START>>>"
 MEMORY_END = "<<<VERIFIED_MEMORY_END>>>"
 
@@ -68,6 +72,7 @@ class DecisionPromptState:
     last_labor_hours: float
     last_tax_paid: float
     last_lump_sum: float
+    previous_period_available: bool = True
     max_labor_hours: float = 168.0
 
     def __post_init__(self) -> None:
@@ -77,6 +82,8 @@ class DecisionPromptState:
                 raise TypeError(f"{field} must be an integer")
         if self.decision_t < 0 or self.agent_id < 0 or self.age < 0:
             raise ValueError("decision_t, agent_id, and age must be nonnegative")
+        if not isinstance(self.previous_period_available, bool):
+            raise TypeError("previous_period_available must be boolean")
         for field in ("name", "city", "job", "offer"):
             object.__setattr__(self, field, _text(field, getattr(self, field)))
         for field in (
@@ -125,6 +132,7 @@ def build_base_decision_prompt(
     utility_config: UtilityConfig,
     *,
     event_text: str = "",
+    causal_context_summary: str = "",
 ) -> str:
     """Build the protected prompt bytes shared by memory interventions."""
 
@@ -135,6 +143,9 @@ def build_base_decision_prompt(
     event = ""
     if event_text:
         event = _text("event_text", event_text)
+    context = ""
+    if causal_context_summary:
+        context = _text("causal_context_summary", causal_context_summary)
     employment = (
         f"Current job: {state.job}. Current offer: {state.offer}."
     )
@@ -146,14 +157,26 @@ def build_base_decision_prompt(
         f"produce gross income {state.maximum_gross_income:.2f} before tax. "
         f"Current savings are {state.wealth:.2f}; goods price is "
         f"{state.price:.6g}; the current savings interest rate is "
-        f"{state.interest_rate:.4%}. In the last completed month you worked "
-        f"{state.last_labor_hours:.1f} hours, consumed "
-        f"{state.last_consumption_quantity:.4f} units, paid "
-        f"{state.last_tax_paid:.2f} in tax, and received "
-        f"{state.last_lump_sum:.2f} in redistribution. "
+        f"{state.interest_rate:.4%}. "
     )
+    if state.previous_period_available:
+        prompt += (
+            f"In the last completed month you worked "
+            f"{state.last_labor_hours:.1f} hours, consumed "
+            f"{state.last_consumption_quantity:.4f} units, paid "
+            f"{state.last_tax_paid:.2f} in tax, and received "
+            f"{state.last_lump_sum:.2f} in redistribution. "
+        )
+    else:
+        prompt += (
+            "No completed prior month is available. Prior labor, consumption, "
+            "tax, and redistribution are unavailable and must not be interpreted "
+            "as observed zeros. "
+        )
     if event:
         prompt += f"Observed monthly event: {event} "
+    if context:
+        prompt += f"Causal context summary: {context} "
     prompt += action_contract_prompt(utility_config)
     if MEMORY_START in prompt or MEMORY_END in prompt:
         raise AssertionError("base prompt unexpectedly contains memory delimiters")
@@ -192,7 +215,9 @@ __all__ = [
     "DecisionPromptState",
     "MEMORY_END",
     "MEMORY_START",
+    "LEGACY_PROMPT_SCHEMA_VERSION",
     "PROMPT_SCHEMA_VERSION",
+    "SUPPORTED_PROMPT_SCHEMA_VERSIONS",
     "build_base_decision_prompt",
     "compose_decision_prompt",
     "state_from_mapping",

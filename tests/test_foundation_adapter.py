@@ -175,7 +175,10 @@ def test_snapshot_capture_is_t0_safe_and_uses_explicit_current_fields() -> None:
     assert snapshot.consumption_spend == 0.0
     assert snapshot.job == "Unemployment"
     assert snapshot.employed is False
-    assert snapshot.to_m2_state()["low_labor_rate"] == 0.0
+    m2_state = snapshot.to_m2_state()
+    assert "low_labor_rate" not in m2_state
+    assert m2_state["unemployment_rate"] == 0.0
+    assert m2_state["unemployment_rate_available"] == 0.0
 
     env.world.unemployment[0] = np.int64(3)
     numpy_snapshot = capture_foundation_snapshots(env, expected_timestamp=0)["0"]

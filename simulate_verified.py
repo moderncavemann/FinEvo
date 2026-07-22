@@ -69,11 +69,21 @@ def build_parser() -> argparse.ArgumentParser:
         default="retrieval-only",
     )
     parser.add_argument("--disable-episodic-retrieval", action="store_true")
+    parser.add_argument("--episodic-prompt-capacity", type=int, default=24)
     parser.add_argument("--disable-semantic", action="store_true")
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--top-p", type=float, default=1.0)
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--max-retries", type=int, default=1)
+    parser.add_argument(
+        "--semantic-parse-failure-policy",
+        choices=("record-and-skip", "fail-run"),
+        default="record-and-skip",
+        help=(
+            "Malformed semantic candidates never activate. record-and-skip keeps "
+            "the seed in the scientific denominator; fail-run emits a failure receipt."
+        ),
+    )
     parser.add_argument("--max-calls", type=int, default=24)
     parser.add_argument("--max-prompt-tokens", type=int, default=60_000)
     parser.add_argument("--max-completion-tokens", type=int, default=12_000)
@@ -154,10 +164,12 @@ def execute(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
         episode_length=args.episode_length,
         context_mode=args.context_mode,
         enable_episodic_retrieval=not args.disable_episodic_retrieval,
+        episodic_prompt_capacity=args.episodic_prompt_capacity,
         enable_semantic=not args.disable_semantic,
         temperature=args.temperature,
         top_p=args.top_p,
         max_retries=args.max_retries,
+        semantic_parse_failure_policy=args.semantic_parse_failure_policy,
         utility=UtilityConfig(max_labor_hours=168.0),
     )
     git_commit = _git(["rev-parse", "HEAD"])
