@@ -43,6 +43,10 @@ def test_sealed_run_to_paired_replay_preserves_integrity(tmp_path: Path) -> None
         provider="diagnostic",
         model="scripted-v1",
     )
+    injected = snapshot.bundle("injected-rule").text
+    assert "confidence 99%" in injected
+    assert "unverified" not in injected
+    assert "false-rule" not in injected
     replay_budget = RunBudget(BudgetLimits(max_calls=5, max_cost_usd=0.01))
     replay = run_paired_replay(
         snapshot,
