@@ -13,6 +13,7 @@ import sys
 
 from llm_providers import MultiModelLLM, create_llm_provider
 from verified_memory.budget import BudgetLimits, RunBudget
+from verified_memory.failure_artifacts import write_failure_receipt
 from verified_memory.replay_experiment import (
     build_paired_snapshot,
     run_paired_replay,
@@ -42,7 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", default="")
     parser.add_argument("--api-base", default="")
     parser.add_argument("--api-key", default="", help=argparse.SUPPRESS)
-    parser.add_argument("--max-retries", type=int, default=2)
+    parser.add_argument("--max-retries", type=int, default=1)
     parser.add_argument("--max-cost-usd", type=float, default=0.15)
     parser.add_argument("--max-prompt-tokens", type=int, default=30_000)
     parser.add_argument("--max-completion-tokens", type=int, default=3_000)
@@ -97,35 +98,59 @@ def execute(args: argparse.Namespace):
         ),
         budget_id=f"{snapshot.snapshot_id}-budget",
     )
-    result = run_paired_replay(
-        snapshot,
-        llm=llm,
-        budget=budget,
-        max_retries=args.max_retries,
-    )
-    summary = summarize_paired_replay(result)
-    manifest = write_paired_replay_artifacts(
-        args.output_dir,
-        result,
-        budget_snapshot=budget.snapshot().to_dict(),
-        provenance={
+    provenance = {
             "purpose": "bounded prompt-level paired memory replay",
-            "source_run": str(args.source_run.resolve()),
+            "source_run": str(args.source_run),
             "source_manifest_sha256": hashlib.sha256(
                 (args.source_run / "manifest.json").read_bytes()
             ).hexdigest(),
+            "source_decision_t": decision_t,
+            "source_agent_id": args.agent_id,
             "provider": provider_name,
             "model": model_name,
             "scientific_evidence": False,
+            "untracked_files_present": bool(
+                _git(["ls-files", "--others", "--exclude-standard"])
+            ),
             "environment_keys_present": {
                 "OPENAI_API_KEY": bool(os.environ.get("OPENAI_API_KEY")),
                 "GEMINI_API_KEY": bool(os.environ.get("GEMINI_API_KEY")),
                 "OPENROUTER_API_KEY": bool(os.environ.get("OPENROUTER_API_KEY")),
             },
-        },
-        git_commit=_git(["rev-parse", "HEAD"]),
-        git_dirty=bool(_git(["status", "--porcelain"])),
-    )
+        }
+    git_commit = _git(["rev-parse", "HEAD"])
+    git_dirty = bool(_git(["status", "--porcelain", "--untracked-files=no"]))
+    try:
+        result = run_paired_replay(
+            snapshot,
+            llm=llm,
+            budget=budget,
+            max_retries=args.max_retries,
+        )
+        summary = summarize_paired_replay(result)
+        manifest = write_paired_replay_artifacts(
+            args.output_dir,
+            result,
+            budget_snapshot=budget.snapshot().to_dict(),
+            provenance=provenance,
+            git_commit=git_commit,
+            git_dirty=git_dirty,
+        )
+    except Exception as exc:
+        try:
+            write_failure_receipt(
+                args.output_dir,
+                scope="paired_memory_replay",
+                error=exc,
+                budget_snapshot=budget.snapshot().to_dict(),
+                config={"snapshot": snapshot.manifest_dict()},
+                provenance=provenance,
+                git_commit=git_commit,
+                git_dirty=git_dirty,
+            )
+        except Exception as receipt_error:
+            exc.add_note(f"failure receipt could not be written: {type(receipt_error).__name__}")
+        raise
     return manifest, summary, budget.snapshot().to_dict()
 
 

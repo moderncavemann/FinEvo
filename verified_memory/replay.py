@@ -430,7 +430,7 @@ class DecisionSnapshot:
             expected = self.build_prompt(treatment)
             if prompt != expected:
                 raise ReplayIntegrityError(
-                    f"treatment {treatment} prompt does not match its signed bundle"
+                    f"treatment {treatment} prompt does not match its hash-bound bundle"
                 )
             invariant_forms.append(prefix + MEMORY_START + MEMORY_END + suffix)
         if len(set(invariant_forms)) != 1:

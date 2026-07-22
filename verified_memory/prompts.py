@@ -1,6 +1,6 @@
 """Pure, versioned decision prompts for the verified-memory runner.
 
-The base prompt is constructed without memory so paired replay can sign it once.
+The base prompt is constructed without memory so paired replay can hash-bind it once.
 Memory is then placed inside an explicit, replaceable block.  Context intended for
 retrieval only never enters the prompt through this module.
 """
@@ -161,7 +161,7 @@ def build_base_decision_prompt(
 
 
 def compose_decision_prompt(base_prompt: str, memory_text: str = "") -> DecisionPrompt:
-    """Place memory in the sole mutable prompt region and return signed hashes."""
+    """Place memory in the sole mutable prompt region and return bound hashes."""
 
     base = _text("base_prompt", base_prompt)
     if not isinstance(memory_text, str):

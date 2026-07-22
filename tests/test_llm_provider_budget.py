@@ -5,7 +5,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from llm_providers import LLMProvider, MultiModelLLM, OpenAIProvider, StructuredCompletion
+from llm_providers import (
+    LLMProvider,
+    MODEL_COSTS,
+    MultiModelLLM,
+    OpenAIProvider,
+    StructuredCompletion,
+)
 from verified_memory.budget import BudgetExceeded, BudgetLimits, RunBudget, UsageRecord
 
 
@@ -40,6 +46,7 @@ class StructuredStubProvider(LLMProvider):
         self.active = 0
         self.max_active = 0
         self.retry_values = []
+        self.seed_values = []
         self._lock = threading.Lock()
 
     def get_completion(self, messages, temperature=0, max_tokens=800, top_p=1.0):
@@ -53,12 +60,14 @@ class StructuredStubProvider(LLMProvider):
         max_tokens=800,
         top_p=1.0,
         max_retries=None,
+        seed=None,
     ):
         with self._lock:
             self.calls += 1
             self.active += 1
             self.max_active = max(self.max_active, self.active)
             self.retry_values.append(max_retries)
+            self.seed_values.append(seed)
         try:
             if self.delay:
                 time.sleep(self.delay)
@@ -95,6 +104,7 @@ class ExplodingProvider(LLMProvider):
         max_tokens=800,
         top_p=1.0,
         max_retries=None,
+        seed=None,
     ):
         self.calls += 1
         raise RuntimeError("dispatch may have occurred")
@@ -137,19 +147,19 @@ def test_structured_single_accounts_actual_usage_and_metadata() -> None:
         estimated_usage=UsageRecord(8, 4, 0.02),
         label="decision",
         tags={"agent": 2, "month": 5},
-        max_retries=2,
+        max_retries=1,
     )
 
     assert result.text == "structured-4"
     assert result.usage == provider.usage
-    assert result.attempts == 2
+    assert result.attempts == 1
     snapshot = budget.snapshot()
     assert snapshot.completed_calls == 1
     assert snapshot.active_calls == 0
     assert snapshot.accounted_usage == provider.usage
     assert snapshot.completions[0].label == "decision"
     assert dict(snapshot.completions[0].tags) == {"agent": "2", "month": "5"}
-    assert provider.retry_values == [2]
+    assert provider.retry_values == [1]
 
 
 def test_stopped_budget_raises_before_provider_fallback_or_dispatch() -> None:
@@ -191,12 +201,12 @@ def test_structured_batch_is_concurrent_ordered_and_fully_accounted() -> None:
         labels=[f"decision-{index}" for index in range(40)],
         tags={"phase": "smoke"},
         estimated_usages=provider.usage,
-        max_retries=2,
+        max_retries=1,
     )
 
     assert [item.text for item in results] == [f"structured-{index}" for index in range(40)]
     assert provider.max_active > 1
-    assert provider.retry_values == [2] * 40
+    assert provider.retry_values == [1] * 40
     snapshot = budget.snapshot()
     assert snapshot.completed_calls == 40
     assert snapshot.active_calls == 0
@@ -234,12 +244,12 @@ def test_provider_error_is_returned_as_immutable_record_and_accounted() -> None:
     llm = MultiModelLLM(provider)
     budget = RunBudget(BudgetLimits(max_calls=1, max_cost_usd=0.10))
 
-    result = llm.get_structured_completion(dialog(0), budget=budget, max_retries=2)
+    result = llm.get_structured_completion(dialog(0), budget=budget, max_retries=1)
 
     assert result.text == "Error"
     assert result.error_type == "StubProviderError"
     assert result.ok is False
-    assert result.attempts == 2
+    assert result.attempts == 1
     assert budget.snapshot().completed_calls == 1
     assert budget.snapshot().rolled_back_calls == 0
     assert budget.snapshot().accounted_usage.prompt_tokens == 3
@@ -281,9 +291,17 @@ def test_batch_argument_validation_happens_before_any_reservation() -> None:
 
 
 def test_builtin_structured_provider_uses_exposed_usage_without_network() -> None:
+    request_kwargs = []
+
+    def complete(**kwargs):
+        request_kwargs.append(kwargs)
+        return response
+
     response = SimpleNamespace(
         usage=SimpleNamespace(prompt_tokens=11, completion_tokens=4, cost=0.123),
         choices=[SimpleNamespace(message=SimpleNamespace(content="ok"))],
+        system_fingerprint="fp-test",
+        model="gpt-5.2-2025-12-11",
     )
     provider = OpenAIProvider.__new__(OpenAIProvider)
     provider.model = "gpt-5.2"
@@ -291,21 +309,94 @@ def test_builtin_structured_provider_uses_exposed_usage_without_network() -> Non
     provider.max_retries = 20
     provider.client = SimpleNamespace(
         chat=SimpleNamespace(
-            completions=SimpleNamespace(create=lambda **_: response),
+            completions=SimpleNamespace(create=complete),
         )
     )
 
-    result = provider.get_structured_completion(dialog(0), max_retries=2)
+    result = provider.get_structured_completion(dialog(0), max_retries=2, seed=17)
 
     assert result.text == "ok"
     assert result.usage == UsageRecord(11, 4, 0.123)
     assert result.attempts == 1
     assert result.provider == "openai"
+    assert result.request_seed == 17
+    assert result.system_fingerprint == "fp-test"
+    assert result.response_model == "gpt-5.2-2025-12-11"
+    assert request_kwargs[0]["seed"] == 17
 
     # The old tuple path retains its historical local price-table estimate.
     text, legacy_cost = provider.get_completion(dialog(0))
     assert text == "ok"
     assert legacy_cost == pytest.approx(11 / 1000 * 0.003 + 4 / 1000 * 0.012)
+    assert "seed" not in request_kwargs[1]
+
+
+def test_gpt52_cost_uses_cached_token_details() -> None:
+    response = SimpleNamespace(
+        usage=SimpleNamespace(
+            prompt_tokens=1000,
+            completion_tokens=1000,
+            prompt_tokens_details=SimpleNamespace(cached_tokens=400),
+            completion_tokens_details=SimpleNamespace(reasoning_tokens=250),
+        ),
+        choices=[SimpleNamespace(message=SimpleNamespace(content="ok"))],
+        system_fingerprint="fp-price",
+        model="gpt-5.2-2025-12-11",
+    )
+    provider = OpenAIProvider.__new__(OpenAIProvider)
+    provider.model = "gpt-5.2"
+    provider.costs = {
+        "prompt": 0.00175,
+        "cached_prompt": 0.000175,
+        "completion": 0.014,
+    }
+    provider.max_retries = 1
+    provider.client = SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(create=lambda **_: response),
+        )
+    )
+
+    result = provider.get_structured_completion(dialog(0), max_retries=1)
+
+    assert result.cached_prompt_tokens == 400
+    assert result.reasoning_tokens == 250
+    assert result.cost == pytest.approx(0.6 * 0.00175 + 0.4 * 0.000175 + 0.014)
+    assert MODEL_COSTS["gpt-5.2-2025-12-11"] == MODEL_COSTS["gpt-5.2"]
+
+
+def test_multimodel_forwards_seed_before_budgeted_dispatch() -> None:
+    provider = StructuredStubProvider()
+    llm = MultiModelLLM(provider)
+    budget = RunBudget(BudgetLimits(max_calls=1))
+
+    llm.get_structured_completion(dialog(0), budget=budget, seed=23)
+
+    assert provider.seed_values == [23]
+
+
+def test_budgeted_provider_retries_are_rejected_before_reservation() -> None:
+    provider = StructuredStubProvider()
+    llm = MultiModelLLM(provider)
+    budget = RunBudget(BudgetLimits(max_calls=2))
+
+    with pytest.raises(ValueError, match="max_retries=1"):
+        llm.get_structured_completion(dialog(0), budget=budget, max_retries=2)
+
+    assert provider.calls == 0
+    assert budget.snapshot().active_calls == 0
+
+
+def test_invalid_seed_fails_before_budget_reservation() -> None:
+    provider = StructuredStubProvider()
+    llm = MultiModelLLM(provider)
+    budget = RunBudget(BudgetLimits(max_calls=1))
+
+    with pytest.raises(TypeError, match="seed"):
+        llm.get_structured_completion(dialog(0), budget=budget, seed=True)
+
+    assert provider.calls == 0
+    assert budget.snapshot().active_calls == 0
 
 
 def test_builtin_retry_override_caps_attempts_without_network(monkeypatch) -> None:

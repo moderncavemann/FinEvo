@@ -4,6 +4,61 @@ Experiment runner and output normalizer for the FinEvo EMNLP revision.
 Current results are preliminary until regenerated from the ignored `runs/`
 artifact tree with the documented seed set.
 
+## Verified dual-track redesign
+
+The post-review method is implemented as a separate, auditable path. The legacy
+`simulate.py` and `memory_module.py` remain available for reproduction; new
+method work uses:
+
+- `verified_memory/m1_context.py`: causal context encoding with independent
+  retrieval/prompt routes;
+- `verified_memory/m2_episodic.py`: staged `action_t` and finalized
+  `outcome_t+1` evidence;
+- `verified_memory/m3_semantic.py`: LLM candidates with support,
+  counterevidence, provisional activation, and retirement;
+- `verified_memory/m0_utility.py`: evaluation-only cash-flow and flow-utility
+  ledger;
+- `simulate_verified.py`: direct-hours, hard-budget, bounded runner;
+- `replay_verified.py`: hash-bound five-treatment paired replay.
+
+Budgeted calls use one HTTP attempt per reserved call; failures write a
+content-addressed error/config/budget receipt. Partial in-memory simulation
+streams are not yet checkpointed on failure. Effective Foundation parameters,
+request seed, served model, system fingerprint, cache usage, and provider
+request ID are retained when available.
+
+Run the no-network integration diagnostic (synthetic fixture, not a result):
+
+```bash
+python simulate_verified.py \
+  --provider diagnostic \
+  --run-id local-g0 \
+  --num-agents 2 \
+  --episode-length 6
+```
+
+Run a limited API smoke only after local tests pass:
+
+```bash
+python simulate_verified.py \
+  --provider openai \
+  --model gpt-5.2-2025-12-11 \
+  --run-id api-g4 \
+  --num-agents 2 \
+  --episode-length 6 \
+  --max-calls 24 \
+  --max-cost-usd 0.25
+```
+
+The runner blocks more than four agents or twelve months unless
+`--allow-larger-run` is explicit. Passing a smoke establishes implementation
+validity, not superiority. Current evidence and remaining gates are recorded in
+`artifacts/verified_memory_smoke_report.md`.
+
+The replay command currently accepts only runs with `context_to_prompt=false`;
+it fails closed for prompt-only/full M1 routes until prompt-routed context can
+be retained as a protected non-memory field.
+
 ## Features
 
 - **Multi-model support**: OpenAI, OpenRouter-compatible APIs, Google Gemini, and local OpenAI-compatible servers
@@ -89,8 +144,11 @@ Generated `data/`, `runs/`, `figs/`, logs, pickles, and zip artifacts are intent
 ```
 eccv26_EconAgent/
 ├── simulate.py          # Main simulation script
+├── simulate_verified.py # Bounded verified-memory runner
+├── replay_verified.py   # Paired memory-intervention runner
 ├── llm_providers.py     # Multi-model LLM interface
 ├── memory_module.py     # Episodic and semantic memory
+├── verified_memory/     # M0/M1/M2/M3, replay, budgets, provenance
 ├── market_sentiment.py  # Market sentiment dynamics
 ├── run_emnlp_experiments.py # EMNLP E1-E8 run matrix
 ├── export_emnlp_outputs.py  # Normalizes outputs to required schema

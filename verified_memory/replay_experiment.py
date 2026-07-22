@@ -16,6 +16,7 @@ from .replay import (
     PairedReplayResult,
     PairedReplayRunner,
     ProviderCompletion,
+    ReplayIntegrityError,
 )
 from .runner import VerifiedRunResult, _estimate_usage
 
@@ -40,16 +41,29 @@ def _select_row(
 
 
 def _shuffle_episode_order(memory_text: str) -> str:
-    chunks = memory_text.split(" - ")
-    if len(chunks) < 3:
-        raise ValueError("matched memory has too few entries for shuffled treatment")
-    header = chunks[0]
-    episodes = [chunk for chunk in chunks[1:] if chunk.lstrip().startswith("[")]
-    other = [chunk for chunk in chunks[1:] if not chunk.lstrip().startswith("[")]
+    episode_header = "Finalized experience evidence:"
+    rule_header = " Verified active rules:"
+    if not memory_text.startswith(episode_header) or rule_header not in memory_text:
+        raise ValueError(
+            "matched memory must contain separate episodic and active-rule sections"
+        )
+    episode_section, rule_section = memory_text.split(rule_header, 1)
+    episode_body = episode_section[len(episode_header):].strip()
+    if not episode_body.startswith("- "):
+        raise ValueError("episodic section has an invalid entry delimiter")
+    episodes = episode_body[2:].split(" - ")
     if len(episodes) < 2:
         raise ValueError("matched memory needs at least two episodic entries")
-    shuffled = [header, *reversed(episodes), *other]
-    result = " - ".join(shuffled)
+    if any(not episode.lstrip().startswith("[") for episode in episodes):
+        raise ValueError("episodic section contains a non-episode entry")
+    result = (
+        f"{episode_header} - "
+        + " - ".join(reversed(episodes))
+        + rule_header
+        + rule_section
+    )
+    if result.split(rule_header, 1)[1] != rule_section:
+        raise RuntimeError("shuffling altered the active-rule section")
     if result == memory_text:
         raise ValueError("shuffled treatment did not change memory bytes")
     return result
@@ -64,7 +78,7 @@ def build_paired_snapshot(
     model: str,
     max_tokens: int = 220,
 ) -> DecisionSnapshot:
-    """Construct five signed treatments without changing any protected field."""
+    """Construct five hash-bound treatments without changing protected fields."""
 
     if not isinstance(source, VerifiedRunResult):
         raise TypeError("source must be VerifiedRunResult")
@@ -78,6 +92,21 @@ def build_paired_snapshot(
         decision_t=decision_t,
         agent_id=agent_id,
     )
+    context_trace = _select_row(
+        source.stream("context_trace"),
+        decision_t=decision_t,
+        agent_id=agent_id,
+    )
+    if context_trace.get("context_to_prompt") is not False:
+        raise ValueError(
+            "paired memory replay currently requires context_to_prompt=false; "
+            "prompt-routed context must first be separated into the protected base prompt"
+        )
+    if (
+        context_trace.get("context_id") != snapshot.get("context_packet_id")
+        or context_trace.get("context_hash") != snapshot.get("context_packet_hash")
+    ):
+        raise ValueError("decision snapshot and context trace do not align")
     matched = str(snapshot["memory_text"])
     if not matched:
         raise ValueError("matched treatment must contain memory")
@@ -88,6 +117,7 @@ def build_paired_snapshot(
         and row.get("agent_id") != agent_id
         and row.get("memory_text")
         and row.get("memory_hash") != snapshot.get("memory_hash")
+        and row.get("context_packet_hash") != snapshot.get("context_packet_hash")
     ]
     if not wrong_candidates:
         raise ValueError("no different-agent memory is available for wrong-context")
@@ -126,14 +156,19 @@ def run_paired_replay(
     *,
     llm: MultiModelLLM,
     budget: RunBudget,
-    max_retries: int = 2,
+    max_retries: int = 1,
 ) -> PairedReplayResult:
-    """Execute all signed treatments through one structured provider boundary."""
+    """Execute all hash-bound treatments through one provider boundary."""
 
     full_name = llm.get_model_name()
     provider, _, model = full_name.partition("/")
     if (provider, model) != (snapshot.provider, snapshot.model):
         raise ValueError("snapshot provider/model does not match replay provider")
+    if max_retries != 1:
+        raise ValueError(
+            "bounded paired replay requires max_retries=1 so every HTTP attempt "
+            "consumes one budget call"
+        )
 
     def complete(request: Any) -> ProviderCompletion:
         result = llm.get_structured_completion(
@@ -152,28 +187,59 @@ def run_paired_replay(
                 "call_kind": "paired_replay",
                 "snapshot_id": snapshot.snapshot_id,
                 "treatment": request.treatment,
+                "decoding_seed": snapshot.decoding_seed,
             },
             max_retries=max_retries,
+            seed=snapshot.decoding_seed,
         )
         if not result.ok or result.text == "Error":
             raise RuntimeError(f"provider replay failure: {result.error_type}")
+        if result.request_seed != snapshot.decoding_seed:
+            raise RuntimeError(
+                "provider did not attest the protected decoding seed"
+            )
         return ProviderCompletion.create(
             result.text,
             provider=result.provider,
             model=result.model,
+            request_id=result.request_id,
             metadata={
                 "usage": result.usage.to_dict(),
                 "attempts": result.attempts,
                 "latency_seconds": result.latency_seconds,
                 "error_type": result.error_type,
+                "decoding_seed_requested": snapshot.decoding_seed,
+                "decoding_seed_applied": result.request_seed,
+                "system_fingerprint": result.system_fingerprint,
+                "response_model": result.response_model,
+                "cached_prompt_tokens": result.cached_prompt_tokens,
+                "reasoning_tokens": result.reasoning_tokens,
             },
         )
 
-    return PairedReplayRunner(complete).run(snapshot)
+    replay = PairedReplayRunner(complete).run(snapshot)
+    metadata = [record.to_dict()["provider_metadata"] for record in replay.records]
+    applied_seeds = {row.get("decoding_seed_applied") for row in metadata}
+    if applied_seeds != {snapshot.decoding_seed}:
+        raise ReplayIntegrityError("replay records do not share the protected seed")
+    response_models = {row.get("response_model") for row in metadata}
+    if None in response_models or len(response_models) != 1:
+        raise ReplayIntegrityError("replay responses do not share one served model")
+    fingerprints = {
+        row.get("system_fingerprint")
+        for row in metadata
+        if row.get("system_fingerprint") is not None
+    }
+    if len(fingerprints) > 1:
+        raise ReplayIntegrityError(
+            "replay responses report multiple system fingerprints"
+        )
+    return replay
 
 
 def summarize_paired_replay(result: PairedReplayResult) -> dict[str, Any]:
     records = result.records
+    metadata = [record.to_dict()["provider_metadata"] for record in records]
     changed = [
         row.treatment
         for row in records
@@ -187,6 +253,29 @@ def summarize_paired_replay(result: PairedReplayResult) -> dict[str, Any]:
         "integrity_verified": all(row.integrity_verified for row in records),
         "treatment_count": len(records),
         "memory_sensitive": bool(changed),
+        "decoding_seed": result.snapshot.decoding_seed,
+        "decoding_seed_verified": all(
+            row.get("decoding_seed_applied") == result.snapshot.decoding_seed
+            for row in metadata
+        ),
+        "response_models": sorted(
+            {str(row["response_model"]) for row in metadata if row.get("response_model")}
+        ),
+        "system_fingerprints": sorted(
+            {
+                str(row["system_fingerprint"])
+                for row in metadata
+                if row.get("system_fingerprint")
+            }
+        ),
+        "system_fingerprint_complete": all(
+            bool(row.get("system_fingerprint")) for row in metadata
+        ),
+        "determinism_caveat": (
+            "The provider seed is best-effort and does not guarantee deterministic "
+            "sampling; action deltas are controlled prompt-level sensitivity, not "
+            "strict causal identification."
+        ),
         "changed_treatments": changed,
         "max_abs_labor_hours_delta": max(
             abs(row.executed_labor_hours_delta_vs_matched) for row in records

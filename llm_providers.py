@@ -28,7 +28,18 @@ from verified_memory.budget import (
 # Cost tracking (per 1k tokens)
 MODEL_COSTS = {
     # OpenAI
-    "gpt-5.2": {"prompt": 0.003, "completion": 0.012},
+    # USD per 1k tokens. GPT-5.2 pricing checked against the official model
+    # page on 2026-07-22; prompt totals include cached prompt tokens.
+    "gpt-5.2": {
+        "prompt": 0.00175,
+        "cached_prompt": 0.000175,
+        "completion": 0.014,
+    },
+    "gpt-5.2-2025-12-11": {
+        "prompt": 0.00175,
+        "cached_prompt": 0.000175,
+        "completion": 0.014,
+    },
     "gpt-4o": {"prompt": 0.005, "completion": 0.015},
     "gpt-4.1-mini": {"prompt": 0.001, "completion": 0.002},
     # Gemini
@@ -49,6 +60,14 @@ def _validated_retry_count(value: Optional[int], default: int) -> int:
     return retries
 
 
+def _validated_seed(value: Optional[int]) -> Optional[int]:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise TypeError("seed must be an int or None")
+    return value
+
+
 def _usage_value(usage: object, *names: str) -> int:
     """Read an integer usage field from SDK objects or JSON mappings."""
 
@@ -63,6 +82,14 @@ def _usage_value(usage: object, *names: str) -> int:
             except (TypeError, ValueError):
                 continue
     return 0
+
+
+def _nested_usage_value(usage: object, parent: str, *names: str) -> int:
+    if isinstance(usage, Mapping):
+        details = usage.get(parent)
+    else:
+        details = getattr(usage, parent, None)
+    return _usage_value(details, *names)
 
 
 def _reported_cost(usage: object) -> Optional[float]:
@@ -94,11 +121,17 @@ def _usage_record(
     costs: Mapping[str, float],
     *,
     reported_cost: Optional[float] = None,
+    cached_prompt_tokens: int = 0,
 ) -> UsageRecord:
+    cached_prompt_tokens = max(0, min(int(cached_prompt_tokens), prompt_tokens))
     cost = reported_cost
     if cost is None:
+        uncached_prompt_tokens = prompt_tokens - cached_prompt_tokens
         cost = (
-            prompt_tokens / 1000 * costs["prompt"]
+            uncached_prompt_tokens / 1000 * costs["prompt"]
+            + cached_prompt_tokens
+            / 1000
+            * costs.get("cached_prompt", costs["prompt"])
             + completion_tokens / 1000 * costs["completion"]
         )
     return UsageRecord(prompt_tokens, completion_tokens, float(cost))
@@ -115,6 +148,12 @@ class StructuredCompletion:
     attempts: int
     latency_seconds: float
     error_type: Optional[str] = None
+    request_seed: Optional[int] = None
+    system_fingerprint: Optional[str] = None
+    response_model: Optional[str] = None
+    cached_prompt_tokens: int = 0
+    reasoning_tokens: int = 0
+    request_id: Optional[str] = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.text, str):
@@ -127,6 +166,23 @@ class StructuredCompletion:
             raise ValueError("attempts must be at least 1")
         if self.latency_seconds < 0:
             raise ValueError("latency_seconds must be non-negative")
+        _validated_seed(self.request_seed)
+        if self.system_fingerprint is not None and not isinstance(
+            self.system_fingerprint, str
+        ):
+            raise TypeError("system_fingerprint must be a string or None")
+        if self.response_model is not None and not isinstance(self.response_model, str):
+            raise TypeError("response_model must be a string or None")
+        for name in ("cached_prompt_tokens", "reasoning_tokens"):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise TypeError(f"{name} must be an int")
+            if value < 0:
+                raise ValueError(f"{name} must be non-negative")
+        if self.cached_prompt_tokens > self.usage.prompt_tokens:
+            raise ValueError("cached_prompt_tokens cannot exceed prompt_tokens")
+        if self.request_id is not None and not isinstance(self.request_id, str):
+            raise TypeError("request_id must be a string or None")
 
     @property
     def cost(self) -> float:
@@ -145,6 +201,12 @@ class StructuredCompletion:
             "attempts": self.attempts,
             "latency_seconds": self.latency_seconds,
             "error_type": self.error_type,
+            "request_seed": self.request_seed,
+            "system_fingerprint": self.system_fingerprint,
+            "response_model": self.response_model,
+            "cached_prompt_tokens": self.cached_prompt_tokens,
+            "reasoning_tokens": self.reasoning_tokens,
+            "request_id": self.request_id,
         }
 
 
@@ -183,10 +245,15 @@ class LLMProvider(ABC):
         max_tokens: int = 800,
         top_p: float = 1.0,
         max_retries: Optional[int] = None,
+        seed: Optional[int] = None,
     ) -> StructuredCompletion:
         """Compatibility adapter for providers implementing only the tuple API."""
 
         _validated_retry_count(max_retries, 1)
+        if _validated_seed(seed) is not None:
+            raise NotImplementedError(
+                "legacy tuple providers cannot attest that a decoding seed was applied"
+            )
         started = time.monotonic()
         full_name = self.get_model_name()
         provider, _, model = full_name.partition("/")
@@ -201,6 +268,7 @@ class LLMProvider(ABC):
                 attempts=1,
                 latency_seconds=time.monotonic() - started,
                 error_type=error_type,
+                response_model=model or full_name,
             )
         except Exception as exc:
             return StructuredCompletion(
@@ -251,35 +319,41 @@ class OpenAIProvider(LLMProvider):
         max_tokens: int = 800,
         top_p: float = 1.0,
         max_retries: Optional[int] = None,
+        seed: Optional[int] = None,
     ) -> StructuredCompletion:
         retry_count = _validated_retry_count(max_retries, self.max_retries)
+        seed = _validated_seed(seed)
         started = time.monotonic()
         for i in range(retry_count):
             try:
+                request: Dict[str, object] = {
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "top_p": top_p,
+                }
+                if seed is not None:
+                    request["seed"] = seed
                 # GPT-5.x and newer models use max_completion_tokens
                 if self.model.startswith("gpt-5") or self.model.startswith("o1") or self.model.startswith("o3"):
-                    response = self.client.chat.completions.create(
-                        model=self.model,
-                        messages=messages,
-                        temperature=temperature,
-                        max_completion_tokens=max_tokens,
-                        top_p=top_p,
-                    )
+                    request["max_completion_tokens"] = max_tokens
                 else:
-                    response = self.client.chat.completions.create(
-                        model=self.model,
-                        messages=messages,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        top_p=top_p,
-                    )
+                    request["max_tokens"] = max_tokens
+                response = self.client.chat.completions.create(**request)
                 prompt_tokens = _usage_value(response.usage, "prompt_tokens")
                 completion_tokens = _usage_value(response.usage, "completion_tokens")
+                cached_prompt_tokens = _nested_usage_value(
+                    response.usage, "prompt_tokens_details", "cached_tokens"
+                )
+                reasoning_tokens = _nested_usage_value(
+                    response.usage, "completion_tokens_details", "reasoning_tokens"
+                )
                 usage = _usage_record(
                     prompt_tokens,
                     completion_tokens,
                     self.costs,
                     reported_cost=_reported_cost(response.usage),
+                    cached_prompt_tokens=cached_prompt_tokens,
                 )
                 return StructuredCompletion(
                     text=response.choices[0].message.content or "",
@@ -288,6 +362,24 @@ class OpenAIProvider(LLMProvider):
                     provider="openai",
                     attempts=i + 1,
                     latency_seconds=time.monotonic() - started,
+                    request_seed=seed,
+                    system_fingerprint=(
+                        str(response.system_fingerprint)
+                        if getattr(response, "system_fingerprint", None) is not None
+                        else None
+                    ),
+                    response_model=(
+                        str(response.model)
+                        if getattr(response, "model", None) is not None
+                        else None
+                    ),
+                    cached_prompt_tokens=cached_prompt_tokens,
+                    reasoning_tokens=reasoning_tokens,
+                    request_id=(
+                        str(response.id)
+                        if getattr(response, "id", None) is not None
+                        else None
+                    ),
                 )
             except Exception as e:
                 if i < retry_count - 1:
@@ -361,10 +453,15 @@ class GeminiProvider(LLMProvider):
         max_tokens: int = 800,
         top_p: float = 1.0,
         max_retries: Optional[int] = None,
+        seed: Optional[int] = None,
     ) -> StructuredCompletion:
         import google.generativeai as genai
 
         retry_count = _validated_retry_count(max_retries, self.max_retries)
+        if _validated_seed(seed) is not None:
+            raise NotImplementedError(
+                "the installed Gemini SDK does not expose a decoding seed"
+            )
         started = time.monotonic()
 
         # Rate limiting to avoid hitting RPM limits
@@ -434,6 +531,7 @@ class GeminiProvider(LLMProvider):
                     provider="gemini",
                     attempts=i + 1,
                     latency_seconds=time.monotonic() - started,
+                    response_model=self.model,
                 )
 
             except Exception as e:
@@ -488,26 +586,31 @@ class LocalAPIProvider(LLMProvider):
         max_tokens: int = 800,
         top_p: float = 1.0,
         max_retries: Optional[int] = None,
+        seed: Optional[int] = None,
     ) -> StructuredCompletion:
         import requests
 
         retry_count = _validated_retry_count(max_retries, self.max_retries)
+        seed = _validated_seed(seed)
         started = time.monotonic()
         for i in range(retry_count):
             try:
+                payload = {
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "top_p": top_p,
+                }
+                if seed is not None:
+                    payload["seed"] = seed
                 response = requests.post(
                     f"{self.base_url}/chat/completions",
                     headers={
                         "Authorization": f"Bearer {self.api_key}",
                         "Content-Type": "application/json",
                     },
-                    json={
-                        "model": self.model,
-                        "messages": messages,
-                        "temperature": temperature,
-                        "max_tokens": max_tokens,
-                        "top_p": top_p,
-                    },
+                    json=payload,
                     timeout=300
                 )
                 response.raise_for_status()
@@ -515,11 +618,18 @@ class LocalAPIProvider(LLMProvider):
                 raw_usage = result.get("usage") or {}
                 prompt_tokens = _usage_value(raw_usage, "prompt_tokens")
                 completion_tokens = _usage_value(raw_usage, "completion_tokens")
+                cached_prompt_tokens = _nested_usage_value(
+                    raw_usage, "prompt_tokens_details", "cached_tokens"
+                )
+                reasoning_tokens = _nested_usage_value(
+                    raw_usage, "completion_tokens_details", "reasoning_tokens"
+                )
                 usage = _usage_record(
                     prompt_tokens,
                     completion_tokens,
                     self.costs,
                     reported_cost=_reported_cost(raw_usage),
+                    cached_prompt_tokens=cached_prompt_tokens,
                 )
                 return StructuredCompletion(
                     text=result["choices"][0]["message"]["content"] or "",
@@ -528,6 +638,18 @@ class LocalAPIProvider(LLMProvider):
                     provider="local",
                     attempts=i + 1,
                     latency_seconds=time.monotonic() - started,
+                    request_seed=seed,
+                    system_fingerprint=(
+                        str(result["system_fingerprint"])
+                        if result.get("system_fingerprint") is not None
+                        else None
+                    ),
+                    response_model=str(result.get("model") or self.model),
+                    cached_prompt_tokens=cached_prompt_tokens,
+                    reasoning_tokens=reasoning_tokens,
+                    request_id=(
+                        str(result["id"]) if result.get("id") is not None else None
+                    ),
                 )
 
             except Exception as e:
@@ -597,25 +719,37 @@ class ThirdPartyProvider(LLMProvider):
         max_tokens: int = 800,
         top_p: float = 1.0,
         max_retries: Optional[int] = None,
+        seed: Optional[int] = None,
     ) -> StructuredCompletion:
         retry_count = _validated_retry_count(max_retries, self.max_retries)
+        seed = _validated_seed(seed)
         started = time.monotonic()
         for i in range(retry_count):
             try:
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    top_p=top_p,
-                )
+                request: Dict[str, object] = {
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "top_p": top_p,
+                }
+                if seed is not None:
+                    request["seed"] = seed
+                response = self.client.chat.completions.create(**request)
                 prompt_tokens = _usage_value(response.usage, "prompt_tokens")
                 completion_tokens = _usage_value(response.usage, "completion_tokens")
+                cached_prompt_tokens = _nested_usage_value(
+                    response.usage, "prompt_tokens_details", "cached_tokens"
+                )
+                reasoning_tokens = _nested_usage_value(
+                    response.usage, "completion_tokens_details", "reasoning_tokens"
+                )
                 usage = _usage_record(
                     prompt_tokens,
                     completion_tokens,
                     self.costs,
                     reported_cost=_reported_cost(response.usage),
+                    cached_prompt_tokens=cached_prompt_tokens,
                 )
                 return StructuredCompletion(
                     text=response.choices[0].message.content or "",
@@ -624,6 +758,24 @@ class ThirdPartyProvider(LLMProvider):
                     provider="thirdparty",
                     attempts=i + 1,
                     latency_seconds=time.monotonic() - started,
+                    request_seed=seed,
+                    system_fingerprint=(
+                        str(response.system_fingerprint)
+                        if getattr(response, "system_fingerprint", None) is not None
+                        else None
+                    ),
+                    response_model=(
+                        str(response.model)
+                        if getattr(response, "model", None) is not None
+                        else None
+                    ),
+                    cached_prompt_tokens=cached_prompt_tokens,
+                    reasoning_tokens=reasoning_tokens,
+                    request_id=(
+                        str(response.id)
+                        if getattr(response, "id", None) is not None
+                        else None
+                    ),
                 )
             except Exception as e:
                 if i < retry_count - 1:
@@ -675,24 +827,29 @@ class OllamaProvider(LLMProvider):
         max_tokens: int = 800,
         top_p: float = 1.0,
         max_retries: Optional[int] = None,
+        seed: Optional[int] = None,
     ) -> StructuredCompletion:
         import requests
 
         retry_count = _validated_retry_count(max_retries, self.max_retries)
+        seed = _validated_seed(seed)
         started = time.monotonic()
         for i in range(retry_count):
             try:
+                options = {
+                    "temperature": temperature,
+                    "num_predict": max_tokens,
+                    "top_p": top_p,
+                }
+                if seed is not None:
+                    options["seed"] = seed
                 response = requests.post(
                     f"{self.host}/api/chat",
                     json={
                         "model": self.model,
                         "messages": messages,
                         "stream": False,
-                        "options": {
-                            "temperature": temperature,
-                            "num_predict": max_tokens,
-                            "top_p": top_p,
-                        }
+                        "options": options,
                     },
                     timeout=300
                 )
@@ -708,6 +865,8 @@ class OllamaProvider(LLMProvider):
                     provider="ollama",
                     attempts=i + 1,
                     latency_seconds=time.monotonic() - started,
+                    request_seed=seed,
+                    response_model=str(result.get("model") or self.model),
                 )
 
             except Exception as e:
@@ -757,6 +916,7 @@ class MultiModelLLM:
         temperature: float,
         max_tokens: int,
         top_p: float,
+        seed: Optional[int],
         max_retries: Optional[int],
         budget: Optional[RunBudget],
         reservation: Optional[CallReservation],
@@ -772,6 +932,7 @@ class MultiModelLLM:
                 max_tokens=max_tokens,
                 top_p=top_p,
                 max_retries=max_retries,
+                seed=seed,
             )
             if not isinstance(result, StructuredCompletion):
                 raise TypeError("provider structured API must return StructuredCompletion")
@@ -806,6 +967,7 @@ class MultiModelLLM:
         label: str = "completion",
         tags: Optional[Mapping[str, object]] = None,
         max_retries: Optional[int] = None,
+        seed: Optional[int] = None,
     ) -> StructuredCompletion:
         """Return one structured response, optionally under a hard run budget."""
 
@@ -815,6 +977,14 @@ class MultiModelLLM:
             raise TypeError("budget must be a RunBudget or None")
         if estimated_usage is not None and not isinstance(estimated_usage, UsageRecord):
             raise TypeError("estimated_usage must be a UsageRecord or None")
+        seed = _validated_seed(seed)
+        if budget is not None:
+            if max_retries not in (None, 1):
+                raise ValueError(
+                    "budgeted calls require max_retries=1; provider-internal retries "
+                    "cannot share one hard-budget reservation"
+                )
+            max_retries = 1
 
         reservation = None
         if budget is not None:
@@ -832,6 +1002,7 @@ class MultiModelLLM:
             temperature=temperature,
             max_tokens=max_tokens,
             top_p=top_p,
+            seed=seed,
             max_retries=max_retries,
             budget=budget,
             reservation=reservation,
@@ -936,6 +1107,7 @@ class MultiModelLLM:
         tags: Optional[Union[Mapping[str, object], Sequence[Mapping[str, object]]]] = None,
         estimated_usages: Optional[Union[UsageRecord, Sequence[UsageRecord]]] = None,
         max_retries: Optional[int] = None,
+        seed: Optional[int] = None,
     ) -> List[StructuredCompletion]:
         """Return ordered structured responses for a bounded parallel batch.
 
@@ -948,6 +1120,14 @@ class MultiModelLLM:
             _validated_retry_count(max_retries, 1)
         if budget is not None and not isinstance(budget, RunBudget):
             raise TypeError("budget must be a RunBudget or None")
+        seed = _validated_seed(seed)
+        if budget is not None:
+            if max_retries not in (None, 1):
+                raise ValueError(
+                    "budgeted calls require max_retries=1; provider-internal retries "
+                    "cannot share one hard-budget reservation"
+                )
+            max_retries = 1
 
         count = len(dialogs)
         if count == 0:
@@ -988,6 +1168,7 @@ class MultiModelLLM:
                     temperature=temperature,
                     max_tokens=max_tokens,
                     top_p=top_p,
+                    seed=seed,
                     max_retries=max_retries,
                     budget=budget,
                     reservation=reservations[index],

@@ -6,7 +6,8 @@ from verified_memory.scripted_provider import ScriptedDiagnosticProvider
 def test_scripted_action_is_timestamped_and_explicitly_synthetic() -> None:
     provider = ScriptedDiagnosticProvider()
     result = provider.get_structured_completion(
-        [{"role": "user", "content": "This is monthly decision t=2."}]
+        [{"role": "user", "content": "This is monthly decision t=2."}],
+        seed=31,
     )
     payload = json.loads(result.text)
     assert payload["work"] == 0.75
@@ -14,6 +15,7 @@ def test_scripted_action_is_timestamped_and_explicitly_synthetic() -> None:
     assert "Synthetic" in payload["reflection"]
     assert result.provider == "diagnostic"
     assert result.usage.cost_usd == 0
+    assert result.request_seed == 31
 
 
 def test_scripted_proposal_copies_real_episode_ids() -> None:

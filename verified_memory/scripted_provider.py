@@ -97,7 +97,10 @@ class ScriptedDiagnosticProvider(LLMProvider):
         max_tokens: int = 800,
         top_p: float = 1.0,
         max_retries: int | None = None,
+        seed: int | None = None,
     ) -> StructuredCompletion:
+        if seed is not None and (isinstance(seed, bool) or not isinstance(seed, int)):
+            raise TypeError("seed must be an int or None")
         started = monotonic()
         prompt = self._prompt(messages)
         if "Propose one semantic decision rule" in prompt:
@@ -115,6 +118,8 @@ class ScriptedDiagnosticProvider(LLMProvider):
             provider=DIAGNOSTIC_PROVIDER_NAME,
             attempts=1,
             latency_seconds=monotonic() - started,
+            request_seed=seed,
+            response_model=DIAGNOSTIC_MODEL_NAME,
         )
 
     def get_completion(

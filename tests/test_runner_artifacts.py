@@ -32,3 +32,6 @@ def test_diagnostic_result_is_sealed_and_reverified(tmp_path: Path) -> None:
     assert manifest["validation_status"]["status"] == "pass"
     assert verify_manifest(run_dir).valid is True
     assert (run_dir / "streams/actions.jsonl").read_text().count("\n") == 10
+    sealed_config = json.loads((run_dir / "config.json").read_text())
+    assert sealed_config["foundation_env"]["n_agents"] == 2
+    assert len(sealed_config["foundation_env_hash"]) == 64

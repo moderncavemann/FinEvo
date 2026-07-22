@@ -1,0 +1,6 @@
+{"average_wealth":4355.729701271435,"decision_t":0,"done":false,"low_labor_rate":0.0,"monthly_inflation":-0.013316069153682775,"outcome_t":1,"price":135.02164355829927,"schema_version":"verified-simulation-runner-v1"}
+{"average_wealth":5611.983805995521,"decision_t":1,"done":false,"low_labor_rate":0.0,"monthly_inflation":-0.013599960914584708,"outcome_t":2,"price":133.18535448328342,"schema_version":"verified-simulation-runner-v1"}
+{"average_wealth":6733.628144787801,"decision_t":2,"done":false,"low_labor_rate":0.0,"monthly_inflation":-0.016035190286453838,"outcome_t":3,"price":131.04970198077515,"schema_version":"verified-simulation-runner-v1"}
+{"average_wealth":7323.852686426798,"decision_t":3,"done":false,"low_labor_rate":0.0,"monthly_inflation":-0.01407134164360635,"outcome_t":4,"price":129.20565685191087,"schema_version":"verified-simulation-runner-v1"}
+{"average_wealth":7444.193326029629,"decision_t":4,"done":false,"low_labor_rate":0.0,"monthly_inflation":-0.007897148319719216,"outcome_t":5,"price":128.18530061600458,"schema_version":"verified-simulation-runner-v1"}
+{"average_wealth":7825.074690032868,"decision_t":5,"done":true,"low_labor_rate":0.0,"monthly_inflation":-0.0011883532217376036,"outcome_t":6,"price":128.03297120103815,"schema_version":"verified-simulation-runner-v1"}

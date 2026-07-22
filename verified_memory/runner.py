@@ -99,7 +99,7 @@ class VerifiedRunConfig:
     top_p: float = 1.0
     action_max_tokens: int = 220
     rule_max_tokens: int = 450
-    max_retries: int = 2
+    max_retries: int = 1
     fail_on_clipped_action: bool = True
     fail_on_rule_parse_error: bool = False
     utility: UtilityConfig = field(default_factory=UtilityConfig)
@@ -140,6 +140,11 @@ class VerifiedRunConfig:
         ):
             if getattr(self, name) < 1:
                 raise ValueError(f"{name} must be positive")
+        if self.max_retries != 1:
+            raise ValueError(
+                "verified runs require max_retries=1 so each provider attempt "
+                "consumes one hard-budget call"
+            )
         normalized_mode = self.context_mode.strip().lower().replace("_", "-")
         if normalized_mode not in CONTEXT_MODES:
             raise ValueError(f"unsupported context mode: {self.context_mode}")
@@ -240,6 +245,12 @@ def _provider_row(
         "latency_seconds": result.latency_seconds,
         "error_type": result.error_type,
         "usage": result.usage.to_dict(),
+        "request_seed": result.request_seed,
+        "system_fingerprint": result.system_fingerprint,
+        "response_model": result.response_model,
+        "cached_prompt_tokens": result.cached_prompt_tokens,
+        "reasoning_tokens": result.reasoning_tokens,
+        "provider_request_id": result.request_id,
         "raw_output_hash": hashlib.sha256(result.text.encode("utf-8")).hexdigest(),
     }
 
@@ -491,6 +502,7 @@ def run_verified_experiment(
             ],
             estimated_usages=estimates,
             max_retries=config.max_retries,
+            seed=config.seed,
         )
         decisions: dict[str, ActionDecision] = {}
         for agent_id, completion in enumerate(completions):
@@ -663,6 +675,7 @@ def run_verified_experiment(
                     for prompt in proposal_prompts
                 ],
                 max_retries=config.max_retries,
+                seed=config.seed,
             )
             for agent_id, prompt, completion in zip(
                 eligible, proposal_prompts, proposal_results
@@ -852,8 +865,11 @@ def run_verified_experiment(
     frozen_records = {
         name: tuple(_json_copy(row) for row in rows) for name, rows in records.items()
     }
+    sealed_config = config.to_dict()
+    sealed_config["foundation_env"] = _json_copy(foundation_config)
+    sealed_config["foundation_env_hash"] = _sha256(foundation_config)
     return VerifiedRunResult(
-        config=_json_copy(config.to_dict()),
+        config=_json_copy(sealed_config),
         summary=_json_copy(summary),
         validation_status=_json_copy(validation_status),
         budget_snapshot=_json_copy(budget.snapshot().to_dict()),

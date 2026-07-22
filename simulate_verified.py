@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -22,6 +23,7 @@ from typing import Any
 
 from llm_providers import MultiModelLLM, create_llm_provider
 from verified_memory.budget import BudgetLimits, RunBudget
+from verified_memory.failure_artifacts import write_failure_receipt
 from verified_memory.m0_utility import UtilityConfig
 from verified_memory.runner import VerifiedRunConfig, run_verified_experiment
 from verified_memory.runner_artifacts import write_verified_run_artifacts
@@ -71,7 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--top-p", type=float, default=1.0)
     parser.add_argument("--workers", type=int, default=2)
-    parser.add_argument("--max-retries", type=int, default=2)
+    parser.add_argument("--max-retries", type=int, default=1)
     parser.add_argument("--max-calls", type=int, default=24)
     parser.add_argument("--max-prompt-tokens", type=int, default=60_000)
     parser.add_argument("--max-completion-tokens", type=int, default=12_000)
@@ -158,36 +160,55 @@ def execute(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
         max_retries=args.max_retries,
         utility=UtilityConfig(max_labor_hours=168.0),
     )
-    result = run_verified_experiment(
-        config,
-        llm=llm,
-        budget=budget,
-        env_config_source=args.config,
-    )
     git_commit = _git(["rev-parse", "HEAD"])
-    git_dirty = bool(_git(["status", "--porcelain"]))
+    git_dirty = bool(_git(["status", "--porcelain", "--untracked-files=no"]))
     provenance = {
         "purpose": "bounded verified-memory method smoke",
         "scientific_evidence": False,
         "legacy_runner_unchanged": True,
         "provider": args.provider,
         "model": model,
-        "config_path": str(args.config.resolve()),
+        "config_path": str(args.config),
+        "config_sha256": hashlib.sha256(args.config.read_bytes()).hexdigest(),
         "python": sys.version.split()[0],
-        "cwd": str(ROOT),
+        "untracked_files_present": bool(
+            _git(["ls-files", "--others", "--exclude-standard"])
+        ),
         "environment_keys_present": {
             "OPENAI_API_KEY": bool(os.environ.get("OPENAI_API_KEY")),
             "GEMINI_API_KEY": bool(os.environ.get("GEMINI_API_KEY")),
             "OPENROUTER_API_KEY": bool(os.environ.get("OPENROUTER_API_KEY")),
         },
     }
-    manifest_path = write_verified_run_artifacts(
-        output_dir,
-        result,
-        provenance=provenance,
-        git_commit=git_commit,
-        git_dirty=git_dirty,
-    )
+    try:
+        result = run_verified_experiment(
+            config,
+            llm=llm,
+            budget=budget,
+            env_config_source=args.config,
+        )
+        manifest_path = write_verified_run_artifacts(
+            output_dir,
+            result,
+            provenance=provenance,
+            git_commit=git_commit,
+            git_dirty=git_dirty,
+        )
+    except Exception as exc:
+        try:
+            write_failure_receipt(
+                output_dir,
+                scope="verified_simulation",
+                error=exc,
+                budget_snapshot=budget.snapshot().to_dict(),
+                config=config.to_dict(),
+                provenance=provenance,
+                git_commit=git_commit,
+                git_dirty=git_dirty,
+            )
+        except Exception as receipt_error:
+            exc.add_note(f"failure receipt could not be written: {type(receipt_error).__name__}")
+        raise
     return manifest_path, dict(result.summary)
 
 

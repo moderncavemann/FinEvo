@@ -46,6 +46,11 @@ def test_two_agent_six_month_diagnostic_closes_full_verified_loop() -> None:
     assert result.summary["memory_diagnostics"]["semantic_rule_status_counts"]["active"] == 2
     assert result.summary["memory_diagnostics"]["active_rule_retrieval_count"] > 0
     assert result.summary["action_diagnostics"]["unique_labor_hours"] == [40.0, 88.0, 128.0]
+    assert result.config["foundation_env"]["n_agents"] == 2
+    assert result.config["foundation_env"]["episode_length"] == 6
+    assert len(result.config["foundation_env_hash"]) == 64
+    assert all(row["request_seed"] == 11 for row in result.stream("api_usage"))
+    assert all(row["response_model"] == "scripted-v1" for row in result.stream("api_usage"))
 
 
 def test_foundation_minimum_agent_contract_is_explicit() -> None:
@@ -55,3 +60,12 @@ def test_foundation_minimum_agent_contract_is_explicit() -> None:
         assert "num_agents >= 2" in str(exc)
     else:
         raise AssertionError("single-agent Foundation run should be rejected")
+
+
+def test_verified_runner_rejects_hidden_provider_retries() -> None:
+    try:
+        VerifiedRunConfig(run_id="invalid-retries", max_retries=2)
+    except ValueError as exc:
+        assert "hard-budget call" in str(exc)
+    else:
+        raise AssertionError("budgeted verified runner should require one attempt")

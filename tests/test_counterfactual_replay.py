@@ -57,7 +57,7 @@ def _outside_memory(prompt: str) -> str:
     return prefix + MEMORY_START + MEMORY_END + suffix
 
 
-def test_prompts_differ_only_inside_signed_memory_bundle() -> None:
+def test_prompts_differ_only_inside_hash_bound_memory_bundle() -> None:
     snapshot = _snapshot()
     prompts = dict(snapshot.build_prompts())
 
@@ -84,10 +84,10 @@ def test_tampering_and_protected_setting_mismatches_are_rejected() -> None:
     prompts["shuffled"] = prompts["shuffled"].replace(
         "State and objective are fixed", "A changed base state"
     )
-    with pytest.raises(ReplayIntegrityError, match="signed bundle"):
+    with pytest.raises(ReplayIntegrityError, match="hash-bound bundle"):
         snapshot.verify_treatment_integrity(prompts)
 
-    # Dataclass replacement cannot silently alter signed prompt contents.
+    # Dataclass replacement cannot silently alter hash-bound prompt contents.
     with pytest.raises(ValueError, match="base_prompt_hash"):
         replace(snapshot, base_prompt="tampered prompt")
 
