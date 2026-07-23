@@ -1,0 +1,26 @@
+\ifdefined\FinEvoAllowHistoricalPrePZeroEvidence\else
+\errmessage{HISTORICAL PRE-P0 V1 evidence requires explicit legacy opt-in}
+\fi
+\begin{table*}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llp{0.48\textwidth}rr}
+\toprule
+Variant & Label & Example event text & $v_t$ & Shuffled from \\
+\midrule
+numeric-only & none & (numeric sentiment only; no text event) & 0.0 &  \\
+text-event & negative & Credit spreads widened as households became more cautious about near-term income. & -0.35 &  \\
+text-event & negative & Several employers signaled slower hiring plans for the next quarter. & -0.3 &  \\
+text-event & negative & Essential-goods prices were reported to be rising faster than expected. & -0.25 &  \\
+shuffled-event & negative & Several employers signaled slower hiring plans for the next quarter. & -0.3 & 17 \\
+shuffled-event & neutral & Policy rates and household credit conditions were broadly unchanged. & 0.0 & 12 \\
+shuffled-event & positive & Retail demand recovered after several slow months. & 0.25 & 14 \\
+random-event & neutral & A university seminar discussed historical approaches to accounting education. & 0.0 &  \\
+random-event & neutral & A university seminar discussed historical approaches to accounting education. & 0.0 &  \\
+random-event & neutral & A bank announced a redesign of its mobile-app dashboard. & 0.0 &  \\
+\bottomrule
+\end{tabular}
+\caption{Examples from the synthetic event fixture used in E4.  The shuffled-event condition preserves event text but breaks month-level alignment.}
+\label{tab:e4_event_fixture_examples}
+\end{table*}

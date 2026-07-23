@@ -1,0 +1,23 @@
+\ifdefined\FinEvoAllowHistoricalPrePZeroEvidence\else
+\errmessage{HISTORICAL PRE-P0 V1 evidence requires explicit legacy opt-in}
+\fi
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+Variant & Wealth $\uparrow$ & Gini $\downarrow$ & Unemp. $\downarrow$ & Infl. dev. $\downarrow$ & Invalid $\downarrow$ & API err. $\downarrow$ \\
+\midrule
+Default prompt & 178.2k $\pm$ 11.8k & 0.320 $\pm$ 0.042 & 0.00 $\pm$ 0.00\% & 42.09 $\pm$ 4.17\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+Concise prompt & 190.9k $\pm$ 12.9k & 0.339 $\pm$ 0.033 & 0.00 $\pm$ 0.00\% & 42.64 $\pm$ 4.59\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+Risk-neutral wording & 194.5k $\pm$ 23.9k & 0.349 $\pm$ 0.042 & 0.00 $\pm$ 0.00\% & 43.83 $\pm$ 3.83\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+No fairness wording & 198.1k $\pm$ 6.0k & 0.346 $\pm$ 0.021 & 0.17 $\pm$ 0.37\% & 42.83 $\pm$ 3.91\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+Temperature 0.0 & 183.7k $\pm$ 8.1k & 0.359 $\pm$ 0.019 & 0.17 $\pm$ 0.37\% & 40.94 $\pm$ 4.28\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+Temperature 0.7 & 185.1k $\pm$ 10.2k & 0.368 $\pm$ 0.026 & 0.17 $\pm$ 0.37\% & 41.24 $\pm$ 1.50\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+Natural language + JSON & 162.2k $\pm$ 28.5k & 0.351 $\pm$ 0.027 & 0.00 $\pm$ 0.00\% & 41.50 $\pm$ 5.66\% & 0.0000 $\pm$ 0.0000 & 0.0000 $\pm$ 0.0000 \\
+\bottomrule
+\end{tabular}
+\caption{Prompt and decoding robustness over 10 agents and 24 months using GPT-5.2. Values are mean $\pm$ standard deviation over five seeds.}
+\label{tab:prompt_robustness}
+\end{table*}

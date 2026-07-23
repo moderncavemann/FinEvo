@@ -1,0 +1,96 @@
+{
+  "evidence_scope": "historical_pre_p0_v1",
+  "current_method_scientific_evidence": false,
+  "method_implementation": "legacy_deterministic_template_memory",
+  "charts": [
+    {
+      "id": "rule-update-events",
+      "height": 390,
+      "type": "bar",
+      "dataset": {
+        "id": "rule-update-events",
+        "title": "Accepted semantic-rule update events by audited run",
+        "data": [
+          {
+            "run": "GPT-4o E1 s13",
+            "value": 4100,
+            "snapshots": 6000,
+            "selected_decisions": 11700
+          },
+          {
+            "run": "Gemini-3-Flash E1 s13",
+            "value": 5300,
+            "snapshots": 6400,
+            "selected_decisions": 15300
+          },
+          {
+            "run": "GPT-5.2 E2 s13",
+            "value": 0,
+            "snapshots": 0,
+            "selected_decisions": 0
+          },
+          {
+            "run": "GPT-5.2 E2 s21",
+            "value": 0,
+            "snapshots": 0,
+            "selected_decisions": 0
+          },
+          {
+            "run": "GPT-5.2 E2 s42",
+            "value": 0,
+            "snapshots": 0,
+            "selected_decisions": 0
+          },
+          {
+            "run": "GPT-5.2 E2 s87",
+            "value": 0,
+            "snapshots": 0,
+            "selected_decisions": 0
+          },
+          {
+            "run": "GPT-5.2 E2 s2026",
+            "value": 0,
+            "snapshots": 0,
+            "selected_decisions": 0
+          }
+        ],
+        "chart_spec": {
+          "id": "rule-update-events",
+          "dataset": "rule-update-events",
+          "title": "Accepted semantic-rule update events by audited run",
+          "type": "bar",
+          "encodings": {
+            "x": {
+              "field": "run",
+              "type": "nominal"
+            },
+            "y": {
+              "field": "value",
+              "label": "Logged create or merge events",
+              "type": "quantitative"
+            },
+            "tooltip": [
+              {
+                "field": "snapshots",
+                "label": "Snapshot rows",
+                "type": "quantitative"
+              },
+              {
+                "field": "selected_decisions",
+                "label": "Selected decisions",
+                "type": "quantitative"
+              }
+            ]
+          },
+          "xAxisTitle": "",
+          "yAxisTitle": "Logged create or merge events",
+          "valueFormat": "number",
+          "settings": {
+            "orientation": "horizontal",
+            "groupMode": "grouped"
+          }
+        }
+      }
+    }
+  ]
+}

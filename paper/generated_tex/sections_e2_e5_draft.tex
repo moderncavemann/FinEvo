@@ -1,0 +1,67 @@
+\ifdefined\FinEvoAllowHistoricalPrePZeroEvidence\else
+\errmessage{HISTORICAL PRE-P0 V1 evidence requires explicit legacy opt-in}
+\fi
+% Auto-drafted from runs/all_metrics_summary.csv on the current experiment branch.
+% These paragraphs cover completed E2--E5 results only.  E1 cross-model
+% diagnostics should be added after GPT-4o/Gemini/Qwen FinEvo runs export.
+
+\subsection{Component Ablations}
+\label{sec:component_ablations}
+
+Table~\ref{tab:component_ablation} reports the five-seed component ablation in
+the 10-agent, 24-month setting.  The full FinEvo configuration reaches
+$182.1\mathrm{k}\pm10.7\mathrm{k}$ final wealth with low unemployment
+($0.17\%\pm0.37\%$) and no invalid or failed API calls.  Removing episodic
+memory causes the clearest labor-market degradation, increasing unemployment to
+$6.67\%\pm2.57\%$ and reducing final wealth to
+$116.8\mathrm{k}\pm9.5\mathrm{k}$.  Removing reflection also substantially
+reduces wealth ($104.4\mathrm{k}\pm15.1\mathrm{k}$) and increases inequality
+($0.428\pm0.083$ Gini), indicating that the reflection-to-rule pathway changes
+subsequent decisions rather than serving only as an interpretability layer.
+Removing the sentiment gate produces a smaller but consistent wealth reduction,
+while removing semantic memory leaves wealth similar to the full model but
+raises inequality.  We therefore treat the modules as contributing along
+different axes: episodic memory is most important for avoiding repeated labor
+failures, reflection is most important for wealth and inequality, and semantic
+rules primarily affect distributional stability.
+
+\subsection{Sentiment Parameterization Robustness}
+\label{sec:sentiment_robustness}
+
+Table~\ref{tab:sentiment_robustness} tests whether FinEvo depends on a single
+hand-specified sentiment formula.  We perturb each coefficient by $\pm50\%$,
+remove macroeconomic terms, and replace the sentiment channel with a random
+control.  Across coefficient perturbations and the no-macro control, final
+wealth remains in a relatively narrow range
+($169.7\mathrm{k}$--$191.0\mathrm{k}$), unemployment remains at or below
+$0.33\%$, and all runs have zero invalid-action and API-error rates.  The random
+sentiment control is the main exception, reducing wealth to
+$145.3\mathrm{k}\pm23.2\mathrm{k}$.  These results suggest that the exact
+default coefficients are not the only load-bearing factor, while a semantically
+unstructured sentiment signal can still degrade outcomes.
+
+\subsection{Textual Event Channel Controls}
+\label{sec:text_event_controls}
+
+Table~\ref{tab:text_event_controls} separates numeric-only sentiment from the
+synthetic textual event channel.  The aligned text-event condition performs
+similarly to numeric-only sentiment, while the shuffled-event control reduces
+wealth to $136.4\mathrm{k}\pm10.7\mathrm{k}$.  The random-event condition does
+not dominate the aligned condition and introduces a small unemployment rate
+($0.33\%\pm0.46\%$).  These controls address the ambiguity in the earlier
+implementation, where the news shock was a numerical disturbance rather than an
+explicit text event.  The current evidence should be interpreted as a synthetic
+event-fixture control, not as a claim about real-time news understanding.
+
+\subsection{Prompt and Decoding Robustness}
+\label{sec:prompt_robustness}
+
+Table~\ref{tab:prompt_robustness} evaluates whether the observed behavior is
+driven by prompt wording, decoding temperature, or output format.  The concise,
+risk-neutral, no-fairness, and temperature variants remain in the same
+qualitative range as the default prompt, and all variants have zero invalid
+actions and zero API errors.  The natural-language-plus-JSON condition produces
+lower wealth ($162.2\mathrm{k}\pm28.5\mathrm{k}$), indicating that looser output
+formatting can affect behavior even when the parser succeeds.  We therefore
+report output compliance together with economic metrics and avoid attributing
+cross-model differences solely to economic preferences.

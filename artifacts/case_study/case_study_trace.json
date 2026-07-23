@@ -1,0 +1,886 @@
+{
+  "evidence_scope": "historical_pre_p0_v1",
+  "current_method_scientific_evidence": false,
+  "method_implementation": "legacy_deterministic_template_memory",
+  "trace_id": "GPT-4o_seed13_m69_a61",
+  "trace_scope": {
+    "classification": "observational_closed_loop_trace",
+    "supports_mechanism_trace": true,
+    "supports_single_agent_causal_attribution": false,
+    "interpretation": "The trace verifies the logged state-to-retrieval-to-rule-to-action chain and reports the subsequently observed joint-system transition. It contains no counterfactual intervention isolating the focal agent."
+  },
+  "selection_rule": {
+    "primary": "lowest_logged_sentiment",
+    "fallback_order": [
+      "lowest_logged_sentiment",
+      "largest_exported_unemployment_jump",
+      "largest_average_wealth_drawdown"
+    ],
+    "agent_tie_break": "Largest absolute parsed-action change from the prior month among agents with non-empty retrieved episodic memory and a matched semantic rule; ties by agent_id."
+  },
+  "run_metadata": {
+    "exp_id": "E1",
+    "model": "GPT-4o",
+    "setting": "finevo",
+    "variant": "default",
+    "seed": 13,
+    "num_agents": 100,
+    "num_months": 240,
+    "source_run_dir": "runs/E1/GPT-4o/finevo/default/seed_13",
+    "raw_source_dir": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months",
+    "simulation_code_commit": "5f7f750ba6aea321c4c12d4e4e7121c3e63d83b2",
+    "extractor_script_sha256": "4a9d3298fd306a98d4489e4255ec30b7922fe30922a17b56053bbec4b5b4e858",
+    "legacy_export_note": "Some JSONL fields are blank because old rebuttal runs did not log raw prompts, raw outputs, retrieval traces, or API errors in the EMNLP schema."
+  },
+  "case_index": {
+    "month": 69,
+    "agent_id": 61,
+    "selection_rule_used": "lowest_logged_sentiment",
+    "selected_rule_ids": [
+      "high_inflation_strategy"
+    ],
+    "retrieved_episode_ids": [
+      "E68",
+      "E67",
+      "E66",
+      "E65",
+      "E64"
+    ]
+  },
+  "shared_state": {
+    "month": 69,
+    "retrieval_query_state": {
+      "price_level": 41.046395,
+      "interest_rate_pct": 6.092132,
+      "unemployment_pct": 1.5,
+      "inflation_pct": 6.017598,
+      "sentiment": -0.120467
+    },
+    "decision_prompt_sentiment_cue": -0.147817,
+    "selection_signal": {
+      "name": "global_sentiment",
+      "value": -0.147817,
+      "rank_within_run": 1,
+      "crash_flag": 0,
+      "label": "lowest logged sentiment; not an observed crash"
+    },
+    "exported_trajectory_snapshot": {
+      "avg_wealth": 441261.359553,
+      "gini": 0.361543,
+      "price_level": 41.046395,
+      "interest_rate_pct": 6.092132,
+      "unemployment_pct": 1.5,
+      "inflation_pct": 6.017598,
+      "gdp": 26752324.763009,
+      "global_sentiment": -0.147817
+    },
+    "source_alignment_note": "The corrected normalized trajectory agrees with the raw memory checkpoint on decision-time inflation, unemployment, interest, and price. The checkpoint also preserves the exact pre-update sentiment used as the retrieval query; the trajectory sentiment is the post-update cue shown in the decision prompt and used for selection."
+  },
+  "private_state": {
+    "agent_id": 61,
+    "wealth": 373131.287852,
+    "income": 10658.031474,
+    "employed": true
+  },
+  "text_event": {
+    "value": null,
+    "event_id": null,
+    "event_type": "numeric-only",
+    "sentiment_label": "none",
+    "v_t": 0.0,
+    "missing_reason": "numeric-only or empty textual-event channel"
+  },
+  "retrieved_episodic_memory": {
+    "retrieved_episode_ids": [
+      "E68",
+      "E67",
+      "E66",
+      "E65",
+      "E64"
+    ],
+    "retrieval_scores": [
+      0.9786287580522663,
+      0.9549072044107436,
+      0.9386733717674378,
+      0.9227840749264065,
+      0.9051822033380406
+    ],
+    "score_components": [
+      {
+        "episode_id": "E68",
+        "recency": 0.38,
+        "similarity": 0.3986287580522663,
+        "importance": 0.2,
+        "regime_match": 0.0
+      },
+      {
+        "episode_id": "E67",
+        "recency": 0.361,
+        "similarity": 0.39390720441074367,
+        "importance": 0.2,
+        "regime_match": 0.0
+      },
+      {
+        "episode_id": "E66",
+        "recency": 0.34295,
+        "similarity": 0.39572337176743777,
+        "importance": 0.2,
+        "regime_match": 0.0
+      },
+      {
+        "episode_id": "E65",
+        "recency": 0.3258025,
+        "similarity": 0.3969815749264065,
+        "importance": 0.2,
+        "regime_match": 0.0
+      },
+      {
+        "episode_id": "E64",
+        "recency": 0.30951237499999995,
+        "similarity": 0.3956698283380406,
+        "importance": 0.2,
+        "regime_match": 0.0
+      }
+    ],
+    "episode_summaries": [
+      {
+        "episode_id": "E68",
+        "month": 68,
+        "economic_state": {
+          "price_level": 39.050655,
+          "interest_rate_pct": 6.092132,
+          "unemployment_pct": 1.333333,
+          "inflation_pct": 6.017598,
+          "sentiment": -0.051963
+        },
+        "personal_state": {
+          "wealth": 361823.778378,
+          "income": 10517.506418,
+          "employed": true
+        },
+        "stored_executed_decision": {
+          "work": 1,
+          "consumption": 0.06
+        },
+        "stored_outcome": {
+          "wealth_change": -11938.07113,
+          "matches_change_entering_same_month": true,
+          "wealth_change_realized_after_this_decision": 11307.509474
+        },
+        "reflection_excerpt": "Consistent consumption helps stabilize wealth during inflationary periods."
+      },
+      {
+        "episode_id": "E67",
+        "month": 67,
+        "economic_state": {
+          "price_level": 38.382937,
+          "interest_rate_pct": 6.092132,
+          "unemployment_pct": 1.166667,
+          "inflation_pct": 6.017598,
+          "sentiment": 0.041554
+        },
+        "personal_state": {
+          "wealth": 373761.849508,
+          "income": 10175.905771,
+          "employed": true
+        },
+        "stored_executed_decision": {
+          "work": 1,
+          "consumption": 0.06
+        },
+        "stored_outcome": {
+          "wealth_change": 10837.461357,
+          "matches_change_entering_same_month": true,
+          "wealth_change_realized_after_this_decision": -11938.07113
+        },
+        "reflection_excerpt": "Maintaining a steady consumption rate helps manage wealth during inflation."
+      },
+      {
+        "episode_id": "E66",
+        "month": 66,
+        "economic_state": {
+          "price_level": 36.012699,
+          "interest_rate_pct": 6.092132,
+          "unemployment_pct": 1.0,
+          "inflation_pct": 6.017598,
+          "sentiment": -0.006775
+        },
+        "personal_state": {
+          "wealth": 362924.38815,
+          "income": 9947.732767,
+          "employed": true
+        },
+        "stored_executed_decision": {
+          "work": 1,
+          "consumption": 0.06
+        },
+        "stored_outcome": {
+          "wealth_change": 10600.257762,
+          "matches_change_entering_same_month": true,
+          "wealth_change_realized_after_this_decision": 10837.461357
+        },
+        "reflection_excerpt": "Despite inflation, maintaining a moderate consumption level is crucial to avoid wealth depletion."
+      }
+    ],
+    "memory_block_hash": "40e37c0d2d9700bd3f22a3256faea8049e5862b84f899805ed16e832240ecab6",
+    "temporal_alignment_warning": "The source implementation stores each current decision beside the wealth change already realized on entry to that month. Consequently, stored outcome E_t aligns with the preceding transition, while the transition after decision E_t is observed as the wealth change stored in E_(t+1). The extractor does not treat a same-record stored outcome as the effect of that record's decision."
+  },
+  "retrieved_semantic_rules": [
+    {
+      "rule_id": "high_inflation_strategy",
+      "condition": "inflation is high (>3%)",
+      "action_guidance": "reduce consumption to 20%",
+      "confidence": 0.666667,
+      "source_episode_ids": [
+        "E60",
+        "E61",
+        "E62",
+        "E60",
+        "E61",
+        "E62",
+        "E63",
+        "E64",
+        "E65",
+        "E63",
+        "E64",
+        "E65",
+        "E66",
+        "E67",
+        "E68"
+      ],
+      "unique_source_episode_ids": [
+        "E60",
+        "E61",
+        "E62",
+        "E63",
+        "E64",
+        "E65",
+        "E66",
+        "E67",
+        "E68"
+      ],
+      "condition_evaluation": {
+        "variable": "inflation_pct",
+        "observed_value": 6.017598,
+        "operator": ">",
+        "threshold": 3.0,
+        "matches": true,
+        "method": "exact numeric predicate parsed from the logged condition"
+      },
+      "action_guidance_evaluation": {
+        "variable": "consumption_fraction",
+        "observed_value": 0.2,
+        "target": 0.2,
+        "matches": true,
+        "method": "exact percentage target parsed from the logged guidance"
+      },
+      "validity_note": "supported_by_episode",
+      "validity_note_interpretation": "Literal emitter label from semantic_rules.jsonl; the extractor does not treat this label as independent proof of rule validity."
+    }
+  ],
+  "parsed_action": {
+    "work_propensity": 1.0,
+    "labor_hours_if_realized": 168.0,
+    "consumption_fraction": 0.2,
+    "rationale_excerpt": "Adjusting consumption to 20% may better align with high inflation conditions.",
+    "parser_accepted": true,
+    "repair_attempts": 1,
+    "strict_json_without_repair": false,
+    "clipped": false,
+    "used_memory_ids": [
+      "E68",
+      "E67",
+      "E66",
+      "E65",
+      "E64",
+      "high_inflation_strategy"
+    ],
+    "used_memory_ids_match_retrieval": true,
+    "prompt_hash": "f3aa826ff0f82da4b6325dd35f67d351f23613f8919398a7baf7a23784d4c943",
+    "raw_action_hash": "a4d71e1244a3141136ac9f892f9a362319ee4e26c619a14d11f98f9062601b68"
+  },
+  "next_window_outcome": {
+    "timing": {
+      "decision_month": 69,
+      "immediate_post_state_month": 70,
+      "followup_state_month": 75,
+      "followup_horizon_transitions": 6
+    },
+    "concurrent_population_action": {
+      "parsed_agent_count": 100,
+      "parsed_mean_labor_hours_if_realized": 164.808,
+      "parsed_mean_consumption_fraction": 0.0435,
+      "realized_agent_count": 100,
+      "realized_mean_labor_hours": 164.64,
+      "realized_mean_consumption_fraction": 0.0444
+    },
+    "immediate_transition": {
+      "months": [
+        69,
+        70
+      ],
+      "post_transition_macro_state": {
+        "price_level": 43.816347,
+        "interest_rate_pct": 6.092132,
+        "unemployment_pct": 1.666667,
+        "inflation_pct": 6.017598,
+        "sentiment": -0.147817
+      },
+      "focal_agent": {
+        "start_wealth": 373131.287852,
+        "end_wealth": 384727.193497,
+        "wealth_delta": 11595.905645,
+        "start_employed": true,
+        "end_employed": true,
+        "realized_labor_hours": 168.0,
+        "realized_consumption_fraction": 0.2,
+        "transition_reward": 3.726247
+      },
+      "aggregate": {
+        "start_avg_wealth": 441261.359553,
+        "end_avg_wealth": 446117.746409,
+        "avg_wealth_delta": 4856.386856,
+        "gini_delta": 0.000142
+      }
+    },
+    "six_month_followup": {
+      "months": [
+        69,
+        75
+      ],
+      "end_macro_state": {
+        "price_level": 51.657409,
+        "interest_rate_pct": 29.641295,
+        "unemployment_pct": 0.5,
+        "inflation_pct": 53.28259,
+        "sentiment": -0.058096
+      },
+      "focal_agent": {
+        "end_wealth": 384008.722678,
+        "wealth_delta": 10877.434826,
+        "end_employed": true
+      },
+      "aggregate": {
+        "end_avg_wealth": 496998.733096,
+        "avg_wealth_delta": 55737.373542,
+        "gini_delta": -0.004561
+      }
+    },
+    "causal_interpretation": {
+      "classification": "observed joint-system follow-up",
+      "supports_single_agent_causal_attribution": false,
+      "reason": "All agents act concurrently and the environment evolves stochastically. No matched counterfactual holds other agents and shocks fixed, so neither the focal nor aggregate change is attributed to this one action."
+    }
+  },
+  "provenance": {
+    "files": {
+      "extractor_script": {
+        "path": "artifacts/case_study/extract_case_study.py",
+        "sha256": "4a9d3298fd306a98d4489e4255ec30b7922fe30922a17b56053bbec4b5b4e858",
+        "size_bytes": 78761,
+        "role": "case-study extractor"
+      },
+      "config": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/config.yaml",
+        "sha256": "a60bcde2bf5368156e8c84921b1614df493d95e43edfcd464ed5b983798c3dd6",
+        "size_bytes": 986,
+        "role": "normalized run configuration"
+      },
+      "export_manifest": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/export_manifest.json",
+        "sha256": "e7d51b6024e3c5451f38b0b9efd703888f84e9f87268a8b1c0e5ac6282070d96",
+        "size_bytes": 277,
+        "role": "normalized-to-raw lineage manifest"
+      },
+      "trajectory": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/trajectory.csv",
+        "sha256": "5fcf6a768213b9d48c445d20730ef181a72e342c12fc664beaee23167ce8eca9",
+        "size_bytes": 54113,
+        "role": "normalized aggregate trajectory"
+      },
+      "agent_state": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/agent_state.csv",
+        "sha256": "50554695af389686898be7d597633e02182a562ffe2f9cd70430c2fa622a7c9f",
+        "size_bytes": 3812127,
+        "role": "normalized per-agent state trajectory"
+      },
+      "actions": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/actions.jsonl",
+        "sha256": "33e134caabe65e07d472d140612511e16c85344b0f21d9a6bae888dc2271de3d",
+        "size_bytes": 18338679,
+        "role": "normalized native action log"
+      },
+      "memory_retrieval": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/memory_retrieval.jsonl",
+        "sha256": "9b5a9ab6f42384b71a9bbc34aeb8faf32143071baf89366eeaddb0e843350078",
+        "size_bytes": 22912167,
+        "role": "normalized native retrieval log"
+      },
+      "semantic_rules": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/semantic_rules.jsonl",
+        "sha256": "55942df74d3a0cc241917e48a8bf7c8bc8ac3673d1f85a5cf4f72aba3243f9e7",
+        "size_bytes": 9316799,
+        "role": "normalized native semantic-rule log"
+      },
+      "event_log": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/event_log.csv",
+        "sha256": "7a50f84fb27dd308e4018b58867d5e1e06ed471074487a7be7aa0bd1b204342e",
+        "size_bytes": 8670,
+        "role": "normalized event log"
+      },
+      "api_errors": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/api_errors.jsonl",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0,
+        "role": "normalized API-error log"
+      },
+      "raw_summary": {
+        "path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/summary.json",
+        "sha256": "bd4c0f3b4068856332ed14e93ffcaa97b91ca328e80092144cb0c85855ff5e64",
+        "size_bytes": 82596,
+        "role": "native run summary"
+      },
+      "raw_dense_log": {
+        "path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/dense_log.pkl",
+        "sha256": "427070d59a076e036b8648dd58469479e381b105dc18ebdd9f0fcea641934921",
+        "size_bytes": 17829511,
+        "role": "native dense environment log"
+      },
+      "raw_actions": {
+        "path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/actions.jsonl",
+        "sha256": "33e134caabe65e07d472d140612511e16c85344b0f21d9a6bae888dc2271de3d",
+        "size_bytes": 18338679,
+        "role": "native action log"
+      },
+      "raw_memory_retrieval": {
+        "path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/memory_retrieval.jsonl",
+        "sha256": "9b5a9ab6f42384b71a9bbc34aeb8faf32143071baf89366eeaddb0e843350078",
+        "size_bytes": 22912167,
+        "role": "native retrieval log"
+      },
+      "raw_semantic_rules": {
+        "path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/semantic_rules.jsonl",
+        "sha256": "55942df74d3a0cc241917e48a8bf7c8bc8ac3673d1f85a5cf4f72aba3243f9e7",
+        "size_bytes": 9316799,
+        "role": "native semantic-rule log"
+      },
+      "raw_event_log": {
+        "path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/event_log.csv",
+        "sha256": "7a50f84fb27dd308e4018b58867d5e1e06ed471074487a7be7aa0bd1b204342e",
+        "size_bytes": 8670,
+        "role": "native event log"
+      },
+      "raw_memory_checkpoint": {
+        "path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/memory_78.pkl",
+        "sha256": "21612f6f44c0b356ebfb18661a2493327f43fcb01c3c340d7115e666a8e08d2e",
+        "size_bytes": 681237,
+        "role": "native serialized dual-track memory checkpoint"
+      },
+      "raw_api_errors": {
+        "path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/api_errors.jsonl",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0,
+        "role": "native API-error log"
+      }
+    },
+    "pointers": {
+      "decision_state_checkpoint": {
+        "path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/memory_78.pkl",
+        "agent_id": 61,
+        "episode_timestamp": 69
+      },
+      "retrieved_episode_checkpoint_records": {
+        "path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/memory_78.pkl",
+        "agent_id": 61,
+        "episode_timestamps": [
+          68,
+          67,
+          66
+        ]
+      },
+      "action": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/actions.jsonl",
+        "line_index_zero_based": 6961
+      },
+      "retrieval": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/memory_retrieval.jsonl",
+        "line_index_zero_based": 6961
+      },
+      "semantic_rules": [
+        {
+          "path": "runs/E1/GPT-4o/finevo/default/seed_13/semantic_rules.jsonl",
+          "line_index_zero_based": 261
+        }
+      ],
+      "selection_and_aggregate_states": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/trajectory.csv",
+        "csv_data_row_indices_zero_based": [
+          69,
+          70,
+          75
+        ]
+      },
+      "focal_agent_states": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/agent_state.csv",
+        "csv_data_row_indices_zero_based": [
+          6961,
+          7061,
+          7561
+        ]
+      },
+      "concurrent_parsed_actions": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/actions.jsonl",
+        "line_indices_zero_based": [
+          6900,
+          6901,
+          6902,
+          6903,
+          6904,
+          6905,
+          6906,
+          6907,
+          6908,
+          6909,
+          6910,
+          6911,
+          6912,
+          6913,
+          6914,
+          6915,
+          6916,
+          6917,
+          6918,
+          6919,
+          6920,
+          6921,
+          6922,
+          6923,
+          6924,
+          6925,
+          6926,
+          6927,
+          6928,
+          6929,
+          6930,
+          6931,
+          6932,
+          6933,
+          6934,
+          6935,
+          6936,
+          6937,
+          6938,
+          6939,
+          6940,
+          6941,
+          6942,
+          6943,
+          6944,
+          6945,
+          6946,
+          6947,
+          6948,
+          6949,
+          6950,
+          6951,
+          6952,
+          6953,
+          6954,
+          6955,
+          6956,
+          6957,
+          6958,
+          6959,
+          6960,
+          6961,
+          6962,
+          6963,
+          6964,
+          6965,
+          6966,
+          6967,
+          6968,
+          6969,
+          6970,
+          6971,
+          6972,
+          6973,
+          6974,
+          6975,
+          6976,
+          6977,
+          6978,
+          6979,
+          6980,
+          6981,
+          6982,
+          6983,
+          6984,
+          6985,
+          6986,
+          6987,
+          6988,
+          6989,
+          6990,
+          6991,
+          6992,
+          6993,
+          6994,
+          6995,
+          6996,
+          6997,
+          6998,
+          6999
+        ]
+      },
+      "concurrent_realized_actions": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/agent_state.csv",
+        "csv_data_row_indices_zero_based": [
+          7000,
+          7001,
+          7002,
+          7003,
+          7004,
+          7005,
+          7006,
+          7007,
+          7008,
+          7009,
+          7010,
+          7011,
+          7012,
+          7013,
+          7014,
+          7015,
+          7016,
+          7017,
+          7018,
+          7019,
+          7020,
+          7021,
+          7022,
+          7023,
+          7024,
+          7025,
+          7026,
+          7027,
+          7028,
+          7029,
+          7030,
+          7031,
+          7032,
+          7033,
+          7034,
+          7035,
+          7036,
+          7037,
+          7038,
+          7039,
+          7040,
+          7041,
+          7042,
+          7043,
+          7044,
+          7045,
+          7046,
+          7047,
+          7048,
+          7049,
+          7050,
+          7051,
+          7052,
+          7053,
+          7054,
+          7055,
+          7056,
+          7057,
+          7058,
+          7059,
+          7060,
+          7061,
+          7062,
+          7063,
+          7064,
+          7065,
+          7066,
+          7067,
+          7068,
+          7069,
+          7070,
+          7071,
+          7072,
+          7073,
+          7074,
+          7075,
+          7076,
+          7077,
+          7078,
+          7079,
+          7080,
+          7081,
+          7082,
+          7083,
+          7084,
+          7085,
+          7086,
+          7087,
+          7088,
+          7089,
+          7090,
+          7091,
+          7092,
+          7093,
+          7094,
+          7095,
+          7096,
+          7097,
+          7098,
+          7099
+        ]
+      },
+      "text_event": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/event_log.csv",
+        "row_index": 69
+      },
+      "api_errors": {
+        "path": "runs/E1/GPT-4o/finevo/default/seed_13/api_errors.jsonl",
+        "record_count": 0
+      }
+    },
+    "normalization_lineage": {
+      "native_copy_checks": [
+        {
+          "raw_path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/actions.jsonl",
+          "normalized_path": "runs/E1/GPT-4o/finevo/default/seed_13/actions.jsonl",
+          "raw_sha256": "33e134caabe65e07d472d140612511e16c85344b0f21d9a6bae888dc2271de3d",
+          "normalized_sha256": "33e134caabe65e07d472d140612511e16c85344b0f21d9a6bae888dc2271de3d",
+          "byte_identical": true
+        },
+        {
+          "raw_path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/memory_retrieval.jsonl",
+          "normalized_path": "runs/E1/GPT-4o/finevo/default/seed_13/memory_retrieval.jsonl",
+          "raw_sha256": "9b5a9ab6f42384b71a9bbc34aeb8faf32143071baf89366eeaddb0e843350078",
+          "normalized_sha256": "9b5a9ab6f42384b71a9bbc34aeb8faf32143071baf89366eeaddb0e843350078",
+          "byte_identical": true
+        },
+        {
+          "raw_path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/semantic_rules.jsonl",
+          "normalized_path": "runs/E1/GPT-4o/finevo/default/seed_13/semantic_rules.jsonl",
+          "raw_sha256": "55942df74d3a0cc241917e48a8bf7c8bc8ac3673d1f85a5cf4f72aba3243f9e7",
+          "normalized_sha256": "55942df74d3a0cc241917e48a8bf7c8bc8ac3673d1f85a5cf4f72aba3243f9e7",
+          "byte_identical": true
+        },
+        {
+          "raw_path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/event_log.csv",
+          "normalized_path": "runs/E1/GPT-4o/finevo/default/seed_13/event_log.csv",
+          "raw_sha256": "7a50f84fb27dd308e4018b58867d5e1e06ed471074487a7be7aa0bd1b204342e",
+          "normalized_sha256": "7a50f84fb27dd308e4018b58867d5e1e06ed471074487a7be7aa0bd1b204342e",
+          "byte_identical": true
+        },
+        {
+          "raw_path": "data/openai-gpt-4o-E1_finevo-seed13-100agents-240months/api_errors.jsonl",
+          "normalized_path": "runs/E1/GPT-4o/finevo/default/seed_13/api_errors.jsonl",
+          "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normalized_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "byte_identical": true
+        }
+      ],
+      "derived_table_note": "trajectory.csv and agent_state.csv are deterministic exports from raw dense_log.pkl and summary.json. Native action, retrieval, semantic-rule, event, and API-error logs are checked byte-for-byte where available."
+    }
+  },
+  "validation": {
+    "schema_valid": true,
+    "schema_errors": [],
+    "provenance_paths_exist": true,
+    "source_file_hashes_recorded": true,
+    "native_logs_match_raw_source": true,
+    "source_values_verified": true,
+    "retrieval_score_components_sum": true,
+    "retrieved_episodes_found_in_checkpoint": true,
+    "selected_rules_found": true,
+    "semantic_precondition_matches_query_state": true,
+    "action_matches_rule_guidance": true,
+    "action_memory_ids_match_retrieval": true,
+    "parser_accepted": true,
+    "strict_json_without_repair": false,
+    "immediate_delta_matches_next_episode_record": true,
+    "has_observed_transition": true,
+    "supports_causal_attribution": false,
+    "publishable_as_observational_trace": true,
+    "missing_fields": [
+      {
+        "field": "text_event.value",
+        "reason": "numeric-only or empty textual-event channel"
+      }
+    ],
+    "excluded_candidates": [
+      {
+        "run_dir": "runs/E2/GPT-5.2/finevo/default/seed_13",
+        "reasons": [
+          "empty semantic_rules.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E2/GPT-5.2/finevo/default/seed_2026",
+        "reasons": [
+          "empty semantic_rules.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E2/GPT-5.2/finevo/default/seed_21",
+        "reasons": [
+          "empty semantic_rules.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E2/GPT-5.2/finevo/default/seed_42",
+        "reasons": [
+          "empty semantic_rules.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E2/GPT-5.2/finevo/default/seed_87",
+        "reasons": [
+          "empty semantic_rules.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E5/GPT-5.2/finevo/default-prompt/seed_13",
+        "reasons": [
+          "empty semantic_rules.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E5/GPT-5.2/finevo/default-prompt/seed_2026",
+        "reasons": [
+          "empty semantic_rules.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E5/GPT-5.2/finevo/default-prompt/seed_21",
+        "reasons": [
+          "empty semantic_rules.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E5/GPT-5.2/finevo/default-prompt/seed_42",
+        "reasons": [
+          "empty semantic_rules.jsonl"
+        ]
+      },
+      {
+        "run_dir": "runs/E5/GPT-5.2/finevo/default-prompt/seed_87",
+        "reasons": [
+          "empty semantic_rules.jsonl"
+        ]
+      }
+    ],
+    "warnings": [
+      "The selected month is the lowest logged sentiment state, but crash_flag is 0; it must not be labeled a crash.",
+      "Decision-time macro values are independently cross-checked between the corrected normalized trajectory and the raw memory checkpoint.",
+      "Episodic same-record outcomes are one transition earlier than the decision stored beside them; the extractor uses the next state for action follow-up.",
+      "The action was parser-accepted after one formatting repair and is not strict JSON without repair.",
+      "Observed follow-up is not a single-agent causal effect because all agents act concurrently and there is no counterfactual replay."
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+\ifdefined\FinEvoAllowHistoricalPrePZeroEvidence\else
+\errmessage{HISTORICAL PRE-P0 V1 evidence requires explicit legacy opt-in}
+\fi
+% ============================================================================
+% HISTORICAL / LEGACY EVIDENCE ONLY
+% This file describes the deterministic-template FinEvo/EconAgent implementation
+% and evidence produced before commit 3a3f30c. It must not be used as evidence
+% for the current Evidence-Grounded Rule Memory method.
+% See paper/legacy/README.md for scope and migration guidance.
+% ============================================================================
+\documentclass{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{natbib}
+\begin{document}
+\input{table_no_visible_cue.tex}
+\input{table_semantic_rule_audit.tex}
+\section*{Related-work insertion}
+\input{related_work_econagent_econai.tex}
+\end{document}

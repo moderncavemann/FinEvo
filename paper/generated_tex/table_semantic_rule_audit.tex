@@ -1,0 +1,33 @@
+\ifdefined\FinEvoAllowHistoricalPrePZeroEvidence\else
+\errmessage{HISTORICAL PRE-P0 V1 evidence requires explicit legacy opt-in}
+\fi
+% ============================================================================
+% HISTORICAL / LEGACY EVIDENCE ONLY
+% This file describes the deterministic-template FinEvo/EconAgent implementation
+% and evidence produced before commit 3a3f30c. It must not be used as evidence
+% for the current Evidence-Grounded Rule Memory method.
+% See paper/legacy/README.md for scope and migration guidance.
+% ============================================================================
+% Generated from artifacts/rule_audit/results/summary_by_run.csv.
+\begin{table*}[t]
+\centering
+\small
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lrrrl}
+\toprule
+Source & Rule snapshots & Create/update events & Mechanically verified & Scope \\
+\midrule
+GPT-4o E1, seed 13 & 6,000 & 4,100 & 4,100 / 4,100 & deterministic template audit \\
+Gemini-3-Flash E1, seed 13 & 6,400 & 5,300 & 5,300 / 5,300 & deterministic template audit \\
+GPT-5.2 E2 full, five seeds & 0 & 0 & n/a & no rule trigger fired \\
+\midrule
+Total & 12,400 & 9,400 & 9,400 / 9,400 & not an LLM-hallucination rate \\
+\bottomrule
+\end{tabular}}
+\caption{Semantic-rule provenance audit. Mechanical verification recomputes
+the implemented condition, strategy, and confidence formula from recovered
+source episodes. The evaluated implementation uses deterministic rule
+templates and has no LLM candidate/reject path; the table must not be
+interpreted as evidence that hallucinated LLM-authored rules were filtered.}
+\label{tab:semantic_rule_audit}
+\end{table*}

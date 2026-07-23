@@ -1,0 +1,26 @@
+\ifdefined\FinEvoAllowHistoricalPrePZeroEvidence\else
+\errmessage{HISTORICAL PRE-P0 V1 evidence requires explicit legacy opt-in}
+\fi
+% Fill this table only with excerpts extracted from real logs after E1 FinEvo
+% diagnostics finish.  Do not invent entries.
+
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{0.12\textwidth}p{0.12\textwidth}p{0.18\textwidth}p{0.20\textwidth}p{0.14\textwidth}p{0.14\textwidth}}
+\toprule
+Model & Seed / month / agent & State snapshot & Retrieved episode or rule & Action & Next-window outcome \\
+\midrule
+GPT-5.2 & TBD & TBD & TBD & TBD & TBD \\
+GPT-4o & TBD & TBD & TBD & TBD & TBD \\
+Gemini-3-Flash & TBD & TBD & TBD & TBD & TBD \\
+Qwen3-235B & TBD & TBD & TBD & TBD & TBD \\
+\bottomrule
+\end{tabular}
+\caption{Log-grounded semantic-rule case studies.  Each row should be filled
+from \texttt{actions.jsonl}, \texttt{memory\_retrieval.jsonl},
+\texttt{semantic\_rules.jsonl}, \texttt{agent\_state.csv}, and
+\texttt{trajectory.csv}.}
+\label{tab:semantic_rule_case_study}
+\end{table*}

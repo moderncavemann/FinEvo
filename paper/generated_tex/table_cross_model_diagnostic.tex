@@ -1,0 +1,22 @@
+\ifdefined\FinEvoAllowHistoricalPrePZeroEvidence\else
+\errmessage{HISTORICAL PRE-P0 V1 evidence requires explicit legacy opt-in}
+\fi
+\begin{table*}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llrrrrrr}
+\toprule
+Model & Seed & Setting & Wealth (k) $\uparrow$ & Gini $\downarrow$ & Unemp. $\downarrow$ & Infl. dev. $\downarrow$ & Invalid/API err. \\
+\midrule
+GPT-4o & 13 & Text-only & 64.0 & 0.736 & 5.00\% & 3.43\% & 0.0000 / 0.0000 \\
+GPT-4o & 13 & FinEvo & 2097.6 & 0.531 & 0.00\% & 6.56\% & 0.0000 / 0.0000 \\
+\addlinespace
+Gemini-3-Flash & 13 & Text-only & 90.7 & 0.447 & 1.00\% & 1.13\% & 0.0000 / 0.0000 \\
+Gemini-3-Flash & 13 & FinEvo & 1766.0 & 0.369 & 0.00\% & 5.03\% & 0.0000 / 0.0000 \\
+\addlinespace
+\bottomrule
+\end{tabular}
+\caption{Large-scale cross-model diagnostic runs. These seed-matched diagnostics are used for behavioral comparison and qualitative analysis, not for causal claims about model architecture.}
+\label{tab:cross_model_diagnostic}
+\end{table*}

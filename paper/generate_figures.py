@@ -37,6 +37,9 @@ STYLE = {
     "Llama-3.3-70B + FinEvo":         dict(color='#FF9800', ls='-',  lw=1.8),
     "Qwen3-32B + FinEvo":             dict(color='#9C27B0', ls=':',  lw=1.5),
 }
+HISTORICAL_FIGURE_LABEL = (
+    "HISTORICAL PRE-P0 V1 EVIDENCE ONLY - not current-method scientific evidence"
+)
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 def gini(x):
@@ -49,8 +52,30 @@ def gini(x):
 
 def save(fig, name):
     os.makedirs("figs/paper", exist_ok=True)
-    fig.savefig(f"figs/paper/{name}.pdf", bbox_inches='tight')
-    fig.savefig(f"figs/paper/{name}.png", bbox_inches='tight')
+    fig.subplots_adjust(bottom=max(fig.subplotpars.bottom, 0.10))
+    fig.text(
+        0.5,
+        0.012,
+        HISTORICAL_FIGURE_LABEL,
+        ha='center',
+        va='bottom',
+        fontsize=8,
+        fontweight='bold',
+        color='#8b1e1e',
+    )
+    fig.savefig(
+        f"figs/paper/{name}.pdf",
+        bbox_inches='tight',
+        metadata={
+            'Subject': 'HISTORICAL PRE-P0 V1 EVIDENCE ONLY',
+            'CreationDate': None,
+        },
+    )
+    fig.savefig(
+        f"figs/paper/{name}.png",
+        bbox_inches='tight',
+        metadata={'Description': 'HISTORICAL PRE-P0 V1 EVIDENCE ONLY'},
+    )
     plt.close(fig)
     print(f"  ✓ figs/paper/{name}.pdf/.png")
 

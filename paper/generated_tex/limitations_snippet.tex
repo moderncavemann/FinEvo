@@ -1,0 +1,26 @@
+\ifdefined\FinEvoAllowHistoricalPrePZeroEvidence\else
+\errmessage{HISTORICAL PRE-P0 V1 evidence requires explicit legacy opt-in}
+\fi
+% ============================================================================
+% HISTORICAL / LEGACY EVIDENCE ONLY
+% This file describes the deterministic-template FinEvo/EconAgent implementation
+% and evidence produced before commit 3a3f30c. It must not be used as evidence
+% for the current Evidence-Grounded Rule Memory method.
+% See paper/legacy/README.md for scope and migration guidance.
+% ============================================================================
+% Cautious limitations text for the revised draft.
+
+\paragraph{Limitations.}
+The cross-model E1 runs are seed-13 diagnostics unless explicitly marked
+otherwise; they should not be used to claim causal architectural differences
+between model families.  Apparent model differences can reflect model weights,
+training data, alignment policy, API routing, decoding settings, and JSON
+compliance under the constrained interface.  The current Llama-4-Maverick
+OpenRouter route failed a JSON-compliance probe by producing long reasoning text
+instead of the constrained action schema, so it is excluded from the current
+quantitative cross-model table rather than treated as economic behavior.  The
+textual event channel uses a synthetic economic event fixture rather than a real
+news corpus.  Closed API and OpenRouter route behavior may change over time,
+which is why each run records model identifiers, API access dates, and code
+commits.  FinEvo is a stylized simulation environment and should not be used as
+financial, legal, or public-policy advice.

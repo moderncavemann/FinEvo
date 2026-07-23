@@ -1,0 +1,169 @@
+{
+  "analysis": "labor_threshold_sensitivity_v1",
+  "evidence_scope": "historical_pre_p0_v1",
+  "current_method_scientific_evidence": false,
+  "method_implementation": "legacy_binary_labor_simulate_py",
+  "thresholds_strict_lt_hours": [
+    1.0,
+    20.0,
+    40.0
+  ],
+  "max_labor_hours": 168.0,
+  "matched_seeds": [
+    0,
+    1,
+    2
+  ],
+  "sources": [
+    {
+      "setting": "text-only",
+      "seed": 0,
+      "source_dir": "../ACL24-EconAgent/data/openai-gpt-5.2-GPT_Baseline-seed0-10agents-24months",
+      "num_agents": 10,
+      "num_months": 24,
+      "num_agent_months": 240,
+      "reported_avg_unemployment_pct": 2.0833333333333335,
+      "executed_h_lt_1_pct": 2.083333333333333,
+      "unemployment_validation_abs_diff_pct": 3.469446951953614e-16,
+      "summary_sha256": "fdca33d724f47cd228b92c2feaf07d4d54801e5362455bc7b2fc6b58d6733746",
+      "dense_log_sha256": "2bbea975626ac79e85566361564057a636d103d198e6815d0a2b2db4509a2ded",
+      "dialog_sha256": {
+        "Adrian Perry": "80c2c6980cfc3c6be607e4f1f7d9ccbef58cc7f6542050ff409c0ce3adbf3c9d",
+        "Aiden Clark": "198fab8250c7c5a0a045f9851689a74f96eb91930aef946beac3e37e3096d36d",
+        "Ashley Patel": "5ebb03bfed3e493fed95bf4174ff0aeb4e0af9296b0cc130eab371a08584aea8",
+        "Aubrey Hubbard": "3a0687d5c0b5c3d444118b293f7e061fd52f5f557c47521b1661d4735697ddd5",
+        "Christian Hayes": "46e3c6d0acea4d41b2b6c7cc259c7ab6259a82ab0af7456519dab92bfedfbb65",
+        "Daniel Carter": "35853f770432bdc4520a67d7725fabb94bb0edec95ab0822d998792a5368c77d",
+        "Leah Mccoy": "f13e6a49f691872a9efc2732867cb2e1a35643bbf4bc8e394021907c0379a38d",
+        "Mia Kelly": "c75138e84e0ecc00b261887299e922682c10812a4c1e2a1be1bf8267d40cc05a",
+        "Olivia Thompson": "ce9afad0e480a726e4b64241cfb9b816080adb7c9fb4a8f36ce6028f6add356c",
+        "Victoria Freeman": "9fadf6eeeeca0fce7e3f343a7686f062fc636e6860e7986e023f8baca08e8601"
+      }
+    },
+    {
+      "setting": "text-only",
+      "seed": 1,
+      "source_dir": "../ACL24-EconAgent/data/openai-gpt-5.2-GPT_Baseline-seed1-10agents-24months",
+      "num_agents": 10,
+      "num_months": 24,
+      "num_agent_months": 240,
+      "reported_avg_unemployment_pct": 2.0833333333333335,
+      "executed_h_lt_1_pct": 2.083333333333333,
+      "unemployment_validation_abs_diff_pct": 3.469446951953614e-16,
+      "summary_sha256": "927f89b690d08fff28dca45f22d64966531e5291ff7bfdfb6dc3bf6ee512d364",
+      "dense_log_sha256": "19d4e3d46617d840d6fddfebd898ba7444c81e3f7bbf9f985c8ff1a93a609129",
+      "dialog_sha256": {
+        "Alexa Woods": "6c8d308fae8b96a42f153b20e385cd820081a2663f264464b49c68706b29dc3f",
+        "Brandon Mitchell": "b53bd5385c78b0ab36a58c6a9f0798c4aec6ce147ef698d49d03afb00b71eabc",
+        "Camila Hughes": "47033235ce7ab8328414dd92023599639a4b52f0377dac4e6a5b9c41c180fb2a",
+        "Charles Ward": "52984bdfad1868d2fafc55793e13b0914237f150463094e5fd10bf81cc029a37",
+        "Madison Cook": "2cdf51242087735ab59cc12fb849da070a2eb77ad6caf84c72bdecf0cd0dee14",
+        "Maya Sanders": "2304d76d62aa9fd248f6bf7dbf3c7c75648a310d98ec2f13cb9df7d7151ea01f",
+        "Natalie Simmons": "05221e2b204f2482a918f05efda2d4117423a6eb7f11d745d4936b595bab4fc2",
+        "Oscar Wheeler": "14dd076e765f059fd45e2d9b35793f10a8f77b09eb242c22f98c643592f67f93",
+        "Sebastian James": "5e13746e685f9d24107b276a603fde83f7f45d5104829137e39dd04bfb43377d",
+        "Xavier Castillo": "2b0c60a9544eb8d2a36f48d5f9a74078d609569341a7c2d1628fa11d9683913d"
+      }
+    },
+    {
+      "setting": "text-only",
+      "seed": 2,
+      "source_dir": "../ACL24-EconAgent/data/openai-gpt-5.2-GPT_Baseline-seed2-10agents-24months",
+      "num_agents": 10,
+      "num_months": 24,
+      "num_agent_months": 240,
+      "reported_avg_unemployment_pct": 3.3333333333333335,
+      "executed_h_lt_1_pct": 3.3333333333333335,
+      "unemployment_validation_abs_diff_pct": 0.0,
+      "summary_sha256": "ae7c30912079dbb21b338ecac876324b8dda317311f9ae2bef4305ce4d91454f",
+      "dense_log_sha256": "a34dce736b5d89cd9dd7006c7811fc935eff35914cf792c41ed286a2edac5660",
+      "dialog_sha256": {
+        "Ava Rogers": "47cab0c843bf357bde7a5e5019f36d868f795ba7c76d2f9d91f881a8ba1bbc13",
+        "Bella Hayes": "1c40a1606d2f40e8ecdc9abbcfca458e4f1ec03ff10d82cc429d5d0ab81df87c",
+        "Chloe Lewis": "ed797e7c79e3a262e69c0d31a465364ac0136d33f61f89655395d0652716d969",
+        "Christopher Gutierrez": "73ac4f883df1b6da355cb5f6fa6202346b5602014f358811df61623cd045ae24",
+        "Cooper May": "804cc3c23804c18a12d36aa8f1a4bcdfec5e9b37bb875536f8ad08aea954c5b7",
+        "Elijah Watson": "630c4b3619c3d44478ce6a6b6c719ea3f126c97a05fff4a5ea5ef8d63264fb45",
+        "Nathan Bailey": "11286c8b0dd4bacfd8e751a0de4aa38023da4af0bc940ac64b8bee1355d7512a",
+        "Nevaeh Mason": "d9a3cd582154ba656b8197fbf745249b14b1c707d986ba29139c2ad4f201bb8f",
+        "Seth Moreno": "c40ab26280e155f29f7feee5f6d4bed93928b63130aeec05f0c0142bb95ac18c",
+        "Sofia Webb": "de7510122c1a5c93f4e2eeb84d32ddeec68f1448316179391976d0ce39250f73"
+      }
+    },
+    {
+      "setting": "finevo",
+      "seed": 0,
+      "source_dir": "../ACL24-EconAgent/data/openai-gpt-5.2-GPT_Full-seed0-10agents-24months",
+      "num_agents": 10,
+      "num_months": 24,
+      "num_agent_months": 240,
+      "reported_avg_unemployment_pct": 1.6666666666666667,
+      "executed_h_lt_1_pct": 1.6666666666666667,
+      "unemployment_validation_abs_diff_pct": 0.0,
+      "summary_sha256": "f2a8f167a9ad0b3ed73534ade2d25d7296fce06aec255b458112ab03e45d7806",
+      "dense_log_sha256": "c6123699868f2d4262468e71b863c4ed5ea397fcee8d0eabc69b5065e3e761f4",
+      "dialog_sha256": {
+        "Adrian Perry": "705e9cc6571cac4f586f9ee060206445edf0e699b197668fbf5f2abf4fbeb91f",
+        "Aiden Clark": "9f238161771d8ba7c72d1fadc080a79e5794393c8228a330bd7842f93fe5d299",
+        "Ashley Patel": "34085afaa09fc717cc5069d4aa3c9c27797820227189245aada84fe645414e1b",
+        "Aubrey Hubbard": "ae36621e654cc3078e321c0ff3733aac01a7cec20a277d06af42a9de78d68bd8",
+        "Christian Hayes": "a1f13d9c226cd124bcedd1b8fbc9519be9c71da36d866cb8d4c4a6334bddba96",
+        "Daniel Carter": "a018254e574d8357026a585729589fa70e8712bb6b5616c10a1011c31f794c10",
+        "Leah Mccoy": "ce604b0507dd206d30b2b2b0931144820d23712a73c65bde5a489af93ede046b",
+        "Mia Kelly": "65bd1b4629ad3f1f38178c14205bad2e039dc7080535087b4ddcd9f7e9477f48",
+        "Olivia Thompson": "4aa5c0377b171ba54354c4ab65339b676de7555738e9e39ee3cc0a4602922e97",
+        "Victoria Freeman": "b07efeab8657019df41be3e99c7e31fb5ea02023a8d7fa3f3a1891673d9249ce"
+      }
+    },
+    {
+      "setting": "finevo",
+      "seed": 1,
+      "source_dir": "../ACL24-EconAgent/data/openai-gpt-5.2-GPT_Full-seed1-10agents-24months",
+      "num_agents": 10,
+      "num_months": 24,
+      "num_agent_months": 240,
+      "reported_avg_unemployment_pct": 1.6666666666666667,
+      "executed_h_lt_1_pct": 1.6666666666666667,
+      "unemployment_validation_abs_diff_pct": 0.0,
+      "summary_sha256": "06b4ab81617325baba0e9d55ab67ce9f731cc6b0bdc469f048a40b59b683896d",
+      "dense_log_sha256": "c319a05640b26402657cd9c3e4f3754e8a7b68215fb01452753da942e7d567c4",
+      "dialog_sha256": {
+        "Alexa Woods": "128782bf21773faaffb3a44918582d051771af4f97e6ac005bb05350ec3e46f7",
+        "Brandon Mitchell": "eb3091759c20e7c208cf509a70fd3c60dfbd01b0b353e76adf19e5ffc01b0759",
+        "Camila Hughes": "c3dccabc06081971a19bb95c53b6757f6a8883363bdde07cf16cb1e90e3fc3bd",
+        "Charles Ward": "d824179d6b2ffc56ffc350d2c68cef17d404d52548112cc5ca157431a3d55e9f",
+        "Madison Cook": "c0fddb530b79ad18b47117049e02dfec5c3deaed206a987df1da8bb2c0c1a0e5",
+        "Maya Sanders": "069f89bc895e9d116e8e8db3cec098c1cd82141a790ab988071222ba8de8bbbd",
+        "Natalie Simmons": "615d1b1cacebad530dc86170414c3a11a6dcba8c5d665761ed56cbe53209c56a",
+        "Oscar Wheeler": "91ade4451dcc89d5595ef240d6fed1bac1a582707cabe518f725e469042502e0",
+        "Sebastian James": "962e1dcb634d4f59661810d02e682c1474b3dedc718b94f63f0b0213645914f6",
+        "Xavier Castillo": "af358ab77e3b81e5f2478bb82c7f611d92b38049baa12f3690478dd4fb6a683a"
+      }
+    },
+    {
+      "setting": "finevo",
+      "seed": 2,
+      "source_dir": "../ACL24-EconAgent/data/openai-gpt-5.2-GPT_Full-seed2-10agents-24months",
+      "num_agents": 10,
+      "num_months": 24,
+      "num_agent_months": 240,
+      "reported_avg_unemployment_pct": 0.8333333333333334,
+      "executed_h_lt_1_pct": 0.8333333333333334,
+      "unemployment_validation_abs_diff_pct": 0.0,
+      "summary_sha256": "91673d6a1e23a703865a8128ecb3c497c1e886e7ce638c1d7344216d2af62a55",
+      "dense_log_sha256": "d1d950a1e08a751edeb7660044673ebae56aa9c646ebe86735d18d559cde3bc3",
+      "dialog_sha256": {
+        "Ava Rogers": "69918b8222f8688e609b3f082179abc0fb26c4eb37146d80410dfe793f25e32e",
+        "Bella Hayes": "bf87c73e8c83522ef54aca16f3fbc0bab54d39b5436811a3ce20e0977b5fbb92",
+        "Chloe Lewis": "ee065e900e5778183879c7508fa161293f1cfd6d55a6ba94fd20a54a3649fd60",
+        "Christopher Gutierrez": "7b963361e7a2e0400f0a11efabe5c119daeaf8555f46900aebb23d7f464c6784",
+        "Cooper May": "1f1fd013f7140226e10ce06b8da509623c6b27bcc6ff41f951ed0f10c5155b96",
+        "Elijah Watson": "a3431f0cb1736196b0c28321303ced41bad29b3faa465cedc82da98cf64f0da1",
+        "Nathan Bailey": "da3fbc3fd2aa694665c93ff7dde3be132e548b91bb3553266925c8714f51e57d",
+        "Nevaeh Mason": "479b6d45d46491f1e559d5e0aa20d8ad1d9efc540e23f652f1af119a82c474c7",
+        "Seth Moreno": "257e813b9e0af37e77cff3b9617c3ddadb955e3b61a787fe4a8072320a791702",
+        "Sofia Webb": "f73009b3a8ac18f2c04bf744efd212130fa3d48091692c9142a29ff32633324b"
+      }
+    }
+  ]
+}

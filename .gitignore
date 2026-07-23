@@ -3,35 +3,48 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*$py.class
 .Python
 *.egg
 *.egg-info/
 dist/
 build/
 .eggs/
-.env
-.venv
-env/
+
+# Virtualenvs and secrets
+.venv/
 venv/
+env/
 
 # macOS
 .DS_Store
 .AppleDouble
 .LSOverride
 
-# Data & logs (too large for GitHub)
-data/
-logs/
+# Secrets
+.env
+.env.*
+*.env
+secrets.py
+
+# Data, generated figures, and logs
+data/*
+!data/profiles.json
 figs/
+runs/
+logs/
+dialogs/
 experiment_results/
 
-# Jupyter
-.ipynb_checkpoints/
+*.pkl
+*.pickle
+*.zip
+*.log
+submission.zip
 
-# IDE
+# Jupyter and IDE
+.ipynb_checkpoints/
 .vscode/
 .idea/
 
-# Secrets (never commit API keys)
-*.env
-secrets.py
+.claude/

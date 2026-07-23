@@ -1,0 +1,10 @@
+analysis_item,status,reason
+semantic snapshot rows,observed,Direct JSONL rows; zero-row files remain observed zeroes.
+accepted / merged updates,computed,Inferred from first cumulative source list and monotonic source-list extensions.
+proposed candidate rules,not_computable,No proposal event or candidate identifier in code or logs.
+rejected candidate rules,not_computable,"No rejection branch, reason, or event in code or logs."
+mechanically unsupported accepted updates,computed,"Checks known template condition, source existence/time, strategy recomputation, and confidence equation."
+hallucinated / over-generalized rule rate,not_applicable_and_not_computable,Observed semantic rules are deterministic templates; no LLM candidate text or human semantic labels.
+confidence decay / validation,computed,Observed confidence transitions and negative-evidence updates.
+high-confidence next-H outcome,computed_descriptive,Next-3-month dense-log outcomes; not causal and no counterfactual.
+failure examples,computed_descriptive,Lowest observed negative-evidence updates with source episode fields.

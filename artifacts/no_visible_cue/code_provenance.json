@@ -1,0 +1,22 @@
+{
+  "experiment": "E9 same-day visible-cue-control vs no-visible-cue",
+  "evidence_scope": "historical_pre_p0_v1",
+  "current_method_scientific_evidence": false,
+  "method_implementation": "legacy_simulate_py_deterministic_template_memory",
+  "api_access_date": "2026-07-10",
+  "base_git_commit": "38a393a7fc2054d40c40e70466813edc386ab325",
+  "base_commit_does_not_contain_e9_patch": true,
+  "worktree_was_dirty_during_run": true,
+  "simulation_patch_sha256": "f6c96cd2cce03498875a5a77819e8220f55f97a9fc5a7110c3e8f556b388e828",
+  "normalized_export_patch_sha256": "64676a8f41f346a682f5ab12f3406b61b5bf12f19c25ca5cfcda23da31021c40",
+  "file_sha256": {
+    "simulate.py": "21bf81845716f36a46289b29703836313c6e2be1d6262b6fe1718a7b0c0eff7c",
+    "run_emnlp_experiments.py": "f7252e96cc280b45d323792d7c7dc36414f9402c3e5154ea0d92f06f631b1832",
+    "export_emnlp_outputs.py": "168593954556a6c4958dbbe906d6bd73ec9618a8d2e7ca31b22bd829b907fec7",
+    "memory_module.py": "6e3d1c78f6d1473b9d2eee39e8991c699414871d3ea77ad6f3802980a097ac5a",
+    "market_sentiment.py": "304199854ff3e980816b73bb772f516d981ebd66fc3bc1302a1cd0d58a87ed2e",
+    "llm_providers.py": "410f3ded9f8bf19bfb95f468dc0e2a66096fe733ce1bbb1a08dfbc21aeb8dafd",
+    "config.yaml": "b721e8662b7ae68e6b6df192213c4dc959b7f1b43d7bd5e364a8149585a22f0e"
+  },
+  "note": "Normalized config files record the base commit. Reproduction also requires the exact dirty-worktree hashes in this manifest. No API key or secret value is recorded."
+}

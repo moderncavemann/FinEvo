@@ -1,0 +1,42 @@
+\ifdefined\FinEvoAllowHistoricalPrePZeroEvidence\else
+\errmessage{HISTORICAL PRE-P0 V1 evidence requires explicit legacy opt-in}
+\fi
+\begin{table*}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llrrrr}
+\toprule
+Exp. & Variant & Runs & Cost/run (\$) & Wall time (min) & Invalid / API err. \\
+\midrule
+E2 & default & 5 & 1.571 & 2.80 & 0.0000 / 0.0000 \\
+E2 & without-episodic-memory & 5 & 1.167 & 3.04 & 0.0000 / 0.0000 \\
+E2 & without-reflection & 5 & 0.876 & 1.01 & 0.0000 / 0.0000 \\
+E2 & without-semantic-memory & 5 & 1.574 & 2.84 & 0.0000 / 0.0000 \\
+E2 & without-sentiment & 5 & 1.544 & 2.96 & 0.0000 / 0.0000 \\
+E3 & alpha-minus-50 & 5 & 1.574 & 3.32 & 0.0000 / 0.0000 \\
+E3 & alpha-plus-50 & 5 & 1.571 & 2.97 & 0.0000 / 0.0000 \\
+E3 & beta-minus-50 & 5 & 1.570 & 3.17 & 0.0000 / 0.0000 \\
+E3 & beta-plus-50 & 5 & 1.576 & 2.94 & 0.0000 / 0.0000 \\
+E3 & delta-minus-50 & 5 & 1.574 & 2.99 & 0.0000 / 0.0000 \\
+E3 & delta-plus-50 & 5 & 1.574 & 3.37 & 0.0000 / 0.0000 \\
+E3 & gamma-minus-50 & 5 & 1.571 & 2.98 & 0.0000 / 0.0000 \\
+E3 & gamma-plus-50 & 5 & 1.570 & 2.89 & 0.0000 / 0.0000 \\
+E3 & no-macro-terms & 5 & 1.576 & 2.88 & 0.0000 / 0.0000 \\
+E3 & random-sentiment & 5 & 1.571 & 3.28 & 0.0000 / 0.0000 \\
+E4 & numeric-only & 5 & 1.570 & 3.03 & 0.0000 / 0.0000 \\
+E4 & random-event & 5 & 1.615 & 2.81 & 0.0000 / 0.0000 \\
+E4 & shuffled-event & 5 & 1.601 & 2.86 & 0.0000 / 0.0000 \\
+E4 & text-event & 5 & 1.599 & 3.05 & 0.0000 / 0.0000 \\
+E5 & concise-prompt & 5 & 1.601 & 2.85 & 0.0000 / 0.0000 \\
+E5 & default-prompt & 5 & 1.571 & 2.82 & 0.0000 / 0.0000 \\
+E5 & natural-language-plus-json & 5 & 1.429 & 2.62 & 0.0000 / 0.0000 \\
+E5 & no-fairness-wording & 5 & 1.607 & 2.62 & 0.0000 / 0.0000 \\
+E5 & risk-neutral-wording & 5 & 1.613 & 2.90 & 0.0000 / 0.0000 \\
+E5 & temperature-0.0 & 5 & 1.572 & 2.72 & 0.0000 / 0.0000 \\
+E5 & temperature-0.7 & 5 & 1.575 & 2.89 & 0.0000 / 0.0000 \\
+\bottomrule
+\end{tabular}
+\caption{Cost, runtime, and interface-compliance summary for completed E2--E5 GPT-5.2 runs.}
+\label{tab:appendix_cost_error}
+\end{table*}
