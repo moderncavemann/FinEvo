@@ -1,0 +1,1016 @@
+{
+  "schema_version": "finevo-pilot-contract-v1",
+  "contract_id": "finevo-pilot-v1",
+  "status": "frozen",
+  "implementation": {
+    "required_git_tag": "pilot-v1",
+    "commit_resolution": "annotated_tag_peel",
+    "required_git_commit": null,
+    "p0_base_commit": "01684c5fd465d43eeb748d11f5937383df9ce602",
+    "require_clean_worktree": true
+  },
+  "seeds": {
+    "generation": {
+      "method": "user-preregistered-v1",
+      "salt": "frozen-in-author-plan-before-pilot-execution",
+      "generated_before_results": true,
+      "values": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ]
+    },
+    "preflight_seed": 2010922376,
+    "sets": {
+      "preflight": [2010922376],
+      "q-ref": [2010922376],
+      "calibration": [1942013315, 760687867],
+      "main": [1099057501, 1421875452, 1769977770, 959809858, 617806385],
+      "cross-model": [1099057501, 1421875452, 1769977770]
+    }
+  },
+  "provider_profiles": {
+    "gpt52_main": {
+      "profile_id": "gpt52_main",
+      "transport": "openai",
+      "requested_model": "gpt-5.2-2025-12-11",
+      "served_model": "gpt-5.2-2025-12-11",
+      "provider_pin": ["OpenAI-direct"],
+      "routing_mode": "direct",
+      "seed_capability": "best_effort",
+      "reasoning": {
+        "mode": "fixed",
+        "effort": "medium",
+        "exclude": true
+      },
+      "json_mode": "json_object",
+      "price_snapshot": {
+        "captured_at": "2026-07-22",
+        "source": "https://developers.openai.com/api/docs/models/gpt-5.2",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 1.75,
+        "catalog_output": 14.0,
+        "catalog_cached_input": 0.175,
+        "endpoint_input": 1.75,
+        "endpoint_output": 14.0,
+        "endpoint_cached_input": 0.175
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {
+        "served_snapshot": "gpt-5.2-2025-12-11",
+        "route": "OpenAI-direct"
+      }
+    },
+    "gpt56_upper": {
+      "profile_id": "gpt56_upper",
+      "transport": "openai",
+      "requested_model": "gpt-5.6-sol",
+      "served_model": "gpt-5.6-sol",
+      "provider_pin": ["OpenAI-direct"],
+      "routing_mode": "direct",
+      "seed_capability": "best_effort",
+      "reasoning": {
+        "mode": "fixed",
+        "effort": "medium",
+        "exclude": true
+      },
+      "json_mode": "json_object",
+      "price_snapshot": {
+        "captured_at": "2026-07-23",
+        "source": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 5.0,
+        "catalog_output": 30.0,
+        "catalog_cached_input": 0.5,
+        "endpoint_input": 5.0,
+        "endpoint_output": 30.0,
+        "endpoint_cached_input": 0.5
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {
+        "served_snapshot": "gpt-5.6-sol",
+        "route": "OpenAI-direct"
+      }
+    },
+    "opus48_sentinel": {
+      "profile_id": "opus48_sentinel",
+      "transport": "openrouter",
+      "requested_model": "anthropic/claude-opus-4.8",
+      "served_model": "anthropic/claude-opus-4.8",
+      "provider_pin": ["Anthropic"],
+      "routing_mode": "standard",
+      "seed_capability": "unsupported",
+      "reasoning": {
+        "mode": "fixed",
+        "effort": "medium",
+        "exclude": true
+      },
+      "json_mode": "json_object",
+      "price_snapshot": {
+        "captured_at": "2026-07-23",
+        "source": "https://openrouter.ai/api/v1/models/anthropic/claude-opus-4.8/endpoints",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 5.0,
+        "catalog_output": 25.0,
+        "catalog_cached_input": null,
+        "endpoint_input": 5.0,
+        "endpoint_output": 25.0,
+        "endpoint_cached_input": null
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {
+        "served_snapshot": "anthropic/claude-4.8-opus-20260528",
+        "endpoint_tag": "anthropic"
+      }
+    },
+    "gemini35_flash_sentinel": {
+      "profile_id": "gemini35_flash_sentinel",
+      "transport": "openrouter",
+      "requested_model": "google/gemini-3.5-flash",
+      "served_model": "google/gemini-3.5-flash",
+      "provider_pin": ["Google"],
+      "routing_mode": "standard",
+      "seed_capability": "best_effort",
+      "reasoning": {
+        "mode": "fixed",
+        "effort": "medium",
+        "exclude": true
+      },
+      "json_mode": "json_object",
+      "price_snapshot": {
+        "captured_at": "2026-07-23",
+        "source": "https://openrouter.ai/api/v1/models/google/gemini-3.5-flash/endpoints",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 1.5,
+        "catalog_output": 9.0,
+        "catalog_cached_input": null,
+        "endpoint_input": 1.5,
+        "endpoint_output": 9.0,
+        "endpoint_cached_input": null
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {
+        "served_snapshot": "google/gemini-3.5-flash-20260519",
+        "endpoint_tag": "google-vertex/global"
+      }
+    },
+    "llama4_maverick_sentinel": {
+      "profile_id": "llama4_maverick_sentinel",
+      "transport": "openrouter",
+      "requested_model": "meta-llama/llama-4-maverick",
+      "served_model": "meta-llama/llama-4-maverick",
+      "provider_pin": ["DeepInfra"],
+      "routing_mode": "standard",
+      "seed_capability": "best_effort",
+      "reasoning": {
+        "mode": "omitted",
+        "effort": null,
+        "exclude": true
+      },
+      "json_mode": "json_object",
+      "price_snapshot": {
+        "captured_at": "2026-07-23",
+        "source": "https://openrouter.ai/api/v1/models/meta-llama/llama-4-maverick/endpoints",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 0.2,
+        "catalog_output": 0.8,
+        "catalog_cached_input": null,
+        "endpoint_input": 0.2,
+        "endpoint_output": 0.8,
+        "endpoint_cached_input": null
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {
+        "served_snapshot": "meta-llama/llama-4-maverick-17b-128e-instruct",
+        "endpoint_tag": "deepinfra/base",
+        "quantization": "fp8"
+      }
+    },
+    "llama33_local_sentinel": {
+      "profile_id": "llama33_local_sentinel",
+      "transport": "ollama",
+      "requested_model": "llama3.3:70b-instruct-q4_K_M",
+      "served_model": "llama3.3:70b-instruct-q4_K_M",
+      "provider_pin": ["local-ollama"],
+      "routing_mode": "local",
+      "seed_capability": "deterministic",
+      "reasoning": {
+        "mode": "omitted",
+        "effort": null,
+        "exclude": true
+      },
+      "json_mode": "prompt_only",
+      "price_snapshot": {
+        "captured_at": "2026-07-23",
+        "source": "local-model-manifest",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 0.0,
+        "catalog_output": 0.0,
+        "catalog_cached_input": 0.0,
+        "endpoint_input": 0.0,
+        "endpoint_output": 0.0,
+        "endpoint_cached_input": 0.0
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {
+        "manifest_sha256": "a6eb4748fd2990ad2952b2335a95a7f952d1a06119a0aa6a2df6cd052a93a3fa",
+        "model_layer_digest": "sha256:4824460d29f2058aaf6e1118a63a7a197a09bed509f0e7d4e2efb1ee273b447d"
+      }
+    },
+    "qref_scripted": {
+      "profile_id": "qref_scripted",
+      "transport": "diagnostic",
+      "requested_model": "qref-scripted-v1",
+      "served_model": "qref-scripted-v1",
+      "provider_pin": ["deterministic-local-script"],
+      "routing_mode": "diagnostic",
+      "seed_capability": "deterministic",
+      "reasoning": {
+        "mode": "omitted",
+        "effort": null,
+        "exclude": true
+      },
+      "json_mode": "prompt_only",
+      "price_snapshot": {
+        "captured_at": "2026-07-23",
+        "source": "repository-scripted-schedule",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 0.0,
+        "catalog_output": 0.0,
+        "catalog_cached_input": 0.0,
+        "endpoint_input": 0.0,
+        "endpoint_output": 0.0,
+        "endpoint_cached_input": 0.0
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {}
+    }
+  },
+  "arms": {
+    "capability-probe": {
+      "arm_id": "capability-probe",
+      "family": "preflight",
+      "execution_mode": "capability_probe",
+      "parameters": {
+        "utility_prompts": 12,
+        "rule_prompts": 12,
+        "proposal_prompts": 6
+      }
+    },
+    "qref-scripted": {
+      "arm_id": "qref-scripted",
+      "family": "calibration",
+      "execution_mode": "q_ref_resolution",
+      "parameters": {
+        "memory_exposure": "none",
+        "context_mode": "no-context"
+      }
+    },
+    "stage0-no-memory-no-context": {
+      "arm_id": "stage0-no-memory-no-context",
+      "family": "calibration",
+      "execution_mode": "actor_run",
+      "parameters": {
+        "context_mode": "no-context",
+        "episodic_actor_exposure": false,
+        "semantic_actor_exposure": false,
+        "m2_writes_for_provenance": true
+      }
+    },
+    "no-context": {
+      "arm_id": "no-context",
+      "family": "experiment-a",
+      "parameters": {
+        "context_mode": "no-context",
+        "episodic_actor_exposure": true,
+        "semantic_actor_exposure": true,
+        "verifier_enabled": true
+      }
+    },
+    "prompt-only": {
+      "arm_id": "prompt-only",
+      "family": "experiment-a",
+      "parameters": {
+        "context_mode": "prompt-only",
+        "episodic_actor_exposure": true,
+        "semantic_actor_exposure": true,
+        "verifier_enabled": true
+      }
+    },
+    "retrieval-only": {
+      "arm_id": "retrieval-only",
+      "family": "experiment-a",
+      "parameters": {
+        "context_mode": "retrieval-only",
+        "episodic_actor_exposure": true,
+        "semantic_actor_exposure": true,
+        "verifier_enabled": true
+      }
+    },
+    "full": {
+      "arm_id": "full",
+      "family": "memory",
+      "parameters": {
+        "context_mode": "full",
+        "episodic_actor_exposure": true,
+        "semantic_actor_exposure": true,
+        "verifier_enabled": true
+      }
+    },
+    "no-memory": {
+      "arm_id": "no-memory",
+      "family": "memory",
+      "parameters": {
+        "context_mode": "full",
+        "episodic_actor_exposure": false,
+        "semantic_actor_exposure": false,
+        "m2_writes_for_provenance": true
+      }
+    },
+    "episodic-only": {
+      "arm_id": "episodic-only",
+      "family": "memory",
+      "parameters": {
+        "context_mode": "full",
+        "episodic_actor_exposure": true,
+        "semantic_actor_exposure": false
+      }
+    },
+    "semantic-only": {
+      "arm_id": "semantic-only",
+      "family": "memory",
+      "parameters": {
+        "context_mode": "full",
+        "episodic_actor_exposure": false,
+        "semantic_actor_exposure": true,
+        "m2_writes_for_proposal_only": true,
+        "verifier_enabled": true
+      }
+    },
+    "unverified-dual": {
+      "arm_id": "unverified-dual",
+      "family": "memory",
+      "parameters": {
+        "context_mode": "full",
+        "episodic_actor_exposure": true,
+        "semantic_actor_exposure": true,
+        "verifier_enabled": false,
+        "candidate_activation": "immediate"
+      }
+    },
+    "verified-error-candidate": {
+      "arm_id": "verified-error-candidate",
+      "family": "experiment-c",
+      "execution_mode": "offline_candidate_admission",
+      "parameters": {
+        "verifier_enabled": true,
+        "error_rule_mode": "candidate-admission",
+        "extra_actor_run": false
+      }
+    },
+    "verified-error-forced": {
+      "arm_id": "verified-error-forced",
+      "family": "experiment-c",
+      "parameters": {
+        "verifier_enabled": true,
+        "error_rule_mode": "forced-active",
+        "lifecycle_observation": true
+      }
+    },
+    "unverified-error-forced": {
+      "arm_id": "unverified-error-forced",
+      "family": "experiment-c",
+      "parameters": {
+        "verifier_enabled": false,
+        "error_rule_mode": "forced-active"
+      }
+    },
+    "matched-a": {
+      "arm_id": "matched-a",
+      "family": "matched-null",
+      "parameters": {
+        "memory_treatment": "matched",
+        "duplicate_id": "a"
+      }
+    },
+    "matched-b": {
+      "arm_id": "matched-b",
+      "family": "matched-null",
+      "parameters": {
+        "memory_treatment": "matched",
+        "duplicate_id": "b"
+      }
+    },
+    "shuffled-episodic": {
+      "arm_id": "shuffled-episodic",
+      "family": "experiment-d",
+      "parameters": {
+        "memory_treatment": "shuffled-episodic"
+      }
+    },
+    "wrong-context": {
+      "arm_id": "wrong-context",
+      "family": "experiment-d",
+      "parameters": {
+        "memory_treatment": "wrong-context"
+      }
+    },
+    "error-verified": {
+      "arm_id": "error-verified",
+      "family": "experiment-d",
+      "parameters": {
+        "memory_treatment": "erroneous-rule",
+        "verifier_enabled": true
+      }
+    },
+    "error-unverified": {
+      "arm_id": "error-unverified",
+      "family": "experiment-d",
+      "parameters": {
+        "memory_treatment": "erroneous-rule",
+        "verifier_enabled": false
+      }
+    },
+    "narrative-content": {
+      "arm_id": "narrative-content",
+      "family": "experiment-d",
+      "parameters": {
+        "memory_treatment": "matched",
+        "narrative_intervention": true
+      }
+    }
+  },
+  "narratives": {
+    "none": {
+      "narrative_id": "none",
+      "relation_to_shock": "absent",
+      "text": ""
+    },
+    "aligned": {
+      "narrative_id": "aligned",
+      "relation_to_shock": "aligned",
+      "text": "Savings now earn a high interest rate. Preserving cash and reducing current consumption is directionally consistent with this environment."
+    },
+    "paraphrase": {
+      "narrative_id": "paraphrase",
+      "relation_to_shock": "aligned-paraphrase",
+      "text": "Returns on saved funds are elevated, so conserving available cash and lowering near-term spending points in the same direction."
+    },
+    "opposite": {
+      "narrative_id": "opposite",
+      "relation_to_shock": "opposite",
+      "text": "A high interest rate makes immediate spending more attractive; increase current consumption rather than preserving cash."
+    }
+  },
+  "shocks": {
+    "baseline-3pct": {
+      "shock_id": "baseline-3pct",
+      "target": "interest_rate",
+      "experimental": false,
+      "schedule": [
+        {
+          "start": 0,
+          "end": 11,
+          "interest_rate": 0.03,
+          "phase": "baseline"
+        }
+      ]
+    },
+    "registered-rate-shock": {
+      "shock_id": "registered-rate-shock",
+      "target": "interest_rate",
+      "experimental": true,
+      "schedule": [
+        {
+          "start": 0,
+          "end": 4,
+          "interest_rate": 0.03,
+          "phase": "pre-shock"
+        },
+        {
+          "start": 5,
+          "end": 7,
+          "interest_rate": 0.08,
+          "phase": "shock"
+        },
+        {
+          "start": 8,
+          "end": 11,
+          "interest_rate": 0.03,
+          "phase": "recovery"
+        }
+      ]
+    }
+  },
+  "utility": {
+    "q_ref_resolution": {
+      "artifact": "q_ref_resolution.json",
+      "source_manifest_required": true,
+      "source_manifest_sha256_required": true,
+      "seed": 2010922376,
+      "num_agents": 4,
+      "episode_length": 12,
+      "shock_id": "baseline-3pct",
+      "work_fraction_cycle": [0.25, 0.5, 0.75, 0.5],
+      "consumption_fraction_cycle": [0.3, 0.35, 0.3, 0.25],
+      "ledger_field": "realized_consumption_quantity",
+      "expected_rows": 48,
+      "aggregation": "median",
+      "gate": "finite_and_strictly_positive",
+      "required_before": [
+        "stage0-calibration",
+        "experiment-a",
+        "experiment-b",
+        "experiment-c",
+        "experiment-d",
+        "cross-model-sentinels"
+      ]
+    },
+    "selection_rule": {
+      "method": "guardrail-then-registered-tiebreak-v1",
+      "tiebreak_order": [
+        "maximize mean interior action coverage",
+        "minimize component-balance log distance from one",
+        "minimize normalized center distance",
+        "declaration order only for an exact remaining tie"
+      ],
+      "outcome_blind": true,
+      "result_artifact": "stage0_selection.json",
+      "required_before": [
+        "experiment-a",
+        "experiment-b",
+        "experiment-c",
+        "experiment-d",
+        "cross-model-sentinels"
+      ]
+    },
+    "profiles": {
+      "provider-preflight-default": {
+        "rho": 1.0,
+        "labor_weight": 2.0,
+        "inverse_frisch": 1.0,
+        "consumption_scale": 1.0,
+        "consumption_scale_multiplier_of_q_ref": null,
+        "discount_factor": 0.99,
+        "evidence_use": "capability-only"
+      },
+      "center": {
+        "rho": 1.0,
+        "labor_weight": 2.0,
+        "inverse_frisch": 1.0,
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 1.0,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate"
+      },
+      "psi-1": {
+        "rho": 1.0,
+        "labor_weight": 1.0,
+        "inverse_frisch": 1.0,
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 1.0,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate"
+      },
+      "psi-4": {
+        "rho": 1.0,
+        "labor_weight": 4.0,
+        "inverse_frisch": 1.0,
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 1.0,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate"
+      },
+      "nu-0.5": {
+        "rho": 1.0,
+        "labor_weight": 2.0,
+        "inverse_frisch": 0.5,
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 1.0,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate"
+      },
+      "nu-2": {
+        "rho": 1.0,
+        "labor_weight": 2.0,
+        "inverse_frisch": 2.0,
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 1.0,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate"
+      },
+      "q0-0.5x": {
+        "rho": 1.0,
+        "labor_weight": 2.0,
+        "inverse_frisch": 1.0,
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 0.5,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate"
+      },
+      "q0-2x": {
+        "rho": 1.0,
+        "labor_weight": 2.0,
+        "inverse_frisch": 1.0,
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 2.0,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate"
+      },
+      "stage0-selected": {
+        "rho": null,
+        "labor_weight": null,
+        "inverse_frisch": null,
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": null,
+        "discount_factor": null,
+        "evidence_use": "resolved-from-stage0-selection-artifact"
+      }
+    }
+  },
+  "budgets": {
+    "total_usd": 25.0,
+    "max_provider_completions": 7500,
+    "completion_scope": "hosted-api-only",
+    "max_storage_bytes": 5000000000,
+    "automatic_reserve_usd": 1.0,
+    "stage_usd_caps": {
+      "capability_preflight": 2.0,
+      "calibration": 3.0,
+      "core": 13.0,
+      "cross_model": 6.0,
+      "manual_reserve": 1.0
+    },
+    "pre_dispatch_projection": {
+      "required": true,
+      "basis": "model-by-call-kind preflight p95",
+      "reserve_multiplier": 1.25,
+      "unknown_price_policy": "stop-before-dispatch"
+    }
+  },
+  "stop_go": {
+    "capability": {
+      "utility_success_min": 10,
+      "utility_attempts": 12,
+      "rule_success_min": 10,
+      "rule_attempts": 12,
+      "proposal_success_min": 5,
+      "proposal_attempts": 6
+    },
+    "provider_preflight": {
+      "action_parse_success": "12/12",
+      "semantic_proposals_all_accounted": true,
+      "clipping_count": 0,
+      "provider_failure_count": 0,
+      "route_metadata_complete": true,
+      "usage_metadata_complete": true,
+      "cost_metadata_complete": true,
+      "served_model_exact": true,
+      "provider_pin_exact": true,
+      "fallback_observed": false,
+      "attempts_per_request": 1
+    },
+    "q_ref": {
+      "row_count": 48,
+      "aggregation": "median",
+      "finite": true,
+      "strictly_positive": true,
+      "source_manifest_and_hash_required": true
+    },
+    "calibration": {
+      "max_abs_budget_residual": 1e-08,
+      "clipping_count": 0,
+      "ceiling_labor_rate_max": 0.5,
+      "zero_labor_rate_max": 0.25,
+      "interior_labor_rate_min": 0.5,
+      "interior_consumption_rate_min": 0.75,
+      "median_labor_disutility_to_consumption_utility": [0.5, 2.0]
+    },
+    "experiment_a": {
+      "complete_pairs_min": 4,
+      "same_direction_min": 4,
+      "total_registered_pairs": 5,
+      "median_relative_effect_min": 0.05,
+      "route_manipulation_checks_required": true
+    },
+    "core_completeness": {
+      "complete_pairs_min": 4,
+      "total_registered_pairs": 5,
+      "failed_and_missing_runs_remain_in_itt_denominator": true
+    },
+    "cross_model": {
+      "reportable_complete_pairs_min": 2,
+      "total_registered_pairs": 3,
+      "direction_replication_complete_pairs": 3,
+      "direction_replication_requires_capability_pass": true
+    },
+    "experiment_c": {
+      "required_directions": [
+        "verifier lowers false activation",
+        "verifier lowers harmful exposure",
+        "verifier lowers cumulative utility loss"
+      ],
+      "failure_action": "withdraw-or-narrow-rule-reliability-claim",
+      "zero_api_sensitivity": {
+        "alternative_success_weights": [0.25, 0.5, 0.75],
+        "outcome_definitions": [
+          "utility_advantage_positive",
+          "absolute_flow_utility",
+          "three_period_cumulative_advantage_positive"
+        ],
+        "absolute_flow_threshold": {
+          "source_stage": "stage0-calibration",
+          "source_profile": "selected-profile-only",
+          "source_seeds": "all-two-calibration-seeds",
+          "field": "flow_utility",
+          "aggregation": "median",
+          "derived_after_profile_selection": true,
+          "treatment_outcomes_inspected": false
+        },
+        "effectiveness_gate": false,
+        "descriptive_only": true
+      }
+    },
+    "experiment_d": {
+      "complete_pairs_min": 4,
+      "same_direction_min": 4,
+      "total_registered_pairs": 5,
+      "effect_exceeds_matched_a_b_max_null": true,
+      "effect_exceeds_one_action_bin": true,
+      "action_grid": {
+        "labor_step_hours": 8.0,
+        "consumption_step": 0.02
+      },
+      "narrative_fixture_hash": "b29a4027044730739d5b52be73dd8c558be188a84b3ba4dc63530cf7f18d0d61"
+    },
+    "global": {
+      "contract_hash_match": true,
+      "annotated_tag_peel_match": true,
+      "clean_worktree_required": true,
+      "all_registered_runs_have_terminal_ledger_rows": true,
+      "provider_and_parse_failures_remain_in_denominator": true,
+      "budget_or_storage_projection_failure": "stop-before-dispatch"
+    }
+  },
+  "stages": [
+    {
+      "stage_id": "capability-preflight",
+      "enabled": true,
+      "budget_bucket": "capability_preflight",
+      "num_agents": 2,
+      "episode_length": 6,
+      "seed_set": "preflight",
+      "utility_profiles": ["provider-preflight-default"],
+      "shock_id": "baseline-3pct",
+      "cells": [
+        {
+          "models": [
+            "gpt52_main",
+            "gpt56_upper",
+            "opus48_sentinel",
+            "gemini35_flash_sentinel",
+            "llama4_maverick_sentinel",
+            "llama33_local_sentinel"
+          ],
+          "arms": ["capability-probe"],
+          "narratives": ["none"],
+          "execution_mode": "capability_probe"
+        }
+      ],
+      "prerequisites": [],
+      "reuse": []
+    },
+    {
+      "stage_id": "q-ref-resolution",
+      "enabled": true,
+      "budget_bucket": "calibration",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "q-ref",
+      "utility_profiles": ["provider-preflight-default"],
+      "shock_id": "baseline-3pct",
+      "cells": [
+        {
+          "models": ["qref_scripted"],
+          "arms": ["qref-scripted"],
+          "narratives": ["none"],
+          "execution_mode": "q_ref_resolution"
+        }
+      ],
+      "prerequisites": [],
+      "reuse": []
+    },
+    {
+      "stage_id": "stage0-calibration",
+      "enabled": true,
+      "budget_bucket": "calibration",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "calibration",
+      "utility_profiles": [
+        "center",
+        "psi-1",
+        "psi-4",
+        "nu-0.5",
+        "nu-2",
+        "q0-0.5x",
+        "q0-2x"
+      ],
+      "shock_id": "baseline-3pct",
+      "cells": [
+        {
+          "models": ["gpt52_main"],
+          "arms": ["stage0-no-memory-no-context"],
+          "narratives": ["none"],
+          "execution_mode": "actor_run"
+        }
+      ],
+      "prerequisites": ["capability-preflight", "q-ref-resolution"],
+      "reuse": []
+    },
+    {
+      "stage_id": "experiment-a",
+      "enabled": true,
+      "budget_bucket": "core",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "main",
+      "utility_profiles": ["stage0-selected"],
+      "shock_id": "registered-rate-shock",
+      "cells": [
+        {
+          "models": ["gpt52_main"],
+          "arms": ["no-context", "prompt-only", "retrieval-only", "full"],
+          "narratives": ["none"],
+          "execution_mode": "actor_run"
+        }
+      ],
+      "prerequisites": ["stage0-calibration"],
+      "reuse": []
+    },
+    {
+      "stage_id": "experiment-b",
+      "enabled": true,
+      "budget_bucket": "core",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "main",
+      "utility_profiles": ["stage0-selected"],
+      "shock_id": "registered-rate-shock",
+      "cells": [
+        {
+          "models": ["gpt52_main"],
+          "arms": [
+            "no-memory",
+            "episodic-only",
+            "semantic-only",
+            "unverified-dual",
+            "full"
+          ],
+          "narratives": ["none"],
+          "execution_mode": "actor_run"
+        }
+      ],
+      "prerequisites": ["stage0-calibration"],
+      "reuse": []
+    },
+    {
+      "stage_id": "experiment-c",
+      "enabled": true,
+      "budget_bucket": "core",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "main",
+      "utility_profiles": ["stage0-selected"],
+      "shock_id": "registered-rate-shock",
+      "cells": [
+        {
+          "models": ["gpt52_main"],
+          "arms": ["verified-error-candidate"],
+          "narratives": ["none"],
+          "execution_mode": "offline_candidate_admission"
+        },
+        {
+          "models": ["gpt52_main"],
+          "arms": ["verified-error-forced", "unverified-error-forced"],
+          "narratives": ["none"],
+          "execution_mode": "actor_run"
+        }
+      ],
+      "prerequisites": ["experiment-b"],
+      "reuse": [
+        "experiment-b:gpt52_main:full:no-error",
+        "experiment-b:gpt52_main:unverified-dual:no-error"
+      ]
+    },
+    {
+      "stage_id": "experiment-d",
+      "enabled": true,
+      "budget_bucket": "core",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "main",
+      "utility_profiles": ["stage0-selected"],
+      "shock_id": "registered-rate-shock",
+      "cells": [
+        {
+          "models": ["gpt52_main"],
+          "arms": [
+            "matched-a",
+            "matched-b",
+            "no-memory",
+            "shuffled-episodic",
+            "wrong-context",
+            "error-verified",
+            "error-unverified"
+          ],
+          "narratives": ["none"],
+          "execution_mode": "checkpoint_continuation"
+        },
+        {
+          "models": ["gpt52_main"],
+          "arms": ["narrative-content"],
+          "narratives": ["none", "aligned", "paraphrase", "opposite"],
+          "execution_mode": "checkpoint_continuation"
+        }
+      ],
+      "prerequisites": ["experiment-a", "experiment-b", "experiment-c"],
+      "reuse": []
+    },
+    {
+      "stage_id": "cross-model-sentinels",
+      "enabled": true,
+      "budget_bucket": "cross_model",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "cross-model",
+      "utility_profiles": ["stage0-selected"],
+      "shock_id": "registered-rate-shock",
+      "cells": [
+        {
+          "models": [
+            "gpt56_upper",
+            "opus48_sentinel",
+            "gemini35_flash_sentinel",
+            "llama4_maverick_sentinel",
+            "llama33_local_sentinel"
+          ],
+          "arms": ["full", "no-memory"],
+          "narratives": ["none"],
+          "execution_mode": "actor_run"
+        },
+        {
+          "models": ["opus48_sentinel"],
+          "arms": ["matched-a", "matched-b"],
+          "narratives": ["none"],
+          "execution_mode": "matched_duplicate"
+        }
+      ],
+      "prerequisites": ["experiment-a", "experiment-b", "experiment-c", "experiment-d"],
+      "reuse": [
+        "experiment-b:gpt52_main:full:first-three-main-seeds",
+        "experiment-b:gpt52_main:no-memory:first-three-main-seeds"
+      ]
+    }
+  ],
+  "non_claims": [
+    "This frozen pilot does not include a proposer-by-actor model cross.",
+    "Hosted decoding seeds are best-effort and do not establish deterministic causal identification.",
+    "The 4-agent by 12-month pilot does not establish full-scale or real-economy validity.",
+    "Legacy deterministic-template FinEvo artifacts are not evidence for this contract."
+  ],
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "declared_sha256": "75694604205556d86a2ab10da6fe80ca1ea0565cffe3e5edd12809f8209239ad"
+  }
+}

@@ -1,0 +1,533 @@
+{
+  "claim_gates": {
+    "experiment_a": {
+      "action_distributions": {
+        "full": {},
+        "no-context": {},
+        "prompt-only": {},
+        "retrieval-only": {}
+      },
+      "claim_action": "retain route traceability only",
+      "corroborating_contrast": null,
+      "expected_seeds": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ],
+      "full_vs_retrieval_only_top5_overlap": {},
+      "phase_relevance_at_5": {
+        "full": {},
+        "no-context": {},
+        "prompt-only": {},
+        "retrieval-only": {}
+      },
+      "primary_contrast": null,
+      "reasons": [
+        "fewer than four validated paired seeds",
+        "fewer than four validated corroborating paired seeds",
+        "route manipulation checks are incomplete or failed",
+        "retrieval traces are empty/incomplete or phase relevance@5 is incomplete"
+      ],
+      "retrieval_trace_and_phase_coverage": {
+        "full": {},
+        "retrieval-only": {}
+      },
+      "retrieval_trace_and_phase_coverage_pass": false,
+      "route_manipulation_checks": {
+        "full_routes_both_channels": false,
+        "no_context_routes_neither_channel": false,
+        "prompt_only_routes_prompt_channel": false,
+        "retrieval_only_routes_retrieval_channel": false
+      },
+      "scientific_evidence_complete": false,
+      "secondary_paired_metrics": {
+        "recovery_periods_to_within_10pct_for_two": {
+          "control_prompt_only_by_seed": {
+            "1099057501": null,
+            "1421875452": null,
+            "1769977770": null,
+            "617806385": null,
+            "959809858": null
+          },
+          "lower_is_better": true,
+          "paired_seeds": [],
+          "paired_summary_full_minus_prompt_only": null,
+          "treatment_full_by_seed": {
+            "1099057501": null,
+            "1421875452": null,
+            "1769977770": null,
+            "617806385": null,
+            "959809858": null
+          },
+          "unpaired_or_censored_seeds": [
+            1099057501,
+            1421875452,
+            1769977770,
+            959809858,
+            617806385
+          ]
+        },
+        "utility_deficit_auc": {
+          "control_prompt_only_by_seed": {
+            "1099057501": null,
+            "1421875452": null,
+            "1769977770": null,
+            "617806385": null,
+            "959809858": null
+          },
+          "lower_is_better": true,
+          "paired_seeds": [],
+          "paired_summary_full_minus_prompt_only": null,
+          "treatment_full_by_seed": {
+            "1099057501": null,
+            "1421875452": null,
+            "1769977770": null,
+            "617806385": null,
+            "959809858": null
+          },
+          "unpaired_or_censored_seeds": [
+            1099057501,
+            1421875452,
+            1769977770,
+            959809858,
+            617806385
+          ]
+        }
+      },
+      "status": "no-go",
+      "support_retrieval_effect": false,
+      "threshold_gate": null,
+      "usable_paired_seeds": []
+    },
+    "experiment_c": {
+      "claim_action": "withdraw or narrow the rule-reliability claim",
+      "reasons": [
+        "no sealed Experiment C and reused Experiment B evidence"
+      ],
+      "scientific_evidence_complete": false,
+      "status": "no-go",
+      "support_rule_reliability": false
+    },
+    "experiment_d": {
+      "action_bin_widths": {
+        "consumption_rate": 0.02,
+        "labor_hours": 8.0
+      },
+      "causal_binding_checks": {},
+      "causal_binding_pass": false,
+      "claim_action": "do not claim a closed-loop continuation effect",
+      "prompt_sensitivity_only_treatments": [],
+      "reasons": [
+        "one or more registered treatments has fewer than four complete matched checkpoint seeds",
+        "fewer than four seed sets retain common sealed checkpoint, prefix, RNG, shock, replay, and erroneous-rule start bindings",
+        "no treatment passed both the matched-null/action-bin gate and the six-step utility gate"
+      ],
+      "scientific_evidence_complete": false,
+      "status": "no-go",
+      "supported_treatments": [],
+      "treatment_gates": {
+        "error-unverified": {
+          "action_gates": {
+            "consumption_rate": {
+              "checks": {
+                "at_least_four_complete_pairs": false,
+                "at_least_four_same_direction": false,
+                "exceeds_matched_null": false,
+                "exceeds_one_action_bin": false
+              },
+              "incomplete_reason": "missing action metrics or treatment/null seed mismatch",
+              "matched_null_deltas": {},
+              "matched_null_max_abs": null,
+              "median_abs_treatment_delta": null,
+              "passes": false,
+              "treatment_deltas": {}
+            },
+            "labor_hours": {
+              "checks": {
+                "at_least_four_complete_pairs": false,
+                "at_least_four_same_direction": false,
+                "exceeds_matched_null": false,
+                "exceeds_one_action_bin": false
+              },
+              "incomplete_reason": "missing action metrics or treatment/null seed mismatch",
+              "matched_null_deltas": {},
+              "matched_null_max_abs": null,
+              "median_abs_treatment_delta": null,
+              "passes": false,
+              "treatment_deltas": {}
+            }
+          },
+          "classification": "no-qualified-effect",
+          "qualified_action_change": false,
+          "qualified_closed_loop_effect": false,
+          "reported_paired_deltas": {
+            "focal_first_consumption_rate": null,
+            "focal_first_labor_hours": null,
+            "focal_immediate_flow_utility": null,
+            "focal_next_wealth": null,
+            "focal_six_step_discounted_utility": null,
+            "population_final_gini": null,
+            "population_final_wealth": null,
+            "population_mean_low_labor": null,
+            "population_next_gini": null,
+            "population_next_low_labor": null,
+            "population_next_wealth": null,
+            "population_six_step_utility": null
+          },
+          "six_step_discounted_utility_gate": {
+            "checks": {
+              "at_least_four_complete_pairs": false,
+              "at_least_four_same_direction": false,
+              "exceeds_matched_null": false
+            },
+            "incomplete_reason": "missing outcome metrics or treatment/null seed mismatch",
+            "matched_null_deltas": {},
+            "matched_null_max_abs": null,
+            "median_abs_treatment_delta": null,
+            "passes": false,
+            "treatment_deltas": {}
+          },
+          "usable_seeds": []
+        },
+        "error-verified": {
+          "action_gates": {
+            "consumption_rate": {
+              "checks": {
+                "at_least_four_complete_pairs": false,
+                "at_least_four_same_direction": false,
+                "exceeds_matched_null": false,
+                "exceeds_one_action_bin": false
+              },
+              "incomplete_reason": "missing action metrics or treatment/null seed mismatch",
+              "matched_null_deltas": {},
+              "matched_null_max_abs": null,
+              "median_abs_treatment_delta": null,
+              "passes": false,
+              "treatment_deltas": {}
+            },
+            "labor_hours": {
+              "checks": {
+                "at_least_four_complete_pairs": false,
+                "at_least_four_same_direction": false,
+                "exceeds_matched_null": false,
+                "exceeds_one_action_bin": false
+              },
+              "incomplete_reason": "missing action metrics or treatment/null seed mismatch",
+              "matched_null_deltas": {},
+              "matched_null_max_abs": null,
+              "median_abs_treatment_delta": null,
+              "passes": false,
+              "treatment_deltas": {}
+            }
+          },
+          "classification": "no-qualified-effect",
+          "qualified_action_change": false,
+          "qualified_closed_loop_effect": false,
+          "reported_paired_deltas": {
+            "focal_first_consumption_rate": null,
+            "focal_first_labor_hours": null,
+            "focal_immediate_flow_utility": null,
+            "focal_next_wealth": null,
+            "focal_six_step_discounted_utility": null,
+            "population_final_gini": null,
+            "population_final_wealth": null,
+            "population_mean_low_labor": null,
+            "population_next_gini": null,
+            "population_next_low_labor": null,
+            "population_next_wealth": null,
+            "population_six_step_utility": null
+          },
+          "six_step_discounted_utility_gate": {
+            "checks": {
+              "at_least_four_complete_pairs": false,
+              "at_least_four_same_direction": false,
+              "exceeds_matched_null": false
+            },
+            "incomplete_reason": "missing outcome metrics or treatment/null seed mismatch",
+            "matched_null_deltas": {},
+            "matched_null_max_abs": null,
+            "median_abs_treatment_delta": null,
+            "passes": false,
+            "treatment_deltas": {}
+          },
+          "usable_seeds": []
+        },
+        "no-memory": {
+          "action_gates": {
+            "consumption_rate": {
+              "checks": {
+                "at_least_four_complete_pairs": false,
+                "at_least_four_same_direction": false,
+                "exceeds_matched_null": false,
+                "exceeds_one_action_bin": false
+              },
+              "incomplete_reason": "missing action metrics or treatment/null seed mismatch",
+              "matched_null_deltas": {},
+              "matched_null_max_abs": null,
+              "median_abs_treatment_delta": null,
+              "passes": false,
+              "treatment_deltas": {}
+            },
+            "labor_hours": {
+              "checks": {
+                "at_least_four_complete_pairs": false,
+                "at_least_four_same_direction": false,
+                "exceeds_matched_null": false,
+                "exceeds_one_action_bin": false
+              },
+              "incomplete_reason": "missing action metrics or treatment/null seed mismatch",
+              "matched_null_deltas": {},
+              "matched_null_max_abs": null,
+              "median_abs_treatment_delta": null,
+              "passes": false,
+              "treatment_deltas": {}
+            }
+          },
+          "classification": "no-qualified-effect",
+          "qualified_action_change": false,
+          "qualified_closed_loop_effect": false,
+          "reported_paired_deltas": {
+            "focal_first_consumption_rate": null,
+            "focal_first_labor_hours": null,
+            "focal_immediate_flow_utility": null,
+            "focal_next_wealth": null,
+            "focal_six_step_discounted_utility": null,
+            "population_final_gini": null,
+            "population_final_wealth": null,
+            "population_mean_low_labor": null,
+            "population_next_gini": null,
+            "population_next_low_labor": null,
+            "population_next_wealth": null,
+            "population_six_step_utility": null
+          },
+          "six_step_discounted_utility_gate": {
+            "checks": {
+              "at_least_four_complete_pairs": false,
+              "at_least_four_same_direction": false,
+              "exceeds_matched_null": false
+            },
+            "incomplete_reason": "missing outcome metrics or treatment/null seed mismatch",
+            "matched_null_deltas": {},
+            "matched_null_max_abs": null,
+            "median_abs_treatment_delta": null,
+            "passes": false,
+            "treatment_deltas": {}
+          },
+          "usable_seeds": []
+        },
+        "shuffled-episodic": {
+          "action_gates": {
+            "consumption_rate": {
+              "checks": {
+                "at_least_four_complete_pairs": false,
+                "at_least_four_same_direction": false,
+                "exceeds_matched_null": false,
+                "exceeds_one_action_bin": false
+              },
+              "incomplete_reason": "missing action metrics or treatment/null seed mismatch",
+              "matched_null_deltas": {},
+              "matched_null_max_abs": null,
+              "median_abs_treatment_delta": null,
+              "passes": false,
+              "treatment_deltas": {}
+            },
+            "labor_hours": {
+              "checks": {
+                "at_least_four_complete_pairs": false,
+                "at_least_four_same_direction": false,
+                "exceeds_matched_null": false,
+                "exceeds_one_action_bin": false
+              },
+              "incomplete_reason": "missing action metrics or treatment/null seed mismatch",
+              "matched_null_deltas": {},
+              "matched_null_max_abs": null,
+              "median_abs_treatment_delta": null,
+              "passes": false,
+              "treatment_deltas": {}
+            }
+          },
+          "classification": "no-qualified-effect",
+          "qualified_action_change": false,
+          "qualified_closed_loop_effect": false,
+          "reported_paired_deltas": {
+            "focal_first_consumption_rate": null,
+            "focal_first_labor_hours": null,
+            "focal_immediate_flow_utility": null,
+            "focal_next_wealth": null,
+            "focal_six_step_discounted_utility": null,
+            "population_final_gini": null,
+            "population_final_wealth": null,
+            "population_mean_low_labor": null,
+            "population_next_gini": null,
+            "population_next_low_labor": null,
+            "population_next_wealth": null,
+            "population_six_step_utility": null
+          },
+          "six_step_discounted_utility_gate": {
+            "checks": {
+              "at_least_four_complete_pairs": false,
+              "at_least_four_same_direction": false,
+              "exceeds_matched_null": false
+            },
+            "incomplete_reason": "missing outcome metrics or treatment/null seed mismatch",
+            "matched_null_deltas": {},
+            "matched_null_max_abs": null,
+            "median_abs_treatment_delta": null,
+            "passes": false,
+            "treatment_deltas": {}
+          },
+          "usable_seeds": []
+        },
+        "wrong-context": {
+          "action_gates": {
+            "consumption_rate": {
+              "checks": {
+                "at_least_four_complete_pairs": false,
+                "at_least_four_same_direction": false,
+                "exceeds_matched_null": false,
+                "exceeds_one_action_bin": false
+              },
+              "incomplete_reason": "missing action metrics or treatment/null seed mismatch",
+              "matched_null_deltas": {},
+              "matched_null_max_abs": null,
+              "median_abs_treatment_delta": null,
+              "passes": false,
+              "treatment_deltas": {}
+            },
+            "labor_hours": {
+              "checks": {
+                "at_least_four_complete_pairs": false,
+                "at_least_four_same_direction": false,
+                "exceeds_matched_null": false,
+                "exceeds_one_action_bin": false
+              },
+              "incomplete_reason": "missing action metrics or treatment/null seed mismatch",
+              "matched_null_deltas": {},
+              "matched_null_max_abs": null,
+              "median_abs_treatment_delta": null,
+              "passes": false,
+              "treatment_deltas": {}
+            }
+          },
+          "classification": "no-qualified-effect",
+          "qualified_action_change": false,
+          "qualified_closed_loop_effect": false,
+          "reported_paired_deltas": {
+            "focal_first_consumption_rate": null,
+            "focal_first_labor_hours": null,
+            "focal_immediate_flow_utility": null,
+            "focal_next_wealth": null,
+            "focal_six_step_discounted_utility": null,
+            "population_final_gini": null,
+            "population_final_wealth": null,
+            "population_mean_low_labor": null,
+            "population_next_gini": null,
+            "population_next_low_labor": null,
+            "population_next_wealth": null,
+            "population_six_step_utility": null
+          },
+          "six_step_discounted_utility_gate": {
+            "checks": {
+              "at_least_four_complete_pairs": false,
+              "at_least_four_same_direction": false,
+              "exceeds_matched_null": false
+            },
+            "incomplete_reason": "missing outcome metrics or treatment/null seed mismatch",
+            "matched_null_deltas": {},
+            "matched_null_max_abs": null,
+            "median_abs_treatment_delta": null,
+            "passes": false,
+            "treatment_deltas": {}
+          },
+          "usable_seeds": []
+        }
+      }
+    },
+    "narrative": {
+      "claim_boundary": "no controlled semantic-response claim; never claim real-news understanding",
+      "reasons": [
+        "no complete sealed narrative checkpoint sets"
+      ],
+      "scientific_evidence_complete": false,
+      "semantic_response": false,
+      "status": "no-go"
+    }
+  },
+  "contract_id": "finevo-pilot-v1",
+  "contract_sha256": "75694604205556d86a2ab10da6fe80ca1ea0565cffe3e5edd12809f8209239ad",
+  "evidence_namespace": "current_v2/pilot-v1",
+  "excluded_sources": [
+    "historical_pre_p0_v1",
+    "diagnostic artifacts as scientific evidence",
+    "raw prompts and raw provider outputs"
+  ],
+  "pilot_tag": "pilot-v1",
+  "published_files": [
+    "aggregate.csv",
+    "aggregate.json",
+    "contract/pilot_v1.yaml",
+    "failure_ledger.json",
+    "method_differences_scaffold.json",
+    "reviewer_report.md"
+  ],
+  "release_controls": {
+    "budget_ledger": {
+      "actual_stage_cost_usd": {
+        "calibration": 0.0,
+        "capability_preflight": 0.27231925,
+        "core": 0.0,
+        "cross_model": 0.0,
+        "manual_reserve": 0.0
+      },
+      "actual_totals": {
+        "completions": 120,
+        "cost_usd": 0.27231925,
+        "storage_bytes": 1364383
+      },
+      "checks": {
+        "actual_totals_within_caps": true,
+        "all_artifact_backed_dispatches_accounted": true,
+        "exact_frozen_caps": true,
+        "schema_and_contract": true,
+        "valid_finalized_dispatch_units": true
+      },
+      "pass": true,
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v1/experiment_results/pilot-v1/raw/budget_ledger.json",
+      "raw_root_storage_bytes": 1601618,
+      "reasons": []
+    },
+    "experiment_c_sensitivity": {
+      "available": false,
+      "pass": false,
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v1/experiment_results/pilot-v1/raw/experiment-c/rule_sensitivity.json",
+      "reason": "Experiment C ITT cells are not all complete and eligible"
+    },
+    "pass": false,
+    "release_attestation": {
+      "checks": {
+        "commit_bound": true,
+        "exact_linux_macos_ci": true,
+        "schema_and_hash": true
+      },
+      "pass": true,
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v1/experiment_results/pilot-v1/raw/release_attestation.json",
+      "reasons": []
+    },
+    "stage0_selection": {
+      "checks": {},
+      "pass": false,
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v1/experiment_results/pilot-v1/raw/stage0-calibration/stage0_selection.json",
+      "reasons": [
+        "required evidence file is missing: /Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v1/experiment_results/pilot-v1/raw/stage0-calibration/stage0_selection.json"
+      ],
+      "stage_receipt_path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v1/experiment_results/pilot-v1/raw/stage0-calibration/stage_receipt.json"
+    }
+  },
+  "resolved_git_commit": "598633db708fe082bf1bacd80b84c8e8443d4688",
+  "schema_version": "finevo-pilot-evidence-package-v1",
+  "scientific_claim_gates_supported": false,
+  "scientific_complete": false,
+  "scientific_matrix_complete": false
+}

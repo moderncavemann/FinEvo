@@ -1,0 +1,2702 @@
+{
+  "contract_sha256": "75694604205556d86a2ab10da6fe80ca1ea0565cffe3e5edd12809f8209239ad",
+  "denominator": {
+    "all_completed_artifacts_validated": true,
+    "all_rows_present": true,
+    "all_rows_terminal": true,
+    "expected_count": 172,
+    "observed_ledger_count": 172,
+    "pass": true,
+    "status_counts": {
+      "capability-no-go": 171,
+      "complete": 1
+    }
+  },
+  "rows": [
+    {
+      "arm_id": "capability-probe",
+      "environment_seed": 2010922376,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "fixed capability threshold not met"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--capability-preflight--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376",
+      "stage_id": "capability-preflight",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "capability-probe",
+      "environment_seed": 2010922376,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "fixed capability threshold not met"
+      },
+      "model_id": "gpt56_upper",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--capability-preflight--gpt56_upper--capability-probe--none--provider-preflight-default--s2010922376",
+      "stage_id": "capability-preflight",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "capability-probe",
+      "environment_seed": 2010922376,
+      "failure": {
+        "error_type": "ProviderCatalogError",
+        "message": "opus48_sentinel endpoint lacks required parameters: ['temperature', 'top_p']",
+        "model_id": "opus48_sentinel",
+        "paid_completions": 0
+      },
+      "model_id": "opus48_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--capability-preflight--opus48_sentinel--capability-probe--none--provider-preflight-default--s2010922376",
+      "stage_id": "capability-preflight",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "capability-probe",
+      "environment_seed": 2010922376,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "fixed capability threshold not met"
+      },
+      "model_id": "gemini35_flash_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--capability-preflight--gemini35_flash_sentinel--capability-probe--none--provider-preflight-default--s2010922376",
+      "stage_id": "capability-preflight",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "capability-probe",
+      "environment_seed": 2010922376,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "fixed capability threshold not met"
+      },
+      "model_id": "llama4_maverick_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--capability-preflight--llama4_maverick_sentinel--capability-probe--none--provider-preflight-default--s2010922376",
+      "stage_id": "capability-preflight",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "capability-probe",
+      "environment_seed": 2010922376,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "fixed capability threshold not met"
+      },
+      "model_id": "llama33_local_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--capability-preflight--llama33_local_sentinel--capability-probe--none--provider-preflight-default--s2010922376",
+      "stage_id": "capability-preflight",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 1942013315,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--center--s1942013315",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 760687867,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--center--s760687867",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 1942013315,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--psi-1--s1942013315",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 760687867,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--psi-1--s760687867",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 1942013315,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--psi-4--s1942013315",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 760687867,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--psi-4--s760687867",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 1942013315,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--nu-0.5--s1942013315",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 760687867,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--nu-0.5--s760687867",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 1942013315,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--nu-2--s1942013315",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 760687867,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--nu-2--s760687867",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 1942013315,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--q0-0.5x--s1942013315",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 760687867,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--q0-0.5x--s760687867",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 1942013315,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--q0-2x--s1942013315",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "stage0-no-memory-no-context",
+      "environment_seed": 760687867,
+      "failure": {
+        "blocked_stage": "stage0-calibration",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--stage0-calibration--gpt52_main--stage0-no-memory-no-context--none--q0-2x--s760687867",
+      "stage_id": "stage0-calibration",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--no-context--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--no-context--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--no-context--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--no-context--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--no-context--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--full--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--full--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--full--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-a",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-a--gpt52_main--full--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--no-memory--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--no-memory--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--full--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--full--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--full--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--full--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-b",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-b--gpt52_main--full--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "verified-error-candidate",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "verified-error-candidate",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "verified-error-candidate",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "verified-error-candidate",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "verified-error-candidate",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-c",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--matched-a--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--matched-a--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--matched-b--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--matched-b--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--no-memory--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--no-memory--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--error-verified--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--error-verified--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "aligned",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "aligned",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "aligned",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "aligned",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "aligned",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "paraphrase",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "paraphrase",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "paraphrase",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "paraphrase",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "paraphrase",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "opposite",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "opposite",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "opposite",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 959809858,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "opposite",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 617806385,
+      "failure": {
+        "blocked_stage": "experiment-d",
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt52_main did not pass its fixed capability/interface gate",
+        "model_id": "gpt52_main",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt52_main",
+      "narrative_id": "opposite",
+      "run_id": "finevo-pilot-v1--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt56_upper did not pass its fixed capability/interface gate",
+        "model_id": "gpt56_upper",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt56_upper",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--gpt56_upper--full--none--stage0-selected--s1099057501",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt56_upper did not pass its fixed capability/interface gate",
+        "model_id": "gpt56_upper",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt56_upper",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--gpt56_upper--full--none--stage0-selected--s1421875452",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt56_upper did not pass its fixed capability/interface gate",
+        "model_id": "gpt56_upper",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt56_upper",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--gpt56_upper--full--none--stage0-selected--s1769977770",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt56_upper did not pass its fixed capability/interface gate",
+        "model_id": "gpt56_upper",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt56_upper",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--gpt56_upper--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt56_upper did not pass its fixed capability/interface gate",
+        "model_id": "gpt56_upper",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt56_upper",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--gpt56_upper--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gpt56_upper did not pass its fixed capability/interface gate",
+        "model_id": "gpt56_upper",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gpt56_upper",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--gpt56_upper--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "opus48_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "opus48_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "opus48_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--opus48_sentinel--full--none--stage0-selected--s1099057501",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "opus48_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "opus48_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "opus48_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--opus48_sentinel--full--none--stage0-selected--s1421875452",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "opus48_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "opus48_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "opus48_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--opus48_sentinel--full--none--stage0-selected--s1769977770",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "opus48_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "opus48_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "opus48_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--opus48_sentinel--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "opus48_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "opus48_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "opus48_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--opus48_sentinel--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "opus48_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "opus48_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "opus48_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--opus48_sentinel--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gemini35_flash_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "gemini35_flash_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gemini35_flash_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--gemini35_flash_sentinel--full--none--stage0-selected--s1099057501",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gemini35_flash_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "gemini35_flash_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gemini35_flash_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--gemini35_flash_sentinel--full--none--stage0-selected--s1421875452",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gemini35_flash_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "gemini35_flash_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gemini35_flash_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--gemini35_flash_sentinel--full--none--stage0-selected--s1769977770",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gemini35_flash_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "gemini35_flash_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gemini35_flash_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--gemini35_flash_sentinel--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gemini35_flash_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "gemini35_flash_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gemini35_flash_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--gemini35_flash_sentinel--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "gemini35_flash_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "gemini35_flash_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "gemini35_flash_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--gemini35_flash_sentinel--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "llama4_maverick_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "llama4_maverick_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "llama4_maverick_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--llama4_maverick_sentinel--full--none--stage0-selected--s1099057501",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "llama4_maverick_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "llama4_maverick_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "llama4_maverick_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--llama4_maverick_sentinel--full--none--stage0-selected--s1421875452",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "llama4_maverick_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "llama4_maverick_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "llama4_maverick_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--llama4_maverick_sentinel--full--none--stage0-selected--s1769977770",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "llama4_maverick_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "llama4_maverick_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "llama4_maverick_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--llama4_maverick_sentinel--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "llama4_maverick_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "llama4_maverick_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "llama4_maverick_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--llama4_maverick_sentinel--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "llama4_maverick_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "llama4_maverick_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "llama4_maverick_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--llama4_maverick_sentinel--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "llama33_local_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "llama33_local_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "llama33_local_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--llama33_local_sentinel--full--none--stage0-selected--s1099057501",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "llama33_local_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "llama33_local_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "llama33_local_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--llama33_local_sentinel--full--none--stage0-selected--s1421875452",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "llama33_local_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "llama33_local_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "llama33_local_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--llama33_local_sentinel--full--none--stage0-selected--s1769977770",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "llama33_local_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "llama33_local_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "llama33_local_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--llama33_local_sentinel--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "llama33_local_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "llama33_local_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "llama33_local_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--llama33_local_sentinel--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "llama33_local_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "llama33_local_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "llama33_local_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--llama33_local_sentinel--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "opus48_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "opus48_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "opus48_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--opus48_sentinel--matched-a--none--stage0-selected--s1099057501",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "opus48_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "opus48_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "opus48_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--opus48_sentinel--matched-a--none--stage0-selected--s1421875452",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "opus48_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "opus48_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "opus48_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--opus48_sentinel--matched-a--none--stage0-selected--s1769977770",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "opus48_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "opus48_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "opus48_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--opus48_sentinel--matched-b--none--stage0-selected--s1099057501",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "opus48_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "opus48_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "opus48_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--opus48_sentinel--matched-b--none--stage0-selected--s1421875452",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "CapabilityOrInterfaceNoGo",
+        "message": "opus48_sentinel did not pass its fixed capability/interface gate",
+        "model_id": "opus48_sentinel",
+        "source_stage": "capability-preflight"
+      },
+      "model_id": "opus48_sentinel",
+      "narrative_id": "none",
+      "run_id": "finevo-pilot-v1--cross-model-sentinels--opus48_sentinel--matched-b--none--stage0-selected--s1769977770",
+      "stage_id": "cross-model-sentinels",
+      "status": "capability-no-go"
+    }
+  ],
+  "schema_version": "finevo-pilot-failure-ledger-v1"
+}
