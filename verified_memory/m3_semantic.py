@@ -1717,6 +1717,83 @@ class VerifiedSemanticRuleTrack:
             raise
         return self.submit_candidate(candidate, current_t=current_t)
 
+    def propose_unverified_immediate(
+        self,
+        raw_response: str,
+        *,
+        current_t: int,
+        generator_id: str = "llm-candidate-generator",
+    ) -> VerifiedRule:
+        """Parse a candidate, then activate it without evidence admission.
+
+        This intentionally unsafe control is used only for the preregistered
+        unverified-memory arm.  Candidate parsing and field allow-lists remain
+        enforced so the actor receives the same rule language, but claimed
+        episode IDs are not admitted as evidence and later episodes cannot
+        update or retire the rule.  The bypass is explicit in immutable
+        injection provenance rather than being disguised as verifier support.
+        """
+
+        current_t = self._validate_event_timestamp(current_t)
+        try:
+            candidate = self.parse_candidate(
+                raw_response,
+                generator_id=generator_id,
+            )
+        except CandidateParseError as exc:
+            self._append_event(
+                timestamp=current_t,
+                event_type="candidate_parse_rejected",
+                reason=str(exc),
+                provenance={"raw_response_hash": _hash({"raw_response": raw_response})},
+            )
+            raise
+
+        existing_candidate = self._candidates.get(candidate.candidate_id)
+        if existing_candidate is not None and existing_candidate != candidate:
+            raise ValueError(
+                "candidate_id collision would overwrite immutable candidate provenance"
+            )
+        if existing_candidate is None:
+            self._candidates[candidate.candidate_id] = candidate
+        for rule in self._rules.values():
+            provenance = dict(rule.injection_provenance or {})
+            if provenance.get("source_candidate_id") == candidate.candidate_id:
+                self._append_event(
+                    timestamp=current_t,
+                    event_type="duplicate_unverified_candidate_ignored",
+                    rule_id=rule.rule_id,
+                    from_status=rule.status,
+                    to_status=rule.status,
+                    reason="the same parsed unverified candidate is already active",
+                    metrics=self._metrics(rule),
+                    provenance={
+                        "source_candidate_id": candidate.candidate_id,
+                        "semantic_policy": "unverified-immediate",
+                    },
+                )
+                return self._clone_rule(rule)
+
+        return self.inject_active_rule(
+            condition=candidate.condition,
+            action_guidance=candidate.action_guidance,
+            outcome_criterion=candidate.outcome_criterion,
+            rationale=candidate.rationale,
+            current_t=current_t,
+            injection_id=f"unverified:{candidate.candidate_id}",
+            provenance={
+                "semantic_policy": "unverified-immediate",
+                "source_candidate_id": candidate.candidate_id,
+                "generator_id": candidate.generator_id,
+                "raw_response_hash": candidate.raw_response_hash,
+                "requested_support_ids": list(candidate.supporting_episode_ids),
+                "evidence_admission": False,
+                "retirement_enabled": False,
+            },
+            initial_confidence=1.0,
+            context_scope=candidate.context_scope,
+        )
+
     def submit_candidate(
         self, candidate: RuleCandidate, *, current_t: int
     ) -> VerifiedRule:
@@ -1967,6 +2044,31 @@ class VerifiedSemanticRuleTrack:
                 episode_ids=(episode_id,),
                 reason="terminal rules do not accept new evidence",
                 metrics=self._metrics(rule),
+            )
+            return self._clone_rule(rule)
+        provenance = dict(rule.injection_provenance or {})
+        if (
+            rule.injected
+            and provenance.get("evidence_admission") is False
+            and provenance.get("retirement_enabled") is False
+        ):
+            self._append_event(
+                timestamp=current_t,
+                event_type="evidence_ignored_unverified_policy",
+                rule_id=rule_id,
+                from_status=rule.status,
+                to_status=rule.status,
+                episode_ids=(episode_id,),
+                reason=(
+                    "unverified-immediate control disables evidence admission "
+                    "and retirement"
+                ),
+                metrics=self._metrics(rule),
+                provenance={
+                    "semantic_policy": "unverified-immediate",
+                    "evidence_admission": False,
+                    "retirement_enabled": False,
+                },
             )
             return self._clone_rule(rule)
         if episode_id in self._all_evidence_ids(rule):

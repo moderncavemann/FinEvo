@@ -39,6 +39,64 @@ full run have not been completed for this method. If that pilot uses a hosted
 provider, its first bounded stage is the preregistered API preflight smoke; no
 current-method API smoke is claimed by this repository state.
 
+### Preregistered mechanism micro-pilot
+
+The only scientific-pilot entry point is:
+
+```bash
+python run_pilot.py \
+  --contract experiments/pilot_v1.yaml \
+  --stage <stage> \
+  --resume
+```
+
+The frozen order is `capability-preflight`, `q-ref-resolution`,
+`stage0-calibration`, `experiment-a`, `experiment-b`, `experiment-c`,
+`experiment-d`, and `cross-model-sentinels`. The runner registers the complete
+ITT denominator before dispatch and stops rather than dropping seeds, changing
+models, or reducing reasoning when a capability, provenance, integrity, or
+budget gate fails.
+
+Real stages require a clean checkout at the peeled annotated `pilot-v1` tag,
+the same commit on `origin/main`, the remote annotated tag, and successful
+Python 3.12.7 CI jobs on both `ubuntu-24.04` and `macos-14`. Provider runs use
+the sealed model-by-call-kind preflight p95 plus 25% reservation; unknown hosted
+prices and missing route metadata fail before scientific dispatch. The frozen
+7,500-completion ceiling counts hosted OpenAI/OpenRouter calls only; local
+Ollama and deterministic scripted calls remain in each run's operational call
+limit and ITT ledger but cannot consume or obscure that hosted cap.
+
+Exercise all A–D paths without network access or scientific claims:
+
+```bash
+python run_pilot.py \
+  --contract experiments/pilot_v1.yaml \
+  --stage development-a-d \
+  --development-fake \
+  --resume
+```
+
+Raw run state is ignored under `experiment_results/pilot-v1/raw/`. Only
+validated contracts, aggregates, checksums, failure ledgers, and reviewer
+reports may enter `evidence/current_v2/pilot-v1/`. Historical artifacts remain
+separate and cannot satisfy this pilot contract. This is a 4-agent × 12-month
+mechanism micro-pilot, not the 10×24×5 confirmatory design and not a 100×240
+simulation.
+
+After every preregistered cell has a terminal ITT ledger row, build the
+zero-provider reviewer package through the same entry point:
+
+```bash
+python run_pilot.py \
+  --contract experiments/pilot_v1.yaml \
+  --stage publish-evidence \
+  --resume
+```
+
+The publisher refuses to overwrite an existing package and reports
+`complete-with-no-go` when the denominator is complete but a preregistered
+scientific claim gate is not supported.
+
 Budgeted calls use one HTTP attempt per reserved call; post-setup execution
 failures write a content-addressed error/config/budget receipt. Preflight
 failures remain stderr-only. Partial in-memory simulation streams are not yet

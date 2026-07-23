@@ -455,9 +455,18 @@ class VerifiedDualTrackMemory:
         *,
         current_t: int,
         generator_id: str,
+        semantic_policy: str = "evidence-grounded",
     ) -> VerifiedRule:
         if self.semantic is None:
             raise RuntimeError("semantic track is disabled")
+        if semantic_policy == "unverified-immediate":
+            return self.semantic.propose_unverified_immediate(
+                raw_response,
+                current_t=current_t,
+                generator_id=generator_id,
+            )
+        if semantic_policy != "evidence-grounded":
+            raise ValueError(f"unsupported semantic policy: {semantic_policy!r}")
         return self.semantic.propose(
             raw_response,
             current_t=current_t,
