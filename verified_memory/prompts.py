@@ -18,9 +18,14 @@ from .m0_utility import UtilityConfig
 
 
 LEGACY_PROMPT_SCHEMA_VERSION = "verified-decision-prompt-v1"
-PROMPT_SCHEMA_VERSION = "verified-decision-prompt-v2"
+PREVIOUS_PROMPT_SCHEMA_VERSION = "verified-decision-prompt-v2"
+PROMPT_SCHEMA_VERSION = "verified-decision-prompt-v3"
 SUPPORTED_PROMPT_SCHEMA_VERSIONS = frozenset(
-    {LEGACY_PROMPT_SCHEMA_VERSION, PROMPT_SCHEMA_VERSION}
+    {
+        LEGACY_PROMPT_SCHEMA_VERSION,
+        PREVIOUS_PROMPT_SCHEMA_VERSION,
+        PROMPT_SCHEMA_VERSION,
+    }
 )
 MEMORY_START = "<<<VERIFIED_MEMORY_START>>>"
 MEMORY_END = "<<<VERIFIED_MEMORY_END>>>"
@@ -216,6 +221,7 @@ __all__ = [
     "MEMORY_END",
     "MEMORY_START",
     "LEGACY_PROMPT_SCHEMA_VERSION",
+    "PREVIOUS_PROMPT_SCHEMA_VERSION",
     "PROMPT_SCHEMA_VERSION",
     "SUPPORTED_PROMPT_SCHEMA_VERSIONS",
     "build_base_decision_prompt",

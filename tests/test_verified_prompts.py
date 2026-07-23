@@ -2,8 +2,12 @@ import unittest
 
 from verified_memory.m0_utility import UtilityConfig
 from verified_memory.prompts import (
+    LEGACY_PROMPT_SCHEMA_VERSION,
     MEMORY_END,
     MEMORY_START,
+    PREVIOUS_PROMPT_SCHEMA_VERSION,
+    PROMPT_SCHEMA_VERSION,
+    SUPPORTED_PROMPT_SCHEMA_VERSIONS,
     DecisionPromptState,
     build_base_decision_prompt,
     compose_decision_prompt,
@@ -48,10 +52,24 @@ class VerifiedPromptTest(unittest.TestCase):
         )
 
     def test_contract_explains_direct_hours_and_utility(self):
-        base = build_base_decision_prompt(self.state(), UtilityConfig())
+        base = build_base_decision_prompt(
+            self.state(), UtilityConfig(consumption_scale=80.0)
+        )
         self.assertIn("fraction of maximum hours", base)
         self.assertIn("realized flow utility", base)
+        self.assertIn("q0=80", base)
         self.assertIn("wealth and macro variables are diagnostics", base)
+
+    def test_prompt_v3_keeps_v1_and_v2_read_compatibility(self):
+        self.assertEqual(PROMPT_SCHEMA_VERSION, "verified-decision-prompt-v3")
+        self.assertEqual(
+            SUPPORTED_PROMPT_SCHEMA_VERSIONS,
+            {
+                LEGACY_PROMPT_SCHEMA_VERSION,
+                PREVIOUS_PROMPT_SCHEMA_VERSION,
+                PROMPT_SCHEMA_VERSION,
+            },
+        )
 
     def test_base_prompt_has_no_memory_delimiter(self):
         base = build_base_decision_prompt(self.state(), UtilityConfig())

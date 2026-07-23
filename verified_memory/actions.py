@@ -155,13 +155,15 @@ def action_contract_prompt(config: UtilityConfig) -> str:
     """Return the versioned decision objective and strict JSON contract."""
     if not isinstance(config, UtilityConfig):
         raise TypeError("config must be UtilityConfig")
-    rho_term = "log(1 + real consumption / q0)" if math.isclose(config.rho, 1.0) else (
-        f"shifted CRRA(real consumption / q0, rho={config.rho:g})"
+    rho_term = (
+        "log(1 + real consumption / q0)"
+        if math.isclose(config.rho, 1.0)
+        else f"shifted CRRA(real consumption / q0, rho={config.rho:g})"
     )
     return (
         "Choose a monthly labor fraction and consumption fraction while balancing "
         "current consumption, labor effort, and future savings. Evaluation uses "
-        f"realized flow utility {rho_term} - "
+        f"realized flow utility with q0={config.consumption_scale:g}: {rho_term} - "
         f"{config.labor_weight:g}/(1+{config.inverse_frisch:g}) * "
         f"(labor_hours/{config.max_labor_hours:g})^(1+{config.inverse_frisch:g}); "
         "wealth and macro variables are diagnostics, not the sole objective. "

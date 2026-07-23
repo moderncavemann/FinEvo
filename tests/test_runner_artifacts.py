@@ -7,13 +7,23 @@ import shutil
 import pytest
 
 from llm_providers import MultiModelLLM
-from verified_memory.artifacts import ArtifactValidationError, verify_manifest
+from verified_memory.artifacts import (
+    ArtifactValidationError,
+    RunArtifactWriter,
+    verify_manifest,
+)
 from verified_memory.budget import BudgetLimits, RunBudget
 from verified_memory.m3_semantic import VerifiedRule
 from verified_memory.prompts import compose_decision_prompt
-from verified_memory.runner import VerifiedRunConfig, run_verified_experiment
+from verified_memory.runner import (
+    ShockEvent,
+    VerifiedRunConfig,
+    run_verified_experiment,
+)
 from verified_memory.runner_artifacts import (
+    PREVIOUS_RUNNER_SCHEMA_VERSION,
     load_verified_run_artifacts,
+    verified_run_schemas,
     write_verified_run_artifacts,
 )
 from verified_memory.scripted_provider import ScriptedDiagnosticProvider
@@ -1485,6 +1495,84 @@ def test_real_legacy_g4b_fixture_survives_reconciliation() -> None:
     }
 
 
+def test_hash_consistent_v2_clone_loads_without_v3_pilot_streams(
+    tmp_path: Path,
+) -> None:
+    source = _diagnostic_result(
+        run_id="v2-compatibility-clone", episode_length=4
+    )
+    config = json.loads(json.dumps(source.config))
+    config["schema_version"] = PREVIOUS_RUNNER_SCHEMA_VERSION
+    summary = json.loads(json.dumps(source.summary))
+    summary["schema_version"] = PREVIOUS_RUNNER_SCHEMA_VERSION
+    validation = json.loads(json.dumps(source.validation_status))
+    for name in (
+        "shock_schedule_applied_exactly",
+        "no_future_shock_in_prompt",
+        "proposal_freeze_respected",
+        "error_rule_injection_accounted",
+        "unverified_policy_has_no_evidence_or_retirement",
+    ):
+        validation["checks"].pop(name)
+    validation["status"] = (
+        "pass" if all(validation["checks"].values()) else "fail"
+    )
+    summary["validation"] = json.loads(json.dumps(validation))
+
+    runner_streams = {
+        "actions",
+        "api_usage",
+        "decision_snapshots",
+        "macro_steps",
+        "semantic_proposals",
+        "errors",
+    }
+    records = {}
+    for stream_name, rows in source.records.items():
+        if stream_name in {"shock_events", "error_rule_injections"}:
+            continue
+        converted = []
+        for row in rows:
+            item = json.loads(json.dumps(row))
+            if stream_name in runner_streams:
+                item["schema_version"] = PREVIOUS_RUNNER_SCHEMA_VERSION
+            if stream_name == "decision_snapshots":
+                item["prompt_schema_version"] = "verified-decision-prompt-v2"
+                item.pop("shock_event", None)
+            converted.append(item)
+        records[stream_name] = tuple(converted)
+
+    run_dir = tmp_path / "v2-compatibility-clone"
+    schemas = verified_run_schemas(
+        semantic_required=True,
+        run_schema_version=PREVIOUS_RUNNER_SCHEMA_VERSION,
+    )
+    writer = RunArtifactWriter.create(
+        run_dir,
+        schemas,
+        config=config,
+        provenance={"purpose": "v2 compatibility regression"},
+        git_commit="test-v2",
+        git_dirty=False,
+    )
+    for stream_name, rows in records.items():
+        for row in rows:
+            writer.append(stream_name, row)
+    writer.append("summary", summary)
+    writer.finalize(
+        validation_status=validation,
+        budget_snapshot=source.budget_snapshot,
+        result_complete=True,
+    )
+
+    assert verify_manifest(run_dir).valid is True
+    loaded = load_verified_run_artifacts(run_dir)
+    assert loaded.config["schema_version"] == PREVIOUS_RUNNER_SCHEMA_VERSION
+    assert loaded.records == records
+    assert "shock_events" not in loaded.records
+    assert "error_rule_injections" not in loaded.records
+
+
 def test_semantic_disabled_zero_rule_run_seals_and_loads(tmp_path: Path) -> None:
     result = _diagnostic_result(
         run_id="semantic-disabled",
@@ -1505,3 +1593,110 @@ def test_semantic_disabled_zero_rule_run_seals_and_loads(tmp_path: Path) -> None
     assert loaded.stream("semantic_proposals") == ()
     assert loaded.stream("semantic_rule_events") == ()
     assert loaded.stream("semantic_rules") == ()
+
+
+@pytest.mark.parametrize(
+    ("case", "config"),
+    [
+        (
+            "shock",
+            {
+                "episode_length": 2,
+                "enable_semantic": False,
+                "shock_schedule": (
+                    ShockEvent(0, "shock", 0.08),
+                    ShockEvent(1, "recovery", 0.03),
+                ),
+            },
+        ),
+        (
+            "unverified",
+            {
+                "episode_length": 4,
+                "semantic_policy": "unverified-immediate",
+            },
+        ),
+        (
+            "forced-error",
+            {
+                "episode_length": 4,
+                "error_rule_mode": "forced-active",
+                "error_rule_injection_t": 3,
+                "freeze_new_proposals_after": 2,
+            },
+        ),
+    ],
+)
+def test_v3_pilot_streams_seal_and_load(
+    tmp_path: Path, case: str, config: dict
+) -> None:
+    result = _diagnostic_result(run_id=f"sealed-{case}", **config)
+    run_dir = tmp_path / case
+    write_verified_run_artifacts(
+        run_dir,
+        result,
+        provenance={"purpose": f"{case} v3 seal regression"},
+        git_commit="test-commit",
+        git_dirty=True,
+    )
+
+    loaded = load_verified_run_artifacts(run_dir)
+    assert loaded.records == result.records
+    assert loaded.config["schema_version"] == "verified-simulation-runner-v3"
+    if case == "shock":
+        assert len(loaded.stream("shock_events")) == 2
+    elif case == "unverified":
+        assert all(
+            row["semantic_policy"] == "unverified-immediate"
+            and row["rule_status"] == "active"
+            for row in loaded.stream("semantic_proposals")
+        )
+    else:
+        assert all(
+            row["mode"] == "forced-active"
+            and row["verifier_bypassed"] is True
+            for row in loaded.stream("error_rule_injections")
+        )
+
+
+def test_writer_rejects_rehashed_unverified_source_candidate_forgery(
+    tmp_path: Path,
+) -> None:
+    result = _diagnostic_result(
+        run_id="forged-unverified-source",
+        episode_length=4,
+        semantic_policy="unverified-immediate",
+    )
+    events = list(result.stream("semantic_rule_events"))
+    index = next(
+        position
+        for position, row in enumerate(events)
+        if row["event_type"] == "experimental_rule_injected_active"
+    )
+    forged_event = json.loads(json.dumps(events[index]))
+    forged_event["provenance"]["source_candidate_id"] = (
+        "cand-" + "0" * 20
+    )
+    events[index] = _rehash_semantic_event(forged_event)
+    forged = replace(
+        result,
+        records={
+            **result.records,
+            "semantic_rule_events": tuple(events),
+        },
+    )
+
+    with pytest.raises(
+        ArtifactValidationError,
+        match=(
+            "unverified|content-addressed|injection provenance|"
+            "causal activation event"
+        ),
+    ):
+        write_verified_run_artifacts(
+            tmp_path / "forged-unverified-source",
+            forged,
+            provenance={"purpose": "unverified provenance forgery"},
+            git_commit="test-commit",
+            git_dirty=True,
+        )

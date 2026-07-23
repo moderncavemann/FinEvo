@@ -257,21 +257,98 @@ def test_provider_error_is_returned_as_immutable_record_and_accounted() -> None:
         result.text = "changed"
 
 
-def test_unexpected_post_dispatch_exception_becomes_error_record_not_rollback() -> None:
+def test_unexpected_post_dispatch_exception_keeps_conservative_reservation() -> None:
     provider = ExplodingProvider()
     llm = MultiModelLLM(provider)
-    budget = RunBudget(BudgetLimits(max_calls=2))
+    estimate = UsageRecord(
+        prompt_tokens=17,
+        completion_tokens=9,
+        cost_usd=0.07,
+    )
+    budget = RunBudget(BudgetLimits(max_calls=2, max_cost_usd=0.10))
 
-    result = llm.get_structured_completion(dialog(0), budget=budget)
+    result = llm.get_structured_completion(
+        dialog(0),
+        budget=budget,
+        estimated_usage=estimate,
+    )
 
     assert result.text == "Error"
     assert result.error_type == "RuntimeError"
     assert result.provider == "exploding"
+    assert result.usage == estimate
     assert provider.calls == 1
     snapshot = budget.snapshot()
     assert snapshot.completed_calls == 1
     assert snapshot.active_calls == 0
     assert snapshot.rolled_back_calls == 0
+    assert snapshot.accounted_usage == estimate
+
+
+def test_returned_provider_error_uses_componentwise_conservative_usage() -> None:
+    provider = StructuredStubProvider(
+        usage=UsageRecord(prompt_tokens=20, completion_tokens=1, cost_usd=0.01),
+        error_type="StubProviderError",
+    )
+    llm = MultiModelLLM(provider)
+    estimate = UsageRecord(
+        prompt_tokens=10,
+        completion_tokens=8,
+        cost_usd=0.04,
+    )
+    budget = RunBudget(BudgetLimits(max_calls=1, max_cost_usd=0.10))
+
+    result = llm.get_structured_completion(
+        dialog(0),
+        budget=budget,
+        estimated_usage=estimate,
+        max_retries=1,
+    )
+
+    expected = UsageRecord(
+        prompt_tokens=20,
+        completion_tokens=8,
+        cost_usd=0.04,
+    )
+    assert result.error_type == "StubProviderError"
+    assert result.usage == expected
+    assert budget.snapshot().accounted_usage == expected
+
+
+def test_builtin_exception_does_not_print_sensitive_text_and_keeps_reservation(
+    capsys,
+) -> None:
+    def fail(**_):
+        raise RuntimeError("sensitive-provider-response")
+
+    provider = OpenAIProvider.__new__(OpenAIProvider)
+    provider.model = "gpt-5.2"
+    provider.costs = {"prompt": 0.003, "completion": 0.012}
+    provider.max_retries = 1
+    provider.client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=fail))
+    )
+    estimate = UsageRecord(
+        prompt_tokens=13,
+        completion_tokens=7,
+        cost_usd=0.05,
+    )
+    budget = RunBudget(BudgetLimits(max_calls=1, max_cost_usd=0.10))
+
+    result = MultiModelLLM(provider).get_structured_completion(
+        dialog(0),
+        budget=budget,
+        estimated_usage=estimate,
+        max_retries=1,
+    )
+
+    captured = capsys.readouterr()
+    assert "sensitive-provider-response" not in captured.out
+    assert "sensitive-provider-response" not in captured.err
+    assert "sensitive-provider-response" not in str(result.to_dict())
+    assert result.error_type == "RuntimeError"
+    assert result.usage == estimate
+    assert budget.snapshot().accounted_usage == estimate
 
 
 def test_batch_argument_validation_happens_before_any_reservation() -> None:

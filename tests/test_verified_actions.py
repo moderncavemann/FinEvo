@@ -36,9 +36,15 @@ class VerifiedActionTest(unittest.TestCase):
 
     def test_objective_prompt_names_tradeoff_and_schema(self):
         prompt = action_contract_prompt(
-            UtilityConfig(rho=1.0, labor_weight=2.0, inverse_frisch=1.5)
+            UtilityConfig(
+                rho=1.0,
+                labor_weight=2.0,
+                inverse_frisch=1.5,
+                consumption_scale=250.0,
+            )
         )
         self.assertIn("flow utility", prompt)
+        self.assertIn("q0=250", prompt)
         self.assertIn("labor effort", prompt)
         self.assertIn("wealth and macro variables are diagnostics", prompt)
         self.assertIn("Return ONLY JSON", prompt)

@@ -41,10 +41,16 @@ from .m3_semantic import (
     VerifiedRule,
     VerifiedSemanticRuleTrack,
 )
-from .prompts import PROMPT_SCHEMA_VERSION, compose_decision_prompt
+from .prompts import (
+    PREVIOUS_PROMPT_SCHEMA_VERSION,
+    PROMPT_SCHEMA_VERSION,
+    compose_decision_prompt,
+)
 from .runner import (
     CONTEXT_FEATURES,
+    ERROR_RULE_INJECTION_SCHEMA_VERSION,
     RUNNER_SCHEMA_VERSION,
+    SHOCK_EVENT_SCHEMA_VERSION,
     VerifiedRunResult,
     _semantic_parse_mode,
 )
@@ -52,6 +58,10 @@ from .system import SYSTEM_SCHEMA_VERSION
 
 
 LEGACY_RUNNER_SCHEMA_VERSION = "verified-simulation-runner-v1"
+PREVIOUS_RUNNER_SCHEMA_VERSION = "verified-simulation-runner-v2"
+_MODERN_RUNNER_SCHEMA_VERSIONS = frozenset(
+    {PREVIOUS_RUNNER_SCHEMA_VERSION, RUNNER_SCHEMA_VERSION}
+)
 _RULE_STATUSES = ("provisional", "active", "rejected", "retired")
 _PARSE_MODES = (
     "exact_json",
@@ -71,7 +81,22 @@ _CURRENT_STREAM_SCHEMA_VERSIONS = {
     "semantic_proposals": RUNNER_SCHEMA_VERSION,
     "semantic_rule_events": M3_EVENT_SCHEMA_VERSION,
     "semantic_rules": M3_RULE_SCHEMA_VERSION,
+    "shock_events": SHOCK_EVENT_SCHEMA_VERSION,
+    "error_rule_injections": ERROR_RULE_INJECTION_SCHEMA_VERSION,
     "errors": RUNNER_SCHEMA_VERSION,
+}
+_PREVIOUS_STREAM_SCHEMA_VERSIONS = {
+    "actions": PREVIOUS_RUNNER_SCHEMA_VERSION,
+    "api_usage": PREVIOUS_RUNNER_SCHEMA_VERSION,
+    "context_trace": SYSTEM_SCHEMA_VERSION,
+    "decision_snapshots": PREVIOUS_RUNNER_SCHEMA_VERSION,
+    "episodes": M2_SCHEMA_VERSION,
+    "utility_ledger": M0_SCHEMA_VERSION,
+    "macro_steps": PREVIOUS_RUNNER_SCHEMA_VERSION,
+    "semantic_proposals": PREVIOUS_RUNNER_SCHEMA_VERSION,
+    "semantic_rule_events": M3_EVENT_SCHEMA_VERSION,
+    "semantic_rules": M3_RULE_SCHEMA_VERSION,
+    "errors": PREVIOUS_RUNNER_SCHEMA_VERSION,
 }
 _LEGACY_STREAM_SCHEMA_VERSIONS = {
     "actions": LEGACY_RUNNER_SCHEMA_VERSION,
@@ -104,8 +129,19 @@ def _schema(
     )
 
 
-def verified_run_schemas(*, semantic_required: bool) -> tuple[JsonlStreamSchema, ...]:
+def verified_run_schemas(
+    *,
+    semantic_required: bool,
+    run_schema_version: str = RUNNER_SCHEMA_VERSION,
+) -> tuple[JsonlStreamSchema, ...]:
     """Return the complete declared stream contract for a verified run."""
+
+    if run_schema_version not in {
+        LEGACY_RUNNER_SCHEMA_VERSION,
+        PREVIOUS_RUNNER_SCHEMA_VERSION,
+        RUNNER_SCHEMA_VERSION,
+    }:
+        raise ValueError(f"unsupported runner schema {run_schema_version!r}")
 
     core = (
         _schema(
@@ -222,7 +258,38 @@ def verified_run_schemas(*, semantic_required: bool) -> tuple[JsonlStreamSchema,
             required=False,
         ),
     )
-    return core + semantic
+    pilot = ()
+    if run_schema_version == RUNNER_SCHEMA_VERSION:
+        pilot = (
+            _schema(
+                "shock_events",
+                (
+                    JsonField("schema_version", "string"),
+                    JsonField("decision_t", "integer"),
+                    JsonField("phase", "string"),
+                    JsonField("interest_rate", "number"),
+                    JsonField("applied_before_prompt", "boolean"),
+                    JsonField("applied_before_step", "boolean"),
+                ),
+                required=False,
+            ),
+            _schema(
+                "error_rule_injections",
+                (
+                    JsonField("schema_version", "string"),
+                    JsonField("decision_t", "integer"),
+                    JsonField("agent_id", "integer"),
+                    JsonField("mode", "string"),
+                    JsonField("semantic_policy", "string"),
+                    JsonField("fixed_rule_hash", "string"),
+                    JsonField("verifier_bypassed", "boolean"),
+                    JsonField("rule_id", "string"),
+                    JsonField("rule_status", "string"),
+                ),
+                required=False,
+            ),
+        )
+    return core + semantic + pilot
 
 
 def _contract_error(message: str) -> ArtifactValidationError:
@@ -992,19 +1059,88 @@ def _validate_current_semantic_proposals(
                 "semantic proposal candidate_parse_mode does not reproduce from "
                 "raw_output"
             )
-        matching_events = [
-            event
-            for event in events_by_agent.get(agent_id, [])
-            if event.timestamp == current_t
-            and event.rule_id == proposal.get("rule_id")
-            and event.candidate_id == candidate.candidate_id
-            and event.to_status == proposal.get("rule_status")
-        ]
+        semantic_policy = proposal.get(
+            "semantic_policy", "evidence-grounded"
+        )
+        if semantic_policy == "unverified-immediate":
+            matching_events = [
+                event
+                for event in events_by_agent.get(agent_id, [])
+                if event.timestamp == current_t
+                and event.rule_id == proposal.get("rule_id")
+                and event.event_type
+                in {
+                    "experimental_rule_injected_active",
+                    "duplicate_unverified_candidate_ignored",
+                }
+                and event.candidate_id is None
+                and event.provenance.get("semantic_policy")
+                == "unverified-immediate"
+                and event.provenance.get("source_candidate_id")
+                == candidate.candidate_id
+                and event.to_status == proposal.get("rule_status")
+            ]
+        elif semantic_policy == "evidence-grounded":
+            matching_events = [
+                event
+                for event in events_by_agent.get(agent_id, [])
+                if event.timestamp == current_t
+                and event.rule_id == proposal.get("rule_id")
+                and event.candidate_id == candidate.candidate_id
+                and event.to_status == proposal.get("rule_status")
+            ]
+        else:
+            raise _contract_error(
+                "semantic proposal has an unknown semantic_policy"
+            )
         if len(matching_events) != 1:
             raise _contract_error(
                 "successful semantic proposal lacks content-addressed candidate event"
             )
         event = matching_events[0]
+        if semantic_policy == "unverified-immediate":
+            rule_id = proposal.get("rule_id")
+            rule = parsed_rules.get((agent_id, rule_id))
+            provenance = (
+                {} if rule is None else dict(rule.injection_provenance or {})
+            )
+            if (
+                rule is None
+                or not rule.injected
+                or rule.status != "active"
+                or proposal.get("rule_status") != "active"
+                or candidate.context_scope != rule.context_scope
+                or candidate.condition != rule.condition
+                or candidate.action_guidance != rule.action_guidance
+                or candidate.outcome_criterion != rule.outcome_criterion
+                or candidate.rationale != rule.rationale
+                or provenance.get("semantic_policy")
+                != "unverified-immediate"
+                or provenance.get("source_candidate_id")
+                != candidate.candidate_id
+                or provenance.get("generator_id") != candidate.generator_id
+                or provenance.get("raw_response_hash")
+                != candidate.raw_response_hash
+                or provenance.get("requested_support_ids")
+                != list(candidate.supporting_episode_ids)
+                or provenance.get("evidence_admission") is not False
+                or provenance.get("retirement_enabled") is not False
+            ):
+                raise _contract_error(
+                    "unverified semantic proposal does not exactly bind its "
+                    "parsed candidate and explicit bypass provenance"
+                )
+            if (
+                event.event_type == "experimental_rule_injected_active"
+                and event.timestamp != rule.created_at
+            ):
+                raise _contract_error(
+                    "unverified rule creation timestamp does not match proposal"
+                )
+            reparsed_creation_candidates.add(
+                (agent_id, rule.rule_id, candidate.candidate_id)
+            )
+            continue
         candidate_rule_key = event.provenance.get("candidate_rule_key")
         if (
             candidate_rule_key is not None
@@ -1111,11 +1247,29 @@ def _validate_current_semantic_proposals(
                 (agent_id, rule.rule_id, candidate.candidate_id)
             )
 
-    expected_creation_candidates = {
-        (agent_id, rule.rule_id, rule.candidate_ids[0])
-        for (agent_id, _), rule in parsed_rules.items()
-        if not rule.injected
-    }
+    expected_creation_candidates = set()
+    for (agent_id, _), rule in parsed_rules.items():
+        if not rule.injected:
+            expected_creation_candidates.add(
+                (agent_id, rule.rule_id, rule.candidate_ids[0])
+            )
+            continue
+        provenance = dict(rule.injection_provenance or {})
+        if provenance.get("semantic_policy") == "unverified-immediate":
+            # The preregistered forced-active error control is an explicit
+            # non-proposal injection and is independently reconciled against
+            # error_rule_injections.  Only ordinary unverified candidates must
+            # bind a reparsed source proposal.
+            if provenance.get("error_rule_mode") == "forced-active":
+                continue
+            source_candidate_id = provenance.get("source_candidate_id")
+            if not isinstance(source_candidate_id, str):
+                raise _contract_error(
+                    "unverified injected rule lacks source_candidate_id"
+                )
+            expected_creation_candidates.add(
+                (agent_id, rule.rule_id, source_candidate_id)
+            )
     if reparsed_creation_candidates != expected_creation_candidates:
         raise _contract_error(
             "every non-injected semantic rule must bind exactly one reparsed "
@@ -1743,8 +1897,13 @@ def _validate_current_identity_bindings(
             prompt = compose_decision_prompt(base_prompt, memory_text)
         except (TypeError, ValueError) as exc:
             raise _contract_error(f"decision prompt reconstruction failed: {exc}") from exc
+        expected_prompt_schema = (
+            PROMPT_SCHEMA_VERSION
+            if config.get("schema_version") == RUNNER_SCHEMA_VERSION
+            else PREVIOUS_PROMPT_SCHEMA_VERSION
+        )
         if (
-            snapshot.get("prompt_schema_version") != PROMPT_SCHEMA_VERSION
+            snapshot.get("prompt_schema_version") != expected_prompt_schema
             or snapshot.get("base_prompt_hash") != prompt.base_prompt_hash
             or snapshot.get("memory_hash") != prompt.memory_hash
             or snapshot.get("full_prompt_hash") != prompt.full_prompt_hash
@@ -2246,6 +2405,61 @@ def _validate_current_utility_and_result_contract(
             for row in records.get("utility_ledger", ())
         ),
     }
+    if config.get("schema_version") == RUNNER_SCHEMA_VERSION:
+        unverified_rule_ids = {
+            row.get("rule_id")
+            for row in records.get("semantic_rules", ())
+            if _mapping(
+                row.get("injection_provenance") or {},
+                "semantic_rules.injection_provenance",
+            ).get("semantic_policy")
+            == "unverified-immediate"
+        }
+        freeze_after = config.get("freeze_new_proposals_after")
+        expected_checks.update(
+            {
+                "shock_schedule_applied_exactly": list(
+                    records.get("shock_events", ())
+                )
+                == list(config.get("shock_schedule", ())),
+                "no_future_shock_in_prompt": all(
+                    row.get("shock_event") is None
+                    or _mapping(
+                        row.get("shock_event"),
+                        "decision_snapshots.shock_event",
+                    ).get("decision_t")
+                    == row.get("decision_t")
+                    for row in records.get("decision_snapshots", ())
+                ),
+                "proposal_freeze_respected": (
+                    freeze_after is None
+                    or all(
+                        row.get("current_t") <= freeze_after
+                        for row in records.get("semantic_proposals", ())
+                    )
+                ),
+                "error_rule_injection_accounted": len(
+                    records.get("error_rule_injections", ())
+                )
+                == (
+                    0
+                    if config.get("error_rule_mode") == "none"
+                    else num_agents
+                ),
+                "unverified_policy_has_no_evidence_or_retirement": all(
+                    not (
+                        row.get("rule_id") in unverified_rule_ids
+                        and (
+                            str(row.get("event_type", "")).endswith(
+                                "_evidence_added"
+                            )
+                            or row.get("event_type") == "rule_retired"
+                        )
+                    )
+                    for row in records.get("semantic_rule_events", ())
+                ),
+            }
+        )
     provider_models = {
         f"{row.get('provider')}/{row.get('model')}"
         for row in records.get("api_usage", ())
@@ -2254,11 +2468,21 @@ def _validate_current_utility_and_result_contract(
         raise _contract_error("current run must use exactly one provider/model")
     provider_model = next(iter(provider_models))
     diagnostic_only = provider_model.startswith("diagnostic/")
+    scientific_evidence = bool(
+        config.get("schema_version") == RUNNER_SCHEMA_VERSION
+        and all(expected_checks.values())
+        and not diagnostic_only
+        and config.get("scientific_scope")
+        == "preregistered_mechanism_micro_pilot"
+        and config.get("allow_scientific_scope") is True
+        and config.get("pilot_contract_hash")
+        and config.get("pilot_tag")
+    )
     expected_validation = {
         "status": "pass" if all(expected_checks.values()) else "fail",
         "checks": expected_checks,
         "diagnostic_only": diagnostic_only,
-        "scientific_evidence": False,
+        "scientific_evidence": scientific_evidence,
     }
     if dict(validation_status) != expected_validation:
         raise _contract_error(
@@ -2267,8 +2491,13 @@ def _validate_current_utility_and_result_contract(
     if (
         summary.get("provider_model") != provider_model
         or summary.get("diagnostic_only") is not diagnostic_only
-        or summary.get("scientific_evidence") is not False
-        or summary.get("result_scope") != "bounded_method_smoke"
+        or summary.get("scientific_evidence") is not scientific_evidence
+        or summary.get("result_scope")
+        != (
+            config.get("scientific_scope")
+            if config.get("schema_version") == RUNNER_SCHEMA_VERSION
+            else "bounded_method_smoke"
+        )
     ):
         raise _contract_error(
             "summary provider/evidence scope does not match the sealed run"
@@ -2290,6 +2519,8 @@ def _validate_schema_versions(
         )
     if run_schema_version == RUNNER_SCHEMA_VERSION:
         stream_versions = _CURRENT_STREAM_SCHEMA_VERSIONS
+    elif run_schema_version == PREVIOUS_RUNNER_SCHEMA_VERSION:
+        stream_versions = _PREVIOUS_STREAM_SCHEMA_VERSIONS
     elif run_schema_version == LEGACY_RUNNER_SCHEMA_VERSION:
         stream_versions = _LEGACY_STREAM_SCHEMA_VERSIONS
     else:
@@ -2305,7 +2536,8 @@ def _validate_schema_versions(
     current_schemas = {
         schema.name: schema
         for schema in verified_run_schemas(
-            semantic_required=bool(config.get("enable_semantic"))
+            semantic_required=bool(config.get("enable_semantic")),
+            run_schema_version=str(run_schema_version),
         )
     }
     for stream_name, expected_version in stream_versions.items():
@@ -2356,7 +2588,7 @@ def _validate_cross_stream_contract(
     )
     if summary.get("run_id") != config.get("run_id"):
         raise _contract_error("summary.run_id does not match config.run_id")
-    if run_schema_version == RUNNER_SCHEMA_VERSION:
+    if run_schema_version in _MODERN_RUNNER_SCHEMA_VERSIONS:
         _validate_current_foundation_contract(
             config,
             num_agents=num_agents,
@@ -2419,7 +2651,7 @@ def _validate_cross_stream_contract(
             "macro_steps must be the ordered causal sequence "
             "(decision_t=t, outcome_t=t+1)"
         )
-    if run_schema_version == RUNNER_SCHEMA_VERSION and result_complete:
+    if run_schema_version in _MODERN_RUNNER_SCHEMA_VERSIONS and result_complete:
         expected_done = [False] * (macro_count - 1) + [True]
         actual_done = [row.get("done") for row in records.get("macro_steps", ())]
         if any(not isinstance(value, bool) for value in actual_done):
@@ -2656,7 +2888,7 @@ def _validate_cross_stream_contract(
             "action identities do not match action api_usage identities"
         )
 
-    if run_schema_version == RUNNER_SCHEMA_VERSION:
+    if run_schema_version in _MODERN_RUNNER_SCHEMA_VERSIONS:
         parse_summary = _mapping(
             memory_diagnostics.get("semantic_candidate_parse"),
             "summary.memory_diagnostics.semantic_candidate_parse",
@@ -2748,14 +2980,41 @@ def _validate_cross_stream_contract(
                         "successful semantic proposal must link to a same-agent rule "
                         "and have non-failure parse provenance"
                     )
-                matching_candidate_event = any(
-                    event.get("agent_id") == proposal.get("agent_id")
-                    and event.get("timestamp") == proposal.get("current_t")
-                    and event.get("rule_id") == rule_id
-                    and event.get("candidate_id") is not None
-                    and event.get("to_status") == rule_status
-                    for event in rule_events
+                semantic_policy = proposal.get(
+                    "semantic_policy", "evidence-grounded"
                 )
+                if semantic_policy == "unverified-immediate":
+                    matching_candidate_event = any(
+                        event.get("agent_id") == proposal.get("agent_id")
+                        and event.get("timestamp") == proposal.get("current_t")
+                        and event.get("rule_id") == rule_id
+                        and event.get("event_type")
+                        in {
+                            "experimental_rule_injected_active",
+                            "duplicate_unverified_candidate_ignored",
+                        }
+                        and _mapping(
+                            event.get("provenance"),
+                            "semantic_rule_events.provenance",
+                        ).get("source_candidate_id")
+                        is not None
+                        and event.get("to_status") == "active"
+                        and rule_status == "active"
+                        for event in rule_events
+                    )
+                elif semantic_policy == "evidence-grounded":
+                    matching_candidate_event = any(
+                        event.get("agent_id") == proposal.get("agent_id")
+                        and event.get("timestamp") == proposal.get("current_t")
+                        and event.get("rule_id") == rule_id
+                        and event.get("candidate_id") is not None
+                        and event.get("to_status") == rule_status
+                        for event in rule_events
+                    )
+                else:
+                    raise _contract_error(
+                        "semantic proposal has an unknown semantic_policy"
+                    )
                 if not matching_candidate_event:
                     raise _contract_error(
                         "successful semantic proposal lacks its candidate lifecycle event"
@@ -2835,7 +3094,7 @@ def _validate_cross_stream_contract(
         actual_labor_counts = Counter(f"{hours:g}" for hours in executed_hours)
         if dict(declared_labor_counts) != dict(actual_labor_counts):
             raise _contract_error("labor_hours_counts does not match the actions stream")
-    if run_schema_version == RUNNER_SCHEMA_VERSION:
+    if run_schema_version in _MODERN_RUNNER_SCHEMA_VERSIONS:
         expected_intermediate = sum(
             0.0 < hours < max_labor_hours for hours in executed_hours
         )
@@ -2881,7 +3140,8 @@ def _validate_cross_stream_contract(
         actual_stream_counts = {
             schema.name: (1 if schema.name == "summary" else len(records.get(schema.name, ())))
             for schema in verified_run_schemas(
-                semantic_required=bool(config.get("enable_semantic"))
+                semantic_required=bool(config.get("enable_semantic")),
+                run_schema_version=str(config.get("schema_version")),
             )
         }
         if dict(declared_stream_counts) != actual_stream_counts:
@@ -2914,7 +3174,10 @@ def write_verified_run_artifacts(
     semantic_required = bool(result.config.get("enable_semantic"))
     writer = RunArtifactWriter.create(
         Path(run_dir),
-        verified_run_schemas(semantic_required=semantic_required),
+        verified_run_schemas(
+            semantic_required=semantic_required,
+            run_schema_version=RUNNER_SCHEMA_VERSION,
+        ),
         config=result.config,
         provenance=dict(provenance),
         git_commit=git_commit,
@@ -2922,7 +3185,8 @@ def write_verified_run_artifacts(
     )
     for stream_name, rows in result.records.items():
         if stream_name not in {schema.name for schema in verified_run_schemas(
-            semantic_required=semantic_required
+            semantic_required=semantic_required,
+            run_schema_version=RUNNER_SCHEMA_VERSION,
         )}:
             raise ValueError(f"runner produced undeclared stream: {stream_name}")
         for row in rows:
@@ -2949,7 +3213,8 @@ def load_verified_run_artifacts(run_dir: str | Path) -> VerifiedRunResult:
     records: dict[str, tuple[Mapping[str, Any], ...]] = {}
     summary: Mapping[str, Any] | None = None
     for schema in verified_run_schemas(
-        semantic_required=bool(config.get("enable_semantic"))
+        semantic_required=bool(config.get("enable_semantic")),
+        run_schema_version=str(config.get("schema_version")),
     ):
         path = root / schema.relative_path
         rows: tuple[Mapping[str, Any], ...] = ()
