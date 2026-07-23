@@ -1,0 +1,180 @@
+{
+  "comparators": [
+    "FinEvo current_v2",
+    "EconAgent",
+    "EconAI"
+  ],
+  "evidence_boundary": "This table compares documented mechanisms. It is not an empirical ranking, and 'not specified' is bounded to the cited paper sections.",
+  "rows": [
+    {
+      "EconAI": "The framework models households and firms; household work and consumption decisions coexist with firm-side production, investment, and employment decisions.",
+      "EconAgent": "Household agents produce monthly work and consumption propensities in a labor/consumption macroeconomic loop.",
+      "FinEvo current_v2": "Household agents choose discretized labor hours and a consumption fraction inside a monthly closed-loop simulation.",
+      "dimension": "agent types and decisions",
+      "source_refs": {
+        "EconAI": [
+          "econai:3.4"
+        ],
+        "EconAgent": [
+          "econagent:2.1",
+          "econagent:3.3"
+        ],
+        "FinEvo current_v2": [
+          "finevo_contract:arms",
+          "finevo_contract:stages"
+        ]
+      }
+    },
+    {
+      "EconAI": "Short-term context and embedding-retrieved long-term event summaries are combined with a persistent dynamic persona bank.",
+      "EconAgent": "A rolling pool stores conversations from the previous L months and adds an LLM reflection at each quarter end; the reported experiments use L=1.",
+      "FinEvo current_v2": "An evidence-linked episodic track is paired with structured semantic rules; retrieval is separately controllable from regime prompting.",
+      "dimension": "temporal memory representation",
+      "source_refs": {
+        "EconAI": [
+          "econai:3.1",
+          "econai:3.4"
+        ],
+        "EconAgent": [
+          "econagent:3.2"
+        ],
+        "FinEvo current_v2": [
+          "finevo_contract:arms",
+          "finevo_contract:stages"
+        ]
+      }
+    },
+    {
+      "EconAI": "An LLM-derived Economic Sentiment Index is exponentially smoothed and used with confidence to modulate work and consumption; the framework also updates personas.",
+      "EconAgent": "Quarterly reflection is retained as free-form conclusions about labor, consumption, and financial-market dynamics.",
+      "FinEvo current_v2": "LLM-proposed rules are parsed into a fixed condition/action schema and exposed to the actor only under the registered semantic-memory policy.",
+      "dimension": "belief or rule abstraction",
+      "source_refs": {
+        "EconAI": [
+          "econai:3.2"
+        ],
+        "EconAgent": [
+          "econagent:3.2"
+        ],
+        "FinEvo current_v2": [
+          "finevo_contract:arms",
+          "finevo_contract:stop_go"
+        ]
+      }
+    },
+    {
+      "EconAI": "The cited framework describes event summarization, retrieval, persona updates, and sentiment weighting, but does not specify a verifier lifecycle for abstracted decision rules.",
+      "EconAgent": "The cited memory section describes quarterly LLM reflection but does not specify evidence-linked admission or retirement tests for reflected conclusions.",
+      "FinEvo current_v2": "The evidence-grounded track has explicit candidate admission, activation, harmful-compliance monitoring, and retirement; the pilot contrasts it with immediate unverified activation.",
+      "dimension": "error control for abstracted memory",
+      "source_refs": {
+        "EconAI": [
+          "econai:3.1",
+          "econai:3.2"
+        ],
+        "EconAgent": [
+          "econagent:3.2"
+        ],
+        "FinEvo current_v2": [
+          "finevo_contract:arms",
+          "finevo_contract:stop_go"
+        ]
+      }
+    },
+    {
+      "EconAI": "Retrieved events, short-term context, persona, and ESI feed the response generator, whose decisions then enter the economic environment.",
+      "EconAgent": "Economic variables, recent conversations, and quarterly reflection are inserted into the prompt that emits work and consumption propensities.",
+      "FinEvo current_v2": "The registered artifacts separately expose shock events, routed context, retrieved episode/rule IDs, actions, utility ledger, and subsequent macro state.",
+      "dimension": "macro-state to memory to action trace",
+      "source_refs": {
+        "EconAI": [
+          "econai:3.2",
+          "econai:3.4"
+        ],
+        "EconAgent": [
+          "econagent:3.2",
+          "econagent:3.3"
+        ],
+        "FinEvo current_v2": [
+          "finevo_contract:stages",
+          "finevo_contract:stop_go"
+        ]
+      }
+    },
+    {
+      "EconAI": "A comparable single COVID-19 textual intervention is contrasted with a counterfactual without the injection.",
+      "EconAgent": "A COVID-19 national-emergency sentence is added after March 2020 and compared with a no-injection simulation.",
+      "FinEvo current_v2": "One hash-bound checkpoint branches into no text, shock-aligned text, a semantic paraphrase, and direction-opposite text; the claim is limited to controlled semantic response.",
+      "dimension": "textual event evaluation",
+      "source_refs": {
+        "EconAI": [
+          "econai:4.5"
+        ],
+        "EconAgent": [
+          "econagent:4.5"
+        ],
+        "FinEvo current_v2": [
+          "finevo_contract:stages",
+          "finevo_contract:non_claims"
+        ]
+      }
+    },
+    {
+      "EconAI": "The paper reports memory/sentiment/belief ablations and scale sensitivity; its cited experimental sections do not define FinEvo's cell-level provider/parse-failure ITT policy.",
+      "EconAgent": "The paper reports perception/reflection ablations and multiple simulation runs; its cited experimental sections do not define FinEvo's cell-level provider/parse-failure ITT policy.",
+      "FinEvo current_v2": "Paired seed-level route, architecture, erroneous-rule, and checkpoint interventions retain provider, parse, budget, and integrity failures in a preregistered ITT denominator.",
+      "dimension": "mechanism evidence and denominator",
+      "source_refs": {
+        "EconAI": [
+          "econai:4.4"
+        ],
+        "EconAgent": [
+          "econagent:4.3"
+        ],
+        "FinEvo current_v2": [
+          "finevo_contract:stop_go",
+          "finevo_contract:stages"
+        ]
+      }
+    }
+  ],
+  "schema_version": "finevo-pilot-evidence-package-v1",
+  "sources": {
+    "econagent": {
+      "sections": [
+        "2.1",
+        "3.2",
+        "3.3",
+        "4.3",
+        "4.5"
+      ],
+      "title": "EconAgent: Large Language Model-Empowered Agents for Simulating Macroeconomic Activities",
+      "url": "https://arxiv.org/pdf/2310.10436",
+      "version": "arXiv:2310.10436v4"
+    },
+    "econai": {
+      "sections": [
+        "3.1",
+        "3.2",
+        "3.4",
+        "4.4",
+        "4.5"
+      ],
+      "title": "EconAI: Dynamic Persona Evolution and Memory-Aware Agents in Evolving Economic Environments",
+      "url": "https://arxiv.org/pdf/2605.13762",
+      "version": "arXiv:2605.13762v1"
+    },
+    "finevo_contract": {
+      "artifact": "contract/pilot_v1.yaml",
+      "sections": [
+        "arms",
+        "shocks",
+        "utility",
+        "stop_go",
+        "stages"
+      ],
+      "title": "FinEvo frozen pilot contract and current_v2 implementation"
+    }
+  },
+  "status": "primary-source-backed method comparison"
+}
