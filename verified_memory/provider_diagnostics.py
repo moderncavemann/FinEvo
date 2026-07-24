@@ -42,6 +42,7 @@ PROVIDER_DIAGNOSTIC_BUDGET_SCHEMA_VERSION = (
 )
 DIAGNOSTIC_CUMULATIVE_CAP_USD = 0.30
 PRIOR_MANUAL_DIAGNOSTIC_RESERVE_USD = 0.01
+DEFAULT_INTERFACE_PROBE_MAX_TOKENS = 128
 DIAGNOSTIC_OUTPUT_RELATIVE_ROOT = (
     Path("experiment_results")
     / "pilot-v2-debug"
@@ -842,7 +843,7 @@ def run_provider_interface_probe(
     output_path: str | Path,
     repo_root: str | Path,
     required_tag: str,
-    max_tokens: int = 80,
+    max_tokens: int = DEFAULT_INTERFACE_PROBE_MAX_TOKENS,
     max_cost_usd: float = 0.05,
     force_json_object: bool = False,
     provider_factory: Callable[[ProviderRequestProfile], Any] | None = None,
@@ -1106,6 +1107,7 @@ def run_provider_interface_probe(
 __all__ = [
     "PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION",
     "PROVIDER_DIAGNOSTIC_BUDGET_SCHEMA_VERSION",
+    "DEFAULT_INTERFACE_PROBE_MAX_TOKENS",
     "ProviderDiagnosticError",
     "run_provider_interface_probe",
     "verify_provider_interface_receipt",

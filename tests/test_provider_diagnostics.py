@@ -1,23 +1,29 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import inspect
 import json
 from pathlib import Path
 import subprocess
 
 import pytest
 
-from diagnose_provider_interface import _safe_error_type as _safe_cli_error_type
-from llm_providers import StructuredCompletion
+from diagnose_provider_interface import (
+    _safe_error_type as _safe_cli_error_type,
+    build_parser,
+)
+from llm_providers import ProviderErrorDetails, StructuredCompletion
 from verified_memory.budget import UsageRecord
 from verified_memory.pilot_contract import canonical_sha256, load_pilot_contract
 from verified_memory.provider_diagnostics import (
+    DEFAULT_INTERFACE_PROBE_MAX_TOKENS,
     DIAGNOSTIC_CUMULATIVE_CAP_USD,
     DIAGNOSTIC_OUTPUT_RELATIVE_ROOT,
     PRIOR_MANUAL_DIAGNOSTIC_RESERVE_USD,
     ProviderDiagnosticError,
     _assert_diagnostic_output_path,
     _cumulative_reservation_cost,
+    _estimated_usage,
     _ledger_path,
     _reserve_cumulative_diagnostic_budget,
     run_provider_interface_probe,
@@ -143,7 +149,31 @@ class _FixtureProvider:
                 temperature_dispatch="explicit",
                 **common,
             )
-        raise AssertionError("fixture only implements OpenAI and Ollama")
+        if self.profile.transport == "openrouter":
+            return StructuredCompletion(
+                provider="thirdparty",
+                response_provider=self.profile.provider_pin[0],
+                response_route=dict(self.profile.artifact_identity)[
+                    "served_snapshot"
+                ],
+                provider_sdk_name="openai-python",
+                provider_sdk_version="2.46.0",
+                route_attestation_code="OR_RA_PASS",
+                route_attestation_source="inline-attribute",
+                request_parameters=(
+                    "extra_body",
+                    "max_tokens",
+                    "messages",
+                    "model",
+                    "response_format",
+                    "seed",
+                    "temperature",
+                    "top_p",
+                ),
+                temperature_dispatch="explicit",
+                **common,
+            )
+        raise AssertionError("fixture received an unsupported transport")
 
 
 def _provenance(_root, *, required_tag):
@@ -163,7 +193,7 @@ def _run(
     name: str,
     model_id: str = "gpt52_main",
     provider_factory=None,
-    max_tokens: int = 32,
+    max_tokens: int | None = 32,
     max_cost_usd: float = 0.05,
     force_json_object: bool = False,
 ):
@@ -174,17 +204,21 @@ def _run(
         providers.append(provider)
         return provider
 
+    kwargs = {
+        "contract_path": CONTRACT_PATH,
+        "model_id": model_id,
+        "output_path": _output(root, name),
+        "repo_root": root,
+        "required_tag": f"pilot-v2-debug-{name}",
+        "max_cost_usd": max_cost_usd,
+        "force_json_object": force_json_object,
+        "provider_factory": provider_factory or default_factory,
+        "provenance_verifier": _provenance,
+    }
+    if max_tokens is not None:
+        kwargs["max_tokens"] = max_tokens
     result = run_provider_interface_probe(
-        contract_path=CONTRACT_PATH,
-        model_id=model_id,
-        output_path=_output(root, name),
-        repo_root=root,
-        required_tag=f"pilot-v2-debug-{name}",
-        max_tokens=max_tokens,
-        max_cost_usd=max_cost_usd,
-        force_json_object=force_json_object,
-        provider_factory=provider_factory or default_factory,
-        provenance_verifier=_provenance,
+        **kwargs,
     )
     return result, providers
 
@@ -231,6 +265,178 @@ def test_single_probe_writes_one_safe_receipt_and_final_ledger_hash(
     assert ledger["diagnostic_only"] is True
     assert ledger["entries"][0]["status"] == "pass"
     assert ledger["entries"][0]["receipt_sha256"] == result["receipt_sha256"]
+
+
+def test_reasoning_safe_default_avoids_an_80_token_interface_false_negative(
+    diagnostic_root: Path,
+) -> None:
+    parsed = build_parser().parse_args(
+        [
+            "--model-id",
+            "gemini35_flash_sentinel",
+            "--required-tag",
+            "pilot-v2-debug-default",
+            "--output",
+            str(_output(diagnostic_root, "default.json")),
+        ]
+    )
+    signature_default = inspect.signature(
+        run_provider_interface_probe
+    ).parameters["max_tokens"].default
+    assert parsed.max_tokens == DEFAULT_INTERFACE_PROBE_MAX_TOKENS == 128
+    assert signature_default == DEFAULT_INTERFACE_PROBE_MAX_TOKENS
+
+    contract = load_pilot_contract(CONTRACT_PATH)
+    profile = contract.provider_profiles["gemini35_flash_sentinel"]
+    assert (
+        _estimated_usage(
+            profile,
+            max_tokens=DEFAULT_INTERFACE_PROBE_MAX_TOKENS,
+        ).cost_usd
+        < 0.05
+    )
+
+    class ReasoningHeavyProvider(_FixtureProvider):
+        def get_structured_completion(self, messages, **kwargs):
+            observed_max_tokens.append(kwargs["max_tokens"])
+            result = super().get_structured_completion(messages, **kwargs)
+            if kwargs["max_tokens"] <= 80:
+                return replace(
+                    result,
+                    text='{"ok',
+                    usage=UsageRecord(15, 80, 0.001),
+                    error_type="IncompleteCompletionError",
+                    provider_error_details=ProviderErrorDetails(
+                        error_type="IncompleteCompletionError",
+                        stage="openrouter.response.finish",
+                        sdk_name="openai-python",
+                        sdk_version="2.46.0",
+                        code="completion_length",
+                    ),
+                    reasoning_tokens=74,
+                    finish_reason="length",
+                    native_finish_reason="MAX_TOKENS",
+                    response_completed=False,
+                    output_disposition="discarded_incomplete",
+                )
+            return replace(
+                result,
+                usage=UsageRecord(15, 86, 0.0011),
+                reasoning_tokens=74,
+            )
+
+    created = []
+    observed_max_tokens = []
+
+    def reasoning_factory(profile):
+        provider = ReasoningHeavyProvider(profile)
+        created.append(provider)
+        return provider
+
+    truncated, _ = _run(
+        diagnostic_root,
+        name="gemini-80.json",
+        model_id="gemini35_flash_sentinel",
+        provider_factory=reasoning_factory,
+        max_tokens=80,
+    )
+    assert truncated["status"] == "no-go"
+    assert truncated["checks"]["finish_stop"] is False
+    assert truncated["checks"]["strict_json_valid"] is False
+    assert truncated["completion"]["reasoning_tokens"] == 74
+    assert created[-1].calls == 1
+
+    passed, _ = _run(
+        diagnostic_root,
+        name="gemini-default.json",
+        model_id="gemini35_flash_sentinel",
+        provider_factory=reasoning_factory,
+        max_tokens=None,
+    )
+    assert passed["status"] == "pass"
+    assert passed["completion"]["reasoning_tokens"] == 74
+    assert created[-1].calls == 1
+    assert observed_max_tokens == [80, DEFAULT_INTERFACE_PROBE_MAX_TOKENS]
+    assert (
+        passed["request"]["max_tokens"]
+        == DEFAULT_INTERFACE_PROBE_MAX_TOKENS
+    )
+    assert (
+        passed["budget"]["limits"]["max_completion_tokens"]
+        == DEFAULT_INTERFACE_PROBE_MAX_TOKENS
+    )
+
+    for receipt in (truncated, passed):
+        assert receipt["scientific_evidence"] is False
+        assert receipt["diagnostic_only"] is True
+        assert receipt["denominator_inclusion"] is False
+        verify_provider_interface_receipt(receipt)
+
+    ledger = _read_ledger(diagnostic_root)
+    _assert_ledger_hash(ledger)
+    assert [entry["status"] for entry in ledger["entries"]] == [
+        "no-go",
+        "pass",
+    ]
+    assert all(
+        entry["reserved_cost_usd"] == 0.05
+        for entry in ledger["entries"]
+    )
+    assert ledger["hard_cap_usd"] == DIAGNOSTIC_CUMULATIVE_CAP_USD == 0.30
+
+
+def test_exact_stop_and_strict_json_are_independent_interface_gates(
+    diagnostic_root: Path,
+) -> None:
+    class FinishOnlyFaultProvider(_FixtureProvider):
+        def get_structured_completion(self, messages, **kwargs):
+            return replace(
+                super().get_structured_completion(messages, **kwargs),
+                finish_reason="length",
+                native_finish_reason="MAX_TOKENS",
+            )
+
+    class JsonOnlyFaultProvider(_FixtureProvider):
+        def get_structured_completion(self, messages, **kwargs):
+            return replace(
+                super().get_structured_completion(messages, **kwargs),
+                text="not-json",
+            )
+
+    created = []
+
+    def factory(provider_type):
+        def build(profile):
+            provider = provider_type(profile)
+            created.append(provider)
+            return provider
+
+        return build
+
+    finish_fault, _ = _run(
+        diagnostic_root,
+        name="finish-only.json",
+        provider_factory=factory(FinishOnlyFaultProvider),
+    )
+    assert finish_fault["status"] == "no-go"
+    assert {
+        name for name, passed in finish_fault["checks"].items() if not passed
+    } == {"finish_stop"}
+    assert created[-1].calls == 1
+
+    json_fault, _ = _run(
+        diagnostic_root,
+        name="json-only.json",
+        provider_factory=factory(JsonOnlyFaultProvider),
+    )
+    assert json_fault["status"] == "no-go"
+    assert {
+        name for name, passed in json_fault["checks"].items() if not passed
+    } == {"strict_json_valid"}
+    assert created[-1].calls == 1
+
+    for receipt in (finish_fault, json_fault):
+        verify_provider_interface_receipt(receipt)
 
 
 def test_probe_rejects_incomplete_dispatched_parameter_shape(

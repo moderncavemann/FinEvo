@@ -9,7 +9,10 @@ from pathlib import Path
 import sys
 
 from llm_providers import SAFE_PROVIDER_ERROR_TYPES
-from verified_memory.provider_diagnostics import run_provider_interface_probe
+from verified_memory.provider_diagnostics import (
+    DEFAULT_INTERFACE_PROBE_MAX_TOKENS,
+    run_provider_interface_probe,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -30,7 +33,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model-id", required=True)
     parser.add_argument("--required-tag", required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--max-tokens", type=int, default=80)
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=DEFAULT_INTERFACE_PROBE_MAX_TOKENS,
+        help=(
+            "completion-token cap including provider reasoning tokens "
+            f"(default: {DEFAULT_INTERFACE_PROBE_MAX_TOKENS})"
+        ),
+    )
     parser.add_argument("--max-cost-usd", type=float, default=0.05)
     parser.add_argument(
         "--force-json-object",

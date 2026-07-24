@@ -57,6 +57,9 @@ capability, memory effectiveness, or any A-D mechanism effect.
 - accounts all probes in a `$0.30` cumulative diagnostic ledger, including a
   conservative `$0.01` reserve for the earlier session-local probes;
 - writes only an ignored, redacted receipt with output hash/byte count;
+- defaults to 128 completion tokens because the cap includes hidden provider
+  reasoning tokens; an explicit lower cap remains available for truncation
+  diagnostics;
 - sets `scientific_evidence=false`, `diagnostic_only=true`, and
   `denominator_inclusion=false`.
 
