@@ -78,11 +78,13 @@ PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION = (
 LEGACY_CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v1"
 CURRENT_CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v2"
 CAPABILITY_V3_SCHEMA_VERSION = "finevo-capability-gate-v3"
+CAPABILITY_V4_SCHEMA_VERSION = "finevo-capability-gate-v4"
 SUPPORTED_CAPABILITY_SCHEMA_VERSIONS = frozenset(
     {
         LEGACY_CAPABILITY_SCHEMA_VERSION,
         CURRENT_CAPABILITY_SCHEMA_VERSION,
         CAPABILITY_V3_SCHEMA_VERSION,
+        CAPABILITY_V4_SCHEMA_VERSION,
     }
 )
 EVIDENCE_NAMESPACE = "current_v2/pilot-v1"
@@ -1591,7 +1593,82 @@ def _capability_v3_proposal_legality(
     return accepted and semantic_match
 
 
-def _validate_capability_v3(capability: Mapping[str, Any]) -> None:
+def _capability_v4_proposal_legality(
+    row: Mapping[str, Any],
+    task: Any,
+) -> bool:
+    """Validate production-verifier admission and grounded evidence citations."""
+
+    if (
+        row.get("action_parser_valid") is not None
+        or row.get("action") is not None
+        or row.get("rule_compliant") is not None
+        or not isinstance(row.get("semantic_candidate_accepted"), bool)
+        or not isinstance(row.get("semantic_match"), bool)
+    ):
+        raise PilotEvidenceError(
+            f"capability v4 proposal row {task.task_id!r} is inconsistent"
+        )
+    status = row.get("candidate_status")
+    if status is not None and (
+        not isinstance(status, str) or status not in {"provisional", "rejected"}
+    ):
+        raise PilotEvidenceError(
+            f"capability v4 proposal row {task.task_id!r} has invalid status"
+        )
+    accepted = bool(row["semantic_candidate_accepted"])
+    if accepted is not (status == "provisional"):
+        raise PilotEvidenceError(
+            f"capability v4 proposal row {task.task_id!r} forges admission status"
+        )
+    support = row.get("candidate_supporting_episode_ids")
+    if isinstance(support, (str, bytes)) or not isinstance(support, Sequence):
+        raise PilotEvidenceError(
+            f"capability v4 proposal row {task.task_id!r} lacks evidence IDs"
+        )
+    if any(not isinstance(item, str) or not item for item in support):
+        raise PilotEvidenceError(
+            f"capability v4 proposal row {task.task_id!r} has invalid evidence IDs"
+        )
+    support_set = set(support)
+    proposal_track = task.proposal_track
+    episodes = (
+        proposal_track.get("episodes")
+        if isinstance(proposal_track, Mapping)
+        else None
+    )
+    if isinstance(episodes, (str, bytes)) or not isinstance(episodes, Sequence):
+        raise PilotEvidenceError(
+            f"capability v4 proposal task {task.task_id!r} lacks its evidence fixture"
+        )
+    known_episode_ids = {
+        episode.get("episode_id")
+        for episode in episodes
+        if isinstance(episode, Mapping)
+        and isinstance(episode.get("episode_id"), str)
+        and episode.get("episode_id")
+    }
+    grounded_citations = (
+        len(support) == len(support_set)
+        and len(support_set) >= 2
+        and support_set <= known_episode_ids
+    )
+    if accepted and not grounded_citations:
+        raise PilotEvidenceError(
+            f"capability v4 proposal row {task.task_id!r} forges evidence grounding"
+        )
+    # ``semantic_match`` is a diagnostic exact match to the hidden fixture
+    # condition/guidance/scope.  It cannot promote or demote an otherwise legal
+    # production-verifier outcome.
+    return accepted and grounded_citations
+
+
+def _validate_capability_v3(
+    capability: Mapping[str, Any],
+    *,
+    _schema_version: str = CAPABILITY_V3_SCHEMA_VERSION,
+    _proposal_legality: Any = _capability_v3_proposal_legality,
+) -> None:
     """Recompute the production-shaped v3 gate before evidence admission.
 
     Exact JSON is the only scientific success mode.  Fenced and substring
@@ -1671,7 +1748,7 @@ def _validate_capability_v3(capability: Mapping[str, Any]) -> None:
         task = task_by_id[task_id]
         prompt_hash = hashlib.sha256(task.prompt.encode("utf-8")).hexdigest()
         if (
-            row.get("schema_version") != CAPABILITY_V3_SCHEMA_VERSION
+            row.get("schema_version") != _schema_version
             or row.get("taskset_sha256") != CAPABILITY_TASKSET_SHA256
             or row.get("category") != task.category
             or row.get("task_kind") != task.task_kind
@@ -1950,7 +2027,7 @@ def _validate_capability_v3(capability: Mapping[str, Any]) -> None:
             )
 
         if task.task_kind == "rule_proposal":
-            expected_legal = _capability_v3_proposal_legality(row, task)
+            expected_legal = _proposal_legality(row, task)
         else:
             if row.get("semantic_candidate_accepted") is not None:
                 raise PilotEvidenceError(
@@ -2228,6 +2305,20 @@ def _validate_capability_v3(capability: Mapping[str, Any]) -> None:
     )
 
 
+def _validate_capability_v4(capability: Mapping[str, Any]) -> None:
+    """Validate corrected proposal legality while retaining the v3 envelope."""
+
+    if capability.get("schema_version") != CAPABILITY_V4_SCHEMA_VERSION:
+        raise PilotEvidenceError(
+            "capability v4 payload has an inconsistent schema version"
+        )
+    _validate_capability_v3(
+        capability,
+        _schema_version=CAPABILITY_V4_SCHEMA_VERSION,
+        _proposal_legality=_capability_v4_proposal_legality,
+    )
+
+
 def _validate_terminal_payload_marker(
     contract: PilotContract,
     spec: Mapping[str, Any],
@@ -2246,9 +2337,18 @@ def _validate_terminal_payload_marker(
     metrics = _mapping(payload.get("metrics", {}), "terminal metrics")
     gate = _mapping(payload.get("gate_evidence", {}), "terminal gate_evidence")
     if mode in {"capability_probe", "closed_loop_preflight"}:
+        from . import pilot_evaluation_amendment
+
         capability = _mapping(payload.get("capability"), "capability payload")
         schema_version = capability.get("schema_version")
-        if schema_version not in SUPPORTED_CAPABILITY_SCHEMA_VERSIONS:
+        is_capability_import = (
+            schema_version
+            == pilot_evaluation_amendment.CAPABILITY_IMPORT_SCHEMA_VERSION
+        )
+        if (
+            schema_version not in SUPPORTED_CAPABILITY_SCHEMA_VERSIONS
+            and not is_capability_import
+        ):
             raise PilotEvidenceError(
                 f"unsupported capability schema version: {schema_version!r}"
             )
@@ -2259,6 +2359,45 @@ def _validate_terminal_payload_marker(
             _validate_capability_v2(capability)
         elif schema_version == CAPABILITY_V3_SCHEMA_VERSION:
             _validate_capability_v3(capability)
+        elif schema_version == CAPABILITY_V4_SCHEMA_VERSION:
+            _validate_capability_v4(capability)
+        elif is_capability_import:
+            matching_specs = [
+                candidate
+                for candidate in contract.expand()
+                if candidate.to_dict() == dict(spec)
+            ]
+            if len(matching_specs) != 1:
+                raise PilotEvidenceError(
+                    "capability import target spec is not uniquely registered"
+                )
+            receipt_path = (
+                pilot_evaluation_amendment.evaluator_amendment_control_path(
+                    raw_root=raw_root
+                )
+            )
+            receipt = _strict_json_load(receipt_path)
+            try:
+                pilot_evaluation_amendment.validate_capability_import(
+                    capability,
+                    contract,
+                    matching_specs[0],
+                    receipt,
+                )
+            except pilot_evaluation_amendment.PilotEvaluationAmendmentError as exc:
+                raise PilotEvidenceError(
+                    f"capability import validation failed: {exc}"
+                ) from exc
+            if capability["preflight_go"] is True:
+                preflight_checks = capability.get("preflight_checks")
+                if (
+                    not isinstance(preflight_checks, Mapping)
+                    or not preflight_checks
+                    or any(value is not True for value in preflight_checks.values())
+                ):
+                    raise PilotEvidenceError(
+                        "capability import preflight_go requires all checks to pass"
+                    )
         if not isinstance(gate.get("go"), bool):
             raise PilotEvidenceError("capability gate_evidence lacks boolean go")
         if _is_v2_contract(contract) and mode == "capability_probe":

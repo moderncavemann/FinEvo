@@ -2,9 +2,9 @@
 """Unique execution entry for a frozen FinEvo mechanism micro-pilot.
 
 Examples:
-    python run_pilot.py --contract experiments/pilot_v2_1.yaml \
+    python run_pilot.py --contract experiments/pilot_v2_2.yaml \
         --stage capability-gate --resume
-    python run_pilot.py --contract experiments/pilot_v2_1.yaml \
+    python run_pilot.py --contract experiments/pilot_v2_2.yaml \
         --stage development-a-d --development-fake --resume
 
 Real stages fail closed unless the worktree is clean and HEAD is exactly the
@@ -12,6 +12,8 @@ peeled commit of the annotated tag named by the selected contract.  The
 development stage never uses a network provider and never emits scientific
 evidence.  The original pilot-v2 contract remains readable as an immutable
 failed-attempt record; pilot-v2.1 is its single operational retry amendment.
+Pilot-v2.2 is the evaluator-only correction that imports both immutable
+capability attempts without provider redispatch.
 """
 
 from __future__ import annotations
@@ -38,7 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--contract",
         type=Path,
-        default=ROOT / "experiments" / "pilot_v2_1.yaml",
+        default=ROOT / "experiments" / "pilot_v2_2.yaml",
     )
     parser.add_argument("--stage", required=True)
     parser.add_argument(

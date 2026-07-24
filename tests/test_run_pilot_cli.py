@@ -102,7 +102,7 @@ def test_parser_exposes_a_separate_evidence_root(tmp_path: Path) -> None:
     assert parsed.resume is True
 
 
-def test_parser_defaults_to_the_single_v2_1_operational_amendment() -> None:
+def test_parser_defaults_to_the_frozen_v2_2_evaluator_amendment() -> None:
     parsed = run_pilot.build_parser().parse_args(
         ["--stage", "capability-gate"]
     )
@@ -110,5 +110,5 @@ def test_parser_defaults_to_the_single_v2_1_operational_amendment() -> None:
     assert parsed.contract == (
         Path(run_pilot.__file__).resolve().parent
         / "experiments"
-        / "pilot_v2_1.yaml"
+        / "pilot_v2_2.yaml"
     )

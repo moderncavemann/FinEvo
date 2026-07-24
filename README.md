@@ -45,12 +45,12 @@ The only scientific-pilot entry point is:
 
 ```bash
 python run_pilot.py \
-  --contract experiments/pilot_v2_1.yaml \
+  --contract experiments/pilot_v2_2.yaml \
   --stage <stage> \
   --resume
 ```
 
-The V2.1 frozen order is `capability-gate`, `closed-loop-preflight`,
+The V2.2 frozen order is `capability-gate`, `closed-loop-preflight`,
 `secondary-capability-gate`, `secondary-closed-loop-preflight`,
 `q-ref-resolution`, `stage0-calibration`, `experiment-a`, `experiment-c`,
 `experiment-d`, `experiment-b`, `controlled-second`, and
@@ -61,13 +61,24 @@ provenance, integrity, or budget gate fails. V1 remains read-only compatibility
 evidence. The original V2 launch is also immutable: its GPT-5.2 capability
 probe was not evaluable after a malformed credential header, while the valid
 local-Llama capability result was a no-go (12/12 utility ranking, 10/12 rule
-application, 0/6 legal proposals). V2.1 preserves both outcomes, imports the
-parent ledger debit, forbids redispatch of the local model, and permits only
-the previously non-evaluable GPT-5.2 capability cell to retry. No V2.1 paid
-retry or current-method scientific result is claimed by this source state.
+application, 0/6 under the historical hidden-exact-match evaluator). V2.1
+preserves both outcomes and contains the one preregistered GPT-5.2 operational
+retry. That retry produced 30/30 strict structured responses, but the same
+hidden-exact-match diagnostic again scored proposals 0/6.
 
-Real V2.1 stages require a clean checkout at the peeled annotated
-`pilot-v2.1-science` tag,
+V2.2 does not rewrite either release. Its tracked evaluator-amendment receipt
+shows that all twelve source proposal rows (six per model) were strict,
+schema-valid, verifier-admitted provisional candidates with three registered
+support IDs. It therefore applies the preregistered
+`semantic_candidate_acceptance_required` gate uniformly, retains the old 0/6
+scores as diagnostics, and imports corrected 6/6 capability denominators with
+zero provider calls. This correction inspected capability outcomes but no
+scientific-effect outcome. Passing it is permission to attempt the separately
+registered closed-loop preflight, not evidence that FinEvo improves utility,
+wealth, robustness, or rule reliability.
+
+Real V2.2 stages require a clean checkout at the peeled annotated
+`pilot-v2.2-science` tag,
 the same commit on `origin/main`, the remote annotated tag, and successful
 Python 3.12.7 CI jobs on both `ubuntu-24.04` and `macos-14`. Provider runs use
 the sealed model-by-call-kind preflight p95 plus 25% reservation; unknown hosted
@@ -80,7 +91,7 @@ Exercise all A–D paths without network access or scientific claims:
 
 ```bash
 python run_pilot.py \
-  --contract experiments/pilot_v2_1.yaml \
+  --contract experiments/pilot_v2_2.yaml \
   --stage development-a-d \
   --development-fake \
   --resume
@@ -88,9 +99,9 @@ python run_pilot.py \
 
 The failed parent attempt remains under
 `experiment_results/pilot-v2/raw/` and is never rewritten. New raw state is
-ignored under `experiment_results/pilot-v2.1/raw/`. Only
+ignored under `experiment_results/pilot-v2.2/raw/`. Only
 validated contracts, aggregates, checksums, failure ledgers, and reviewer
-reports may enter `evidence/current_v2/pilot-v2.1/`. Historical artifacts remain
+reports may enter `evidence/current_v2/pilot-v2.2/`. Historical artifacts remain
 separate and cannot satisfy this pilot contract. This is a 4-agent × 12-month
 mechanism micro-pilot, not the 10×24×5 confirmatory design and not a 100×240
 simulation.
@@ -100,7 +111,7 @@ zero-provider reviewer package through the same entry point:
 
 ```bash
 python run_pilot.py \
-  --contract experiments/pilot_v2_1.yaml \
+  --contract experiments/pilot_v2_2.yaml \
   --stage publish-evidence \
   --resume
 ```

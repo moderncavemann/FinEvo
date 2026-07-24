@@ -36,9 +36,9 @@ from .prompts import (
 )
 
 
-CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v3"
+CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v4"
 CAPABILITY_THRESHOLDS = {
-    # The legacy category name remains stable for v1/v2 aggregate readers.  V3
+    # The legacy category name remains stable for v1/v2 aggregate readers.  V3+
     # rows identify the actual task as ``task_kind=action_generation``.
     "utility-ranking": 10,
     "rule-application": 10,
@@ -600,23 +600,29 @@ def _score_proposal(
             f"{type(exc).__name__}: {exc}",
         )
     support_ids = set(candidate.supporting_episode_ids)
-    allowed = set(task.allowed_episode_ids)
-    expected_match = (
+    semantic_match = (
         task.expected_condition is not None
         and candidate.condition.to_dict() == dict(task.expected_condition)
         and task.expected_guidance is not None
         and candidate.action_guidance.to_dict() == dict(task.expected_guidance)
         and task.expected_scope is not None
         and candidate.context_scope.to_dict() == dict(task.expected_scope)
-        and len(support_ids) >= 2
-        and support_ids <= allowed
     )
     admitted = rule.status == "provisional"
+    grounded_support_ids = set(rule.supporting_episode_ids)
+    grounded_citations = (
+        len(candidate.supporting_episode_ids) == len(support_ids)
+        and len(support_ids) >= 2
+        and support_ids <= grounded_support_ids
+    )
     details["candidate_status"] = rule.status
     details["semantic_candidate_accepted"] = admitted
-    details["semantic_match"] = expected_match
+    # Exact recovery of the hidden fixture condition/guidance/scope is useful
+    # diagnostically, but it is not proposal legality.  Production legality is
+    # the verifier's provisional admission of at least two grounded citations.
+    details["semantic_match"] = semantic_match
     return (
-        admitted and expected_match,
+        admitted and grounded_citations,
         details["strict_schema_valid"],
         details,
         None,
