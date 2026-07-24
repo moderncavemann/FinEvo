@@ -31,6 +31,7 @@ jobs:
       PIP_NO_INPUT: "1"
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONHASHSEED: "0"
+      FINEVO_CI_JOB_NAME: Python 3.12.7 / ${{ matrix.os }}
 
     steps:
       - name: Check out repository
@@ -193,31 +194,22 @@ jobs:
       - name: Check dependency consistency
         run: python -m pip check
 
+      - name: Freeze collected test inventory
+        run: >-
+          python -m verified_memory.ci_release_receipt collect-tests
+          --output "${RUNNER_TEMP}/finevo-test-collection.json"
+
       - name: Run tests
-        run: python -m pytest -q -p no:cacheprovider
+        run: >-
+          python -m pytest -q -p no:cacheprovider
+          --junitxml="${RUNNER_TEMP}/finevo-test-results.xml"
 
       - name: Compile tracked Python sources
         env:
           PYTHONPYCACHEPREFIX: ${{ runner.temp }}/compile-cache
-        run: |
-          python - <<'PY'
-          import compileall
-          from pathlib import Path
-          import subprocess
-
-          tracked = subprocess.check_output(
-              ["git", "ls-files", "-z", "--", "*.py"]
-          ).split(b"\0")
-          sources = [Path(raw.decode("utf-8")) for raw in tracked if raw]
-          failures = [
-              path.as_posix()
-              for path in sources
-              if not compileall.compile_file(path, force=True, quiet=1)
-          ]
-          if failures:
-              raise SystemExit(f"compileall failed: {failures}")
-          print(f"compileall verified {len(sources)} tracked Python files")
-          PY
+        run: >-
+          python -m verified_memory.ci_release_receipt compile-sources
+          --output "${RUNNER_TEMP}/finevo-python-sources.json"
 
       - name: Verify outbound-network deny guard for G0
         env:
@@ -364,3 +356,11 @@ jobs:
             printf '%s\n' "checks left the checkout dirty:" "${status}"
             exit 1
           fi
+
+      - name: Emit scientific release CI receipt
+        run: >-
+          python -m verified_memory.ci_release_receipt emit
+          --collection "${RUNNER_TEMP}/finevo-test-collection.json"
+          --sources "${RUNNER_TEMP}/finevo-python-sources.json"
+          --junit "${RUNNER_TEMP}/finevo-test-results.xml"
+          --output "${RUNNER_TEMP}/finevo-ci-release-receipt.json"

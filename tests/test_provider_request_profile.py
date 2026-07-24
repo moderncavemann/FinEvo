@@ -470,6 +470,30 @@ def test_strict_ollama_constructor_rejects_non_loopback_endpoint(
         )
 
 
+def test_v2_strict_ollama_uses_exact_contract_base_url() -> None:
+    profile = load_pilot_contract(
+        ROOT / "experiments" / "pilot_v2.yaml"
+    ).provider_profiles["llama33_local_controlled"]
+
+    direct = OllamaProvider(
+        model=profile.requested_model,
+        request_profile=profile,
+    )
+    factory = create_llm_provider(
+        "ollama",
+        request_profile=profile,
+    )
+
+    assert direct.host == "http://127.0.0.1:11434"
+    assert factory.host == "http://127.0.0.1:11434"
+    with pytest.raises(PilotContractError, match="frozen local endpoint"):
+        create_llm_provider(
+            "ollama",
+            base_url="http://localhost:11434",
+            request_profile=profile,
+        )
+
+
 @pytest.mark.parametrize(
     ("profile_id", "provider_type", "package", "observed"),
     [

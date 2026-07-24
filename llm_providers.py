@@ -585,14 +585,47 @@ def _profile_completion_metadata(
             "request_artifact_identity": (),
             "request_price_snapshot_source": None,
             "request_price_snapshot_captured_at": None,
+            "parameter_dispatch": (),
         }
+    declared_dispatch = tuple(
+        (
+            field,
+            (
+                "explicit_supported"
+                if disposition.dispatch_mode == "explicit_supported"
+                else "omitted_unsupported"
+            ),
+        )
+        for field, disposition in profile.decoding_fields
+    )
     return {
         "request_profile_id": profile.profile_id,
         "request_provider_pin": tuple(profile.provider_pin),
         "request_artifact_identity": tuple(profile.artifact_identity),
         "request_price_snapshot_source": profile.price_snapshot.source,
         "request_price_snapshot_captured_at": profile.price_snapshot.captured_at,
+        "parameter_dispatch": declared_dispatch,
     }
+
+
+def _profile_dispatches(
+    profile: Optional[ProviderRequestProfile],
+    field: str,
+    *,
+    legacy_default: bool,
+) -> bool:
+    """Return the contract-controlled wire disposition for one request field."""
+
+    if profile is None or not profile.decoding_fields:
+        return legacy_default
+    fields = dict(profile.decoding_fields)
+    try:
+        disposition = fields[field]
+    except KeyError as exc:  # pragma: no cover - contract validator owns the set
+        raise PilotContractError(
+            f"profile {profile.profile_id} lacks decoding field {field!r}"
+        ) from exc
+    return disposition.dispatch_mode == "explicit_supported"
 
 
 def _usage_record(
@@ -604,16 +637,19 @@ def _usage_record(
     cached_prompt_tokens: int = 0,
 ) -> UsageRecord:
     cached_prompt_tokens = max(0, min(int(cached_prompt_tokens), prompt_tokens))
-    cost = reported_cost
-    if cost is None:
-        uncached_prompt_tokens = prompt_tokens - cached_prompt_tokens
-        cost = (
-            uncached_prompt_tokens / 1000 * costs["prompt"]
-            + cached_prompt_tokens
-            / 1000
-            * costs.get("cached_prompt", costs["prompt"])
-            + completion_tokens / 1000 * costs["completion"]
-        )
+    uncached_prompt_tokens = prompt_tokens - cached_prompt_tokens
+    frozen_price_estimate = (
+        uncached_prompt_tokens / 1000 * costs["prompt"]
+        + cached_prompt_tokens
+        / 1000
+        * costs.get("cached_prompt", costs["prompt"])
+        + completion_tokens / 1000 * costs["completion"]
+    )
+    cost = (
+        frozen_price_estimate
+        if reported_cost is None
+        else max(float(reported_cost), frozen_price_estimate)
+    )
     return UsageRecord(prompt_tokens, completion_tokens, float(cost))
 
 
@@ -787,6 +823,7 @@ class StructuredCompletion:
     route_attestation_source: Optional[str] = None
     request_parameters: tuple[str, ...] = ()
     temperature_dispatch: Optional[str] = None
+    parameter_dispatch: tuple[tuple[str, str], ...] = ()
     output_disposition: str = "accepted"
 
     def __post_init__(self) -> None:
@@ -860,6 +897,19 @@ class StructuredCompletion:
             raise TypeError("request_parameters must be a tuple of non-empty strings")
         if len(self.request_parameters) != len(set(self.request_parameters)):
             raise ValueError("request_parameters must not contain duplicates")
+        if not isinstance(self.parameter_dispatch, tuple) or any(
+            not isinstance(item, tuple)
+            or len(item) != 2
+            or not all(isinstance(value, str) and value for value in item)
+            for item in self.parameter_dispatch
+        ):
+            raise TypeError(
+                "parameter_dispatch must be a tuple of non-empty string pairs"
+            )
+        if len({key for key, _ in self.parameter_dispatch}) != len(
+            self.parameter_dispatch
+        ):
+            raise ValueError("parameter_dispatch contains duplicate fields")
         if not isinstance(self.output_disposition, str) or not self.output_disposition:
             raise TypeError("output_disposition must be a non-empty string")
         if not isinstance(self.request_provider_pin, tuple) or any(
@@ -924,6 +974,7 @@ class StructuredCompletion:
             "route_attestation_source": self.route_attestation_source,
             "request_parameters": list(self.request_parameters),
             "temperature_dispatch": self.temperature_dispatch,
+            "parameter_dispatch": dict(self.parameter_dispatch),
             "output_disposition": self.output_disposition,
         }
 
@@ -1132,26 +1183,54 @@ class OpenAIProvider(LLMProvider):
         for i in range(retry_count):
             stage = "openai.request.build"
             request_parameters: tuple[str, ...] = ()
-            temperature_dispatch = "explicit"
+            dispatch_temperature = _profile_dispatches(
+                request_profile,
+                "temperature",
+                legacy_default=not _openai_omits_temperature(self.model),
+            )
+            temperature_dispatch = (
+                "explicit" if dispatch_temperature else "omitted_unsupported"
+            )
             try:
                 request: Dict[str, object] = {
                     "model": self.model,
                     "messages": messages,
-                    "top_p": top_p,
                 }
-                if _openai_omits_temperature(self.model):
+                if _profile_dispatches(
+                    request_profile,
+                    "top_p",
+                    legacy_default=True,
+                ):
+                    request["top_p"] = top_p
+                if not dispatch_temperature:
                     if float(temperature) != 0.0:
                         raise PilotContractError(
-                            "this OpenAI reasoning model cannot apply a nonzero "
-                            "temperature through Chat Completions"
+                            "a profile that omits unsupported temperature "
+                            "cannot request a nonzero temperature"
                         )
-                    temperature_dispatch = "omitted_unsupported"
                 else:
                     request["temperature"] = temperature
-                if seed is not None:
+                if seed is not None and _profile_dispatches(
+                    request_profile,
+                    "seed",
+                    legacy_default=True,
+                ):
                     request["seed"] = seed
                 if request_profile is not None:
-                    request.update(request_profile.openai_request_options())
+                    options = request_profile.openai_request_options()
+                    if not _profile_dispatches(
+                        request_profile,
+                        "response_format",
+                        legacy_default=True,
+                    ):
+                        options.pop("response_format", None)
+                    if not _profile_dispatches(
+                        request_profile,
+                        "reasoning",
+                        legacy_default=True,
+                    ):
+                        options.pop("reasoning_effort", None)
+                    request.update(options)
                 # GPT-5.x and newer models use max_completion_tokens
                 if self.model.startswith("gpt-5") or self.model.startswith("o1") or self.model.startswith("o3"):
                     request["max_completion_tokens"] = max_tokens
@@ -1707,18 +1786,58 @@ class ThirdPartyProvider(LLMProvider):
         for i in range(retry_count):
             stage = "openrouter.request.build"
             request_parameters: tuple[str, ...] = ()
+            dispatch_temperature = _profile_dispatches(
+                request_profile,
+                "temperature",
+                legacy_default=True,
+            )
+            temperature_dispatch = (
+                "explicit" if dispatch_temperature else "omitted_unsupported"
+            )
             try:
                 request: Dict[str, object] = {
                     "model": self.model,
                     "messages": messages,
-                    "temperature": temperature,
                     "max_tokens": max_tokens,
-                    "top_p": top_p,
                 }
-                if seed is not None:
+                if dispatch_temperature:
+                    request["temperature"] = temperature
+                elif float(temperature) != 0.0:
+                    raise PilotContractError(
+                        "a profile that omits unsupported temperature "
+                        "cannot request a nonzero temperature"
+                    )
+                if _profile_dispatches(
+                    request_profile,
+                    "top_p",
+                    legacy_default=True,
+                ):
+                    request["top_p"] = top_p
+                if seed is not None and _profile_dispatches(
+                    request_profile,
+                    "seed",
+                    legacy_default=True,
+                ):
                     request["seed"] = seed
                 if request_profile is not None:
-                    request.update(request_profile.openrouter_request_options())
+                    options = request_profile.openrouter_request_options()
+                    if not _profile_dispatches(
+                        request_profile,
+                        "response_format",
+                        legacy_default=True,
+                    ):
+                        options.pop("response_format", None)
+                    if not _profile_dispatches(
+                        request_profile,
+                        "reasoning",
+                        legacy_default=True,
+                    ):
+                        extra_body = options.get("extra_body")
+                        if isinstance(extra_body, Mapping):
+                            sanitized_extra = dict(extra_body)
+                            sanitized_extra.pop("reasoning", None)
+                            options["extra_body"] = sanitized_extra
+                    request.update(options)
                 request_parameters = tuple(sorted(request))
                 stage = "openrouter.chat.completions.create"
                 response = self.client.chat.completions.create(**request)
@@ -1810,7 +1929,7 @@ class ThirdPartyProvider(LLMProvider):
                             route_attestation_path="response.model",
                             route_attestation_source=route_attestation_source,
                             request_parameters=request_parameters,
-                            temperature_dispatch="explicit",
+                            temperature_dispatch=temperature_dispatch,
                             output_disposition=(
                                 "discarded_due_to_attestation_failure"
                             ),
@@ -1859,7 +1978,7 @@ class ThirdPartyProvider(LLMProvider):
                             route_attestation_path=exc.path,
                             route_attestation_source=route_attestation_source,
                             request_parameters=request_parameters,
-                            temperature_dispatch="explicit",
+                            temperature_dispatch=temperature_dispatch,
                             output_disposition=(
                                 "discarded_due_to_attestation_failure"
                             ),
@@ -1906,7 +2025,7 @@ class ThirdPartyProvider(LLMProvider):
                         ),
                         route_attestation_source=route_attestation_source,
                         request_parameters=request_parameters,
-                        temperature_dispatch="explicit",
+                        temperature_dispatch=temperature_dispatch,
                         output_disposition=(
                             "discarded_incomplete"
                             if completion_error_type
@@ -1948,7 +2067,7 @@ class ThirdPartyProvider(LLMProvider):
                     ),
                     route_attestation_source=route_attestation_source,
                     request_parameters=request_parameters,
-                    temperature_dispatch="explicit",
+                    temperature_dispatch=temperature_dispatch,
                     **profile_metadata,
                 )
             except Exception as e:
@@ -1971,7 +2090,7 @@ class ThirdPartyProvider(LLMProvider):
                         provider_sdk_name="openai-python",
                         provider_sdk_version=_package_version("openai"),
                         request_parameters=request_parameters,
-                        temperature_dispatch="explicit",
+                        temperature_dispatch=temperature_dispatch,
                         output_disposition="unavailable_due_to_provider_error",
                         **profile_metadata,
                     )
@@ -1986,12 +2105,11 @@ class OllamaProvider(LLMProvider):
     def __init__(
         self,
         model: str = "llama3:8b",
-        host: str = STRICT_OLLAMA_BASE_URL,
+        host: Optional[str] = None,
         max_retries: Optional[int] = None,
         request_profile: Optional[ProviderRequestProfile] = None,
     ):
         self.model = model
-        self.host = host
         if request_profile is not None and not isinstance(
             request_profile, ProviderRequestProfile
         ):
@@ -2004,12 +2122,19 @@ class OllamaProvider(LLMProvider):
         )
         self.max_retries = _validated_retry_count(max_retries, default_retries)
         if request_profile is None:
+            self.host = host or STRICT_OLLAMA_BASE_URL
             self.costs = {"prompt": 0, "completion": 0}
         else:
-            if host.rstrip("/") != STRICT_OLLAMA_BASE_URL:
+            identity = dict(request_profile.artifact_identity)
+            frozen_host = str(
+                identity.get("base_url", STRICT_OLLAMA_BASE_URL)
+            )
+            requested_host = frozen_host if host is None else host
+            if requested_host.rstrip("/") != frozen_host.rstrip("/"):
                 raise PilotContractError(
                     "strict Ollama profiles require the frozen local endpoint"
                 )
+            self.host = frozen_host
             request_profile.validate_provider_configuration(
                 transport="ollama",
                 model=model,
@@ -2054,13 +2179,34 @@ class OllamaProvider(LLMProvider):
         for i in range(retry_count):
             stage = "ollama.request.build"
             request_parameters: tuple[str, ...] = ()
+            dispatch_temperature = _profile_dispatches(
+                request_profile,
+                "temperature",
+                legacy_default=True,
+            )
+            temperature_dispatch = (
+                "explicit" if dispatch_temperature else "omitted_unsupported"
+            )
             try:
-                options = {
-                    "temperature": temperature,
-                    "num_predict": max_tokens,
-                    "top_p": top_p,
-                }
-                if seed is not None:
+                options = {"num_predict": max_tokens}
+                if dispatch_temperature:
+                    options["temperature"] = temperature
+                elif float(temperature) != 0.0:
+                    raise PilotContractError(
+                        "a profile that omits unsupported temperature "
+                        "cannot request a nonzero temperature"
+                    )
+                if _profile_dispatches(
+                    request_profile,
+                    "top_p",
+                    legacy_default=True,
+                ):
+                    options["top_p"] = top_p
+                if seed is not None and _profile_dispatches(
+                    request_profile,
+                    "seed",
+                    legacy_default=True,
+                ):
                     options["seed"] = seed
                 request_body: Dict[str, object] = {
                     "model": self.model,
@@ -2071,6 +2217,11 @@ class OllamaProvider(LLMProvider):
                 if (
                     request_profile is not None
                     and request_profile.json_mode == "json_object"
+                    and _profile_dispatches(
+                        request_profile,
+                        "response_format",
+                        legacy_default=True,
+                    )
                 ):
                     request_body["format"] = "json"
                 request_parameters = tuple(sorted(request_body))
@@ -2136,7 +2287,7 @@ class OllamaProvider(LLMProvider):
                             provider_sdk_name="requests",
                             provider_sdk_version=_package_version("requests"),
                             request_parameters=request_parameters,
-                            temperature_dispatch="explicit",
+                            temperature_dispatch=temperature_dispatch,
                             output_disposition="discarded_due_to_contract_failure",
                             **profile_metadata,
                         )
@@ -2166,7 +2317,7 @@ class OllamaProvider(LLMProvider):
                         provider_sdk_name="requests",
                         provider_sdk_version=_package_version("requests"),
                         request_parameters=request_parameters,
-                        temperature_dispatch="explicit",
+                        temperature_dispatch=temperature_dispatch,
                         output_disposition=(
                             "discarded_incomplete"
                             if completion_error_type
@@ -2192,7 +2343,7 @@ class OllamaProvider(LLMProvider):
                     provider_sdk_name="requests",
                     provider_sdk_version=_package_version("requests"),
                     request_parameters=request_parameters,
-                    temperature_dispatch="explicit",
+                    temperature_dispatch=temperature_dispatch,
                     **profile_metadata,
                 )
 
@@ -2218,7 +2369,7 @@ class OllamaProvider(LLMProvider):
                         provider_sdk_name="requests",
                         provider_sdk_version=_package_version("requests"),
                         request_parameters=request_parameters,
-                        temperature_dispatch="explicit",
+                        temperature_dispatch=temperature_dispatch,
                         output_disposition="unavailable_due_to_provider_error",
                         **profile_metadata,
                     )
@@ -2311,7 +2462,16 @@ class MultiModelLLM:
                 )
                 if conservative_usage != result.usage:
                     result = replace(result, usage=conservative_usage)
-            budget.complete_call(reservation, result.usage)
+            try:
+                budget.complete_call(reservation, result.usage)
+            except Exception as exc:
+                # ``complete_call`` records actual usage before it raises an
+                # overage.  Preserve the provider result on that exception so
+                # a bounded batch caller can durably journal every response
+                # that was already dispatched before propagating the hard
+                # budget failure.
+                setattr(exc, "structured_completion", result)
+                raise
         return result
 
     def get_structured_completion(
@@ -2472,7 +2632,10 @@ class MultiModelLLM:
 
         Every reservation is acquired before the first executor submission.  If
         the complete batch cannot fit, prior reservations are rolled back and
-        no provider method is called.
+        no provider method is called.  If actual settled usage exceeds a hard
+        budget after dispatch, the original exception is re-raised with an
+        ordered ``structured_completions`` tuple so the caller can terminally
+        journal every response without treating the batch as successful.
         """
 
         if max_retries is not None:
@@ -2551,12 +2714,24 @@ class MultiModelLLM:
                 try:
                     results[index] = future.result()
                 except Exception as exc:  # account all in-flight work before raising
+                    completed = getattr(exc, "structured_completion", None)
+                    if isinstance(completed, StructuredCompletion):
+                        results[index] = completed
                     if first_error is None:
                         first_error = exc
         finally:
             executor.shutdown(wait=True)
 
         if first_error is not None:
+            if all(isinstance(result, StructuredCompletion) for result in results):
+                # Keep the public fail-closed behavior while exposing the
+                # already-settled batch solely for output-free terminal
+                # journaling by the scientific runner/checkpoint boundary.
+                setattr(
+                    first_error,
+                    "structured_completions",
+                    tuple(results),
+                )
             raise first_error
         if any(result is None for result in results):
             raise RuntimeError("structured batch completed without a result for every dialog")
@@ -2633,6 +2808,7 @@ def create_llm_provider(
         model = model or "llama3:8b"
         return OllamaProvider(
             model=model,
+            host=base_url,
             max_retries=max_retries,
             request_profile=request_profile,
         )

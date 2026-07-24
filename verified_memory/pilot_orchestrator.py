@@ -56,21 +56,35 @@ from .pilot_calibration import (
     select_stage0_profile,
 )
 from .pilot_capability import build_capability_tasks, run_capability_gate
-from .pilot_checkpoint import PilotCheckpoint, build_pilot_checkpoint
+from .pilot_checkpoint import (
+    PilotCheckpoint,
+    build_closed_loop_preflight_checkpoint,
+    build_pilot_checkpoint,
+    verify_closed_loop_preflight_checkpoint,
+)
 from .pilot_continuation import (
     DEFAULT_NARRATIVES,
     DEFAULT_TREATMENTS,
+    MEMORY_PULSE_CONTRACT,
+    MEMORY_PULSE_TREATMENTS,
+    NARRATIVE_PULSE_CONTRACT,
     run_pilot_continuations,
     run_pilot_narratives,
 )
 from .pilot_provider_catalog import (
     PROVIDER_CATALOG_RECEIPT_SCHEMA_VERSION,
     validate_live_provider_catalog,
+    verify_provider_catalog_receipt,
 )
 from .pilot_release_attestation import (
     PILOT_RELEASE_ATTESTATION_SCHEMA_VERSION,
     PilotReleaseAttestationError,
     verify_pilot_release_attestation,
+)
+from .scientific_release_attestation import (
+    SCIENTIFIC_RELEASE_ATTESTATION_SCHEMA_VERSION,
+    ScientificReleaseAttestationError,
+    verify_scientific_release_attestation,
 )
 from .pilot_sensitivity import (
     ALTERNATIVE_SUCCESS_WEIGHTS,
@@ -87,9 +101,17 @@ from .pilot_contract import (
 )
 from .pilot_evidence import (
     CURRENT_SCIENTIFIC_SCOPE,
+    PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION,
+    PilotEvidenceError,
+    _validate_capability_v3,
     write_terminal_summary,
 )
-from .runner import ShockEvent, VerifiedRunConfig, run_verified_experiment
+from .runner import (
+    ShockEvent,
+    VerifiedRunConfig,
+    run_verified_experiment,
+    verify_provider_call_journal,
+)
 from .runner_artifacts import (
     load_verified_run_artifacts,
     write_verified_run_artifacts,
@@ -98,12 +120,16 @@ from .scripted_provider import ScriptedDiagnosticProvider
 
 
 PILOT_RUN_LEDGER_SCHEMA_VERSION = "finevo-pilot-run-ledger-v1"
+PILOT_RUN_LEDGER_SCHEMA_VERSION_V2 = "finevo-pilot-run-ledger-v2"
 PILOT_STAGE_RECEIPT_SCHEMA_VERSION = "finevo-pilot-stage-receipt-v1"
+PILOT_STAGE_RECEIPT_SCHEMA_VERSION_V2 = "finevo-pilot-stage-receipt-v2"
 PILOT_DEVELOPMENT_MATRIX_SCHEMA_VERSION = "finevo-pilot-development-matrix-v1"
 PILOT_OFFLINE_ADMISSION_SCHEMA_VERSION = "finevo-pilot-offline-admission-v1"
 PILOT_PROJECTION_SCHEMA_VERSION = "finevo-pilot-projection-p95-v1"
-PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION = (
-    "finevo-experiment-c-sensitivity-v1"
+PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION = "finevo-experiment-c-sensitivity-v1"
+PILOT_SCIENTIFIC_LAUNCH_INPUT_SCHEMA_VERSION = "finevo-scientific-launch-input-v1"
+PILOT_PREFLIGHT_CHECKPOINT_RECEIPT_SCHEMA_VERSION = (
+    "finevo-preflight-checkpoint-exactness-v1"
 )
 PILOT_BOUND_ARTIFACT_CANONICALIZATION = "json-sort-keys-utf8-v1"
 
@@ -119,11 +145,10 @@ SCIENTIFIC_STAGE_IDS = (
     "cross-model-sentinels",
 )
 
+CAPABILITY_EXECUTION_MODES = frozenset({"capability_probe", "closed_loop_preflight"})
+
 DEFAULT_RAW_ROOT = (
-    Path(__file__).resolve().parents[1]
-    / "experiment_results"
-    / "pilot-v1"
-    / "raw"
+    Path(__file__).resolve().parents[1] / "experiment_results" / "pilot-v1" / "raw"
 )
 DEFAULT_ENV_CONFIG = Path(__file__).resolve().parents[1] / "config.yaml"
 PILOT_EXECUTION_LOCK_FILENAME = ".real-stage-execution.lock"
@@ -232,6 +257,17 @@ def _atomic_bound_json(path: Path, value: Mapping[str, Any]) -> None:
     path.chmod(0o444)
 
 
+def _atomic_json_no_overwrite(path: Path, value: Mapping[str, Any]) -> None:
+    """Persist one append-only control receipt and refuse replacement."""
+
+    if path.exists():
+        raise PilotOrchestrationError(
+            f"immutable pilot control receipt already exists: {path}"
+        )
+    _atomic_json(path, value)
+    path.chmod(0o444)
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -302,10 +338,12 @@ def _verify_bound_payload(
     integrity = value.get("integrity")
     if not isinstance(integrity, Mapping):
         raise PilotOrchestrationError(f"{artifact_name} integrity is malformed")
-    if (
-        integrity.get("canonicalization")
-        != PILOT_BOUND_ARTIFACT_CANONICALIZATION
-        or integrity.get("content_sha256") != _bound_content_sha256(value)
+    if integrity.get(
+        "canonicalization"
+    ) != PILOT_BOUND_ARTIFACT_CANONICALIZATION or integrity.get(
+        "content_sha256"
+    ) != _bound_content_sha256(
+        value
     ):
         raise PilotOrchestrationError(f"{artifact_name} content hash mismatch")
 
@@ -354,19 +392,89 @@ class GitProvenance:
         }
 
 
+def _load_scientific_launch_input(
+    contract: PilotContract,
+    path: str | Path | None,
+) -> dict[str, Any]:
+    """Load one explicit, self-hashed V2 CI/contract selection.
+
+    Dynamic GitHub run and job IDs cannot be inferred from "latest" state.
+    The operator must place this small JSON document under the ignored raw
+    pilot root after the annotated-tag CI run has completed.
+    """
+
+    if path is None:
+        raise PilotOrchestrationError(
+            "V2 paid dispatch requires an explicit scientific launch input "
+            "containing immutable ci_run_selection and contract_binding"
+        )
+    source_path = Path(path)
+    if source_path.is_symlink():
+        raise PilotOrchestrationError("scientific launch input must not be a symlink")
+    launch_path = source_path.resolve()
+    if not launch_path.is_file():
+        raise PilotOrchestrationError(
+            f"scientific launch input is missing or not a regular file: "
+            f"{launch_path}"
+        )
+    payload = _read_json(launch_path)
+    required = {
+        "schema_version",
+        "contract_sha256",
+        "ci_run_selection",
+        "contract_binding",
+        "launch_input_sha256",
+    }
+    if set(payload) != required:
+        raise PilotOrchestrationError(
+            "scientific launch input fields must be exactly " f"{sorted(required)}"
+        )
+    if payload.get("schema_version") != PILOT_SCIENTIFIC_LAUNCH_INPUT_SCHEMA_VERSION:
+        raise PilotOrchestrationError(
+            "scientific launch input has an unsupported schema"
+        )
+    if payload.get("contract_sha256") != contract.canonical_hash:
+        raise PilotOrchestrationError("scientific launch input contract hash mismatch")
+    unsigned = dict(payload)
+    claimed_hash = unsigned.pop("launch_input_sha256")
+    if claimed_hash != canonical_sha256(unsigned):
+        raise PilotOrchestrationError("scientific launch input self-hash mismatch")
+    if not isinstance(payload.get("ci_run_selection"), Mapping):
+        raise PilotOrchestrationError("scientific launch input lacks ci_run_selection")
+    binding = payload.get("contract_binding")
+    if not isinstance(binding, Mapping):
+        raise PilotOrchestrationError("scientific launch input lacks contract_binding")
+    if binding.get("contract_canonical_sha256") != contract.canonical_hash:
+        raise PilotOrchestrationError(
+            "scientific launch contract_binding canonical hash mismatch"
+        )
+    return payload
+
+
 def verify_paid_provenance(
     contract: PilotContract,
     *,
     repo_root: str | Path,
+    scientific_launch_input_path: str | Path | None = None,
 ) -> GitProvenance:
-    """Require a clean HEAD at the peeled, annotated ``pilot-v1`` tag.
+    """Require a clean HEAD at the contract's peeled annotated release tag.
 
     A lightweight tag is rejected even if it resolves to the same commit.
     Ignored raw results do not dirty the worktree; tracked or untracked source
-    files do.
+    files do.  V2 additionally requires a predeclared, self-hashed CI run/job
+    selection and scientific contract binding.
     """
 
     root = Path(repo_root).resolve()
+    is_v2 = getattr(contract, "schema_version", "").endswith("-v2")
+    launch_input = (
+        _load_scientific_launch_input(
+            contract,
+            scientific_launch_input_path,
+        )
+        if is_v2
+        else None
+    )
     required_tag = str(contract.implementation["required_git_tag"])
     tag_ref = f"refs/tags/{required_tag}"
     tag_type = _git(root, "cat-file", "-t", tag_ref)
@@ -378,7 +486,7 @@ def verify_paid_provenance(
     peeled = _git(root, "rev-parse", f"{tag_ref}^{{commit}}")
     if head != peeled:
         raise PilotOrchestrationError(
-            "paid pilot requires HEAD to equal the peeled pilot-v1 commit"
+            "paid pilot requires HEAD to equal the peeled release-tag commit"
         )
     dirty = bool(_git(root, "status", "--porcelain", "--untracked-files=all"))
     if dirty:
@@ -393,15 +501,33 @@ def verify_paid_provenance(
     )
     if ancestor.returncode != 0:
         raise PilotOrchestrationError(
-            "pilot-v1 commit does not descend from the frozen P0 merge commit"
+            "release commit does not descend from the frozen P0 merge commit"
         )
     binding = contract.validate_provenance(head, required_tag)
-    try:
-        release_attestation = verify_pilot_release_attestation(root).to_dict()
-    except PilotReleaseAttestationError as exc:
-        raise PilotOrchestrationError(
-            f"remote release/CI attestation failed: {exc}"
-        ) from exc
+    if is_v2:
+        if contract.release_requirements is None:  # pragma: no cover - parser
+            raise PilotOrchestrationError(
+                "V2 contract lacks static release requirements"
+            )
+        assert launch_input is not None
+        try:
+            release_attestation = verify_scientific_release_attestation(
+                root,
+                release_requirements=contract.release_requirements.to_dict(),
+                ci_run_selection=launch_input["ci_run_selection"],
+                contract_binding=launch_input["contract_binding"],
+            ).to_dict()
+        except ScientificReleaseAttestationError as exc:
+            raise PilotOrchestrationError(
+                f"scientific release/CI attestation failed: {exc}"
+            ) from exc
+    else:
+        try:
+            release_attestation = verify_pilot_release_attestation(root).to_dict()
+        except PilotReleaseAttestationError as exc:
+            raise PilotOrchestrationError(
+                f"remote release/CI attestation failed: {exc}"
+            ) from exc
     return GitProvenance(
         git_tag=required_tag,
         head_commit=head,
@@ -424,10 +550,11 @@ def _persist_release_attestation(
         raise PilotOrchestrationError(
             "paid provenance lacks the remote release/CI attestation"
         )
-    if (
-        payload.get("schema_version")
-        != PILOT_RELEASE_ATTESTATION_SCHEMA_VERSION
-        or payload.get("status") != "pass"
+    if payload.get("schema_version") not in {
+        PILOT_RELEASE_ATTESTATION_SCHEMA_VERSION,
+        SCIENTIFIC_RELEASE_ATTESTATION_SCHEMA_VERSION,
+    } or (
+        payload.get("status") != "pass"
         or payload.get("head_commit") != paid.head_commit
     ):
         raise PilotOrchestrationError(
@@ -454,32 +581,168 @@ def _persist_release_attestation(
 class PilotRunLedger:
     """Durable ITT ledger: every expanded cell remains present through failure."""
 
-    def __init__(self, path: str | Path, *, contract_hash: str) -> None:
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        contract_hash: str,
+        tamper_evident: bool = False,
+    ) -> None:
         self.path = Path(path)
         self.contract_hash = contract_hash
+        if not isinstance(tamper_evident, bool):
+            raise TypeError("tamper_evident must be boolean")
+        self.tamper_evident = tamper_evident
+        self.schema_version = (
+            PILOT_RUN_LEDGER_SCHEMA_VERSION_V2
+            if tamper_evident
+            else PILOT_RUN_LEDGER_SCHEMA_VERSION
+        )
         if self.path.exists():
-            self._state = _read_json(self.path)
-            if (
-                self._state.get("schema_version")
-                != PILOT_RUN_LEDGER_SCHEMA_VERSION
-            ):
-                raise PilotOrchestrationError("unsupported pilot run ledger schema")
-            if self._state.get("contract_hash") != contract_hash:
-                raise PilotOrchestrationError("pilot run ledger contract mismatch")
-            if not isinstance(self._state.get("runs"), dict):
-                raise PilotOrchestrationError("pilot run ledger rows are malformed")
+            self._state = self._load()
         else:
             self._state = {
-                "schema_version": PILOT_RUN_LEDGER_SCHEMA_VERSION,
+                "schema_version": self.schema_version,
                 "contract_hash": contract_hash,
                 "created_at": _utc_now(),
                 "updated_at": _utc_now(),
                 "runs": {},
             }
+            if self.tamper_evident:
+                self._state["events"] = []
+                self._append_event(
+                    "genesis",
+                    {
+                        "contract_hash": contract_hash,
+                        "runs_sha256": canonical_sha256({}),
+                    },
+                )
             self._write()
+
+    def _load(self) -> dict[str, Any]:
+        value = _read_json(self.path)
+        if value.get("schema_version") != self.schema_version:
+            raise PilotOrchestrationError("unsupported pilot run ledger schema")
+        if value.get("contract_hash") != self.contract_hash:
+            raise PilotOrchestrationError("pilot run ledger contract mismatch")
+        if not isinstance(value.get("runs"), dict):
+            raise PilotOrchestrationError("pilot run ledger rows are malformed")
+        if self.tamper_evident:
+            self._verify_event_chain(value)
+            unsigned = dict(value)
+            claimed = unsigned.pop("ledger_sha256", None)
+            if claimed != canonical_sha256(unsigned):
+                raise PilotOrchestrationError("pilot run ledger self-hash mismatch")
+        return value
+
+    def _append_event(self, event_type: str, payload: Mapping[str, Any]) -> None:
+        if not self.tamper_evident:
+            return
+        events = self._state.setdefault("events", [])
+        if not isinstance(events, list):
+            raise PilotOrchestrationError("pilot run ledger events are malformed")
+        previous = events[-1]["event_sha256"] if events else "0" * 64
+        event = {
+            "event_index": len(events),
+            "event_type": str(event_type),
+            "created_at": _utc_now(),
+            "previous_event_sha256": previous,
+            "payload": _json_copy(payload),
+        }
+        event["event_sha256"] = canonical_sha256(event)
+        events.append(event)
+
+    @staticmethod
+    def _verify_event_chain(value: Mapping[str, Any]) -> None:
+        events = value.get("events")
+        runs = value.get("runs")
+        if not isinstance(events, list) or not events:
+            raise PilotOrchestrationError(
+                "pilot run ledger v2 requires a non-empty event chain"
+            )
+        if not isinstance(runs, Mapping):
+            raise PilotOrchestrationError("pilot run ledger rows are malformed")
+        previous = "0" * 64
+        for index, row in enumerate(events):
+            if not isinstance(row, Mapping):
+                raise PilotOrchestrationError("pilot run ledger event is malformed")
+            unsigned = dict(row)
+            digest = unsigned.pop("event_sha256", None)
+            if (
+                row.get("event_index") != index
+                or row.get("previous_event_sha256") != previous
+                or digest != canonical_sha256(unsigned)
+            ):
+                raise PilotOrchestrationError("pilot run ledger event chain mismatch")
+            payload = row.get("payload")
+            if not isinstance(payload, Mapping):
+                raise PilotOrchestrationError(
+                    "pilot run ledger event payload is malformed"
+                )
+            event_type = row.get("event_type")
+            if index == 0:
+                if (
+                    event_type != "genesis"
+                    or payload.get("contract_hash") != value.get("contract_hash")
+                    or payload.get("runs_sha256") != canonical_sha256({})
+                ):
+                    raise PilotOrchestrationError(
+                        "pilot run ledger genesis event mismatch"
+                    )
+            elif event_type == "runs_registered":
+                registered = payload.get("registered_specs_sha256")
+                if not isinstance(registered, Mapping) or not registered:
+                    raise PilotOrchestrationError(
+                        "pilot run ledger registration event is malformed"
+                    )
+                for run_id, spec_sha256 in registered.items():
+                    current = runs.get(run_id)
+                    if (
+                        not isinstance(current, Mapping)
+                        or spec_sha256
+                        != canonical_sha256(current.get("spec"))
+                    ):
+                        raise PilotOrchestrationError(
+                            "pilot run ledger registration event differs from rows"
+                        )
+            elif event_type == "run_finalized":
+                run_id = payload.get("run_id")
+                current = runs.get(run_id)
+                if not isinstance(current, Mapping):
+                    raise PilotOrchestrationError(
+                        "pilot run ledger finalization references an unknown run"
+                    )
+                terminal_state = {
+                    "status": current.get("status"),
+                    "artifact": current.get("artifact"),
+                    "failure": current.get("failure"),
+                }
+                if payload.get("terminal_state_sha256") != canonical_sha256(
+                    terminal_state
+                ):
+                    raise PilotOrchestrationError(
+                        "pilot run ledger finalization differs from its row"
+                    )
+            else:
+                raise PilotOrchestrationError(
+                    f"unknown pilot run ledger event type: {event_type!r}"
+                )
+            previous = str(digest)
+        last_payload = events[-1].get("payload")
+        if (
+            not isinstance(last_payload, Mapping)
+            or last_payload.get("runs_sha256") != canonical_sha256(runs)
+        ):
+            raise PilotOrchestrationError(
+                "pilot run ledger event head does not bind the current rows"
+            )
 
     def _write(self) -> None:
         self._state["updated_at"] = _utc_now()
+        if self.tamper_evident:
+            unsigned = dict(self._state)
+            unsigned.pop("ledger_sha256", None)
+            self._state["ledger_sha256"] = canonical_sha256(unsigned)
         _atomic_json(self.path, self._state)
 
     def register(self, specs: Sequence[PilotRunSpec]) -> None:
@@ -502,6 +765,17 @@ class PilotRunLedger:
                     f"run {spec.run_id} was registered with a different spec"
                 )
         if changed:
+            self._append_event(
+                "runs_registered",
+                {
+                    "registered_specs_sha256": {
+                        spec.run_id: canonical_sha256(spec.to_dict())
+                        for spec in specs
+                        if spec.run_id in self._state["runs"]
+                    },
+                    "runs_sha256": canonical_sha256(self._state["runs"]),
+                },
+            )
             self._write()
 
     def status(self, run_id: str) -> str:
@@ -545,6 +819,20 @@ class PilotRunLedger:
                 "terminal_at": _utc_now(),
             }
         )
+        self._append_event(
+            "run_finalized",
+            {
+                "run_id": run_id,
+                "terminal_state_sha256": canonical_sha256(
+                    {
+                        "status": status,
+                        "artifact": artifact,
+                        "failure": desired_failure,
+                    }
+                ),
+                "runs_sha256": canonical_sha256(self._state["runs"]),
+            },
+        )
         self._write()
 
     def stop_pending(
@@ -575,8 +863,7 @@ def _budget_caps(contract: PilotContract) -> PilotBudgetCaps:
         completion_scope=str(budgets["completion_scope"]),
         max_storage_bytes=int(budgets["max_storage_bytes"]),
         stage_usd_caps={
-            str(key): float(value)
-            for key, value in budgets["stage_usd_caps"].items()
+            str(key): float(value) for key, value in budgets["stage_usd_caps"].items()
         },
         automatic_reserve_usd=float(budgets["automatic_reserve_usd"]),
     )
@@ -747,9 +1034,9 @@ def _derive_stage0_absolute_flow_threshold(
         if spec.utility_profile_id == selected_profile_id
     ]
     expected_seeds = tuple(contract.seeds["sets"]["calibration"])
-    if len(selected) != 2 or {
-        spec.environment_seed for spec, _, _ in selected
-    } != set(expected_seeds):
+    if len(selected) != 2 or {spec.environment_seed for spec, _, _ in selected} != set(
+        expected_seeds
+    ):
         raise PilotOrchestrationError(
             "absolute flow-utility threshold requires the selected profile's "
             "exact two calibration seeds"
@@ -803,9 +1090,9 @@ def _derive_stage0_absolute_flow_threshold(
             }
         )
 
-    sensitivity_contract = contract.stop_go["experiment_c"][
-        "zero_api_sensitivity"
-    ]["absolute_flow_threshold"]
+    sensitivity_contract = contract.stop_go["experiment_c"]["zero_api_sensitivity"][
+        "absolute_flow_threshold"
+    ]
     threshold = {
         "method": "selected-stage0-pooled-median-flow-utility-v1",
         "field": "flow_utility",
@@ -851,20 +1138,16 @@ def _load_verified_stage0_selection(
     bindings = value["bindings"]
     q_ref = _load_verified_q_ref(contract, raw_root=raw_root, paid=paid)
     q_ref_path = raw_root / "q-ref-resolution" / "q_ref_resolution.json"
-    if (
-        bindings.get("q_ref_content_sha256")
-        != q_ref.get("integrity", {}).get("content_sha256")
-        or bindings.get("q_ref_file_sha256") != _file_sha256(q_ref_path)
-    ):
+    if bindings.get("q_ref_content_sha256") != q_ref.get("integrity", {}).get(
+        "content_sha256"
+    ) or bindings.get("q_ref_file_sha256") != _file_sha256(q_ref_path):
         raise PilotOrchestrationError("Stage-0 q_ref binding mismatch")
 
     expected_specs = tuple(contract.expand(stage="stage0-calibration"))
     expected_ids = {spec.run_id for spec in expected_specs}
     by_profile: dict[str, list[Mapping[str, Any]]] = {
         profile_id: []
-        for profile_id in expand_stage0_ofat(float(q_ref["q_ref"]))[
-            "profile_order"
-        ]
+        for profile_id in expand_stage0_ofat(float(q_ref["q_ref"]))["profile_order"]
     }
     source_rows = bindings.get("source_manifests")
     if not isinstance(source_rows, list) or len(source_rows) != len(expected_specs):
@@ -872,9 +1155,7 @@ def _load_verified_stage0_selection(
             "Stage-0 selection does not bind the exact 7x2 source matrix"
         )
     observed_ids: set[str] = set()
-    calibration_sources: list[
-        tuple[PilotRunSpec, Any, Mapping[str, Any]]
-    ] = []
+    calibration_sources: list[tuple[PilotRunSpec, Any, Mapping[str, Any]]] = []
     for row in source_rows:
         if not isinstance(row, Mapping):
             raise PilotOrchestrationError("Stage-0 source binding is malformed")
@@ -889,11 +1170,7 @@ def _load_verified_stage0_selection(
         if expected_spec is None:
             raise PilotOrchestrationError("Stage-0 source binding has an extra cell")
         expected_manifest = (
-            raw_root
-            / "stage0-calibration"
-            / "runs"
-            / run_id
-            / "manifest.json"
+            raw_root / "stage0-calibration" / "runs" / run_id / "manifest.json"
         )
         if row.get("manifest") != str(expected_manifest):
             raise PilotOrchestrationError("Stage-0 source manifest path mismatch")
@@ -907,8 +1184,7 @@ def _load_verified_stage0_selection(
             raise PilotOrchestrationError("Stage-0 source manifest hash mismatch")
         manifest_value = _read_json(expected_manifest)
         if (
-            manifest_value.get("git", {}).get("commit")
-            != bindings.get("git_commit")
+            manifest_value.get("git", {}).get("commit") != bindings.get("git_commit")
             or manifest_value.get("git", {}).get("dirty") is not False
         ):
             raise PilotOrchestrationError(
@@ -934,9 +1210,7 @@ def _load_verified_stage0_selection(
         )
         calibration_sources.append((expected_spec, result, row))
     if observed_ids != expected_ids:
-        raise PilotOrchestrationError(
-            "Stage-0 selection source matrix is incomplete"
-        )
+        raise PilotOrchestrationError("Stage-0 selection source matrix is incomplete")
     recomputed = select_stage0_profile(
         expand_stage0_ofat(float(q_ref["q_ref"])),
         by_profile,
@@ -1024,10 +1298,11 @@ def config_for_spec(
         raise PilotOrchestrationError("error-rule runs require decision_t=5")
 
     scientific = (
-        paid_provenance is not None
-        and not diagnostic_override
-        and verify_bound_inputs
+        paid_provenance is not None and not diagnostic_override and verify_bound_inputs
     )
+    request_profile = contract.provider_profiles[spec.model_id]
+    action_output = contract.task_output_contracts.get("actor-action")
+    semantic_output = contract.task_output_contracts.get("semantic-proposal")
     return VerifiedRunConfig(
         run_id=spec.run_id,
         seed=spec.environment_seed,
@@ -1047,18 +1322,51 @@ def config_for_spec(
         semantic_parse_failure_policy="record-and-skip",
         temperature=0.0,
         top_p=1.0,
-        max_retries=1,
-        send_decoding_seed=(
-            contract.provider_profiles[spec.model_id].seed_capability
-            != "unsupported"
+        action_max_tokens=(
+            action_output.max_completion_tokens if action_output is not None else 220
         ),
+        rule_max_tokens=(
+            semantic_output.max_completion_tokens
+            if semantic_output is not None
+            else 450
+        ),
+        action_max_visible_json_bytes=(
+            action_output.max_visible_json_bytes
+            if action_output is not None
+            else 1_000_000
+        ),
+        rule_max_visible_json_bytes=(
+            semantic_output.max_visible_json_bytes
+            if semantic_output is not None
+            else 1_000_000
+        ),
+        accepted_action_parse_modes=(
+            ("exact_json",)
+            if action_output is not None
+            and action_output.science_parse_mode == "exact_json_only"
+            else (
+                "exact_json",
+                "fenced_recovery",
+                "substring_recovery",
+            )
+        ),
+        accepted_semantic_parse_modes=(
+            ("exact_json",)
+            if semantic_output is not None
+            and semantic_output.science_parse_mode == "exact_json_only"
+            else (
+                "exact_json",
+                "fenced_recovery",
+                "substring_recovery",
+            )
+        ),
+        max_retries=1,
+        send_decoding_seed=spec.decoding_seed is not None,
         utility=resolve_utility(
             contract,
             spec,
             raw_root=raw_root,
-            paid_provenance=(
-                paid_provenance if verify_bound_inputs else None
-            ),
+            paid_provenance=(paid_provenance if verify_bound_inputs else None),
         ),
         shock_schedule=_shock_events(
             contract,
@@ -1089,8 +1397,7 @@ def _estimate_usage_for_profile(
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         cost_usd=(
-            prompt_tokens * rates["prompt"]
-            + completion_tokens * rates["completion"]
+            prompt_tokens * rates["prompt"] + completion_tokens * rates["completion"]
         )
         / 1000.0,
     )
@@ -1183,13 +1490,32 @@ def _preflight_usage_caps(
     return caps
 
 
-def _max_call_projection(spec: PilotRunSpec) -> tuple[int, int, int]:
+def _max_call_projection(
+    contract: PilotContract,
+    spec: PilotRunSpec,
+) -> tuple[int, int, int]:
     """Return conservative calls/prompt/output token ceilings before p95 exists."""
 
+    action_cap = (
+        contract.task_output_contracts["actor-action"].max_completion_tokens
+        if contract.task_output_contracts
+        else 220
+    )
+    semantic_cap = (
+        contract.task_output_contracts["semantic-proposal"].max_completion_tokens
+        if contract.task_output_contracts
+        else 450
+    )
     if spec.execution_mode == "capability_probe":
-        # 30 gate tasks + 12 actor decisions + proposals at outcomes 3 and 6
-        # for both agents.
-        return 46, 60_000, 10_000
+        if not contract.schema_version.endswith("-v2"):
+            return (
+                46,
+                160_000,
+                36 * action_cap + 10 * semantic_cap,
+            )
+        return 30, 60_000, 24 * action_cap + 6 * semantic_cap
+    if spec.execution_mode == "closed_loop_preflight":
+        return 16, 100_000, 12 * action_cap + 4 * semantic_cap
     if spec.execution_mode == "q_ref_resolution":
         return spec.num_agents * spec.episode_length, 500_000, 100_000
     if spec.execution_mode == "offline_candidate_admission":
@@ -1200,7 +1526,11 @@ def _max_call_projection(spec: PilotRunSpec) -> tuple[int, int, int]:
         return spec.num_agents * spec.episode_length, 500_000, 100_000
     action_calls = spec.num_agents * spec.episode_length
     proposal_calls = spec.num_agents * 4
-    return action_calls + proposal_calls, 500_000, 120_000
+    return (
+        action_calls + proposal_calls,
+        500_000,
+        action_calls * action_cap + proposal_calls * semantic_cap,
+    )
 
 
 def _counts_toward_hosted_completion_cap(
@@ -1219,19 +1549,20 @@ def conservative_projection(
 ) -> RunProjection:
     """Build a no-understatement preflight reservation for one run."""
 
-    calls, prompt_tokens, completion_tokens = _max_call_projection(spec)
+    calls, prompt_tokens, completion_tokens = _max_call_projection(
+        contract,
+        spec,
+    )
     profile = contract.provider_profiles[spec.model_id]
     hosted_completion_cap_counted = bool(
-        not diagnostic
-        and _counts_toward_hosted_completion_cap(profile)
+        not diagnostic and _counts_toward_hosted_completion_cap(profile)
     )
     if diagnostic or profile.transport == "diagnostic":
         cost = 0.0
     else:
         rates = profile.price_snapshot.costs_per_1k()
         cost = (
-            prompt_tokens * rates["prompt"]
-            + completion_tokens * rates["completion"]
+            prompt_tokens * rates["prompt"] + completion_tokens * rates["completion"]
         ) / 1000.0
     return RunProjection(
         run_id=spec.run_id,
@@ -1252,16 +1583,12 @@ def conservative_projection(
 
 def _run_budget_from_projection(projection: RunProjection) -> RunBudget:
     basis = projection.basis
-    run_call_limit = int(
-        basis.get("run_call_limit", projection.completions)
-    )
+    run_call_limit = int(basis.get("run_call_limit", projection.completions))
     return RunBudget(
         BudgetLimits(
             max_calls=run_call_limit,
             max_prompt_tokens=int(basis.get("prompt_tokens", 2_000_000)),
-            max_completion_tokens=int(
-                basis.get("completion_tokens", 1_000_000)
-            ),
+            max_completion_tokens=int(basis.get("completion_tokens", 1_000_000)),
             max_total_tokens=int(
                 basis.get("prompt_tokens", 2_000_000)
                 + basis.get("completion_tokens", 1_000_000)
@@ -1287,9 +1614,7 @@ def _actual_budget_values(
     usage = snapshot.accounted_usage
     return {
         "cost_usd": float(usage.cost_usd),
-        "completions": (
-            int(snapshot.completed_calls) if completion_cap_counted else 0
-        ),
+        "completions": (int(snapshot.completed_calls) if completion_cap_counted else 0),
         "storage_bytes": _directory_size(run_dir)
         + sum(
             path.stat().st_size
@@ -1347,6 +1672,44 @@ def _exception_failure(
     return failure
 
 
+def _verified_provider_call_journal_binding(
+    path: Path,
+    *,
+    expected_run_id: str,
+    expected_contract_hash: str | None,
+) -> dict[str, Any]:
+    """Return a content binding only after full terminal journal validation."""
+
+    payload = verify_provider_call_journal(
+        path,
+        expected_run_id=expected_run_id,
+        expected_contract_hash=expected_contract_hash,
+        require_terminal_dispositions=True,
+    )
+    return {
+        "path": str(path),
+        "file_sha256": _file_sha256(path),
+        "journal_sha256": payload["journal_sha256"],
+        "run_id": payload["run_id"],
+        "contract_hash": payload["contract_hash"],
+        "event_count": len(payload["events"]),
+        "terminal_dispositions_verified": True,
+    }
+
+
+def _provider_call_journal_path(
+    run_dir: Path,
+    *,
+    run_id: str,
+    kind: str,
+) -> Path:
+    """Keep journals beside, never inside, immutable artifact directories."""
+
+    if kind not in {"actor", "preflight"}:
+        raise ValueError("provider journal kind is invalid")
+    return run_dir.parent.parent / "provider_call_journals" / f"{run_id}--{kind}.json"
+
+
 def _write_execution_failure_receipt(
     receipt_dir: Path,
     *,
@@ -1383,6 +1746,38 @@ def _write_execution_failure_receipt(
                 check=False,
             )
         )
+    journal_bindings = []
+    for spec in specs:
+        for kind in ("actor", "preflight"):
+            journal = _provider_call_journal_path(
+                receipt_dir.parent,
+                run_id=spec.run_id,
+                kind=kind,
+            )
+            if not journal.exists():
+                continue
+            journal_bindings.append(
+                _verified_provider_call_journal_binding(
+                    journal,
+                    expected_run_id=(
+                        f"{spec.run_id}--actor-preflight"
+                        if kind == "preflight"
+                        else spec.run_id
+                    ),
+                    expected_contract_hash=(
+                        None
+                        if (
+                            diagnostic
+                            or paid is None
+                            or (
+                                kind == "preflight"
+                                and not contract.schema_version.endswith("-v2")
+                            )
+                        )
+                        else contract.canonical_hash
+                    ),
+                )
+            )
     return write_failure_receipt(
         receipt_dir,
         scope=scope,
@@ -1395,6 +1790,7 @@ def _write_execution_failure_receipt(
             "projection": projection.to_dict(),
             "run_specs": [spec.to_dict() for spec in specs],
             "provider_request_profiles": profiles,
+            "provider_call_journals": journal_bindings,
         },
         provenance={
             "contract_id": contract.contract_id,
@@ -1447,24 +1843,40 @@ def _execute_actor_run(
         num_agents_override=num_agents_override,
         episode_length_override=episode_length_override,
     )
+    journal_path = _provider_call_journal_path(
+        run_dir,
+        run_id=spec.run_id,
+        kind="actor",
+    )
     result = run_verified_experiment(
         config,
         llm=llm,
         budget=budget,
         env_config_source=DEFAULT_ENV_CONFIG,
+        call_journal_path=journal_path,
     )
-    git_commit = paid.head_commit if paid is not None else _git(
-        Path(__file__).resolve().parents[1], "rev-parse", "HEAD"
+    journal_binding = _verified_provider_call_journal_binding(
+        journal_path,
+        expected_run_id=config.run_id,
+        expected_contract_hash=config.pilot_contract_hash,
+    )
+    git_commit = (
+        paid.head_commit
+        if paid is not None
+        else _git(Path(__file__).resolve().parents[1], "rev-parse", "HEAD")
     )
     manifest = write_verified_run_artifacts(
         run_dir,
         result,
-        provenance=_provenance_payload(
-            contract,
-            spec,
-            paid=paid,
-            diagnostic=diagnostic,
-        ),
+        provenance={
+            **_provenance_payload(
+                contract,
+                spec,
+                paid=paid,
+                diagnostic=diagnostic,
+            ),
+            "provider_call_journal": journal_binding,
+        },
         git_commit=git_commit,
         git_dirty=False if paid is not None else True,
     )
@@ -1474,14 +1886,12 @@ def _execute_actor_run(
     )
     if paid is None or diagnostic:
         _atomic_json(
-            raw_root
-            / spec.stage_id
-            / "diagnostic_summaries"
-            / f"{spec.run_id}.json",
+            raw_root / spec.stage_id / "diagnostic_summaries" / f"{spec.run_id}.json",
             {
                 "contract_sha256": contract.canonical_hash,
                 "run_spec": spec.to_dict(),
                 "metrics": {"analysis": summary},
+                "provider_call_journal": journal_binding,
                 "diagnostic_only": True,
                 "scientific_evidence": False,
             },
@@ -1496,6 +1906,9 @@ def _preflight_config(
     paid: GitProvenance,
 ) -> VerifiedRunConfig:
     profile = contract.utility["profiles"]["provider-preflight-default"]
+    scientific_authorization = contract.schema_version.endswith("-v2")
+    action_output = contract.task_output_contracts.get("actor-action")
+    semantic_output = contract.task_output_contracts.get("semantic-proposal")
     return VerifiedRunConfig(
         run_id=f"{spec.run_id}--actor-preflight",
         seed=spec.environment_seed,
@@ -1512,50 +1925,149 @@ def _preflight_config(
         semantic_parse_failure_policy="record-and-skip",
         temperature=0.0,
         top_p=1.0,
+        action_max_tokens=(
+            action_output.max_completion_tokens if action_output is not None else 220
+        ),
+        rule_max_tokens=(
+            semantic_output.max_completion_tokens
+            if semantic_output is not None
+            else 450
+        ),
+        action_max_visible_json_bytes=(
+            action_output.max_visible_json_bytes
+            if action_output is not None
+            else 1_000_000
+        ),
+        rule_max_visible_json_bytes=(
+            semantic_output.max_visible_json_bytes
+            if semantic_output is not None
+            else 1_000_000
+        ),
+        accepted_action_parse_modes=(
+            ("exact_json",)
+            if action_output is not None
+            and action_output.science_parse_mode == "exact_json_only"
+            else (
+                "exact_json",
+                "fenced_recovery",
+                "substring_recovery",
+            )
+        ),
+        accepted_semantic_parse_modes=(
+            ("exact_json",)
+            if semantic_output is not None
+            and semantic_output.science_parse_mode == "exact_json_only"
+            else (
+                "exact_json",
+                "fenced_recovery",
+                "substring_recovery",
+            )
+        ),
         max_retries=1,
         send_decoding_seed=(
-            contract.provider_profiles[spec.model_id].seed_capability
-            != "unsupported"
+            spec.decoding_seed is not None
+            if contract.schema_version.endswith("-v2")
+            else (
+                contract.provider_profiles[spec.model_id].seed_capability
+                != "unsupported"
+            )
         ),
         utility=_utility_from_mapping(profile),
         shock_schedule=_shock_events(
             contract,
-            "registered-rate-shock",
+            spec.shock_id,
             episode_length=6,
         ),
-        scientific_scope="bounded_method_smoke",
-        pilot_contract_hash=None,
-        pilot_tag=None,
-        allow_scientific_scope=False,
+        scientific_scope=(
+            "preregistered_mechanism_micro_pilot"
+            if scientific_authorization
+            else "bounded_method_smoke"
+        ),
+        pilot_contract_hash=(
+            contract.canonical_hash if scientific_authorization else None
+        ),
+        pilot_tag=paid.git_tag if scientific_authorization else None,
+        allow_scientific_scope=scientific_authorization,
     )
+
+
+class _CheckpointPreflightResult:
+    """Minimal stream adapter over one hash-validated V2 preflight checkpoint."""
+
+    def __init__(self, checkpoint: PilotCheckpoint) -> None:
+        payload = checkpoint.payload
+        self.summary = {
+            "scientific_evidence": False,
+            "result_scope": "preregistered_capability_preflight",
+        }
+        self.validation_status = {"status": "pass"}
+        self._streams = {
+            "actions": tuple(
+                {"decision": dict(decision)}
+                for step in payload["prefix_steps"]
+                for decision in step["decisions"].values()
+            ),
+            "semantic_proposals": tuple(payload["proposal_outcomes"]),
+            "api_usage": tuple(payload["provider_calls"]),
+        }
+
+    def stream(self, name: str) -> tuple[Mapping[str, Any], ...]:
+        try:
+            return self._streams[name]
+        except KeyError as exc:
+            raise KeyError(name) from exc
 
 
 def _preflight_checks(
     result: Any,
     profile: ProviderRequestProfile,
+    *,
+    checkpoint_preflight: bool = False,
 ) -> dict[str, bool]:
     actions = result.stream("actions")
     proposals = result.stream("semantic_proposals")
     api_rows = result.stream("api_usage")
     provider_rows = [row for row in api_rows if row.get("error_type") is not None]
     expected_artifact_identity = dict(profile.artifact_identity)
+    declared_dispatch = {
+        field: (
+            "explicit_supported"
+            if disposition.dispatch_mode == "explicit_supported"
+            else "omitted_unsupported"
+        )
+        for field, disposition in profile.decoding_fields
+    }
+    dispatches = {
+        field: status == "explicit_supported"
+        for field, status in declared_dispatch.items()
+    }
     if profile.transport == "openrouter":
         expected_response_providers = set(profile.provider_pin)
         expected_response_route = expected_artifact_identity.get("served_snapshot")
         expected_route_attestation = "OR_RA_PASS"
         expected_sdk_name = "openai-python"
         expected_sdk_version = PINNED_PROVIDER_SDK_VERSIONS["openai"]
-        expected_temperature_dispatch = "explicit"
+        expected_temperature_dispatch = (
+            "explicit"
+            if not dispatches or dispatches["temperature"]
+            else "omitted_unsupported"
+        )
         expected_request_parameters = {
             "model",
             "messages",
-            "temperature",
             "max_tokens",
-            "top_p",
             *profile.openrouter_request_options().keys(),
         }
-        if profile.seed_capability != "unsupported":
+        if not dispatches or dispatches["temperature"]:
+            expected_request_parameters.add("temperature")
+        if not dispatches or dispatches["top_p"]:
+            expected_request_parameters.add("top_p")
+        if (not dispatches and profile.seed_capability != "unsupported") or (
+            dispatches and dispatches["seed"]
+        ):
             expected_request_parameters.add("seed")
+        if dispatches and not dispatches["response_format"]:
+            expected_request_parameters.discard("response_format")
     elif profile.transport == "openai":
         expected_response_providers = {"OpenAI-direct"}
         expected_response_route = "direct"
@@ -1563,24 +2075,35 @@ def _preflight_checks(
         expected_sdk_name = "openai-python"
         expected_sdk_version = PINNED_PROVIDER_SDK_VERSIONS["openai"]
         expected_temperature_dispatch = (
-            "omitted_unsupported"
-            if profile.requested_model.startswith(("gpt-5", "o1", "o3"))
-            else "explicit"
+            (
+                "omitted_unsupported"
+                if profile.requested_model.startswith(("gpt-5", "o1", "o3"))
+                else "explicit"
+            )
+            if not dispatches
+            else ("explicit" if dispatches["temperature"] else "omitted_unsupported")
         )
-        reasoning_model = profile.requested_model.startswith(
-            ("gpt-5", "o1", "o3")
-        )
+        reasoning_model = profile.requested_model.startswith(("gpt-5", "o1", "o3"))
         expected_request_parameters = {
             "model",
             "messages",
-            "top_p",
             *profile.openai_request_options().keys(),
             "max_completion_tokens" if reasoning_model else "max_tokens",
         }
-        if not reasoning_model:
+        if not dispatches or dispatches["top_p"]:
+            expected_request_parameters.add("top_p")
+        if (not dispatches and not reasoning_model) or (
+            dispatches and dispatches["temperature"]
+        ):
             expected_request_parameters.add("temperature")
-        if profile.seed_capability != "unsupported":
+        if (not dispatches and profile.seed_capability != "unsupported") or (
+            dispatches and dispatches["seed"]
+        ):
             expected_request_parameters.add("seed")
+        if dispatches and not dispatches["response_format"]:
+            expected_request_parameters.discard("response_format")
+        if dispatches and not dispatches["reasoning"]:
+            expected_request_parameters.discard("reasoning_effort")
     elif profile.transport == "ollama":
         expected_response_providers = {"local-ollama"}
         expected_response_route = "local"
@@ -1596,6 +2119,8 @@ def _preflight_checks(
         }
         if profile.json_mode == "json_object":
             expected_request_parameters.add("format")
+        if dispatches and not dispatches["response_format"]:
+            expected_request_parameters.discard("format")
     else:
         expected_response_providers = set(profile.provider_pin)
         expected_response_route = profile.routing_mode
@@ -1604,15 +2129,13 @@ def _preflight_checks(
         expected_sdk_version = None
         expected_temperature_dispatch = None
         expected_request_parameters = set()
-    return {
+    checks = {
         "action_parse_success_12_of_12": len(actions) == 12,
         "proposal_outcomes_accounted": all(
             row.get("candidate_parse_status") in {"success", "failure"}
             for row in proposals
         ),
-        "no_clipping": all(
-            not bool(row["decision"]["clipped"]) for row in actions
-        ),
+        "no_clipping": all(not bool(row["decision"]["clipped"]) for row in actions),
         "no_provider_error": not provider_rows,
         "served_model_exact": all(
             row.get("response_model") == profile.served_model for row in api_rows
@@ -1620,8 +2143,7 @@ def _preflight_checks(
         "attempt_count_exact": all(row.get("attempts") == 1 for row in api_rows),
         "request_profile_exact": bool(api_rows)
         and all(
-            row.get("request_profile_id") == profile.profile_id
-            for row in api_rows
+            row.get("request_profile_id") == profile.profile_id for row in api_rows
         ),
         "request_provider_pin_exact": bool(api_rows)
         and all(
@@ -1630,14 +2152,12 @@ def _preflight_checks(
         ),
         "request_artifact_identity_exact": bool(api_rows)
         and all(
-            row.get("request_artifact_identity")
-            == expected_artifact_identity
+            row.get("request_artifact_identity") == expected_artifact_identity
             for row in api_rows
         ),
         "request_price_snapshot_exact": bool(api_rows)
         and all(
-            row.get("request_price_snapshot_source")
-            == profile.price_snapshot.source
+            row.get("request_price_snapshot_source") == profile.price_snapshot.source
             and row.get("request_price_snapshot_captured_at")
             == profile.price_snapshot.captured_at
             for row in api_rows
@@ -1657,8 +2177,7 @@ def _preflight_checks(
         ),
         "response_snapshot_exact": bool(api_rows)
         and all(
-            row.get("response_route") == expected_response_route
-            for row in api_rows
+            row.get("response_route") == expected_response_route for row in api_rows
         ),
         "route_attestation_exact": bool(api_rows)
         and all(
@@ -1667,8 +2186,7 @@ def _preflight_checks(
         ),
         "finish_metadata_complete": bool(api_rows)
         and all(
-            row.get("finish_reason") == "stop"
-            and row.get("response_completed") is True
+            row.get("finish_reason") == "stop" and row.get("response_completed") is True
             for row in api_rows
         ),
         "provider_sdk_complete": bool(api_rows)
@@ -1702,9 +2220,16 @@ def _preflight_checks(
         ),
         "request_parameters_exact": bool(api_rows)
         and all(
-            row.get("request_parameters")
-            == sorted(expected_request_parameters)
+            row.get("request_parameters") == sorted(expected_request_parameters)
             for row in api_rows
+        ),
+        "parameter_dispatch_exact": (
+            True
+            if not declared_dispatch
+            else bool(api_rows)
+            and all(
+                row.get("parameter_dispatch") == declared_dispatch for row in api_rows
+            )
         ),
         "usage_complete": all(
             isinstance(row.get("usage"), Mapping)
@@ -1716,9 +2241,20 @@ def _preflight_checks(
         "runner_validation_pass": result.validation_status.get("status") == "pass",
         "bounded_non_scientific_measurement": (
             result.summary.get("scientific_evidence") is False
-            and result.summary.get("result_scope") == "bounded_method_smoke"
+            and result.summary.get("result_scope")
+            == (
+                "preregistered_capability_preflight"
+                if checkpoint_preflight
+                else "bounded_method_smoke"
+            )
         ),
     }
+    if checkpoint_preflight:
+        checks["proposal_outcomes_accounted_4_of_4"] = len(
+            proposals
+        ) == 4 and checks.pop("proposal_outcomes_accounted")
+        checks["provider_calls_accounted_16_of_16"] = len(api_rows) == 16
+    return checks
 
 
 def _usage_projection_rows(
@@ -1730,10 +2266,13 @@ def _usage_projection_rows(
         rows.append(
             {
                 "response_model": row["served_model"],
-                "call_kind": (
-                    "capability-proposal"
-                    if row["category"] == "rule-proposal"
-                    else "capability-choice"
+                "call_kind": row.get(
+                    "output_contract_id",
+                    (
+                        "capability-proposal"
+                        if row["category"] == "rule-proposal"
+                        else "capability-choice"
+                    ),
                 ),
                 "usage": row["usage"],
             }
@@ -1758,7 +2297,7 @@ def _execute_capability_preflight(
     projection: RunProjection,
     budget: RunBudget,
 ) -> tuple[str, Path, RunBudget, dict[str, Any]]:
-    """Run the fixed 30-item gate, then the 2x6 interface preflight."""
+    """Run a capability gate and/or its separately registered 2x6 preflight."""
 
     run_dir = raw_root / spec.stage_id / "runs" / spec.run_id
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -1767,21 +2306,65 @@ def _execute_capability_preflight(
     estimate = lambda prompt, max_tokens: _estimate_usage_for_profile(  # noqa: E731
         profile, prompt, max_tokens
     )
-    capability = run_capability_gate(
-        llm=llm,
-        budget=budget,
-        seed=spec.decoding_seed,
-        estimate_usage=estimate,
+    split_capability_only = spec.execution_mode == "capability_probe" and (
+        contract.schema_version.endswith("-v2")
     )
-    capability_payload = {
-        **capability,
-        "contract_sha256": contract.canonical_hash,
-        "run_spec": spec.to_dict(),
-        "scientific_evidence": False,
-        "evidence_use": "capability gate denominator only",
-        "preflight_go": False,
-    }
-    _atomic_json(run_dir / "capability.json", capability_payload)
+    split_preflight_only = spec.execution_mode == "closed_loop_preflight"
+    if split_preflight_only:
+        capability_stage = _capability_source_stage(
+            contract,
+            spec.stage_id,
+            spec.model_id,
+        )
+        capability_specs = contract.expand(
+            stage=capability_stage,
+            model=spec.model_id,
+        )
+        if len(capability_specs) != 1:
+            raise PilotOrchestrationError(
+                "closed-loop preflight requires one exact capability cell"
+            )
+        capability_path = (
+            raw_root
+            / capability_stage
+            / "runs"
+            / capability_specs[0].run_id
+            / "capability.json"
+        )
+        capability_payload = _read_json(capability_path)
+        if (
+            capability_payload.get("contract_sha256") != contract.canonical_hash
+            or capability_payload.get("run_spec") != capability_specs[0].to_dict()
+        ):
+            raise PilotOrchestrationError(
+                "closed-loop preflight capability binding mismatch"
+            )
+        capability = capability_payload
+    else:
+        capability = run_capability_gate(
+            llm=llm,
+            budget=budget,
+            seed=spec.decoding_seed,
+            estimate_usage=estimate,
+            task_output_contracts=(
+                {
+                    key: item.to_dict()
+                    for key, item in contract.task_output_contracts.items()
+                }
+                if contract.task_output_contracts
+                else None
+            ),
+        )
+        capability_payload = {
+            **capability,
+            "contract_sha256": contract.canonical_hash,
+            "run_spec": spec.to_dict(),
+            "scientific_evidence": False,
+            "evidence_use": "capability gate denominator only",
+            "preflight_go": False,
+        }
+        capability_path = run_dir / "capability.json"
+        _atomic_json(capability_path, capability_payload)
     if not capability["pass"]:
         interface_pass = capability["interface_gate"]["pass"] is True
         capability_status = capability["capability_assessment"]["status"]
@@ -1800,10 +2383,7 @@ def _execute_capability_preflight(
         }
         _atomic_json(run_dir / "gate_receipt.json", receipt)
         terminal = write_terminal_summary(
-            raw_root
-            / spec.stage_id
-            / "summaries"
-            / f"{spec.run_id}.json",
+            raw_root / spec.stage_id / "summaries" / f"{spec.run_id}.json",
             contract=contract,
             run_spec=spec,
             resolved_git_commit=paid.head_commit,
@@ -1822,19 +2402,90 @@ def _execute_capability_preflight(
         )
         return "capability-no-go", terminal, budget, receipt
 
+    if split_capability_only:
+        receipt = {
+            "capability_pass": True,
+            "capability_status": "pass",
+            "interface_pass": True,
+            "preflight_run": None,
+            "go": True,
+            "reason": None,
+        }
+        _atomic_json(run_dir / "gate_receipt.json", receipt)
+        terminal = write_terminal_summary(
+            raw_root / spec.stage_id / "summaries" / f"{spec.run_id}.json",
+            contract=contract,
+            run_spec=spec,
+            resolved_git_commit=paid.head_commit,
+            git_tag=paid.git_tag,
+            payload={
+                "metrics": {},
+                "gate_evidence": receipt,
+                "capability": capability_payload,
+            },
+            scientific_evidence=False,
+            diagnostic_only=False,
+            evidence_scope="preregistered_task_capability_gate",
+        )
+        return "complete", terminal, budget, receipt
+
     config = _preflight_config(contract, spec, paid=paid)
-    result = run_verified_experiment(
-        config,
-        llm=llm,
-        budget=budget,
-        env_config_source=DEFAULT_ENV_CONFIG,
+    preflight_journal_path = _provider_call_journal_path(
+        run_dir,
+        run_id=spec.run_id,
+        kind="preflight",
     )
-    checks = _preflight_checks(result, profile)
+    checkpoint_path: Path | None = None
+    checkpoint_receipt_path: Path | None = None
+    checkpoint_receipt: Mapping[str, Any] | None = None
+    if contract.schema_version.endswith("-v2"):
+        checkpoint = build_closed_loop_preflight_checkpoint(
+            config,
+            llm=llm,
+            budget=budget,
+            env_config_source=DEFAULT_ENV_CONFIG,
+            call_journal_path=preflight_journal_path,
+        )
+        checkpoint_path = run_dir / "preflight_checkpoint.json"
+        _atomic_bound_json(checkpoint_path, checkpoint.to_dict())
+        exactness = verify_closed_loop_preflight_checkpoint(checkpoint)
+        checkpoint_receipt = _seal_bound_payload(
+            {
+                "schema_version": (PILOT_PREFLIGHT_CHECKPOINT_RECEIPT_SCHEMA_VERSION),
+                "bindings": {
+                    "contract_sha256": contract.canonical_hash,
+                    "git_tag": paid.git_tag,
+                    "git_commit": paid.head_commit,
+                    "checkpoint_path": str(checkpoint_path),
+                    "checkpoint_file_sha256": _file_sha256(checkpoint_path),
+                    "checkpoint_hash": checkpoint.checkpoint_hash,
+                },
+                "exactness": exactness,
+            }
+        )
+        checkpoint_receipt_path = run_dir / "preflight_checkpoint_exactness.json"
+        _atomic_bound_json(checkpoint_receipt_path, checkpoint_receipt)
+        result = _CheckpointPreflightResult(checkpoint)
+    else:
+        result = run_verified_experiment(
+            config,
+            llm=llm,
+            budget=budget,
+            env_config_source=DEFAULT_ENV_CONFIG,
+            call_journal_path=preflight_journal_path,
+        )
+    preflight_journal_binding = _verified_provider_call_journal_binding(
+        preflight_journal_path,
+        expected_run_id=config.run_id,
+        expected_contract_hash=config.pilot_contract_hash,
+    )
+    checks = _preflight_checks(
+        result,
+        profile,
+        checkpoint_preflight=contract.schema_version.endswith("-v2"),
+    )
     catalog_path = (
-        raw_root
-        / spec.stage_id
-        / "provider_catalog"
-        / f"{spec.model_id}.json"
+        raw_root / spec.stage_id / "provider_catalog" / f"{spec.model_id}.json"
     )
     catalog_receipt = _read_json(catalog_path)
     observed_routes = sorted(
@@ -1853,9 +2504,7 @@ def _execute_capability_preflight(
         "allow_fallbacks": profile.allow_fallbacks,
         "require_parameters": profile.require_parameters,
         "catalog_receipt": str(catalog_path),
-        "catalog_receipt_sha256": hashlib.sha256(
-            catalog_path.read_bytes()
-        ).hexdigest(),
+        "catalog_receipt_sha256": hashlib.sha256(catalog_path.read_bytes()).hexdigest(),
         "catalog_status": catalog_receipt.get("status"),
         "served_model_exact": checks["served_model_exact"],
         "response_route_attestation_available": checks[
@@ -1871,51 +2520,92 @@ def _execute_capability_preflight(
             "makes this preflight a no-go."
         ),
     }
-    git_commit = paid.head_commit
-    manifest = write_verified_run_artifacts(
-        run_dir / "preflight",
-        result,
-        provenance={
-            **_provenance_payload(
-                contract,
-                spec,
-                paid=paid,
-                diagnostic=False,
-            ),
-            "purpose": "bounded capability/interface p95 measurement",
-            "scientific_evidence": False,
-            "evidence_scope": "preregistered_capability_gate",
-        },
-        git_commit=git_commit,
-        git_dirty=False,
-    )
-    capability_path = run_dir / "capability.json"
-    projection_payload = _seal_bound_payload({
-        "schema_version": PILOT_PROJECTION_SCHEMA_VERSION,
-        "model_id": spec.model_id,
-        "served_model": profile.served_model,
-        "bindings": {
-            "contract_sha256": contract.canonical_hash,
-            "git_tag": paid.git_tag,
-            "git_commit": paid.head_commit,
-            "source_manifest": str(manifest),
-            "source_manifest_sha256": _file_sha256(manifest),
-            "source_capability": str(capability_path),
-            "source_capability_sha256": _file_sha256(capability_path),
-        },
-        "projection": preflight_p95(
-            _usage_projection_rows(capability, result),
-            reserve_multiplier=float(
-                contract.budgets["pre_dispatch_projection"]["reserve_multiplier"]
-            ),
+    manifest: Path | None = None
+    if not contract.schema_version.endswith("-v2"):
+        manifest = write_verified_run_artifacts(
+            run_dir / "preflight",
+            result,
+            provenance={
+                **_provenance_payload(
+                    contract,
+                    spec,
+                    paid=paid,
+                    diagnostic=False,
+                ),
+                "purpose": "bounded capability/interface p95 measurement",
+                "scientific_evidence": False,
+                "evidence_scope": "preregistered_capability_gate",
+                "provider_call_journal": preflight_journal_binding,
+            },
+            git_commit=paid.head_commit,
+            git_dirty=False,
+        )
+    source_bindings = {
+        "contract_sha256": contract.canonical_hash,
+        "git_tag": paid.git_tag,
+        "git_commit": paid.head_commit,
+        "source_capability": str(capability_path),
+        "source_capability_sha256": _file_sha256(capability_path),
+        "source_provider_call_journal": str(preflight_journal_path),
+        "source_provider_call_journal_file_sha256": (
+            preflight_journal_binding["file_sha256"]
         ),
-    })
+        "source_provider_call_journal_sha256": (
+            preflight_journal_binding["journal_sha256"]
+        ),
+    }
+    if manifest is not None:
+        source_bindings.update(
+            {
+                "source_manifest": str(manifest),
+                "source_manifest_sha256": _file_sha256(manifest),
+            }
+        )
+    else:
+        assert checkpoint_path is not None
+        assert checkpoint_receipt_path is not None
+        assert checkpoint_receipt is not None
+        source_bindings.update(
+            {
+                "source_checkpoint": str(checkpoint_path),
+                "source_checkpoint_file_sha256": _file_sha256(checkpoint_path),
+                "source_checkpoint_hash": checkpoint.checkpoint_hash,
+                "source_checkpoint_exactness": str(checkpoint_receipt_path),
+                "source_checkpoint_exactness_file_sha256": _file_sha256(
+                    checkpoint_receipt_path
+                ),
+                "source_checkpoint_exactness_content_sha256": (
+                    checkpoint_receipt["integrity"]["content_sha256"]
+                ),
+            }
+        )
+    projection_payload = _seal_bound_payload(
+        {
+            "schema_version": PILOT_PROJECTION_SCHEMA_VERSION,
+            "model_id": spec.model_id,
+            "served_model": profile.served_model,
+            "bindings": source_bindings,
+            "projection": preflight_p95(
+                _usage_projection_rows(capability, result),
+                reserve_multiplier=float(
+                    contract.budgets["pre_dispatch_projection"]["reserve_multiplier"]
+                ),
+            ),
+        }
+    )
     _atomic_bound_json(run_dir / "projection_p95.json", projection_payload)
     receipt = {
         "capability_pass": True,
         "preflight_checks": checks,
-        "preflight_manifest": str(manifest),
+        "preflight_manifest": None if manifest is None else str(manifest),
+        "preflight_checkpoint": (
+            None if checkpoint_path is None else str(checkpoint_path)
+        ),
+        "preflight_checkpoint_exactness": (
+            None if checkpoint_receipt_path is None else str(checkpoint_receipt_path)
+        ),
         "projection": str(run_dir / "projection_p95.json"),
+        "provider_call_journal": preflight_journal_binding,
         "request_route_binding": route_binding,
         "go": all(checks.values()),
         "reason": None if all(checks.values()) else "interface preflight failed",
@@ -1931,6 +2621,7 @@ def _execute_capability_preflight(
         payload={
             "metrics": {},
             "gate_evidence": receipt,
+            "provider_call_journal": preflight_journal_binding,
             "capability": {
                 **capability_payload,
                 "preflight_go": receipt["go"],
@@ -1951,20 +2642,22 @@ def _load_verified_projection(
     raw_root: Path,
     paid: GitProvenance | None,
 ) -> tuple[dict[str, Any], Path]:
-    capability_specs = contract.expand(
-        stage="capability-preflight",
+    preflight_stage = _preflight_stage_for_model(contract, model_id)
+    capability_stage = _capability_source_stage(
+        contract,
+        preflight_stage,
+        model_id,
+    )
+    preflight_specs = contract.expand(
+        stage=preflight_stage,
         model=model_id,
     )
-    if len(capability_specs) != 1:
+    capability_specs = contract.expand(stage=capability_stage, model=model_id)
+    if len(preflight_specs) != 1 or len(capability_specs) != 1:
         raise PilotOrchestrationError(
             f"model {model_id} lacks one exact capability/preflight cell"
         )
-    run_dir = (
-        raw_root
-        / "capability-preflight"
-        / "runs"
-        / capability_specs[0].run_id
-    )
+    run_dir = raw_root / preflight_stage / "runs" / preflight_specs[0].run_id
     path = run_dir / "projection_p95.json"
     payload = _read_json(path)
     _verify_bound_payload(
@@ -1982,37 +2675,116 @@ def _load_verified_projection(
         raise PilotOrchestrationError("preflight projection model identity mismatch")
     bindings = payload["bindings"]
     manifest = run_dir / "preflight" / "manifest.json"
-    capability_path = run_dir / "capability.json"
+    capability_path = (
+        raw_root
+        / capability_stage
+        / "runs"
+        / capability_specs[0].run_id
+        / "capability.json"
+    )
+    journal_path = _provider_call_journal_path(
+        run_dir,
+        run_id=preflight_specs[0].run_id,
+        kind="preflight",
+    )
+    legacy_journal_path = run_dir / "preflight_provider_call_journal.json"
     if (
-        bindings.get("source_manifest") != str(manifest)
-        or bindings.get("source_capability") != str(capability_path)
+        not journal_path.exists()
+        and not contract.schema_version.endswith("-v2")
+        and legacy_journal_path.exists()
+    ):
+        journal_path = legacy_journal_path
+    journal_binding: dict[str, Any] | None = None
+    if contract.schema_version.endswith("-v2") or journal_path.exists():
+        journal_binding = _verified_provider_call_journal_binding(
+            journal_path,
+            expected_run_id=(f"{preflight_specs[0].run_id}--actor-preflight"),
+            expected_contract_hash=(
+                contract.canonical_hash
+                if contract.schema_version.endswith("-v2")
+                else None
+            ),
+        )
+    if bindings.get("source_capability") != str(capability_path) or (
+        journal_binding is not None
+        and (
+            bindings.get("source_provider_call_journal") != str(journal_path)
+            or bindings.get("source_provider_call_journal_file_sha256")
+            != journal_binding["file_sha256"]
+            or bindings.get("source_provider_call_journal_sha256")
+            != journal_binding["journal_sha256"]
+        )
     ):
         raise PilotOrchestrationError("preflight projection source path mismatch")
-    verification = verify_manifest(manifest.parent)
-    if (
-        bindings.get("source_manifest_sha256") != verification.manifest_sha256
-        or bindings.get("source_capability_sha256")
-        != _file_sha256(capability_path)
-    ):
+    if bindings.get("source_capability_sha256") != _file_sha256(capability_path):
         raise PilotOrchestrationError("preflight projection source hash mismatch")
-    manifest_value = _read_json(manifest)
-    if (
-        manifest_value.get("git", {}).get("commit") != bindings.get("git_commit")
-        or manifest_value.get("git", {}).get("dirty") is not False
-    ):
-        raise PilotOrchestrationError("preflight projection source git mismatch")
-    result = load_verified_run_artifacts(manifest.parent)
     capability = _read_json(capability_path)
-    provenance = _read_json(manifest.parent / "provenance.json")
-    details = provenance.get("details")
     if (
         capability.get("contract_sha256") != contract.canonical_hash
         or capability.get("run_spec") != capability_specs[0].to_dict()
-        or not isinstance(details, Mapping)
-        or details.get("contract_sha256") != contract.canonical_hash
-        or details.get("run_spec") != capability_specs[0].to_dict()
     ):
         raise PilotOrchestrationError("preflight capability source binding mismatch")
+    if contract.schema_version.endswith("-v2"):
+        checkpoint_path = run_dir / "preflight_checkpoint.json"
+        checkpoint = PilotCheckpoint(_read_json(checkpoint_path))
+        exactness_path = run_dir / "preflight_checkpoint_exactness.json"
+        exactness = _read_json(exactness_path)
+        _verify_bound_payload(
+            exactness,
+            contract=contract,
+            schema_version=PILOT_PREFLIGHT_CHECKPOINT_RECEIPT_SCHEMA_VERSION,
+            paid=paid,
+            artifact_name=f"{model_id} preflight checkpoint exactness",
+        )
+        expected_exactness = verify_closed_loop_preflight_checkpoint(checkpoint)
+        if (
+            exactness.get("exactness") != expected_exactness
+            or bindings.get("source_checkpoint") != str(checkpoint_path)
+            or bindings.get("source_checkpoint_file_sha256")
+            != _file_sha256(checkpoint_path)
+            or bindings.get("source_checkpoint_hash") != checkpoint.checkpoint_hash
+            or bindings.get("source_checkpoint_exactness") != str(exactness_path)
+            or bindings.get("source_checkpoint_exactness_file_sha256")
+            != _file_sha256(exactness_path)
+            or bindings.get("source_checkpoint_exactness_content_sha256")
+            != exactness["integrity"]["content_sha256"]
+            or exactness["bindings"].get("checkpoint_hash")
+            != checkpoint.checkpoint_hash
+            or exactness["bindings"].get("checkpoint_path") != str(checkpoint_path)
+            or exactness["bindings"].get("checkpoint_file_sha256")
+            != _file_sha256(checkpoint_path)
+        ):
+            raise PilotOrchestrationError(
+                "preflight checkpoint/exactness source binding mismatch"
+            )
+        result = _CheckpointPreflightResult(checkpoint)
+    else:
+        if bindings.get("source_manifest") != str(manifest):
+            raise PilotOrchestrationError("preflight projection source path mismatch")
+        verification = verify_manifest(manifest.parent)
+        if bindings.get("source_manifest_sha256") != verification.manifest_sha256:
+            raise PilotOrchestrationError("preflight projection source hash mismatch")
+        manifest_value = _read_json(manifest)
+        if (
+            manifest_value.get("git", {}).get("commit") != bindings.get("git_commit")
+            or manifest_value.get("git", {}).get("dirty") is not False
+        ):
+            raise PilotOrchestrationError("preflight projection source git mismatch")
+        result = load_verified_run_artifacts(manifest.parent)
+        provenance = _read_json(manifest.parent / "provenance.json")
+        details = provenance.get("details")
+        if (
+            not isinstance(details, Mapping)
+            or details.get("contract_sha256") != contract.canonical_hash
+            or details.get("run_spec") != preflight_specs[0].to_dict()
+            or (
+                journal_binding is not None
+                and details.get("provider_call_journal") != journal_binding
+            )
+        ):
+            raise PilotOrchestrationError(
+                "preflight capability source binding mismatch"
+            )
     reserve_multiplier = float(
         contract.budgets["pre_dispatch_projection"]["reserve_multiplier"]
     )
@@ -2025,8 +2797,7 @@ def _load_verified_projection(
             "preflight projection differs from sealed api_usage p95"
         )
     if any(
-        str(key).rpartition("::")[0] != payload["served_model"]
-        for key in recomputed
+        str(key).rpartition("::")[0] != payload["served_model"] for key in recomputed
     ):
         raise PilotOrchestrationError(
             "preflight projection contains a non-frozen served model"
@@ -2094,18 +2865,14 @@ def projection_from_preflight(
         run_id=spec.run_id,
         stage_bucket=spec.budget_bucket,
         cost_usd=totals["cost_usd"],
-        completions=(
-            run_call_limit if hosted_completion_cap_counted else 0
-        ),
+        completions=(run_call_limit if hosted_completion_cap_counted else 0),
         storage_bytes=20_000_000,
         basis={
             "method": "preflight-model-call-kind-p95-times-1.25",
             "source": str(path),
             "calls_by_kind": calls_by_kind,
             "run_call_limit": run_call_limit,
-            "hosted_completion_cap_counted": (
-                hosted_completion_cap_counted
-            ),
+            "hosted_completion_cap_counted": (hosted_completion_cap_counted),
             "prompt_tokens": math.ceil(totals["prompt_tokens"]),
             "completion_tokens": math.ceil(totals["completion_tokens"]),
             "total_tokens": math.ceil(totals["total_tokens"]),
@@ -2258,17 +3025,11 @@ def _offline_candidate_admission(
         "verified_rule": verified_rule.to_dict(),
         "unverified_rule": unverified_rule.to_dict(),
         "check": {
-            "unsupported_candidate_rejected": (
-                verified_rule.status == "rejected"
-            ),
+            "unsupported_candidate_rejected": (verified_rule.status == "rejected"),
             "false_rule_ever_active": verified_rule.status == "active",
-            "unverified_false_rule_ever_active": (
-                unverified_rule.status == "active"
-            ),
+            "unverified_false_rule_ever_active": (unverified_rule.status == "active"),
             "same_candidate_content": (
-                unverified_rule.injection_provenance.get(
-                    "raw_response_hash"
-                )
+                unverified_rule.injection_provenance.get("raw_response_hash")
                 == candidate.raw_response_hash
             ),
             "provider_calls": 0,
@@ -2321,24 +3082,751 @@ def _stage_receipt_path(raw_root: Path, stage_id: str) -> Path:
     return raw_root / stage_id / "stage_receipt.json"
 
 
+def _stage_execution_modes(
+    contract: PilotContract,
+    stage_id: str,
+) -> frozenset[str]:
+    return frozenset(cell.execution_mode for cell in contract.stage(stage_id).cells)
+
+
+def _is_capability_stage(
+    contract: PilotContract,
+    stage_id: str,
+) -> bool:
+    return bool(_stage_execution_modes(contract, stage_id) & CAPABILITY_EXECUTION_MODES)
+
+
+def _capability_source_stage(
+    contract: PilotContract,
+    preflight_stage: str,
+    model_id: str,
+) -> str:
+    """Resolve the capability task source for one preflight model."""
+
+    modes = _stage_execution_modes(contract, preflight_stage)
+    if "capability_probe" in modes and "closed_loop_preflight" not in modes:
+        # Frozen V1 combines both operations in one cell.
+        return preflight_stage
+    candidates = [
+        prerequisite
+        for prerequisite in contract.stage(preflight_stage).prerequisites
+        if "capability_probe" in _stage_execution_modes(contract, prerequisite)
+        and model_id in contract.models_for_stage(prerequisite)
+    ]
+    if len(candidates) != 1:
+        raise PilotOrchestrationError(
+            f"{preflight_stage}/{model_id} does not have one exact "
+            "capability source stage"
+        )
+    return candidates[0]
+
+
+def _preflight_stage_for_model(
+    contract: PilotContract,
+    model_id: str,
+) -> str:
+    """Resolve exactly one projection-producing preflight for a model."""
+
+    split = [
+        stage_id
+        for stage_id in contract.stage_ids
+        if model_id in contract.models_for_stage(stage_id)
+        and "closed_loop_preflight" in _stage_execution_modes(contract, stage_id)
+    ]
+    if len(split) == 1:
+        return split[0]
+    if split:
+        raise PilotOrchestrationError(
+            f"model {model_id} has multiple closed-loop preflight stages"
+        )
+    combined = [
+        stage_id
+        for stage_id in contract.stage_ids
+        if model_id in contract.models_for_stage(stage_id)
+        and "capability_probe" in _stage_execution_modes(contract, stage_id)
+    ]
+    if len(combined) != 1:
+        raise PilotOrchestrationError(
+            f"model {model_id} lacks one exact projection-producing preflight"
+        )
+    return combined[0]
+
+
+def _scientific_stage_ids(contract: PilotContract) -> tuple[str, ...]:
+    """Return contract-registered provider science stages, in contract order."""
+
+    if not contract.schema_version.endswith("-v2"):
+        return tuple(
+            stage_id
+            for stage_id in SCIENTIFIC_STAGE_IDS
+            if stage_id in contract.stage_ids
+        )
+    excluded_modes = CAPABILITY_EXECUTION_MODES | {"q_ref_resolution"}
+    return tuple(
+        stage_id
+        for stage_id in contract.stage_ids
+        if not (_stage_execution_modes(contract, stage_id) & excluded_modes)
+    )
+
+
+def _cross_model_science_stage_ids(
+    contract: PilotContract,
+) -> tuple[str, ...]:
+    if not contract.model_roles:
+        return tuple(
+            stage_id
+            for stage_id in ("cross-model-sentinels",)
+            if stage_id in contract.stage_ids
+        )
+    cross_roles = {"controlled_second", "secondary_diagnostic"}
+    return tuple(
+        stage_id
+        for stage_id in _scientific_stage_ids(contract)
+        if any(
+            contract.model_roles[model_id].role in cross_roles
+            for model_id in contract.models_for_stage(stage_id)
+        )
+    )
+
+
+def _primary_model_ids(contract: PilotContract) -> frozenset[str]:
+    if contract.model_roles:
+        return frozenset(
+            model_id
+            for model_id, role in contract.model_roles.items()
+            if role.role == "primary"
+        )
+    return frozenset({"gpt52_main"})
+
+
+def _v2_stage_rows(
+    contract: PilotContract,
+    stage_id: str,
+    ledger: PilotRunLedger,
+) -> tuple[tuple[PilotRunSpec, ...], dict[str, Mapping[str, Any]], dict[str, Any]]:
+    if not ledger.tamper_evident:
+        raise PilotOrchestrationError("V2 stage gates require the V2 run ledger")
+    snapshot = ledger.snapshot()
+    specs = tuple(contract.expand(stage=stage_id))
+    runs = snapshot.get("runs")
+    if not isinstance(runs, Mapping):
+        raise PilotOrchestrationError("V2 run ledger rows are malformed")
+    rows: dict[str, Mapping[str, Any]] = {}
+    for spec in specs:
+        row = runs.get(spec.run_id)
+        if not isinstance(row, Mapping) or row.get("spec") != spec.to_dict():
+            raise PilotOrchestrationError(
+                f"V2 run ledger lacks the exact contract cell {spec.run_id}"
+            )
+        rows[spec.run_id] = row
+    return specs, rows, snapshot
+
+
+def _v2_source_file_binding(raw_root: Path, path: str | Path) -> dict[str, Any]:
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        candidate = raw_root / candidate
+    if candidate.is_symlink():
+        raise PilotOrchestrationError(
+            f"V2 gate source must not be a symlink: {candidate}"
+        )
+    try:
+        resolved = candidate.resolve(strict=True)
+        resolved.relative_to(raw_root.resolve())
+    except (FileNotFoundError, ValueError) as exc:
+        raise PilotOrchestrationError(
+            f"V2 gate source is missing or escapes raw_root: {candidate}"
+        ) from exc
+    if not resolved.is_file():
+        raise PilotOrchestrationError(
+            f"V2 gate source must be a regular file: {resolved}"
+        )
+    binding: dict[str, Any] = {
+        "path": str(resolved),
+        "file_sha256": _file_sha256(resolved),
+    }
+    if resolved.suffix.lower() == ".json":
+        value = _read_json(resolved)
+        integrity = value.get("integrity")
+        if isinstance(integrity, Mapping):
+            binding["content_sha256"] = integrity.get("content_sha256")
+    return binding
+
+
+def _load_v2_terminal_summary(
+    contract: PilotContract,
+    spec: PilotRunSpec,
+    path: str | Path,
+    *,
+    raw_root: Path,
+    paid: GitProvenance | None,
+) -> dict[str, Any]:
+    binding = _v2_source_file_binding(raw_root, path)
+    value = _read_json(Path(binding["path"]))
+    if value.get("schema_version") != PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION:
+        raise PilotOrchestrationError(
+            f"{spec.run_id} capability artifact is not a terminal summary"
+        )
+    unsigned = _json_copy(value)
+    integrity = unsigned.pop("integrity", None)
+    if (
+        not isinstance(integrity, Mapping)
+        or integrity.get("canonicalization") != PILOT_BOUND_ARTIFACT_CANONICALIZATION
+        or integrity.get("content_sha256") != canonical_sha256(unsigned)
+    ):
+        raise PilotOrchestrationError(
+            f"{spec.run_id} terminal summary integrity mismatch"
+        )
+    if (
+        value.get("contract_id") != contract.contract_id
+        or value.get("contract_sha256") != contract.canonical_hash
+        or value.get("run_spec") != spec.to_dict()
+    ):
+        raise PilotOrchestrationError(
+            f"{spec.run_id} terminal summary contract/spec mismatch"
+        )
+    provenance = value.get("provenance")
+    if not isinstance(provenance, Mapping):
+        raise PilotOrchestrationError(
+            f"{spec.run_id} terminal summary provenance is malformed"
+        )
+    if (
+        provenance.get("git_tag")
+        != contract.implementation["required_git_tag"]
+        or provenance.get("tag_object_type") != "tag"
+        or provenance.get("worktree_clean") is not True
+        or (
+            paid is not None
+            and provenance.get("resolved_git_commit") != paid.head_commit
+        )
+    ):
+        raise PilotOrchestrationError(
+            f"{spec.run_id} terminal summary release binding mismatch"
+        )
+    return value
+
+
+def _v2_capability_semantic_go(
+    contract: PilotContract,
+    spec: PilotRunSpec,
+    row: Mapping[str, Any],
+    *,
+    raw_root: Path,
+    paid: GitProvenance | None,
+) -> bool:
+    status = str(row.get("status"))
+    artifact = row.get("artifact")
+    if status not in {"complete", "capability-no-go"}:
+        return False
+    if artifact is None:
+        if status == "capability-no-go":
+            return False
+        raise PilotOrchestrationError(
+            f"passing capability cell {spec.run_id} lacks a sealed artifact"
+        )
+    artifact_value = _read_json(Path(_v2_source_file_binding(raw_root, artifact)["path"]))
+    if artifact_value.get("schema_version") != PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION:
+        if status != "capability-no-go":
+            raise PilotOrchestrationError(
+                f"passing capability cell {spec.run_id} lacks a terminal summary"
+            )
+        try:
+            verified = verify_provider_catalog_receipt(
+                artifact_value,
+                contract_hash=contract.canonical_hash,
+                require_pass=False,
+            )
+        except Exception as exc:
+            raise PilotOrchestrationError(
+                f"{spec.run_id} catalog no-go receipt is invalid"
+            ) from exc
+        if (
+            verified.get("status") != "no-go"
+            or verified.get("model_id") != spec.model_id
+        ):
+            raise PilotOrchestrationError(
+                f"{spec.run_id} catalog no-go receipt has the wrong model/status"
+            )
+        return False
+
+    summary = _load_v2_terminal_summary(
+        contract,
+        spec,
+        artifact,
+        raw_root=raw_root,
+        paid=paid,
+    )
+    payload = summary.get("payload")
+    if not isinstance(payload, Mapping):
+        raise PilotOrchestrationError(
+            f"{spec.run_id} capability terminal payload is malformed"
+        )
+    capability = payload.get("capability")
+    gate = payload.get("gate_evidence")
+    if not isinstance(capability, Mapping) or not isinstance(gate, Mapping):
+        raise PilotOrchestrationError(
+            f"{spec.run_id} capability gate evidence is malformed"
+        )
+    run_dir = raw_root / spec.stage_id / "runs" / spec.run_id
+    gate_path = run_dir / "gate_receipt.json"
+    if _read_json(gate_path) != gate:
+        raise PilotOrchestrationError(
+            f"{spec.run_id} terminal gate differs from its source receipt"
+        )
+    try:
+        _validate_capability_v3(capability)
+    except PilotEvidenceError as exc:
+        raise PilotOrchestrationError(
+            f"{spec.run_id} capability evidence failed semantic recomputation: {exc}"
+        ) from exc
+    capability_spec = spec
+    if spec.execution_mode == "closed_loop_preflight":
+        source_stage = _capability_source_stage(
+            contract,
+            spec.stage_id,
+            spec.model_id,
+        )
+        source_specs = contract.expand(
+            stage=source_stage,
+            model=spec.model_id,
+        )
+        if len(source_specs) != 1:
+            raise PilotOrchestrationError(
+                f"{spec.run_id} lacks one exact capability source cell"
+            )
+        capability_spec = source_specs[0]
+    if (
+        capability.get("contract_sha256") != contract.canonical_hash
+        or capability.get("run_spec") != capability_spec.to_dict()
+    ):
+        raise PilotOrchestrationError(
+            f"{spec.run_id} capability payload contract/spec mismatch"
+        )
+
+    if spec.execution_mode == "capability_probe":
+        semantic_go = capability.get("pass") is True
+        if _read_json(run_dir / "capability.json") != capability:
+            raise PilotOrchestrationError(
+                f"{spec.run_id} terminal capability differs from its source"
+            )
+        if (
+            gate.get("capability_pass") is not semantic_go
+            or gate.get("interface_pass")
+            is not (capability.get("interface_gate", {}).get("pass") is True)
+            or gate.get("go") is not semantic_go
+            or gate.get("preflight_run") is not None
+        ):
+            raise PilotOrchestrationError(
+                f"{spec.run_id} capability gate differs from recomputed rows"
+            )
+    elif spec.execution_mode == "closed_loop_preflight":
+        projection, projection_path = _load_verified_projection(
+            contract,
+            spec.model_id,
+            raw_root=raw_root,
+            paid=paid,
+        )
+        del projection
+        checkpoint_path = run_dir / "preflight_checkpoint.json"
+        checkpoint = PilotCheckpoint(_read_json(checkpoint_path))
+        checks = _preflight_checks(
+            _CheckpointPreflightResult(checkpoint),
+            contract.provider_profiles[spec.model_id],
+            checkpoint_preflight=True,
+        )
+        semantic_go = capability.get("pass") is True and all(checks.values())
+        capability_stage = _capability_source_stage(
+            contract,
+            spec.stage_id,
+            spec.model_id,
+        )
+        source_spec = contract.expand(
+            stage=capability_stage,
+            model=spec.model_id,
+        )[0]
+        source_capability_path = (
+            raw_root
+            / capability_stage
+            / "runs"
+            / source_spec.run_id
+            / "capability.json"
+        )
+        source_capability = _read_json(source_capability_path)
+        expected_capability = {
+            **source_capability,
+            "preflight_go": semantic_go,
+            "preflight_checks": checks,
+        }
+        exactness_path = run_dir / "preflight_checkpoint_exactness.json"
+        if (
+            capability != expected_capability
+            or capability.get("preflight_checks") != checks
+            or gate.get("preflight_checks") != checks
+            or gate.get("go") is not semantic_go
+            or gate.get("projection") != str(projection_path)
+            or gate.get("preflight_manifest") is not None
+            or gate.get("preflight_checkpoint") != str(checkpoint_path)
+            or gate.get("preflight_checkpoint_exactness")
+            != str(exactness_path)
+        ):
+            raise PilotOrchestrationError(
+                f"{spec.run_id} preflight gate differs from sealed source recomputation"
+            )
+    else:  # pragma: no cover - contract validator owns capability modes
+        raise PilotOrchestrationError(
+            f"unsupported V2 capability mode: {spec.execution_mode}"
+        )
+
+    if (status == "complete") is not semantic_go:
+        raise PilotOrchestrationError(
+            f"{spec.run_id} ledger status differs from recomputed capability gate"
+        )
+    return semantic_go
+
+
+def _v2_stage_control_paths(
+    contract: PilotContract,
+    stage_id: str,
+    *,
+    raw_root: Path,
+) -> tuple[Path, ...]:
+    paths: set[Path] = set()
+    stage_root = raw_root / stage_id
+    for profile_id in contract.models_for_stage(stage_id):
+        catalog = stage_root / "provider_catalog" / f"{profile_id}.json"
+        if catalog.exists():
+            paths.add(catalog)
+    if stage_id == "q-ref-resolution":
+        path = stage_root / "q_ref_resolution.json"
+        if path.exists():
+            paths.add(path)
+    elif stage_id == "stage0-calibration":
+        path = stage_root / "stage0_selection.json"
+        if path.exists():
+            paths.add(path)
+    elif stage_id == "experiment-c":
+        path = stage_root / "rule_sensitivity.json"
+        if path.exists():
+            paths.add(path)
+    if _is_capability_stage(contract, stage_id):
+        for spec in contract.expand(stage=stage_id):
+            run_dir = stage_root / "runs" / spec.run_id
+            for name in (
+                "capability.json",
+                "gate_receipt.json",
+                "projection_p95.json",
+                "preflight_checkpoint.json",
+                "preflight_checkpoint_exactness.json",
+            ):
+                path = run_dir / name
+                if path.exists():
+                    paths.add(path)
+            paths.update(run_dir.glob("*provider_call_journal*.json"))
+    return tuple(sorted(paths, key=lambda item: str(item)))
+
+
+def _v2_stage_receipt_bindings(
+    contract: PilotContract,
+    stage_id: str,
+    *,
+    raw_root: Path,
+    ledger: PilotRunLedger,
+    paid: GitProvenance | None,
+) -> tuple[dict[str, Any], tuple[str, ...]]:
+    specs, rows, snapshot = _v2_stage_rows(contract, stage_id, ledger)
+    source_files: list[dict[str, Any]] = []
+    for spec in specs:
+        artifact = rows[spec.run_id].get("artifact")
+        if artifact is not None:
+            source_files.append(_v2_source_file_binding(raw_root, str(artifact)))
+    source_files.extend(
+        _v2_source_file_binding(raw_root, path)
+        for path in _v2_stage_control_paths(
+            contract,
+            stage_id,
+            raw_root=raw_root,
+        )
+    )
+    deduplicated = {
+        str(item["path"]): item for item in source_files
+    }
+    sources = [
+        deduplicated[path] for path in sorted(deduplicated)
+    ]
+    go_models: list[str] = []
+    if _is_capability_stage(contract, stage_id):
+        for spec in specs:
+            if _v2_capability_semantic_go(
+                contract,
+                spec,
+                rows[spec.run_id],
+                raw_root=raw_root,
+                paid=paid,
+            ):
+                go_models.append(spec.model_id)
+    events = snapshot.get("events")
+    if not isinstance(events, list) or not events:
+        raise PilotOrchestrationError("V2 run ledger lacks its event chain")
+    stage_rows = {spec.run_id: rows[spec.run_id] for spec in specs}
+    bindings = {
+        "contract_sha256": contract.canonical_hash,
+        "run_ledger_schema_version": PILOT_RUN_LEDGER_SCHEMA_VERSION_V2,
+        "ledger_event_count": len(events),
+        "ledger_event_chain_head": events[-1]["event_sha256"],
+        "stage_specs_sha256": canonical_sha256(
+            [spec.to_dict() for spec in specs]
+        ),
+        "stage_rows_sha256": canonical_sha256(stage_rows),
+        "source_files": sources,
+        "source_files_sha256": canonical_sha256(sources),
+    }
+    return bindings, tuple(dict.fromkeys(go_models))
+
+
+def _v2_control_gate_ok(
+    contract: PilotContract,
+    stage_id: str,
+    *,
+    raw_root: Path,
+    paid: GitProvenance | None,
+) -> bool:
+    if stage_id == "q-ref-resolution":
+        try:
+            value = _load_verified_q_ref(
+                contract,
+                raw_root=raw_root,
+                paid=paid,
+            )
+        except PilotOrchestrationError as exc:
+            if "required artifact is missing" in str(exc):
+                return False
+            raise
+        return value.get("status") == "pass"
+    if stage_id == "stage0-calibration":
+        try:
+            _load_verified_stage0_selection(
+                contract,
+                raw_root=raw_root,
+                paid=paid,
+            )
+        except PilotOrchestrationError as exc:
+            if "required artifact is missing" in str(exc):
+                return False
+            raise
+    elif stage_id == "experiment-c":
+        path = _experiment_c_sensitivity_path(raw_root)
+        if not path.exists():
+            return False
+        _load_verified_experiment_c_sensitivity(
+            contract,
+            raw_root=raw_root,
+            paid=paid,
+        )
+    return True
+
+
+def _v2_recomputed_stage_fields(
+    contract: PilotContract,
+    stage_id: str,
+    *,
+    raw_root: Path,
+    ledger: PilotRunLedger,
+    paid: GitProvenance | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    specs, rows, _ = _v2_stage_rows(contract, stage_id, ledger)
+    bindings, go_models = _v2_stage_receipt_bindings(
+        contract,
+        stage_id,
+        raw_root=raw_root,
+        ledger=ledger,
+        paid=paid,
+    )
+    counts: dict[str, int] = {}
+    for row in rows.values():
+        row_status = str(row.get("status"))
+        counts[row_status] = counts.get(row_status, 0) + 1
+    terminal = len(rows) == len(specs) and all(
+        row.get("status") in TERMINAL_RUN_STATUSES for row in rows.values()
+    )
+    complete_count = counts.get("complete", 0)
+    matrix_complete = terminal and complete_count == len(specs) and bool(specs)
+    control_go = (
+        _v2_control_gate_ok(
+            contract,
+            stage_id,
+            raw_root=raw_root,
+            paid=paid,
+        )
+        if matrix_complete
+        else False
+    )
+    go = matrix_complete and control_go
+    hard_stop_count = sum(
+        counts.get(run_status, 0) for run_status in HARD_STOP_RUN_STATUSES
+    )
+    semantic_status = "complete" if go else "complete-with-no-go"
+    execution_progression_go = (
+        terminal
+        and hard_stop_count == 0
+        and (
+            stage_id in {*CORE_STAGE_IDS, "cross-model-sentinels"}
+            or (
+                _is_capability_stage(contract, stage_id)
+                and bool(go_models)
+            )
+            or go
+        )
+    )
+    return (
+        {
+            "terminal": terminal,
+            "denominator_terminal": terminal,
+            "registered_run_count": len(specs),
+            "complete_cell_count": complete_count,
+            "status_counts": counts,
+            "scientific_matrix_complete": matrix_complete,
+            "go": go,
+            "execution_progression_go": execution_progression_go,
+            "hard_stop_cell_count": hard_stop_count,
+            "go_models": list(go_models),
+            "semantic_status": semantic_status,
+        },
+        bindings,
+    )
+
+
+def _verify_v2_stage_receipt(
+    contract: PilotContract,
+    stage_id: str,
+    receipt: Mapping[str, Any],
+    *,
+    raw_root: Path,
+    ledger: PilotRunLedger,
+    paid: GitProvenance | None,
+) -> dict[str, Any]:
+    if (
+        receipt.get("schema_version") != PILOT_STAGE_RECEIPT_SCHEMA_VERSION_V2
+        or receipt.get("contract_sha256") != contract.canonical_hash
+        or receipt.get("stage_id") != stage_id
+    ):
+        raise PilotOrchestrationError(
+            f"V2 stage receipt identity mismatch for {stage_id}"
+        )
+    unsigned = _json_copy(receipt)
+    integrity = unsigned.pop("integrity", None)
+    if (
+        not isinstance(integrity, Mapping)
+        or integrity.get("canonicalization") != PILOT_BOUND_ARTIFACT_CANONICALIZATION
+        or integrity.get("content_sha256") != canonical_sha256(unsigned)
+    ):
+        raise PilotOrchestrationError(
+            f"V2 stage receipt content hash mismatch for {stage_id}"
+        )
+    fields, current_bindings = _v2_recomputed_stage_fields(
+        contract,
+        stage_id,
+        raw_root=raw_root,
+        ledger=ledger,
+        paid=paid,
+    )
+    bindings = receipt.get("bindings")
+    if not isinstance(bindings, Mapping):
+        raise PilotOrchestrationError(
+            f"V2 stage receipt bindings are malformed for {stage_id}"
+        )
+    for key in (
+        "contract_sha256",
+        "run_ledger_schema_version",
+        "stage_specs_sha256",
+        "stage_rows_sha256",
+        "source_files",
+        "source_files_sha256",
+    ):
+        if bindings.get(key) != current_bindings.get(key):
+            raise PilotOrchestrationError(
+                f"V2 stage receipt source binding {key!r} drifted for {stage_id}"
+            )
+    event_count = bindings.get("ledger_event_count")
+    snapshot = ledger.snapshot()
+    events = snapshot.get("events")
+    if (
+        isinstance(event_count, bool)
+        or not isinstance(event_count, int)
+        or event_count < 1
+        or not isinstance(events, list)
+        or event_count > len(events)
+        or events[event_count - 1].get("event_sha256")
+        != bindings.get("ledger_event_chain_head")
+    ):
+        raise PilotOrchestrationError(
+            f"V2 stage receipt ledger event prefix mismatch for {stage_id}"
+        )
+    for key, expected in fields.items():
+        if key == "semantic_status":
+            continue
+        if receipt.get(key) != expected:
+            raise PilotOrchestrationError(
+                f"V2 stage receipt field {key!r} differs from source "
+                f"recomputation for {stage_id}"
+            )
+    if fields["hard_stop_cell_count"] == 0 and receipt.get(
+        "status"
+    ) != fields["semantic_status"]:
+        raise PilotOrchestrationError(
+            f"V2 stage receipt status differs from source recomputation for {stage_id}"
+        )
+    return _json_copy(receipt)
+
+
 def _assert_prerequisites(
     contract: PilotContract,
     stage_id: str,
     *,
     raw_root: Path,
     paid: GitProvenance | None = None,
-) -> None:
+    ledger: PilotRunLedger | None = None,
+) -> dict[str, frozenset[str]]:
     stage = contract.stage(stage_id)
+    verified_go_models: dict[str, frozenset[str]] = {}
+    v2 = contract.schema_version.endswith("-v2")
+    if v2 and ledger is None:
+        ledger = PilotRunLedger(
+            raw_root / "run_ledger.json",
+            contract_hash=contract.canonical_hash,
+            tamper_evident=True,
+        )
     for prerequisite in stage.prerequisites:
+        if v2:
+            # Revalidate the complete prerequisite ancestry, not only the
+            # immediately preceding stage.  This keeps the original
+            # capability/preflight sources on every downstream dispatch path.
+            _assert_prerequisites(
+                contract,
+                prerequisite,
+                raw_root=raw_root,
+                paid=paid,
+                ledger=ledger,
+            )
         receipt = _read_json(_stage_receipt_path(raw_root, prerequisite))
-        if receipt.get("schema_version") != PILOT_STAGE_RECEIPT_SCHEMA_VERSION:
-            raise PilotOrchestrationError(
-                f"prerequisite {prerequisite} has an unsupported receipt"
+        if v2:
+            assert ledger is not None
+            receipt = _verify_v2_stage_receipt(
+                contract,
+                prerequisite,
+                receipt,
+                raw_root=raw_root,
+                ledger=ledger,
+                paid=paid,
             )
-        if receipt.get("contract_sha256") != contract.canonical_hash:
-            raise PilotOrchestrationError(
-                f"prerequisite {prerequisite} contract hash mismatch"
-            )
+        else:
+            if receipt.get("schema_version") != PILOT_STAGE_RECEIPT_SCHEMA_VERSION:
+                raise PilotOrchestrationError(
+                    f"prerequisite {prerequisite} has an unsupported receipt"
+                )
+            if receipt.get("contract_sha256") != contract.canonical_hash:
+                raise PilotOrchestrationError(
+                    f"prerequisite {prerequisite} contract hash mismatch"
+                )
         if receipt.get("terminal") is not True:
             raise PilotOrchestrationError(
                 f"prerequisite {prerequisite} is not terminal"
@@ -2348,6 +3836,36 @@ def _assert_prerequisites(
             raise PilotOrchestrationError(
                 f"prerequisite {prerequisite} did not complete"
             )
+        passed_models = frozenset(
+            str(model_id) for model_id in receipt.get("go_models", [])
+        )
+        verified_go_models[prerequisite] = passed_models
+        if v2 and _is_capability_stage(contract, prerequisite):
+            prerequisite_models = set(contract.models_for_stage(prerequisite))
+            target_models = set(contract.models_for_stage(stage_id))
+            relevant_models = prerequisite_models & target_models
+            if not relevant_models:
+                # A cohort boundary (primary preflight -> secondary
+                # capability) is allowed only after the contract-declared
+                # primary backbone has passed.
+                required_primary = prerequisite_models & _primary_model_ids(contract)
+                if required_primary and not (required_primary & passed_models):
+                    raise PilotOrchestrationError(
+                        f"prerequisite {prerequisite} has no passing "
+                        "contract-declared primary model"
+                    )
+            elif (
+                not _is_capability_stage(contract, stage_id)
+                and stage_id not in _cross_model_science_stage_ids(contract)
+                and not (relevant_models & passed_models)
+            ):
+                raise PilotOrchestrationError(
+                    f"prerequisite {prerequisite} has no passing model "
+                    f"eligible for {stage_id}"
+                )
+            # Gate receipts may be complete-with-no-go by design. Model-level
+            # filtering and ITT propagation handle the failed cells.
+            continue
         if stage_id != "cross-model-sentinels" and prerequisite == (
             "capability-preflight"
         ):
@@ -2363,8 +3881,7 @@ def _assert_prerequisites(
                 # did not distinguish scientific claim support from execution
                 # eligibility.
                 progression_go = (
-                    receipt_status == "complete"
-                    and receipt.get("go") is True
+                    receipt_status == "complete" and receipt.get("go") is True
                 )
             if progression_go is not True:
                 raise PilotOrchestrationError(
@@ -2374,6 +3891,7 @@ def _assert_prerequisites(
         # is validated by the evidence publisher.  Missing or failed
         # sensitivity makes the C claim a no-go, but must not prevent the
         # independently registered Experiment D denominator from running.
+    return verified_go_models
 
 
 def _write_stage_receipt(
@@ -2383,11 +3901,82 @@ def _write_stage_receipt(
     raw_root: Path,
     ledger: PilotRunLedger,
     status: str,
-    go_models: Sequence[str] = (),
+    go_models: Sequence[str] | None = None,
     artifacts: Mapping[str, Any] | None = None,
     failure: Mapping[str, Any] | None = None,
     diagnostic: bool = False,
+    paid: GitProvenance | None = None,
 ) -> Path:
+    output = _stage_receipt_path(raw_root, stage_id)
+    if contract.schema_version.endswith("-v2"):
+        fields, bindings = _v2_recomputed_stage_fields(
+            contract,
+            stage_id,
+            raw_root=raw_root,
+            ledger=ledger,
+            paid=paid,
+        )
+        declared_go_models = (
+            None
+            if go_models is None
+            else list(dict.fromkeys(str(item) for item in go_models))
+        )
+        if (
+            declared_go_models is not None
+            and declared_go_models != fields["go_models"]
+        ):
+            raise PilotOrchestrationError(
+                f"V2 {stage_id} go_models differ from sealed source recomputation"
+            )
+        if fields["hard_stop_cell_count"] == 0 and status != fields[
+            "semantic_status"
+        ]:
+            raise PilotOrchestrationError(
+                f"V2 {stage_id} status differs from sealed source recomputation"
+            )
+        payload = {
+            "schema_version": PILOT_STAGE_RECEIPT_SCHEMA_VERSION_V2,
+            "contract_id": contract.contract_id,
+            "contract_sha256": contract.canonical_hash,
+            "stage_id": stage_id,
+            "status": status,
+            **{
+                key: value
+                for key, value in fields.items()
+                if key != "semantic_status"
+            },
+            "bindings": bindings,
+            "artifacts": dict(artifacts or {}),
+            "failure": dict(failure) if failure else None,
+            "diagnostic_only": diagnostic,
+            "scientific_evidence": False if diagnostic else None,
+            "created_at": _utc_now(),
+        }
+        if output.exists():
+            existing = _read_json(output)
+            _verify_v2_stage_receipt(
+                contract,
+                stage_id,
+                existing,
+                raw_root=raw_root,
+                ledger=ledger,
+                paid=paid,
+            )
+            payload["created_at"] = existing.get("created_at")
+        unsigned = _json_copy(payload)
+        payload["integrity"] = {
+            "canonicalization": PILOT_BOUND_ARTIFACT_CANONICALIZATION,
+            "content_sha256": canonical_sha256(unsigned),
+        }
+        if output.exists():
+            if existing != payload:
+                raise PilotOrchestrationError(
+                    f"immutable V2 stage receipt drifted for {stage_id}"
+                )
+            return output
+        _atomic_json_no_overwrite(output, payload)
+        return output
+
     specs = contract.expand(stage=stage_id)
     snapshot = ledger.snapshot()
     rows = [
@@ -2404,17 +3993,11 @@ def _write_stage_receipt(
     )
     complete_count = counts.get("complete", 0)
     scientific_matrix_complete = (
-        terminal
-        and complete_count == len(specs)
-        and complete_count > 0
+        terminal and complete_count == len(specs) and complete_count > 0
     )
-    go = (
-        scientific_matrix_complete
-        and status == "complete"
-    )
+    go = scientific_matrix_complete and status == "complete"
     hard_stop_count = sum(
-        counts.get(run_status, 0)
-        for run_status in HARD_STOP_RUN_STATUSES
+        counts.get(run_status, 0) for run_status in HARD_STOP_RUN_STATUSES
     )
     execution_progression_go = (
         terminal
@@ -2422,6 +4005,11 @@ def _write_stage_receipt(
         and hard_stop_count == 0
         and (
             stage_id in {*CORE_STAGE_IDS, "cross-model-sentinels"}
+            or (
+                contract.schema_version.endswith("-v2")
+                and _is_capability_stage(contract, stage_id)
+                and bool(go_models)
+            )
             or go
         )
     )
@@ -2440,14 +4028,13 @@ def _write_stage_receipt(
         "go": go,
         "execution_progression_go": execution_progression_go,
         "hard_stop_cell_count": hard_stop_count,
-        "go_models": list(dict.fromkeys(go_models)),
+        "go_models": list(dict.fromkeys(go_models or ())),
         "artifacts": dict(artifacts or {}),
         "failure": dict(failure) if failure else None,
         "diagnostic_only": diagnostic,
         "scientific_evidence": False if diagnostic else None,
         "created_at": _utc_now(),
     }
-    output = _stage_receipt_path(raw_root, stage_id)
     _atomic_json(output, payload)
     return output
 
@@ -2496,37 +4083,40 @@ def _propagate_capability_no_go(
     contract: PilotContract,
     *,
     ledger: PilotRunLedger,
+    source_stage: str = "capability-preflight",
 ) -> None:
-    """Propagate model-specific and main-backbone capability no-go cells."""
+    """Propagate each failed gate model through its causal descendants."""
 
     capability_by_model = {
         spec.model_id: ledger.status(spec.run_id)
-        for spec in contract.expand(stage="capability-preflight")
+        for spec in contract.expand(stage=source_stage)
     }
+    descendants = _descendant_stage_ids(contract, source_stage)
     for model_id, status in capability_by_model.items():
         if status == "complete":
             continue
         failure = {
             "error_type": "CapabilityOrInterfaceNoGo",
-            "message": (
-                f"{model_id} did not pass its fixed capability/interface gate"
-            ),
-            "source_stage": "capability-preflight",
+            "message": (f"{model_id} did not pass its fixed capability/interface gate"),
+            "source_stage": source_stage,
             "model_id": model_id,
         }
-        for spec in contract.expand(stage="cross-model-sentinels"):
-            if spec.model_id == model_id and not ledger.is_terminal(spec.run_id):
-                ledger.finalize(
-                    spec.run_id,
-                    status="capability-no-go",
-                    artifact=None,
-                    failure=failure,
-                )
-        if model_id == "gpt52_main":
-            for stage_id in (
-                "stage0-calibration",
-                *CORE_STAGE_IDS,
-            ):
+        for stage_id in descendants:
+            for spec in contract.expand(stage=stage_id):
+                if spec.model_id == model_id and not ledger.is_terminal(spec.run_id):
+                    ledger.finalize(
+                        spec.run_id,
+                        status="capability-no-go",
+                        artifact=None,
+                        failure={**failure, "blocked_stage": stage_id},
+                    )
+        # V1's core main-backbone rows are all gpt52_main and are covered by
+        # the same model match. Keep this explicit invariant fail-closed if a
+        # future V1-shaped contract names the role but not the profile.
+        if not contract.schema_version.endswith("-v2") and model_id == "gpt52_main":
+            for stage_id in CORE_STAGE_IDS:
+                if stage_id not in contract.stage_ids:
+                    continue
                 ledger.stop_pending(
                     contract.expand(stage=stage_id),
                     status="capability-no-go",
@@ -2560,9 +4150,7 @@ def _select_stage0(
     }
     ledger_rows = ledger.snapshot()["runs"]
     source_manifests: list[dict[str, Any]] = []
-    calibration_sources: list[
-        tuple[PilotRunSpec, Any, Mapping[str, Any]]
-    ] = []
+    calibration_sources: list[tuple[PilotRunSpec, Any, Mapping[str, Any]]] = []
     for spec in specs:
         artifact = ledger_rows[spec.run_id].get("artifact")
         if not isinstance(artifact, str):
@@ -2609,21 +4197,23 @@ def _select_stage0(
         )
     )
     q_ref_path = raw_root / "q-ref-resolution" / "q_ref_resolution.json"
-    selection.update({
-        "contract_sha256": contract.canonical_hash,
-        "q_ref_artifact_hash": canonical_sha256(q_ref),
-        "bindings": {
+    selection.update(
+        {
             "contract_sha256": contract.canonical_hash,
-            "git_tag": paid.git_tag,
-            "git_commit": paid.head_commit,
-            "q_ref_content_sha256": q_ref["integrity"]["content_sha256"],
-            "q_ref_file_sha256": _file_sha256(q_ref_path),
-            "source_manifests": sorted(
-                source_manifests,
-                key=lambda row: row["run_id"],
-            ),
-        },
-    })
+            "q_ref_artifact_hash": canonical_sha256(q_ref),
+            "bindings": {
+                "contract_sha256": contract.canonical_hash,
+                "git_tag": paid.git_tag,
+                "git_commit": paid.head_commit,
+                "q_ref_content_sha256": q_ref["integrity"]["content_sha256"],
+                "q_ref_file_sha256": _file_sha256(q_ref_path),
+                "source_manifests": sorted(
+                    source_manifests,
+                    key=lambda row: row["run_id"],
+                ),
+            },
+        }
+    )
     selection = _seal_bound_payload(selection)
     output = raw_root / "stage0-calibration" / "stage0_selection.json"
     _atomic_bound_json(output, selection)
@@ -2649,7 +4239,8 @@ def _verifier_config_from_runner_config(
     for field in fields:
         if field not in config:
             raise PilotOrchestrationError(
-                f"B-full runner config is missing verifier field {field!r}"
+                "sensitivity-source runner config is missing verifier field "
+                f"{field!r}"
             )
         result[field] = config[field]
     return result
@@ -2662,16 +4253,13 @@ def _build_experiment_c_sensitivity(
     git_tag: str,
     git_commit: str,
 ) -> dict[str, Any]:
-    """Recompute the descriptive C sensitivity from sealed B-full sources."""
+    """Recompute descriptive C sensitivity from the frozen full-control arm."""
 
-    sensitivity_contract = contract.stop_go["experiment_c"][
-        "zero_api_sensitivity"
-    ]
+    sensitivity_contract = contract.stop_go["experiment_c"]["zero_api_sensitivity"]
     if (
         tuple(sensitivity_contract["alternative_success_weights"])
         != ALTERNATIVE_SUCCESS_WEIGHTS
-        or tuple(sensitivity_contract["outcome_definitions"])
-        != OUTCOME_DEFINITIONS
+        or tuple(sensitivity_contract["outcome_definitions"]) != OUTCOME_DEFINITIONS
     ):
         raise PilotOrchestrationError(
             "runtime sensitivity grid differs from the frozen contract"
@@ -2696,23 +4284,27 @@ def _build_experiment_c_sensitivity(
             "sealed Stage-0 absolute flow-utility threshold is invalid"
         )
 
+    source_stage = (
+        "experiment-c" if contract.schema_version.endswith("-v2") else "experiment-b"
+    )
+    source_label = f"{source_stage}/full"
     expected_specs = tuple(
         contract.expand(
-            stage="experiment-b",
+            stage=source_stage,
             model="gpt52_main",
             arm="full",
         )
     )
     if len(expected_specs) != 5:
         raise PilotOrchestrationError(
-            "C sensitivity requires the exact five B-full main-seed runs"
+            "C sensitivity requires the exact five " f"{source_label} main-seed runs"
         )
 
     source_manifests: list[dict[str, Any]] = []
     per_run: list[dict[str, Any]] = []
     common_verifier: dict[str, Any] | None = None
     for spec in expected_specs:
-        run_dir = raw_root / "experiment-b" / "runs" / spec.run_id
+        run_dir = raw_root / source_stage / "runs" / spec.run_id
         manifest_path = run_dir / "manifest.json"
         verification = verify_manifest(run_dir)
         manifest = _read_json(manifest_path)
@@ -2721,7 +4313,7 @@ def _build_experiment_c_sensitivity(
             or manifest.get("git", {}).get("dirty") is not False
         ):
             raise PilotOrchestrationError(
-                "B-full sensitivity source has the wrong git identity"
+                f"{source_label} sensitivity source has the wrong git identity"
             )
         provenance = _read_json(run_dir / "provenance.json")
         details = provenance.get("details")
@@ -2734,37 +4326,33 @@ def _build_experiment_c_sensitivity(
             or details.get("run_spec") != spec.to_dict()
         ):
             raise PilotOrchestrationError(
-                "B-full sensitivity source identity differs from its contract cell"
+                f"{source_label} sensitivity source identity differs from "
+                "its contract cell"
             )
         episodes = [dict(row) for row in result.stream("episodes")]
         proposals = [dict(row) for row in result.stream("semantic_proposals")]
         rules = [dict(row) for row in result.stream("semantic_rules")]
         expected_episode_count = spec.num_agents * spec.episode_length
-        expected_proposal_count = (
-            spec.num_agents
-            * (
-                (
-                    spec.episode_length
-                    - int(result.config["semantic_proposal_after"])
-                )
-                // int(result.config["semantic_proposal_interval"])
-                + 1
-            )
+        expected_proposal_count = spec.num_agents * (
+            (spec.episode_length - int(result.config["semantic_proposal_after"]))
+            // int(result.config["semantic_proposal_interval"])
+            + 1
         )
         if (
             len(episodes) != expected_episode_count
             or len(proposals) != expected_proposal_count
         ):
             raise PilotOrchestrationError(
-                "B-full sensitivity source lacks the complete episode/proposal "
-                "denominator"
+                f"{source_label} sensitivity source lacks the complete "
+                "episode/proposal denominator"
             )
         verifier = _verifier_config_from_runner_config(result.config)
         if common_verifier is None:
             common_verifier = verifier
         elif verifier != common_verifier:
             raise PilotOrchestrationError(
-                "B-full sensitivity sources disagree on verifier configuration"
+                f"{source_label} sensitivity sources disagree on verifier "
+                "configuration"
             )
         replay = replay_rule_sensitivity(
             episode_rows=episodes,
@@ -2794,7 +4382,9 @@ def _build_experiment_c_sensitivity(
             }
         )
     if common_verifier is None:
-        raise PilotOrchestrationError("B-full sensitivity source matrix is empty")
+        raise PilotOrchestrationError(
+            f"{source_label} sensitivity source matrix is empty"
+        )
 
     aggregate_cells: list[dict[str, Any]] = []
     for weight in ALTERNATIVE_SUCCESS_WEIGHTS:
@@ -2821,18 +4411,14 @@ def _build_experiment_c_sensitivity(
                     "ever_active_count": sum(
                         int(cell["ever_active_count"]) for cell in cells
                     ),
-                    "retired_count": sum(
-                        int(cell["retired_count"]) for cell in cells
-                    ),
+                    "retired_count": sum(int(cell["retired_count"]) for cell in cells),
                     "active_exposure_steps": sum(
                         int(cell["active_exposure_steps"]) for cell in cells
                     ),
                 }
             )
 
-    selection_path = (
-        raw_root / "stage0-calibration" / "stage0_selection.json"
-    )
+    selection_path = raw_root / "stage0-calibration" / "stage0_selection.json"
     return {
         "schema_version": PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION,
         "status": "pass",
@@ -2854,10 +4440,10 @@ def _build_experiment_c_sensitivity(
             "git_tag": git_tag,
             "git_commit": git_commit,
             "stage0_selection": str(selection_path),
-            "stage0_selection_content_sha256": selection["integrity"][
-                "content_sha256"
-            ],
+            "stage0_selection_content_sha256": selection["integrity"]["content_sha256"],
             "stage0_selection_file_sha256": _file_sha256(selection_path),
+            "source_stage": source_stage,
+            "source_arm": "full",
             "source_manifests": sorted(
                 source_manifests,
                 key=lambda row: row["run_id"],
@@ -2868,7 +4454,8 @@ def _build_experiment_c_sensitivity(
         },
         "claim_boundary": (
             "This zero-provider-call replay is descriptive sensitivity over "
-            "natural B-full proposals. It is not an effectiveness gate and "
+            f"natural {source_label} proposals. It is not an effectiveness "
+            "gate and "
             "cannot rescue a failed preregistered Experiment C contrast."
         ),
     }
@@ -2900,7 +4487,8 @@ def _load_verified_experiment_c_sensitivity(
     actual_without_integrity.pop("integrity", None)
     if actual_without_integrity != expected:
         raise PilotOrchestrationError(
-            "Experiment C sensitivity differs from sealed Stage-0/B-full sources"
+            "Experiment C sensitivity differs from sealed Stage-0/full-control "
+            "sources"
         )
     return value
 
@@ -2947,13 +4535,16 @@ def _d_continuation_causal_bindings(
         )
     api_usage = branch.get("api_usage")
     if not isinstance(api_usage, list):
-        raise PilotOrchestrationError(
-            "Experiment D branch lacks its completion ledger"
-        )
+        raise PilotOrchestrationError("Experiment D branch lacks its completion ledger")
     intervention = branch.get("intervention")
+    journal = branch.get("provider_call_journal")
     if not isinstance(intervention, Mapping):
         raise PilotOrchestrationError(
             "Experiment D branch lacks its intervention receipt"
+        )
+    if not isinstance(journal, Mapping):
+        raise PilotOrchestrationError(
+            "Experiment D branch lacks its provider-call journal binding"
         )
     treatment = str(branch.get("treatment", ""))
     forced_start_hash = (
@@ -2966,35 +4557,25 @@ def _d_continuation_causal_bindings(
         "checkpoint_hash": continuation["checkpoint_hash"],
         "prefix_hash": continuation["prefix_hash"],
         "shock_schedule_hash": branch["shock_schedule_hash"],
-        "pre_generated_rng_hashes": list(
-            continuation["pre_generated_rng_hashes"]
-        ),
-        "rng_schedule_binding": dict(
-            continuation["rng_schedule_binding"]
-        ),
+        "pre_generated_rng_hashes": list(continuation["pre_generated_rng_hashes"]),
+        "rng_schedule_binding": dict(continuation["rng_schedule_binding"]),
         "shared_result_hash": continuation["result_hash"],
         "matched_replay_equal": continuation["matched_replay_equal"],
         "branch_treatment": treatment,
-        "branch_rng_pre_step_hashes": list(
-            branch["rng_pre_step_hashes"]
-        ),
+        "branch_rng_pre_step_hashes": list(branch["rng_pre_step_hashes"]),
         "branch_action_completions": len(api_usage),
-        "proposal_counters_before": dict(
-            branch["proposal_counters_before"]
-        ),
-        "proposal_counters_after": dict(
-            branch["proposal_counters_after"]
-        ),
+        "branch_provider_call_journal": dict(journal),
+        "proposal_counters_before": dict(branch["proposal_counters_before"]),
+        "proposal_counters_after": dict(branch["proposal_counters_after"]),
         "proposals_frozen": branch["freeze_proposals"],
         "focal_agent_id": continuation["focal_agent_id"],
-        "wrong_context_source_agent_id": continuation[
-            "wrong_context_source_agent_id"
-        ],
+        "wrong_context_source_agent_id": continuation["wrong_context_source_agent_id"],
+        "memory_pulse_contract": dict(continuation["memory_pulse_contract"]),
+        "branch_intervention_pulse_only": intervention["pulse_only"],
+        "branch_memory_pulse_binding": intervention["memory_pulse_binding"],
         "action_grid": dict(continuation["action_grid"]),
         "error_common_start_equal": common_start["equal"],
-        "error_common_start_hash": common_start[
-            "forced_active_start_hash"
-        ],
+        "error_common_start_hash": common_start["forced_active_start_hash"],
         "branch_forced_active_start_hash": forced_start_hash,
     }
 
@@ -3007,7 +4588,12 @@ def _d_narrative_causal_bindings(
 
     api_usage = branch.get("api_usage")
     narrative = branch.get("narrative")
-    if not isinstance(api_usage, list) or not isinstance(narrative, Mapping):
+    journal = branch.get("provider_call_journal")
+    if (
+        not isinstance(api_usage, list)
+        or not isinstance(narrative, Mapping)
+        or not isinstance(journal, Mapping)
+    ):
         raise PilotOrchestrationError(
             "Experiment D narrative branch lacks its execution receipts"
         )
@@ -3015,26 +4601,24 @@ def _d_narrative_causal_bindings(
         "kind": "narrative",
         "checkpoint_hash": narratives["checkpoint_hash"],
         "prefix_hash": narratives["prefix_hash"],
-        "pre_generated_rng_hashes": list(
-            narratives["pre_generated_rng_hashes"]
-        ),
+        "shock_schedule_hash": narratives["shock_schedule_hash"],
+        "pre_generated_rng_hashes": list(narratives["pre_generated_rng_hashes"]),
         "rng_schedule_binding": dict(narratives["rng_schedule_binding"]),
         "shared_result_hash": narratives["result_hash"],
         "fixture_hash": narratives["fixture_hash"],
         "branch_narrative_id": narrative["narrative_id"],
         "branch_text_hash": narrative["text_hash"],
-        "branch_rng_pre_step_hashes": list(
-            branch["rng_pre_step_hashes"]
-        ),
+        "branch_rng_pre_step_hashes": list(branch["rng_pre_step_hashes"]),
         "branch_action_completions": len(api_usage),
-        "proposal_counters_before": dict(
-            branch["proposal_counters_before"]
-        ),
-        "proposal_counters_after": dict(
-            branch["proposal_counters_after"]
-        ),
+        "branch_provider_call_journal": dict(journal),
+        "proposal_counters_before": dict(branch["proposal_counters_before"]),
+        "proposal_counters_after": dict(branch["proposal_counters_after"]),
         "proposals_frozen": branch["freeze_proposals"],
         "focal_agent_id": narratives["focal_agent_id"],
+        "narrative_pulse_contract": dict(
+            narratives["narrative_pulse_contract"]
+        ),
+        "branch_narrative_pulse_only": narrative["pulse_only"],
         "action_grid": dict(narratives["action_grid"]),
     }
 
@@ -3056,9 +4640,7 @@ def _d_group_projection(
     )
     calls = {"action": 4 * 6 * (1 + len(DEFAULT_TREATMENTS) + len(DEFAULT_NARRATIVES))}
     calls["semantic"] = 4 * 2  # prefix proposals at outcomes 3 and 6 only
-    source = _read_json(
-        Path(normal.basis["source"])
-    )["projection"]
+    source = _read_json(Path(normal.basis["source"]))["projection"]
     by_kind: dict[str, Mapping[str, Any]] = {}
     for key, row in source.items():
         by_kind[str(key).rpartition("::")[2]] = row
@@ -3070,9 +4652,7 @@ def _d_group_projection(
     }
     for kind, count in calls.items():
         if kind not in by_kind:
-            raise PilotOrchestrationError(
-                f"Experiment D preflight lacks {kind!r} p95"
-            )
+            raise PilotOrchestrationError(f"Experiment D preflight lacks {kind!r} p95")
         reserved = by_kind[kind]["reserved_p95"]
         for field in totals:
             totals[field] += float(reserved[field]) * count
@@ -3116,15 +4696,12 @@ def _execute_d_seed(
     if not specs:
         return
     frozen_narratives = {
-        narrative_id: row["text"]
-        for narrative_id, row in contract.narratives.items()
+        narrative_id: row["text"] for narrative_id, row in contract.narratives.items()
     }
     d_contract = contract.stop_go["experiment_d"]
-    if (
-        frozen_narratives != DEFAULT_NARRATIVES
-        or d_contract["narrative_fixture_hash"]
-        != canonical_sha256(DEFAULT_NARRATIVES)
-    ):
+    if frozen_narratives != DEFAULT_NARRATIVES or d_contract[
+        "narrative_fixture_hash"
+    ] != canonical_sha256(DEFAULT_NARRATIVES):
         raise PilotOrchestrationError(
             "Experiment D runtime narrative fixtures differ from the contract"
         )
@@ -3196,10 +4773,9 @@ def _execute_d_seed(
         return
 
     budget = _run_budget_from_projection(projection)
-    group_dir = (
-        raw_root / "experiment-d" / "checkpoints" / f"s{seed}"
-    )
+    group_dir = raw_root / "experiment-d" / "checkpoints" / f"s{seed}"
     group_dir.mkdir(parents=True, exist_ok=True)
+    d_journal_paths: tuple[Path, ...] = ()
     budget_ledger.reserve(projection)
     try:
         llm = (
@@ -3228,19 +4804,16 @@ def _execute_d_seed(
             ),
         )
         action_grid = d_contract["action_grid"]
-        if (
-            not math.isclose(
-                float(base.labor_step),
-                float(action_grid["labor_step_hours"]),
-                rel_tol=0.0,
-                abs_tol=0.0,
-            )
-            or not math.isclose(
-                float(base.consumption_step),
-                float(action_grid["consumption_step"]),
-                rel_tol=0.0,
-                abs_tol=0.0,
-            )
+        if not math.isclose(
+            float(base.labor_step),
+            float(action_grid["labor_step_hours"]),
+            rel_tol=0.0,
+            abs_tol=0.0,
+        ) or not math.isclose(
+            float(base.consumption_step),
+            float(action_grid["consumption_step"]),
+            rel_tol=0.0,
+            abs_tol=0.0,
         ):
             raise PilotOrchestrationError(
                 "Experiment D runner action grid differs from the frozen bins"
@@ -3251,6 +4824,49 @@ def _execute_d_seed(
             freeze_new_proposals_after=6,
             error_rule_mode="none",
             semantic_policy="evidence-grounded",
+        )
+        branch_map = {
+            "matched-a": "matched-a",
+            "matched-b": "matched-b",
+            "no-memory": "no-memory",
+            "shuffled-episodic": "shuffled-episodic",
+            "wrong-context": "wrong-context",
+            "error-verified": "erroneous-verified",
+            "error-unverified": "erroneous-unverified",
+        }
+        continuation_specs = {
+            branch_map[spec.arm_id]: spec
+            for spec in specs
+            if spec.arm_id in branch_map
+        }
+        narrative_specs = {
+            str(spec.narrative_id): spec
+            for spec in specs
+            if spec.arm_id == "narrative-content"
+        }
+        if set(continuation_specs) != set(DEFAULT_TREATMENTS):
+            raise PilotOrchestrationError(
+                "Experiment D group lacks one or more continuation journal cells"
+            )
+        if set(narrative_specs) != set(DEFAULT_NARRATIVES):
+            raise PilotOrchestrationError(
+                "Experiment D group lacks one or more narrative journal cells"
+            )
+
+        def journal_target(spec: PilotRunSpec) -> dict[str, Any]:
+            return {
+                "path": _provider_call_journal_path(
+                    group_dir,
+                    run_id=spec.run_id,
+                    kind="actor",
+                ),
+                "run_id": spec.run_id,
+                "contract_hash": base.pilot_contract_hash,
+            }
+
+        d_journal_paths = tuple(
+            Path(journal_target(spec)["path"])
+            for spec in specs
         )
         checkpoint = build_pilot_checkpoint(
             base,
@@ -3264,6 +4880,10 @@ def _execute_d_seed(
             checkpoint,
             llm=llm,
             budget=budget,
+            provider_call_journals={
+                treatment: journal_target(spec)
+                for treatment, spec in continuation_specs.items()
+            },
         ).to_dict()
         continuation.update(
             {
@@ -3278,6 +4898,10 @@ def _execute_d_seed(
             checkpoint,
             llm=llm,
             budget=budget,
+            provider_call_journals={
+                narrative_id: journal_target(spec)
+                for narrative_id, spec in narrative_specs.items()
+            },
         ).to_dict()
         narratives.update(
             {
@@ -3288,22 +4912,11 @@ def _execute_d_seed(
         )
         narrative_path = group_dir / "narratives.json"
         _atomic_json(narrative_path, narratives)
-        branch_map = {
-            "matched-a": "matched-a",
-            "matched-b": "matched-b",
-            "no-memory": "no-memory",
-            "shuffled-episodic": "shuffled-episodic",
-            "wrong-context": "wrong-context",
-            "error-verified": "erroneous-verified",
-            "error-unverified": "erroneous-unverified",
-        }
         shared_budget_receipt = budget.snapshot().to_dict()
         completed_artifacts: dict[str, Path] = {}
         for spec in specs:
             if spec.arm_id == "narrative-content":
-                narrative_branch = narratives["branches"][
-                    spec.narrative_id
-                ]
+                narrative_branch = narratives["branches"][spec.narrative_id]
                 payload = {
                     "metrics": {
                         "narrative": narratives["metrics"][spec.narrative_id],
@@ -3340,6 +4953,9 @@ def _execute_d_seed(
                             "per-branch cost allocation is claimed"
                         ),
                     },
+                    "provider_call_journal": narrative_branch[
+                        "provider_call_journal"
+                    ],
                 }
             else:
                 branch = continuation["branches"][branch_map[spec.arm_id]]
@@ -3349,9 +4965,7 @@ def _execute_d_seed(
                         "delta_vs_matched_a": branch["delta_vs_matched_a"],
                     },
                     "gate_evidence": {
-                        "matched_replay_equal": continuation[
-                            "matched_replay_equal"
-                        ],
+                        "matched_replay_equal": continuation["matched_replay_equal"],
                         "checkpoint_hash": continuation["checkpoint_hash"],
                         "prefix_hash": continuation["prefix_hash"],
                         "causal_bindings": _d_continuation_causal_bindings(
@@ -3364,8 +4978,7 @@ def _execute_d_seed(
                     "completion_receipt": {
                         "branch_action_completions": 4 * 6,
                         "observed_trajectory_action_rows": sum(
-                            len(row["decisions"])
-                            for row in branch["trajectory"]
+                            len(row["decisions"]) for row in branch["trajectory"]
                         ),
                         "shared_budget": shared_budget_receipt,
                         "usage_attribution": (
@@ -3374,13 +4987,13 @@ def _execute_d_seed(
                             "per-branch cost allocation is claimed"
                         ),
                     },
+                    "provider_call_journal": branch[
+                        "provider_call_journal"
+                    ],
                 }
             if paid is not None and not diagnostic:
                 artifact_path = write_terminal_summary(
-                    raw_root
-                    / "experiment-d"
-                    / "summaries"
-                    / f"{spec.run_id}.json",
+                    raw_root / "experiment-d" / "summaries" / f"{spec.run_id}.json",
                     contract=contract,
                     run_spec=spec,
                     resolved_git_commit=paid.head_commit,
@@ -3411,7 +5024,10 @@ def _execute_d_seed(
         actual = _actual_budget_values(
             group_dir,
             budget,
-            additional_paths=tuple(completed_artifacts.values()),
+            additional_paths=(
+                *tuple(completed_artifacts.values()),
+                *tuple(path for path in d_journal_paths if path.exists()),
+            ),
             completion_cap_counted=bool(
                 projection.basis.get(
                     "hosted_completion_cap_counted",
@@ -3419,6 +5035,7 @@ def _execute_d_seed(
                 )
             ),
         )
+        reconciliation_failure_receipt: Path | None = None
         try:
             budget_ledger.finalize(
                 projection.run_id,
@@ -3437,6 +5054,34 @@ def _execute_d_seed(
                 "reservation": projection.to_dict(),
                 "run_budget_snapshot": budget.snapshot().to_dict(),
             }
+            reconciliation_failure_receipt = _write_execution_failure_receipt(
+                group_dir / "failure_receipt",
+                scope=(
+                    "finevo-pilot/experiment-d/"
+                    "shared-checkpoint-group-budget-reconciliation"
+                ),
+                error=exc,
+                contract=contract,
+                projection=projection,
+                budget=budget,
+                specs=specs,
+                paid=paid,
+                diagnostic=diagnostic,
+            )
+            actual = _actual_budget_values(
+                group_dir,
+                budget,
+                additional_paths=(
+                    *tuple(completed_artifacts.values()),
+                    *tuple(path for path in d_journal_paths if path.exists()),
+                ),
+                completion_cap_counted=bool(
+                    projection.basis.get(
+                        "hosted_completion_cap_counted",
+                        True,
+                    )
+                ),
+            )
             budget_ledger.finalize(
                 projection.run_id,
                 status=ledger_status,
@@ -3450,6 +5095,8 @@ def _execute_d_seed(
                 artifact=(
                     str(completed_artifacts[spec.run_id])
                     if ledger_status == "complete"
+                    else str(reconciliation_failure_receipt)
+                    if reconciliation_failure_receipt is not None
                     else None
                 ),
                 failure=ledger_failure,
@@ -3470,6 +5117,9 @@ def _execute_d_seed(
         actual = _actual_budget_values(
             group_dir,
             budget,
+            additional_paths=tuple(
+                path for path in d_journal_paths if path.exists()
+            ),
             completion_cap_counted=bool(
                 projection.basis.get(
                     "hosted_completion_cap_counted",
@@ -3623,9 +5273,7 @@ def _assert_projection_matrix_fits(
     committed = snapshot["committed_plus_reserved"]
     existing = snapshot["runs"]
     additions = [
-        projection
-        for projection in projections
-        if projection.run_id not in existing
+        projection for projection in projections if projection.run_id not in existing
     ]
     total_usd = float(committed["cost_usd"]) + sum(
         projection.cost_usd for projection in additions
@@ -3639,8 +5287,7 @@ def _assert_projection_matrix_fits(
     stage_additions: dict[str, float] = {}
     for projection in additions:
         stage_additions[projection.stage_bucket] = (
-            stage_additions.get(projection.stage_bucket, 0.0)
-            + projection.cost_usd
+            stage_additions.get(projection.stage_bucket, 0.0) + projection.cost_usd
         )
     violations: list[str] = []
     caps = ledger.caps
@@ -3657,8 +5304,7 @@ def _assert_projection_matrix_fits(
             violations.append(f"{stage_bucket} USD")
     if violations:
         raise PilotBudgetError(
-            "complete preregistered stage projection exceeds "
-            + ", ".join(violations)
+            "complete preregistered stage projection exceeds " + ", ".join(violations)
         )
 
 
@@ -3704,14 +5350,10 @@ def _remaining_core_projections(
 
     d_specs = tuple(contract.expand(stage="experiment-d"))
     for seed in sorted({spec.environment_seed for spec in d_specs}):
-        seed_specs = tuple(
-            spec for spec in d_specs if spec.environment_seed == seed
-        )
+        seed_specs = tuple(spec for spec in d_specs if spec.environment_seed == seed)
         if all(run_ledger.is_terminal(spec.run_id) for spec in seed_specs):
             continue
-        representative = next(
-            spec for spec in seed_specs if spec.arm_id == "matched-a"
-        )
+        representative = next(spec for spec in seed_specs if spec.arm_id == "matched-a")
         projections.append(
             _d_group_projection(
                 contract,
@@ -3762,26 +5404,34 @@ def _remaining_scientific_projections(
         )
     )
 
-    capability_status = {
-        spec.model_id: run_ledger.status(spec.run_id)
-        for spec in contract.expand(stage="capability-preflight")
-    }
-    for spec in contract.expand(stage="cross-model-sentinels"):
-        if run_ledger.is_terminal(spec.run_id):
-            continue
-        if capability_status.get(spec.model_id) != "complete":
-            raise PilotOrchestrationError(
-                "nonterminal cross-model cell lacks a completed "
-                f"capability/preflight gate: {spec.model_id}"
-            )
-        projections.append(
-            projection_from_preflight(
+    for cross_stage in _cross_model_science_stage_ids(contract):
+        for spec in contract.expand(stage=cross_stage):
+            if run_ledger.is_terminal(spec.run_id):
+                continue
+            preflight_stage = _preflight_stage_for_model(
                 contract,
-                spec,
-                raw_root=raw_root,
-                paid=paid,
+                spec.model_id,
             )
-        )
+            preflight_specs = contract.expand(
+                stage=preflight_stage,
+                model=spec.model_id,
+            )
+            if (
+                len(preflight_specs) != 1
+                or run_ledger.status(preflight_specs[0].run_id) != "complete"
+            ):
+                raise PilotOrchestrationError(
+                    "nonterminal cross-model cell lacks a completed "
+                    f"capability/preflight gate: {spec.model_id}"
+                )
+            projections.append(
+                projection_from_preflight(
+                    contract,
+                    spec,
+                    raw_root=raw_root,
+                    paid=paid,
+                )
+            )
     return tuple(projections)
 
 
@@ -3811,12 +5461,21 @@ def _execute_stage_locked(
         if repo_root is not None
         else Path(__file__).resolve().parents[1]
     )
-    paid = verify_paid_provenance(contract, repo_root=repository)
+    paid = verify_paid_provenance(
+        contract,
+        repo_root=repository,
+        scientific_launch_input_path=(
+            root / "scientific_launch_input.json"
+            if contract.schema_version.endswith("-v2")
+            else None
+        ),
+    )
     _persist_release_attestation(root, paid)
     specs = contract.expand(stage=stage_id)
     run_ledger = PilotRunLedger(
         root / "run_ledger.json",
         contract_hash=contract.canonical_hash,
+        tamper_evident=contract.schema_version.endswith("-v2"),
     )
     # Register the complete preregistered denominator before the first stage.
     # Later no-go propagation therefore terminalizes future cells instead of
@@ -3832,13 +5491,15 @@ def _execute_stage_locked(
         root / "budget_ledger.json",
         contract_hash=contract.canonical_hash,
         caps=_budget_caps(contract),
+        tamper_evident=contract.schema_version.endswith("-v2"),
     )
     try:
-        _assert_prerequisites(
+        verified_prerequisite_go = _assert_prerequisites(
             contract,
             stage_id,
             raw_root=root,
             paid=paid,
+            ledger=run_ledger,
         )
     except Exception as exc:
         failure = {
@@ -3865,6 +5526,7 @@ def _execute_stage_locked(
             ledger=run_ledger,
             status="prerequisite-no-go",
             failure=failure,
+            paid=paid,
         )
         raise PilotOrchestrationError(
             f"stage prerequisites failed; receipt={receipt}"
@@ -3879,28 +5541,54 @@ def _execute_stage_locked(
         model_specs = tuple(spec for spec in specs if spec.model_id == model_id)
         if all(run_ledger.is_terminal(spec.run_id) for spec in model_specs):
             continue
-        catalog_path = (
-            root / stage_id / "provider_catalog" / f"{model_id}.json"
-        )
+        catalog_path = root / stage_id / "provider_catalog" / f"{model_id}.json"
         try:
-            if resume and catalog_path.exists():
-                prior = _read_json(catalog_path)
-                if (
-                    prior.get("schema_version")
-                    != PROVIDER_CATALOG_RECEIPT_SCHEMA_VERSION
-                    or prior.get("contract_sha256") != contract.canonical_hash
-                    or prior.get("status") != "pass"
-                    or prior.get("paid_completions") != 0
-                ):
+            if catalog_path.exists():
+                if not resume:
                     raise PilotOrchestrationError(
-                        "resume requires a prior passing, zero-completion "
-                        f"catalog receipt for {model_id}"
+                        "catalog receipt already exists; use --resume to "
+                        f"reuse its exact verified bytes for {model_id}"
                     )
-            catalog_receipt = validate_live_provider_catalog(
-                contract,
-                model_ids=(model_id,),
-            )
-            _atomic_json(catalog_path, catalog_receipt)
+                catalog_receipt = verify_provider_catalog_receipt(
+                    _read_json(catalog_path),
+                    contract_hash=contract.canonical_hash,
+                )
+                row_ids = [
+                    (
+                        row.get("profile_id")
+                        if contract.schema_version.endswith("-v2")
+                        else row.get("profile_id", row.get("model_id"))
+                    )
+                    for row in catalog_receipt["rows"]
+                    if isinstance(row, Mapping)
+                ]
+                if row_ids != [model_id]:
+                    raise PilotOrchestrationError(
+                        "resumed catalog receipt does not bind exactly one "
+                        f"requested profile: {model_id}"
+                    )
+            else:
+                catalog_receipt = validate_live_provider_catalog(
+                    contract,
+                    model_ids=(model_id,),
+                )
+                if (
+                    not contract.schema_version.endswith("-v2")
+                    and "receipt_sha256" not in catalog_receipt
+                ):
+                    # Read-only V1 compatibility for callers/tests that
+                    # implement the pre-self-hash catalog interface. This is
+                    # allowed only for a fresh in-memory observation; resumed
+                    # receipts are always verified exactly as persisted.
+                    catalog_receipt = dict(catalog_receipt)
+                    catalog_receipt["receipt_sha256"] = canonical_sha256(
+                        catalog_receipt
+                    )
+                verify_provider_catalog_receipt(
+                    catalog_receipt,
+                    contract_hash=contract.canonical_hash,
+                )
+                _atomic_json_no_overwrite(catalog_path, catalog_receipt)
             catalog_go.add(model_id)
         except Exception as exc:
             failure = {
@@ -3919,14 +5607,15 @@ def _execute_stage_locked(
                 "rows": [],
                 "failure": failure,
             }
-            no_go_receipt["receipt_sha256"] = canonical_sha256(
-                no_go_receipt
-            )
-            _atomic_json(catalog_path, no_go_receipt)
+            no_go_receipt["receipt_sha256"] = canonical_sha256(no_go_receipt)
+            if not catalog_path.exists():
+                _atomic_json_no_overwrite(catalog_path, no_go_receipt)
             terminal_status = (
                 "capability-no-go"
-                if stage_id
-                in {"capability-preflight", "cross-model-sentinels"}
+                if (
+                    _is_capability_stage(contract, stage_id)
+                    or stage_id in _cross_model_science_stage_ids(contract)
+                )
                 else "integrity-stopped"
             )
             for spec in model_specs:
@@ -3938,15 +5627,40 @@ def _execute_stage_locked(
                         failure=failure,
                     )
 
-    cross_model_go: set[str] | None = None
-    if stage_id == "cross-model-sentinels":
+    # Recompute the complete prerequisite semantics after the zero-completion
+    # catalog checks and immediately before any reservation/provider dispatch.
+    # The exclusive stage lock prevents a concurrent writer, while this second
+    # pass detects local artifact drift during the catalog interval.
+    verified_prerequisite_go = _assert_prerequisites(
+        contract,
+        stage_id,
+        raw_root=root,
+        paid=paid,
+        ledger=run_ledger,
+    )
+    gate_model_go: set[str] | None = None
+    if contract.schema_version.endswith("-v2"):
+        target_models = set(contract.models_for_stage(stage_id))
+        for prerequisite in stage.prerequisites:
+            if not _is_capability_stage(contract, prerequisite):
+                continue
+            relevant = target_models & set(contract.models_for_stage(prerequisite))
+            if not relevant:
+                continue
+            passed = set(verified_prerequisite_go.get(prerequisite, frozenset()))
+            eligible = relevant & passed
+            gate_model_go = (
+                eligible if gate_model_go is None else gate_model_go & eligible
+            )
+    elif stage_id == "cross-model-sentinels":
         capability_receipt = _read_json(
             _stage_receipt_path(root, "capability-preflight")
         )
-        cross_model_go = {
-            str(model_id)
-            for model_id in capability_receipt.get("go_models", [])
-        } & catalog_go
+        gate_model_go = {
+            str(model_id) for model_id in capability_receipt.get("go_models", [])
+        }
+    if gate_model_go is not None:
+        gate_model_go &= catalog_go
     full_scientific_projection = stage_id == "stage0-calibration"
     try:
         if full_scientific_projection:
@@ -3974,8 +5688,7 @@ def _execute_stage_locked(
                     next(
                         spec
                         for spec in specs
-                        if spec.environment_seed == seed
-                        and spec.arm_id == "matched-a"
+                        if spec.environment_seed == seed and spec.arm_id == "matched-a"
                     ),
                     raw_root=root,
                     paid=paid,
@@ -3992,9 +5705,12 @@ def _execute_stage_locked(
             for spec in specs:
                 if run_ledger.is_terminal(spec.run_id):
                     continue
-                if cross_model_go is not None and spec.model_id not in cross_model_go:
+                if gate_model_go is not None and spec.model_id not in gate_model_go:
                     continue
-                if stage_id in {"capability-preflight", "q-ref-resolution"}:
+                if (
+                    spec.execution_mode in CAPABILITY_EXECUTION_MODES
+                    or spec.execution_mode == "q_ref_resolution"
+                ):
                     projection = conservative_projection(contract, spec)
                 elif spec.execution_mode == "offline_candidate_admission":
                     projection = RunProjection(
@@ -4020,7 +5736,7 @@ def _execute_stage_locked(
         if full_scientific_projection:
             stopped_specs = tuple(
                 spec
-                for scientific_stage in SCIENTIFIC_STAGE_IDS
+                for scientific_stage in _scientific_stage_ids(contract)
                 for spec in contract.expand(stage=scientific_stage)
             )
         elif stage_id in CORE_STAGE_IDS:
@@ -4037,9 +5753,11 @@ def _execute_stage_locked(
         projection_scope = (
             "all-remaining-stage0-a-b-c-d-and-capability-eligible-cross"
             if full_scientific_projection
-            else "all-remaining-a-b-c-d"
-            if stage_id in CORE_STAGE_IDS
-            else "current-stage"
+            else (
+                "all-remaining-a-b-c-d"
+                if stage_id in CORE_STAGE_IDS
+                else "current-stage"
+            )
         )
         run_ledger.stop_pending(
             stopped_specs,
@@ -4067,6 +5785,7 @@ def _execute_stage_locked(
             ledger=run_ledger,
             status=terminal_status,
             failure={**failure, "projection_scope": projection_scope},
+            paid=paid,
         )
         raise PilotOrchestrationError(
             f"full stage projection failed before dispatch; receipt={receipt}"
@@ -4074,9 +5793,15 @@ def _execute_stage_locked(
 
     if stage_id == "experiment-d":
         for seed in sorted({spec.environment_seed for spec in specs}):
-            group = tuple(
-                spec for spec in specs if spec.environment_seed == seed
-            )
+            group = tuple(spec for spec in specs if spec.environment_seed == seed)
+            if contract.schema_version.endswith("-v2"):
+                _assert_prerequisites(
+                    contract,
+                    stage_id,
+                    raw_root=root,
+                    paid=paid,
+                    ledger=run_ledger,
+                )
             _execute_d_seed(
                 contract,
                 group,
@@ -4095,6 +5820,7 @@ def _execute_stage_locked(
             ledger=run_ledger,
             status="complete-with-no-go" if failed else "complete",
             artifacts={"checkpoint_root": str(root / stage_id / "checkpoints")},
+            paid=paid,
         )
         receipt_value = _read_json(receipt)
         if receipt_value["execution_progression_go"] is not True:
@@ -4116,18 +5842,14 @@ def _execute_stage_locked(
     stop_stage = False
     for spec in specs:
         if run_ledger.is_terminal(spec.run_id):
-            if stage_id == "capability-preflight":
+            if _is_capability_stage(contract, stage_id):
                 gate_path = (
-                    root
-                    / spec.stage_id
-                    / "runs"
-                    / spec.run_id
-                    / "gate_receipt.json"
+                    root / spec.stage_id / "runs" / spec.run_id / "gate_receipt.json"
                 )
                 if gate_path.exists() and _read_json(gate_path).get("go") is True:
                     go_models.append(spec.model_id)
             continue
-        if cross_model_go is not None and spec.model_id not in cross_model_go:
+        if gate_model_go is not None and spec.model_id not in gate_model_go:
             run_ledger.finalize(
                 spec.run_id,
                 status="capability-no-go",
@@ -4162,7 +5884,10 @@ def _execute_stage_locked(
 
         projection = (
             conservative_projection(contract, spec)
-            if stage_id in {"capability-preflight", "q-ref-resolution"}
+            if (
+                spec.execution_mode in CAPABILITY_EXECUTION_MODES
+                or spec.execution_mode == "q_ref_resolution"
+            )
             else (
                 RunProjection(
                     run_id=spec.run_id,
@@ -4184,12 +5909,23 @@ def _execute_stage_locked(
         run_dir = root / spec.stage_id / "runs" / spec.run_id
         budget: RunBudget | None = None
         try:
+            if contract.schema_version.endswith("-v2"):
+                _assert_prerequisites(
+                    contract,
+                    stage_id,
+                    raw_root=root,
+                    paid=paid,
+                    ledger=run_ledger,
+                )
             budget_ledger.reserve(projection)
             # Construct the budget at the caller boundary so provider
             # construction, dispatch, parsing, and artifact exceptions all
             # preserve the same partially-accounted object for reconciliation.
             budget = _run_budget_from_projection(projection)
-            if spec.execution_mode == "capability_probe":
+            if spec.execution_mode in {
+                "capability_probe",
+                "closed_loop_preflight",
+            }:
                 status, artifact, _, gate = _execute_capability_preflight(
                     contract,
                     spec,
@@ -4200,13 +5936,21 @@ def _execute_stage_locked(
                 )
                 if gate["go"]:
                     go_models.append(spec.model_id)
+                gate_paths = [Path(artifact)]
+                gate_journal = _provider_call_journal_path(
+                    run_dir,
+                    run_id=spec.run_id,
+                    kind="preflight",
+                )
+                if gate_journal.exists():
+                    gate_paths.append(gate_journal)
                 budget_status, budget_failure, _ = _finalize_budget_safely(
                     budget_ledger,
                     projection,
                     run_dir=run_dir,
                     budget=budget,
                     status="complete",
-                    additional_paths=(Path(artifact),),
+                    additional_paths=tuple(gate_paths),
                 )
                 terminal_status = (
                     status if budget_status == "complete" else budget_status
@@ -4222,12 +5966,14 @@ def _execute_stage_locked(
                     failure=(
                         budget_failure
                         if budget_status != "complete"
-                        else None
-                        if terminal_status == "complete"
-                        else {
-                            "error_type": "CapabilityOrInterfaceNoGo",
-                            "message": str(gate["reason"]),
-                        }
+                        else (
+                            None
+                            if terminal_status == "complete"
+                            else {
+                                "error_type": "CapabilityOrInterfaceNoGo",
+                                "message": str(gate["reason"]),
+                            }
+                        )
                     ),
                 )
             elif spec.execution_mode == "q_ref_resolution":
@@ -4300,7 +6046,14 @@ def _execute_stage_locked(
                     run_dir=run_dir,
                     budget=budget,
                     status="complete",
-                    additional_paths=(Path(manifest),),
+                    additional_paths=(
+                        Path(manifest),
+                        _provider_call_journal_path(
+                            run_dir,
+                            run_id=spec.run_id,
+                            kind="actor",
+                        ),
+                    ),
                 )
                 run_ledger.finalize(
                     spec.run_id,
@@ -4320,10 +6073,7 @@ def _execute_stage_locked(
             if budget is not None:
                 failure_receipt = _write_execution_failure_receipt(
                     run_dir / "failure_receipt",
-                    scope=(
-                        f"finevo-pilot/{spec.stage_id}/"
-                        f"{spec.execution_mode}"
-                    ),
+                    scope=(f"finevo-pilot/{spec.stage_id}/" f"{spec.execution_mode}"),
                     error=exc,
                     contract=contract,
                     projection=projection,
@@ -4345,9 +6095,7 @@ def _execute_stage_locked(
                 spec.run_id,
                 status=terminal_status,
                 artifact=(
-                    str(failure_receipt)
-                    if failure_receipt is not None
-                    else None
+                    str(failure_receipt) if failure_receipt is not None else None
                 ),
                 failure=terminal_failure,
             )
@@ -4358,10 +6106,7 @@ def _execute_stage_locked(
             if budget is not None:
                 failure_receipt = _write_execution_failure_receipt(
                     run_dir / "failure_receipt",
-                    scope=(
-                        f"finevo-pilot/{spec.stage_id}/"
-                        f"{spec.execution_mode}"
-                    ),
+                    scope=(f"finevo-pilot/{spec.stage_id}/" f"{spec.execution_mode}"),
                     error=exc,
                     contract=contract,
                     projection=projection,
@@ -4384,9 +6129,7 @@ def _execute_stage_locked(
                 spec.run_id,
                 status=budget_status,
                 artifact=(
-                    str(failure_receipt)
-                    if failure_receipt is not None
-                    else None
+                    str(failure_receipt) if failure_receipt is not None else None
                 ),
                 failure=budget_failure or failure,
             )
@@ -4417,15 +6160,11 @@ def _execute_stage_locked(
             sensitivity_value = _read_json(sensitivity)
             stage_artifacts["zero_api_rule_sensitivity"] = {
                 "path": str(sensitivity),
-                "content_sha256": sensitivity_value["integrity"][
-                    "content_sha256"
-                ],
+                "content_sha256": sensitivity_value["integrity"]["content_sha256"],
                 "file_sha256": _file_sha256(sensitivity),
                 "provider_calls": sensitivity_value["provider_calls"],
                 "descriptive_only": sensitivity_value["descriptive_only"],
-                "effectiveness_gate": sensitivity_value[
-                    "effectiveness_gate"
-                ],
+                "effectiveness_gate": sensitivity_value["effectiveness_gate"],
             }
         except Exception as exc:
             stage_artifacts["zero_api_rule_sensitivity_failure"] = {
@@ -4435,23 +6174,23 @@ def _execute_stage_locked(
 
     statuses = [run_ledger.status(spec.run_id) for spec in specs]
     complete = all(status == "complete" for status in statuses)
-    if stage_id == "capability-preflight":
+    if _is_capability_stage(contract, stage_id):
         status = "complete" if complete else "complete-with-no-go"
     elif complete and (
-        (
-            stage_id != "stage0-calibration"
-            or "stage0_selection" in stage_artifacts
-        )
+        (stage_id != "stage0-calibration" or "stage0_selection" in stage_artifacts)
         and (
-            stage_id != "experiment-c"
-            or "zero_api_rule_sensitivity" in stage_artifacts
+            stage_id != "experiment-c" or "zero_api_rule_sensitivity" in stage_artifacts
         )
     ):
         status = "complete"
     else:
         status = "complete-with-no-go"
-    if stage_id == "capability-preflight":
-        _propagate_capability_no_go(contract, ledger=run_ledger)
+    if _is_capability_stage(contract, stage_id):
+        _propagate_capability_no_go(
+            contract,
+            ledger=run_ledger,
+            source_stage=stage_id,
+        )
     receipt = _write_stage_receipt(
         contract,
         stage_id,
@@ -4460,10 +6199,11 @@ def _execute_stage_locked(
         status=status,
         go_models=go_models,
         artifacts=stage_artifacts,
+        paid=paid,
     )
     receipt_value = _read_json(receipt)
     if (
-        stage_id != "capability-preflight"
+        not _is_capability_stage(contract, stage_id)
         and receipt_value["execution_progression_go"] is not True
     ):
         _propagate_stage_no_go(
@@ -4610,18 +6350,18 @@ def run_development_fake_matrix(
     run_ledger = PilotRunLedger(
         root / "run_ledger.json",
         contract_hash=contract.canonical_hash,
+        tamper_evident=contract.schema_version.endswith("-v2"),
     )
     run_ledger.register(selected)
     if not resume and any(
         run_ledger.status(spec.run_id) != "scheduled" for spec in selected
     ):
-        raise PilotOrchestrationError(
-            "development matrix already exists; use --resume"
-        )
+        raise PilotOrchestrationError("development matrix already exists; use --resume")
     budget_ledger = PilotBudgetLedger(
         root / "budget_ledger.json",
         contract_hash=contract.canonical_hash,
         caps=_budget_caps(contract),
+        tamper_evident=contract.schema_version.endswith("-v2"),
     )
 
     d_specs = tuple(spec for spec in selected if spec.stage_id == "experiment-d")
@@ -4629,15 +6369,15 @@ def run_development_fake_matrix(
     for spec in actor_specs:
         if run_ledger.is_terminal(spec.run_id):
             continue
-        if _recover_or_stop_interrupted_reservation(
-            budget_ledger, run_ledger, spec
-        ):
+        if _recover_or_stop_interrupted_reservation(budget_ledger, run_ledger, spec):
             continue
         projection = RunProjection(
             run_id=spec.run_id,
             stage_bucket=spec.budget_bucket,
             cost_usd=0.0,
-            completions=0 if spec.execution_mode == "offline_candidate_admission" else 24,
+            completions=(
+                0 if spec.execution_mode == "offline_candidate_admission" else 24
+            ),
             storage_bytes=20_000_000,
             basis={
                 "method": "development-diagnostic-fixed-ceiling",
@@ -4716,7 +6456,9 @@ def run_development_fake_matrix(
         "schema_version": PILOT_DEVELOPMENT_MATRIX_SCHEMA_VERSION,
         "contract_id": contract.contract_id,
         "contract_sha256": contract.canonical_hash,
-        "status": "pass" if all(status == "complete" for status in statuses) else "fail",
+        "status": (
+            "pass" if all(status == "complete" for status in statuses) else "fail"
+        ),
         "registered_cells": len(selected),
         "status_counts": {
             status: statuses.count(status) for status in sorted(set(statuses))
@@ -4745,7 +6487,10 @@ __all__ = [
     "GitProvenance",
     "PILOT_DEVELOPMENT_MATRIX_SCHEMA_VERSION",
     "PILOT_RUN_LEDGER_SCHEMA_VERSION",
+    "PILOT_RUN_LEDGER_SCHEMA_VERSION_V2",
+    "PILOT_SCIENTIFIC_LAUNCH_INPUT_SCHEMA_VERSION",
     "PILOT_STAGE_RECEIPT_SCHEMA_VERSION",
+    "PILOT_STAGE_RECEIPT_SCHEMA_VERSION_V2",
     "PilotOrchestrationError",
     "PilotRunLedger",
     "config_for_spec",

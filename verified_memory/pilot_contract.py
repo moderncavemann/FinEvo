@@ -20,7 +20,11 @@ from types import MappingProxyType
 from typing import Any, Mapping, Optional, Sequence
 
 
-PILOT_CONTRACT_SCHEMA_VERSION = "finevo-pilot-contract-v1"
+PILOT_CONTRACT_SCHEMA_VERSION_V1 = "finevo-pilot-contract-v1"
+PILOT_CONTRACT_SCHEMA_VERSION_V2 = "finevo-pilot-contract-v2"
+# Backward-compatible public name.  V1 artifacts remain immutable/readable;
+# callers that need the science contract should use the explicit V2 constant.
+PILOT_CONTRACT_SCHEMA_VERSION = PILOT_CONTRACT_SCHEMA_VERSION_V1
 PILOT_CONTRACT_CANONICALIZATION = "json-sort-keys-utf8-v1"
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -32,6 +36,27 @@ _REASONING_MODES = frozenset({"fixed", "omitted"})
 _REASONING_EFFORTS = frozenset(
     {"max", "xhigh", "high", "medium", "low", "minimal", "none"}
 )
+_DISPATCH_MODES = frozenset(
+    {"explicit_supported", "documented_unsupported_omitted"}
+)
+_DECODING_FIELDS = frozenset(
+    {"temperature", "top_p", "seed", "reasoning", "response_format"}
+)
+_MODEL_ROLES = frozenset(
+    {
+        "primary",
+        "controlled_second",
+        "secondary_diagnostic",
+        "capability_no_go",
+        "calibration_only",
+    }
+)
+_SCIENCE_TASK_CAPS = {
+    "capability-choice": (2048, 512),
+    "capability-proposal": (4096, 4096),
+    "actor-action": (2048, 1024),
+    "semantic-proposal": (4096, 4096),
+}
 
 PILOT_V1_ACTION_GRID = {
     "labor_step_hours": 8.0,
@@ -245,6 +270,541 @@ class ReasoningProfile:
 
 
 @dataclass(frozen=True, slots=True)
+class DecodingFieldDispatch:
+    """Per-profile disposition of one potentially unsupported request field."""
+
+    requested_value: Any
+    dispatch_mode: str
+    catalog_evidence_required: bool
+
+    def __post_init__(self) -> None:
+        mode = _text(self.dispatch_mode, "decoding field dispatch_mode")
+        if mode not in _DISPATCH_MODES:
+            raise PilotContractError(f"unsupported dispatch mode: {mode}")
+        object.__setattr__(self, "dispatch_mode", mode)
+        _boolean(
+            self.catalog_evidence_required,
+            "decoding field catalog_evidence_required",
+        )
+        object.__setattr__(self, "requested_value", _freeze_json(self.requested_value))
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "DecodingFieldDispatch":
+        value = _mapping(value, "decoding field")
+        _strict_keys(
+            value,
+            required={
+                "requested_value",
+                "dispatch_mode",
+                "catalog_evidence_required",
+            },
+            name="decoding field",
+        )
+        return cls(
+            requested_value=value["requested_value"],
+            dispatch_mode=value["dispatch_mode"],
+            catalog_evidence_required=value["catalog_evidence_required"],
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "requested_value": _thaw_json(self.requested_value),
+            "dispatch_mode": self.dispatch_mode,
+            "catalog_evidence_required": self.catalog_evidence_required,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class ParameterDispatchPolicy:
+    """Uniform fail-closed policy applied to every V2 model profile."""
+
+    policy_id: str
+    fields: tuple[str, ...]
+    allowed_modes: tuple[str, ...]
+    unsupported_field_action: str
+    unknown_support_action: str
+    omission_receipt_status: str
+    uniform_across_profiles: bool
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "policy_id", _text(self.policy_id, "policy_id"))
+        fields = _string_tuple(self.fields, "parameter dispatch fields")
+        if frozenset(fields) != _DECODING_FIELDS:
+            raise PilotContractError(
+                "parameter dispatch policy must cover the five frozen decoding fields"
+            )
+        object.__setattr__(self, "fields", fields)
+        modes = _string_tuple(self.allowed_modes, "parameter dispatch modes")
+        if frozenset(modes) != _DISPATCH_MODES:
+            raise PilotContractError(
+                "parameter dispatch policy modes differ from the frozen V2 policy"
+            )
+        object.__setattr__(self, "allowed_modes", modes)
+        if self.unsupported_field_action != "omit-before-dispatch":
+            raise PilotContractError(
+                "unsupported request fields must be omitted before dispatch"
+            )
+        if self.unknown_support_action != "stop-before-dispatch":
+            raise PilotContractError(
+                "unknown parameter support must stop before dispatch"
+            )
+        if self.omission_receipt_status != "omitted_unsupported":
+            raise PilotContractError(
+                "unsupported omissions must be recorded as omitted_unsupported"
+            )
+        if not _boolean(
+            self.uniform_across_profiles, "parameter dispatch uniform_across_profiles"
+        ):
+            raise PilotContractError(
+                "parameter dispatch policy must be uniform across profiles"
+            )
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "ParameterDispatchPolicy":
+        value = _mapping(value, "parameter_dispatch_policy")
+        _strict_keys(
+            value,
+            required={
+                "policy_id",
+                "fields",
+                "allowed_modes",
+                "unsupported_field_action",
+                "unknown_support_action",
+                "omission_receipt_status",
+                "uniform_across_profiles",
+            },
+            name="parameter_dispatch_policy",
+        )
+        return cls(
+            policy_id=value["policy_id"],
+            fields=_string_tuple(value["fields"], "parameter dispatch fields"),
+            allowed_modes=_string_tuple(
+                value["allowed_modes"], "parameter dispatch modes"
+            ),
+            unsupported_field_action=value["unsupported_field_action"],
+            unknown_support_action=value["unknown_support_action"],
+            omission_receipt_status=value["omission_receipt_status"],
+            uniform_across_profiles=value["uniform_across_profiles"],
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "policy_id": self.policy_id,
+            "fields": list(self.fields),
+            "allowed_modes": list(self.allowed_modes),
+            "unsupported_field_action": self.unsupported_field_action,
+            "unknown_support_action": self.unknown_support_action,
+            "omission_receipt_status": self.omission_receipt_status,
+            "uniform_across_profiles": self.uniform_across_profiles,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class TaskOutputContract:
+    """Model-independent output cap and parser contract for one call role."""
+
+    task_id: str
+    max_completion_tokens: int
+    max_visible_json_bytes: int
+    visible_token_count_required: bool
+    reasoning_token_count_required: bool
+    science_parse_mode: str
+    report_recovery_modes: tuple[str, ...]
+    recovered_output_scientific_success: bool
+    required_finish_reason: str
+
+    def __post_init__(self) -> None:
+        task_id = _text(self.task_id, "task output contract task_id")
+        object.__setattr__(self, "task_id", task_id)
+        expected = _SCIENCE_TASK_CAPS.get(task_id)
+        if expected is None:
+            raise PilotContractError(f"unknown science task output contract: {task_id}")
+        cap = _integer(
+            self.max_completion_tokens,
+            f"{task_id}.max_completion_tokens",
+            minimum=1,
+        )
+        byte_limit = _integer(
+            self.max_visible_json_bytes,
+            f"{task_id}.max_visible_json_bytes",
+            minimum=2,
+        )
+        if (cap, byte_limit) != expected:
+            raise PilotContractError(
+                f"{task_id} output limits differ from the frozen V2 task cap"
+            )
+        if not _boolean(
+            self.visible_token_count_required,
+            f"{task_id}.visible_token_count_required",
+        ):
+            raise PilotContractError("visible token counts must be recorded")
+        if not _boolean(
+            self.reasoning_token_count_required,
+            f"{task_id}.reasoning_token_count_required",
+        ):
+            raise PilotContractError("reasoning token counts must be recorded")
+        if self.science_parse_mode != "exact_json_only":
+            raise PilotContractError(
+                "scientific success requires exact JSON without parser recovery"
+            )
+        recovery = _string_tuple(
+            self.report_recovery_modes,
+            f"{task_id}.report_recovery_modes",
+        )
+        if recovery != ("fenced_json", "substring_json"):
+            raise PilotContractError(
+                "V2 recovery reporting must cover fenced_json and substring_json"
+            )
+        object.__setattr__(self, "report_recovery_modes", recovery)
+        if _boolean(
+            self.recovered_output_scientific_success,
+            f"{task_id}.recovered_output_scientific_success",
+        ):
+            raise PilotContractError(
+                "recovered JSON cannot count as V2 scientific parse success"
+            )
+        if self.required_finish_reason != "stop":
+            raise PilotContractError("V2 task outputs require finish_reason=stop")
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "TaskOutputContract":
+        value = _mapping(value, "task output contract")
+        fields = {
+            "task_id",
+            "max_completion_tokens",
+            "max_visible_json_bytes",
+            "visible_token_count_required",
+            "reasoning_token_count_required",
+            "science_parse_mode",
+            "report_recovery_modes",
+            "recovered_output_scientific_success",
+            "required_finish_reason",
+        }
+        _strict_keys(value, required=fields, name="task output contract")
+        return cls(
+            task_id=value["task_id"],
+            max_completion_tokens=value["max_completion_tokens"],
+            max_visible_json_bytes=value["max_visible_json_bytes"],
+            visible_token_count_required=value["visible_token_count_required"],
+            reasoning_token_count_required=value["reasoning_token_count_required"],
+            science_parse_mode=value["science_parse_mode"],
+            report_recovery_modes=_string_tuple(
+                value["report_recovery_modes"], "report recovery modes"
+            ),
+            recovered_output_scientific_success=value[
+                "recovered_output_scientific_success"
+            ],
+            required_finish_reason=value["required_finish_reason"],
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "task_id": self.task_id,
+            "max_completion_tokens": self.max_completion_tokens,
+            "max_visible_json_bytes": self.max_visible_json_bytes,
+            "visible_token_count_required": self.visible_token_count_required,
+            "reasoning_token_count_required": self.reasoning_token_count_required,
+            "science_parse_mode": self.science_parse_mode,
+            "report_recovery_modes": list(self.report_recovery_modes),
+            "recovered_output_scientific_success": (
+                self.recovered_output_scientific_success
+            ),
+            "required_finish_reason": self.required_finish_reason,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class ModelRolePolicy:
+    """Frozen scientific role and dispatch surface for one model profile."""
+
+    profile_id: str
+    role: str
+    dispatch_eligible: bool
+    ineligibility_reason: Optional[str]
+    allowed_stages: tuple[str, ...]
+    allowed_call_roles: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "profile_id", _text(self.profile_id, "profile_id"))
+        role = _text(self.role, "model role")
+        if role not in _MODEL_ROLES:
+            raise PilotContractError(f"unsupported model role: {role}")
+        object.__setattr__(self, "role", role)
+        eligible = _boolean(self.dispatch_eligible, "model role dispatch_eligible")
+        reason = self.ineligibility_reason
+        if eligible:
+            if reason is not None:
+                raise PilotContractError(
+                    "dispatch-eligible model role cannot have an ineligibility reason"
+                )
+        else:
+            reason = _text(reason, "model role ineligibility_reason")
+            if self.allowed_stages or self.allowed_call_roles:
+                raise PilotContractError(
+                    "dispatch-ineligible model role cannot allow stages or call roles"
+                )
+        object.__setattr__(self, "ineligibility_reason", reason)
+        object.__setattr__(
+            self,
+            "allowed_stages",
+            _string_tuple(
+                self.allowed_stages, "model role allowed_stages", allow_empty=not eligible
+            ),
+        )
+        object.__setattr__(
+            self,
+            "allowed_call_roles",
+            _string_tuple(
+                self.allowed_call_roles,
+                "model role allowed_call_roles",
+                allow_empty=not eligible,
+            ),
+        )
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "ModelRolePolicy":
+        value = _mapping(value, "model role")
+        _strict_keys(
+            value,
+            required={
+                "profile_id",
+                "role",
+                "dispatch_eligible",
+                "ineligibility_reason",
+                "allowed_stages",
+                "allowed_call_roles",
+            },
+            name="model role",
+        )
+        return cls(
+            profile_id=value["profile_id"],
+            role=value["role"],
+            dispatch_eligible=value["dispatch_eligible"],
+            ineligibility_reason=value["ineligibility_reason"],
+            allowed_stages=_string_tuple(
+                value["allowed_stages"],
+                "model role allowed_stages",
+                allow_empty=True,
+            ),
+            allowed_call_roles=_string_tuple(
+                value["allowed_call_roles"],
+                "model role allowed_call_roles",
+                allow_empty=True,
+            ),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "profile_id": self.profile_id,
+            "role": self.role,
+            "dispatch_eligible": self.dispatch_eligible,
+            "ineligibility_reason": self.ineligibility_reason,
+            "allowed_stages": list(self.allowed_stages),
+            "allowed_call_roles": list(self.allowed_call_roles),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class DenominatorPolicy:
+    """Typed ITT and inference-unit contract for the mechanism micro-pilot."""
+
+    policy_id: str
+    registered_cells_are_itt: bool
+    parse_failure_outcome: str
+    provider_budget_integrity_failure_outcome: str
+    failed_seed_replacement: str
+    seed_inference_unit: str
+    rule_inference_unit: str
+    checkpoint_inference_unit: str
+    core_complete_pairs_min: int
+    core_registered_pairs: int
+    cross_model_complete_pairs_min: int
+    cross_model_registered_pairs: int
+    raw_paired_deltas_required: bool
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "policy_id", _text(self.policy_id, "denominator policy"))
+        if not _boolean(
+            self.registered_cells_are_itt, "denominator registered_cells_are_itt"
+        ):
+            raise PilotContractError("all preregistered cells must remain in ITT")
+        if self.parse_failure_outcome != "candidate_not_activated":
+            raise PilotContractError(
+                "parse failures must be counted as candidate_not_activated"
+            )
+        if (
+            self.provider_budget_integrity_failure_outcome
+            != "terminate_run_keep_denominator"
+        ):
+            raise PilotContractError(
+                "provider/budget/integrity failures must terminate but remain in ITT"
+            )
+        if self.failed_seed_replacement != "forbidden":
+            raise PilotContractError("failed pilot seeds cannot be replaced")
+        expected_units = (
+            (self.seed_inference_unit, "seed"),
+            (self.rule_inference_unit, "seed-agent-family"),
+            (self.checkpoint_inference_unit, "seed-checkpoint"),
+        )
+        if any(actual != expected for actual, expected in expected_units):
+            raise PilotContractError("V2 inference units differ from preregistration")
+        if (
+            _integer(self.core_complete_pairs_min, "core_complete_pairs_min") != 4
+            or _integer(self.core_registered_pairs, "core_registered_pairs") != 5
+            or _integer(
+                self.cross_model_complete_pairs_min,
+                "cross_model_complete_pairs_min",
+            )
+            != 2
+            or _integer(
+                self.cross_model_registered_pairs, "cross_model_registered_pairs"
+            )
+            != 3
+        ):
+            raise PilotContractError("V2 denominator pair counts drifted")
+        if not _boolean(
+            self.raw_paired_deltas_required, "raw_paired_deltas_required"
+        ):
+            raise PilotContractError("raw paired deltas are required")
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "DenominatorPolicy":
+        value = _mapping(value, "denominator_policy")
+        fields = {
+            "policy_id",
+            "registered_cells_are_itt",
+            "parse_failure_outcome",
+            "provider_budget_integrity_failure_outcome",
+            "failed_seed_replacement",
+            "seed_inference_unit",
+            "rule_inference_unit",
+            "checkpoint_inference_unit",
+            "core_complete_pairs_min",
+            "core_registered_pairs",
+            "cross_model_complete_pairs_min",
+            "cross_model_registered_pairs",
+            "raw_paired_deltas_required",
+        }
+        _strict_keys(value, required=fields, name="denominator_policy")
+        return cls(**{key: value[key] for key in fields})
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "policy_id": self.policy_id,
+            "registered_cells_are_itt": self.registered_cells_are_itt,
+            "parse_failure_outcome": self.parse_failure_outcome,
+            "provider_budget_integrity_failure_outcome": (
+                self.provider_budget_integrity_failure_outcome
+            ),
+            "failed_seed_replacement": self.failed_seed_replacement,
+            "seed_inference_unit": self.seed_inference_unit,
+            "rule_inference_unit": self.rule_inference_unit,
+            "checkpoint_inference_unit": self.checkpoint_inference_unit,
+            "core_complete_pairs_min": self.core_complete_pairs_min,
+            "core_registered_pairs": self.core_registered_pairs,
+            "cross_model_complete_pairs_min": self.cross_model_complete_pairs_min,
+            "cross_model_registered_pairs": self.cross_model_registered_pairs,
+            "raw_paired_deltas_required": self.raw_paired_deltas_required,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class ReleaseRequirements:
+    """Static CI identity and expected freeze values for a later attestor."""
+
+    remote: str
+    branch: str
+    tag: str
+    workflow_file: str
+    workflow_name: str
+    required_job_names: tuple[str, ...]
+    expected_ci: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        if self.remote != "origin":
+            raise PilotContractError("V2 release remote must be origin")
+        if self.branch != "main":
+            raise PilotContractError("V2 release branch must be main")
+        if self.tag != "pilot-v2-science":
+            raise PilotContractError(
+                "V2 release tag must be the annotated pilot-v2-science tag"
+            )
+        if self.workflow_file != ".github/workflows/verified-memory-ci.yml":
+            raise PilotContractError("V2 release workflow file drifted")
+        if self.workflow_name != "Verified memory CI":
+            raise PilotContractError("V2 release workflow name drifted")
+        jobs = _string_tuple(self.required_job_names, "required_job_names")
+        if jobs != (
+            "Python 3.12.7 / ubuntu-24.04",
+            "Python 3.12.7 / macos-14",
+        ):
+            raise PilotContractError("V2 release requires the frozen Linux/macOS jobs")
+        object.__setattr__(self, "required_job_names", jobs)
+        expected_ci = _mapping(self.expected_ci, "release expected_ci")
+        expected_fields = {
+            "test_count",
+            "test_collection_sha256",
+            "compiled_source_count",
+            "compiled_source_inventory_sha256",
+            "sealed_manifest_inventory_sha256",
+        }
+        _strict_keys(
+            expected_ci,
+            required=expected_fields,
+            name="release expected_ci",
+        )
+        for name in ("test_count", "compiled_source_count"):
+            value = expected_ci[name]
+            if value is not None:
+                _integer(value, name, minimum=1)
+        for name in (
+            "test_collection_sha256",
+            "compiled_source_inventory_sha256",
+            "sealed_manifest_inventory_sha256",
+        ):
+            value = expected_ci[name]
+            if value is not None:
+                _sha256(value, name)
+        object.__setattr__(self, "expected_ci", _freeze_json(expected_ci))
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "ReleaseRequirements":
+        value = _mapping(value, "release_requirements")
+        fields = {
+            "remote",
+            "branch",
+            "tag",
+            "workflow_file",
+            "workflow_name",
+            "required_job_names",
+            "expected_ci",
+        }
+        _strict_keys(value, required=fields, name="release_requirements")
+        return cls(
+            remote=value["remote"],
+            branch=value["branch"],
+            tag=value["tag"],
+            workflow_file=value["workflow_file"],
+            workflow_name=value["workflow_name"],
+            required_job_names=_string_tuple(
+                value["required_job_names"], "required_job_names"
+            ),
+            expected_ci=_mapping(value["expected_ci"], "release expected_ci"),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "remote": self.remote,
+            "branch": self.branch,
+            "tag": self.tag,
+            "workflow_file": self.workflow_file,
+            "workflow_name": self.workflow_name,
+            "required_job_names": list(self.required_job_names),
+            "expected_ci": _thaw_json(self.expected_ci),
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class PriceSnapshot:
     """Frozen catalog and dispatch-endpoint prices in USD per million tokens."""
 
@@ -334,6 +894,19 @@ class PriceSnapshot:
                 "provider price is unknown for the frozen dispatch endpoint"
             )
 
+    def assert_positive_for_hosted_dispatch(self) -> None:
+        """Require a conservative, nonzero frozen price for hosted dispatch."""
+
+        self.assert_known_for_dispatch()
+        if (
+            float(self.dispatch_input) <= 0.0
+            or float(self.dispatch_output) <= 0.0
+        ):
+            raise PilotContractError(
+                "hosted provider dispatch input/output prices must be finite "
+                "and positive"
+            )
+
     def costs_per_1k(self) -> dict[str, float]:
         self.assert_known_for_dispatch()
         prompt = float(self.dispatch_input) / 1000.0
@@ -378,6 +951,9 @@ class ProviderRequestProfile:
     allow_fallbacks: bool = False
     require_parameters: bool = True
     artifact_identity: tuple[tuple[str, str], ...] = ()
+    decoding_fields: tuple[tuple[str, DecodingFieldDispatch], ...] = ()
+    dispatch_eligible: bool = True
+    ineligibility_reason: Optional[str] = None
 
     def __post_init__(self) -> None:
         for name in (
@@ -421,6 +997,34 @@ class ProviderRequestProfile:
         if len(identity) != len({key for key, _ in identity}):
             raise PilotContractError("artifact_identity contains duplicate keys")
         object.__setattr__(self, "artifact_identity", identity)
+        decoding = tuple(sorted(self.decoding_fields, key=lambda item: item[0]))
+        if decoding:
+            decoding_keys = tuple(
+                _text(key, "decoding_fields key") for key, _ in decoding
+            )
+            if len(decoding_keys) != len(set(decoding_keys)):
+                raise PilotContractError("decoding_fields contains duplicate keys")
+            if frozenset(decoding_keys) != _DECODING_FIELDS:
+                raise PilotContractError(
+                    "V2 profile decoding_fields must cover the five frozen fields"
+                )
+            if any(
+                not isinstance(item, DecodingFieldDispatch) for _, item in decoding
+            ):
+                raise PilotContractError(
+                    "decoding_fields values must be DecodingFieldDispatch objects"
+                )
+        object.__setattr__(self, "decoding_fields", decoding)
+        eligible = _boolean(self.dispatch_eligible, "dispatch_eligible")
+        reason = self.ineligibility_reason
+        if eligible:
+            if reason is not None:
+                raise PilotContractError(
+                    "dispatch-eligible profile cannot declare ineligibility_reason"
+                )
+        else:
+            reason = _text(reason, "ineligibility_reason")
+        object.__setattr__(self, "ineligibility_reason", reason)
 
         if self.transport == "openrouter":
             if not self.provider_pin:
@@ -446,15 +1050,45 @@ class ProviderRequestProfile:
 
         if self.transport == "ollama":
             keys = dict(self.artifact_identity)
-            if set(keys) != {"manifest_sha256", "model_layer_digest"}:
+            v1_keys = {"manifest_sha256", "model_layer_digest"}
+            v2_keys = {
+                "manifest_sha256",
+                "model_layer_digest",
+                "model_layer_size_bytes",
+                "ollama_version",
+                "adapter",
+                "base_url",
+            }
+            key_set = frozenset(keys)
+            if key_set not in {frozenset(v1_keys), frozenset(v2_keys)}:
                 raise PilotContractError(
-                    "local model profile requires manifest and model-layer digests"
+                    "local model profile requires the frozen V1 or V2 artifact identity"
                 )
             _sha256(keys["manifest_sha256"], "local manifest_sha256")
             layer = keys["model_layer_digest"]
             if not layer.startswith("sha256:"):
                 raise PilotContractError("local model layer digest must use sha256:")
             _sha256(layer.split(":", 1)[1], "local model layer digest")
+            if key_set == frozenset(v2_keys):
+                try:
+                    layer_size = int(keys["model_layer_size_bytes"])
+                except ValueError as exc:
+                    raise PilotContractError(
+                        "local model_layer_size_bytes must be an integer"
+                    ) from exc
+                _integer(
+                    layer_size,
+                    "local model_layer_size_bytes",
+                    minimum=1,
+                )
+                _text(keys["ollama_version"], "local ollama_version")
+                if keys["adapter"] != "ollama-python":
+                    raise PilotContractError("local adapter must be ollama-python")
+                if keys["base_url"] not in {
+                    "http://127.0.0.1:11434",
+                    "http://localhost:11434",
+                }:
+                    raise PilotContractError("local Ollama endpoint must be loopback")
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "ProviderRequestProfile":
@@ -475,8 +1109,30 @@ class ProviderRequestProfile:
             "require_parameters",
             "artifact_identity",
         }
-        _strict_keys(value, required=fields, name="provider request profile")
+        v2_fields = {
+            "decoding_fields",
+            "dispatch_eligible",
+            "ineligibility_reason",
+        }
+        present_v2 = bool(set(value) & v2_fields)
+        _strict_keys(
+            value,
+            required=fields | (v2_fields if present_v2 else set()),
+            name="provider request profile",
+        )
         artifact = _mapping(value["artifact_identity"], "artifact_identity")
+        decoding: tuple[tuple[str, DecodingFieldDispatch], ...] = ()
+        if present_v2:
+            raw_decoding = _mapping(value["decoding_fields"], "decoding_fields")
+            decoding = tuple(
+                (
+                    str(key),
+                    DecodingFieldDispatch.from_dict(
+                        _mapping(item, f"decoding_fields.{key}")
+                    ),
+                )
+                for key, item in raw_decoding.items()
+            )
         return cls(
             profile_id=value["profile_id"],
             transport=value["transport"],
@@ -496,10 +1152,17 @@ class ProviderRequestProfile:
             artifact_identity=tuple(
                 (str(key), str(item)) for key, item in artifact.items()
             ),
+            decoding_fields=decoding,
+            dispatch_eligible=(
+                value["dispatch_eligible"] if present_v2 else True
+            ),
+            ineligibility_reason=(
+                value["ineligibility_reason"] if present_v2 else None
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "profile_id": self.profile_id,
             "transport": self.transport,
             "requested_model": self.requested_model,
@@ -515,6 +1178,17 @@ class ProviderRequestProfile:
             "require_parameters": self.require_parameters,
             "artifact_identity": dict(self.artifact_identity),
         }
+        if self.decoding_fields:
+            result.update(
+                {
+                    "decoding_fields": {
+                        key: item.to_dict() for key, item in self.decoding_fields
+                    },
+                    "dispatch_eligible": self.dispatch_eligible,
+                    "ineligibility_reason": self.ineligibility_reason,
+                }
+            )
+        return result
 
     def validate_provider_configuration(
         self,
@@ -523,6 +1197,11 @@ class ProviderRequestProfile:
         model: str,
         max_attempts: int,
     ) -> None:
+        if not self.dispatch_eligible:
+            raise PilotContractError(
+                f"profile {self.profile_id} is not dispatch eligible: "
+                f"{self.ineligibility_reason}"
+            )
         if transport != self.transport:
             raise PilotContractError(
                 f"profile {self.profile_id} requires transport {self.transport}, "
@@ -536,7 +1215,10 @@ class ProviderRequestProfile:
             raise PilotContractError(
                 f"profile {self.profile_id} requires exactly one provider attempt"
             )
-        self.price_snapshot.assert_known_for_dispatch()
+        if self.transport in {"openai", "openrouter"}:
+            self.price_snapshot.assert_positive_for_hosted_dispatch()
+        else:
+            self.price_snapshot.assert_known_for_dispatch()
 
     def validate_dispatch(
         self,
@@ -553,14 +1235,30 @@ class ProviderRequestProfile:
         )
         if seed is not None and (isinstance(seed, bool) or not isinstance(seed, int)):
             raise PilotContractError("decoding seed must be an integer or null")
-        if self.seed_capability == "unsupported" and seed is not None:
-            raise PilotContractError(
-                f"profile {self.profile_id} does not support a decoding seed"
-            )
-        if self.seed_capability != "unsupported" and seed is None:
-            raise PilotContractError(
-                f"profile {self.profile_id} requires the frozen decoding seed"
-            )
+        if self.decoding_fields:
+            seed_dispatch = dict(self.decoding_fields)["seed"].dispatch_mode
+            if (
+                seed_dispatch == "documented_unsupported_omitted"
+                and seed is not None
+            ):
+                raise PilotContractError(
+                    f"profile {self.profile_id} must omit decoding seed on the wire"
+                )
+            if seed_dispatch == "explicit_supported" and seed is None:
+                raise PilotContractError(
+                    f"profile {self.profile_id} requires the frozen decoding seed"
+                )
+        else:
+            # Immutable V1 compatibility: the historical schema used the coarse
+            # model capability field as the wire-dispatch decision.
+            if self.seed_capability == "unsupported" and seed is not None:
+                raise PilotContractError(
+                    f"profile {self.profile_id} does not support a decoding seed"
+                )
+            if self.seed_capability != "unsupported" and seed is None:
+                raise PilotContractError(
+                    f"profile {self.profile_id} requires the frozen decoding seed"
+                )
 
     def validate_served_model(self, served_model: Any) -> str:
         actual = _text(served_model, "served model")
@@ -643,6 +1341,7 @@ class PilotStage:
     cells: tuple[PilotStageCell, ...]
     prerequisites: tuple[str, ...] = ()
     reuse: tuple[str, ...] = ()
+    call_roles: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         for name in ("stage_id", "budget_bucket", "seed_set", "shock_id"):
@@ -654,6 +1353,15 @@ class PilotStage:
             raise PilotContractError("stage utility_profiles must not be empty")
         if not self.cells:
             raise PilotContractError("stage cells must not be empty")
+        object.__setattr__(
+            self,
+            "call_roles",
+            _string_tuple(
+                self.call_roles,
+                "stage call_roles",
+                allow_empty=True,
+            ),
+        )
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "PilotStage":
@@ -671,7 +1379,12 @@ class PilotStage:
             "prerequisites",
             "reuse",
         }
-        _strict_keys(value, required=fields, name="stage")
+        _strict_keys(
+            value,
+            required=fields,
+            optional=frozenset({"call_roles"}),
+            name="stage",
+        )
         cells = value["cells"]
         if isinstance(cells, (str, bytes)) or not isinstance(cells, Sequence):
             raise PilotContractError("stage cells must be an array")
@@ -691,10 +1404,15 @@ class PilotStage:
                 value["prerequisites"], "stage prerequisites", allow_empty=True
             ),
             reuse=_string_tuple(value["reuse"], "stage reuse", allow_empty=True),
+            call_roles=_string_tuple(
+                value.get("call_roles", ()),
+                "stage call_roles",
+                allow_empty=True,
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "stage_id": self.stage_id,
             "enabled": self.enabled,
             "budget_bucket": self.budget_bucket,
@@ -707,6 +1425,9 @@ class PilotStage:
             "prerequisites": list(self.prerequisites),
             "reuse": list(self.reuse),
         }
+        if self.call_roles:
+            result["call_roles"] = list(self.call_roles)
+        return result
 
 
 @dataclass(frozen=True, slots=True)
@@ -789,6 +1510,11 @@ class PilotContract:
     budgets: Mapping[str, Any]
     stop_go: Mapping[str, Any]
     stages: tuple[PilotStage, ...]
+    parameter_dispatch_policy: Optional[ParameterDispatchPolicy]
+    task_output_contracts: Mapping[str, TaskOutputContract]
+    model_roles: Mapping[str, ModelRolePolicy]
+    denominator_policy: Optional[DenominatorPolicy]
+    release_requirements: Optional[ReleaseRequirements]
     non_claims: tuple[str, ...]
     canonicalization: str
     declared_sha256: str
@@ -796,7 +1522,7 @@ class PilotContract:
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "PilotContract":
         value = _mapping(value, "pilot contract")
-        fields = {
+        base_fields = {
             "schema_version",
             "contract_id",
             "status",
@@ -813,22 +1539,41 @@ class PilotContract:
             "non_claims",
             "integrity",
         }
-        _strict_keys(value, required=fields, name="pilot contract")
-        if value["schema_version"] != PILOT_CONTRACT_SCHEMA_VERSION:
+        v2_fields = {
+            "parameter_dispatch_policy",
+            "task_output_contracts",
+            "model_roles",
+            "denominator_policy",
+            "release_requirements",
+        }
+        schema_version = value.get("schema_version")
+        if schema_version == PILOT_CONTRACT_SCHEMA_VERSION_V1:
+            fields = base_fields
+            is_v2 = False
+        elif schema_version == PILOT_CONTRACT_SCHEMA_VERSION_V2:
+            fields = base_fields | v2_fields
+            is_v2 = True
+        else:
             raise PilotContractError("unsupported pilot contract schema")
+        _strict_keys(value, required=fields, name="pilot contract")
         if value["status"] != "frozen":
             raise PilotContractError("pilot contract status must be frozen")
+        if is_v2 and value["contract_id"] != "finevo-pilot-v2":
+            raise PilotContractError("V2 contract_id must be finevo-pilot-v2")
 
         implementation = _mapping(value["implementation"], "implementation")
+        implementation_fields = {
+            "required_git_tag",
+            "commit_resolution",
+            "required_git_commit",
+            "p0_base_commit",
+            "require_clean_worktree",
+        }
+        if is_v2:
+            implementation_fields.add("required_git_branch")
         _strict_keys(
             implementation,
-            required={
-                "required_git_tag",
-                "commit_resolution",
-                "required_git_commit",
-                "p0_base_commit",
-                "require_clean_worktree",
-            },
+            required=implementation_fields,
             name="implementation",
         )
         if implementation["commit_resolution"] != "annotated_tag_peel":
@@ -838,12 +1583,64 @@ class PilotContract:
         _text(implementation["required_git_tag"], "required_git_tag")
         _git_commit(implementation["p0_base_commit"], "p0_base_commit")
         _boolean(implementation["require_clean_worktree"], "require_clean_worktree")
+        if is_v2:
+            if implementation["required_git_tag"] != "pilot-v2-science":
+                raise PilotContractError(
+                    "V2 implementation must require pilot-v2-science"
+                )
+            if implementation["required_git_branch"] != "main":
+                raise PilotContractError("V2 implementation branch must be main")
         required_commit = implementation["required_git_commit"]
         if required_commit is not None:
             _git_commit(required_commit, "required_git_commit")
         elif implementation["commit_resolution"] != "annotated_tag_peel":
             raise PilotContractError(
                 "null required_git_commit requires annotated_tag_peel"
+            )
+
+        parameter_dispatch_policy: Optional[ParameterDispatchPolicy] = None
+        task_output_contracts: dict[str, TaskOutputContract] = {}
+        model_roles: dict[str, ModelRolePolicy] = {}
+        denominator_policy: Optional[DenominatorPolicy] = None
+        release_requirements: Optional[ReleaseRequirements] = None
+        if is_v2:
+            parameter_dispatch_policy = ParameterDispatchPolicy.from_dict(
+                _mapping(
+                    value["parameter_dispatch_policy"],
+                    "parameter_dispatch_policy",
+                )
+            )
+            task_rows = _mapping(
+                value["task_output_contracts"], "task_output_contracts"
+            )
+            for task_id, row in task_rows.items():
+                task = TaskOutputContract.from_dict(
+                    _mapping(row, f"task_output_contracts.{task_id}")
+                )
+                if task.task_id != task_id:
+                    raise PilotContractError(
+                        f"task output key {task_id!r} does not match task_id"
+                    )
+                task_output_contracts[task_id] = task
+            if set(task_output_contracts) != set(_SCIENCE_TASK_CAPS):
+                raise PilotContractError(
+                    "V2 task_output_contracts must define exactly four call roles"
+                )
+            role_rows = _mapping(value["model_roles"], "model_roles")
+            for profile_id, row in role_rows.items():
+                role = ModelRolePolicy.from_dict(
+                    _mapping(row, f"model_roles.{profile_id}")
+                )
+                if role.profile_id != profile_id:
+                    raise PilotContractError(
+                        f"model role key {profile_id!r} does not match profile_id"
+                    )
+                model_roles[profile_id] = role
+            denominator_policy = DenominatorPolicy.from_dict(
+                _mapping(value["denominator_policy"], "denominator_policy")
+            )
+            release_requirements = ReleaseRequirements.from_dict(
+                _mapping(value["release_requirements"], "release_requirements")
             )
 
         profiles_value = _mapping(value["provider_profiles"], "provider_profiles")
@@ -856,17 +1653,110 @@ class PilotContract:
                 raise PilotContractError(
                     f"provider profile key {profile_id!r} does not match profile_id"
                 )
-            profile.price_snapshot.assert_known_for_dispatch()
+            if profile.transport in {"openai", "openrouter"}:
+                profile.price_snapshot.assert_positive_for_hosted_dispatch()
+            else:
+                profile.price_snapshot.assert_known_for_dispatch()
+            if is_v2 and not profile.decoding_fields:
+                raise PilotContractError(
+                    f"V2 profile {profile_id} lacks decoding_fields"
+                )
             profiles[profile_id] = profile
         if not profiles:
             raise PilotContractError("provider_profiles must not be empty")
+        if is_v2:
+            if set(model_roles) != set(profiles):
+                raise PilotContractError(
+                    "V2 model_roles must cover every provider profile exactly"
+                )
+            for profile_id, profile in profiles.items():
+                role = model_roles[profile_id]
+                if profile.dispatch_eligible != role.dispatch_eligible:
+                    raise PilotContractError(
+                        f"profile/model-role dispatch eligibility differs for {profile_id}"
+                    )
+                if profile.ineligibility_reason != role.ineligibility_reason:
+                    raise PilotContractError(
+                        f"profile/model-role ineligibility reason differs for {profile_id}"
+                    )
+            opus = profiles.get("opus48_no_go")
+            opus_role = model_roles.get("opus48_no_go")
+            if (
+                opus is None
+                or opus_role is None
+                or opus.dispatch_eligible
+                or opus.ineligibility_reason
+                != "cross_model_budget_no_go_under_nonshrink_policy"
+                or opus_role.role != "capability_no_go"
+            ):
+                raise PilotContractError(
+                    "Opus must remain zero-dispatch under the frozen "
+                    "cross-model non-shrink budget gate"
+                )
+            for profile_id, profile in profiles.items():
+                decoding = dict(profile.decoding_fields)
+                if set(decoding) != set(parameter_dispatch_policy.fields):
+                    raise PilotContractError(
+                        f"profile {profile_id} does not implement uniform dispatch fields"
+                    )
+                if profile.transport in {"openai", "openrouter"} and any(
+                    not field.catalog_evidence_required
+                    for field in decoding.values()
+                ):
+                    raise PilotContractError(
+                        f"hosted profile {profile_id} requires catalog evidence "
+                        "for every dispatch disposition"
+                    )
+                seed_dispatch = decoding["seed"]
+                if (
+                    profile.seed_capability == "unsupported"
+                    and seed_dispatch.dispatch_mode
+                    != "documented_unsupported_omitted"
+                ):
+                    raise PilotContractError(
+                        f"seed-unsupported profile {profile_id} must omit seed"
+                    )
+                response_dispatch = decoding["response_format"]
+                if (
+                    profile.json_mode == "json_object"
+                    and response_dispatch.dispatch_mode != "explicit_supported"
+                ):
+                    raise PilotContractError(
+                        f"JSON profile {profile_id} must explicitly dispatch "
+                        "response_format"
+                    )
+            local = profiles.get("llama33_local_controlled")
+            if (
+                local is None
+                or local.transport != "ollama"
+                or local.json_mode != "json_object"
+                or set(dict(local.artifact_identity))
+                != {
+                    "manifest_sha256",
+                    "model_layer_digest",
+                    "model_layer_size_bytes",
+                    "ollama_version",
+                    "adapter",
+                    "base_url",
+                }
+            ):
+                raise PilotContractError(
+                    "controlled local Llama must freeze JSON mode and runtime identity"
+                )
 
         seeds = _mapping(value["seeds"], "seeds")
         _strict_keys(
             seeds,
-            required={"generation", "preflight_seed", "sets"},
+            required={
+                "generation",
+                "preflight_seed",
+                "sets",
+                *(("failed_seed_replacement",) if is_v2 else ()),
+            },
             name="seeds",
         )
+        if is_v2 and seeds["failed_seed_replacement"] != "forbidden":
+            raise PilotContractError("V2 failed seeds cannot be replaced")
         generation = _mapping(seeds["generation"], "seeds.generation")
         _strict_keys(
             generation,
@@ -951,6 +1841,19 @@ class PilotContract:
             raise PilotContractError(
                 "calibration seeds must be distinct from preflight and main seeds"
             )
+        if is_v2:
+            if main_values != (
+                1099057501,
+                1421875452,
+                1769977770,
+                959809858,
+                617806385,
+            ):
+                raise PilotContractError("V2 main seed registry drifted")
+            if preflight_seed != 2010922376:
+                raise PilotContractError("V2 preflight seed drifted")
+            if calibration_values != (1942013315, 760687867):
+                raise PilotContractError("V2 calibration seed registry drifted")
 
         arms = _mapping(value["arms"], "arms")
         narratives = _mapping(value["narratives"], "narratives")
@@ -996,10 +1899,323 @@ class PilotContract:
                     f"shock key {shock_id!r} does not match shock_id"
                 )
         utility_profiles = _mapping(utility.get("profiles"), "utility.profiles")
+        if is_v2:
+            shock = _mapping(
+                shocks.get("registered-rate-shock"),
+                "shocks.registered-rate-shock",
+            )
+            expected_schedule = (
+                {
+                    "start": 0,
+                    "end": 4,
+                    "interest_rate": 0.03,
+                    "phase": "pre-shock",
+                },
+                {
+                    "start": 5,
+                    "end": 7,
+                    "interest_rate": 0.08,
+                    "phase": "shock",
+                },
+                {
+                    "start": 8,
+                    "end": 11,
+                    "interest_rate": 0.03,
+                    "phase": "recovery",
+                },
+            )
+            schedule = shock.get("schedule")
+            if (
+                isinstance(schedule, (str, bytes))
+                or not isinstance(schedule, Sequence)
+                or tuple(dict(_mapping(row, "shock schedule row")) for row in schedule)
+                != expected_schedule
+            ):
+                raise PilotContractError("V2 registered shock schedule drifted")
+            hook = _mapping(shock.get("hook_semantics"), "shock hook_semantics")
+            if dict(hook) != {
+                "prompt_effective_before_decision": True,
+                "environment_effective_before_step": True,
+                "write_independent_event_stream": True,
+                "future_values_hidden": True,
+            }:
+                raise PilotContractError("V2 shock hook semantics drifted")
+
+            expected_budget = {
+                "total_usd": 25.0,
+                "max_provider_completions": 7500,
+                "completion_scope": "hosted-api-only",
+                "max_storage_bytes": 5_000_000_000,
+                "automatic_reserve_usd": 1.0,
+            }
+            if any(budgets.get(key) != expected for key, expected in expected_budget.items()):
+                raise PilotContractError("V2 global budget limits drifted")
+            caps = _mapping(budgets.get("stage_usd_caps"), "budgets.stage_usd_caps")
+            if dict(caps) != {
+                "capability": 2.0,
+                "calibration": 3.0,
+                "core": 13.0,
+                "cross_model": 6.0,
+                "manual_reserve": 1.0,
+            }:
+                raise PilotContractError("V2 stage budget caps drifted")
+            projection = _mapping(
+                budgets.get("pre_dispatch_projection"),
+                "budgets.pre_dispatch_projection",
+            )
+            if dict(projection) != {
+                "required": True,
+                "basis": "model-by-call-role preflight p95",
+                "reserve_multiplier": 1.25,
+                "unknown_price_policy": "stop-before-dispatch",
+                "over_budget_policy": "no-go-no-matrix-shrink",
+            }:
+                raise PilotContractError("V2 budget projection policy drifted")
+
+            q_ref = _mapping(utility.get("q_ref_resolution"), "utility.q_ref_resolution")
+            if (
+                q_ref.get("seed") != 2010922376
+                or q_ref.get("num_agents") != 4
+                or q_ref.get("episode_length") != 12
+                or q_ref.get("aggregation") != "median"
+                or q_ref.get("gate") != "finite_and_strictly_positive"
+                or tuple(q_ref.get("work_fraction_cycle", ()))
+                != (0.25, 0.5, 0.75, 0.5)
+                or tuple(q_ref.get("consumption_fraction_cycle", ()))
+                != (0.3, 0.35, 0.3, 0.25)
+                or q_ref.get("expected_rows") != 48
+            ):
+                raise PilotContractError("V2 q_ref calibration contract drifted")
+            selection = _mapping(utility.get("selection_rule"), "utility.selection_rule")
+            if (
+                selection.get("method") != "guardrail-then-registered-tiebreak-v1"
+                or selection.get("outcome_blind") is not True
+                or tuple(selection.get("tiebreak_order", ()))
+                != (
+                    "maximize mean interior action coverage",
+                    "minimize component-balance log distance from one",
+                    "minimize normalized center distance",
+                    "declaration order only for an exact remaining tie",
+                )
+            ):
+                raise PilotContractError(
+                    "V2 utility selection must remain outcome-blind"
+                )
+            profile_fields = (
+                "rho",
+                "labor_weight",
+                "inverse_frisch",
+                "consumption_scale",
+                "consumption_scale_multiplier_of_q_ref",
+                "discount_factor",
+                "evidence_use",
+            )
+            expected_profile_signatures = {
+                "provider-preflight-default": (
+                    1.0,
+                    2.0,
+                    1.0,
+                    1.0,
+                    None,
+                    0.99,
+                    "capability-only",
+                ),
+                "center": (
+                    1.0,
+                    2.0,
+                    1.0,
+                    None,
+                    1.0,
+                    0.99,
+                    "stage0-candidate",
+                ),
+                "psi-1": (
+                    1.0,
+                    1.0,
+                    1.0,
+                    None,
+                    1.0,
+                    0.99,
+                    "stage0-candidate",
+                ),
+                "psi-4": (
+                    1.0,
+                    4.0,
+                    1.0,
+                    None,
+                    1.0,
+                    0.99,
+                    "stage0-candidate",
+                ),
+                "nu-0.5": (
+                    1.0,
+                    2.0,
+                    0.5,
+                    None,
+                    1.0,
+                    0.99,
+                    "stage0-candidate",
+                ),
+                "nu-2": (
+                    1.0,
+                    2.0,
+                    2.0,
+                    None,
+                    1.0,
+                    0.99,
+                    "stage0-candidate",
+                ),
+                "q0-0.5x": (
+                    1.0,
+                    2.0,
+                    1.0,
+                    None,
+                    0.5,
+                    0.99,
+                    "stage0-candidate",
+                ),
+                "q0-2x": (
+                    1.0,
+                    2.0,
+                    1.0,
+                    None,
+                    2.0,
+                    0.99,
+                    "stage0-candidate",
+                ),
+                "stage0-selected": (
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    "resolved-from-stage0-selection-artifact",
+                ),
+            }
+            profile_signatures = {
+                profile_id: tuple(
+                    _mapping(row, f"utility.profiles.{profile_id}").get(field)
+                    for field in profile_fields
+                )
+                for profile_id, row in utility_profiles.items()
+            }
+            if profile_signatures != expected_profile_signatures:
+                raise PilotContractError("V2 utility OFAT profile grid drifted")
+            calibration_gate = _mapping(
+                stop_go.get("calibration"), "stop_go.calibration"
+            )
+            expected_calibration = {
+                "max_abs_budget_residual": 1e-8,
+                "clipping_count": 0,
+                "ceiling_labor_rate_max": 0.5,
+                "zero_labor_rate_max": 0.25,
+                "interior_labor_rate_min": 0.5,
+                "interior_consumption_rate_min": 0.75,
+                "median_labor_disutility_to_consumption_utility": [0.5, 2.0],
+                "no_candidate_action": "stop",
+            }
+            if _json_copy(calibration_gate) != expected_calibration:
+                raise PilotContractError("V2 calibration stop/go contract drifted")
+            expected_capability = {
+                "required_task_families": [
+                    "action-generation",
+                    "m3-proposal",
+                    "evidence-citation",
+                    "context-scope",
+                    "strict-json",
+                    "long-memory-context",
+                ],
+                "interface_valid_required": True,
+                "strict_parse_required": True,
+                "semantic_candidate_acceptance_required": True,
+                "all_provider_and_parse_outcomes_in_denominator": True,
+                "recovery_is_report_only": True,
+                "truncation_is_failure": True,
+            }
+            if _json_copy(
+                _mapping(stop_go.get("capability"), "stop_go.capability")
+            ) != expected_capability:
+                raise PilotContractError("V2 capability gate contract drifted")
+            expected_preflight = {
+                "action_parse_success": "12/12",
+                "semantic_proposals_all_accounted": True,
+                "clipping_count": 0,
+                "provider_failure_count": 0,
+                "route_metadata_complete": True,
+                "usage_metadata_complete": True,
+                "cost_metadata_complete": True,
+                "served_model_exact": True,
+                "provider_pin_exact": True,
+                "fallback_observed": False,
+                "attempts_per_request": 1,
+            }
+            if _json_copy(
+                _mapping(
+                    stop_go.get("closed_loop_preflight"),
+                    "stop_go.closed_loop_preflight",
+                )
+            ) != expected_preflight:
+                raise PilotContractError("V2 closed-loop preflight gate drifted")
+            expected_a = {
+                "complete_pairs_min": 4,
+                "same_direction_min": 4,
+                "total_registered_pairs": 5,
+                "median_relative_effect_min": 0.05,
+                "route_manipulation_checks_required": True,
+            }
+            if _json_copy(
+                _mapping(stop_go.get("experiment_a"), "stop_go.experiment_a")
+            ) != expected_a:
+                raise PilotContractError("V2 Experiment A stop/go drifted")
+            if _json_copy(
+                _mapping(
+                    stop_go.get("core_completeness"),
+                    "stop_go.core_completeness",
+                )
+            ) != {
+                "complete_pairs_min": 4,
+                "total_registered_pairs": 5,
+                "failed_and_missing_runs_remain_in_itt_denominator": True,
+            }:
+                raise PilotContractError("V2 core completeness policy drifted")
+            if _json_copy(
+                _mapping(stop_go.get("cross_model"), "stop_go.cross_model")
+            ) != {
+                "reportable_complete_pairs_min": 2,
+                "total_registered_pairs": 3,
+                "direction_replication_complete_pairs": 3,
+                "direction_replication_requires_capability_pass": True,
+                "seed_unsupported_directional_replication_requires_registered_matched_a_a_null": True,
+                "missing_matched_a_a_null_action": (
+                    "uncalibrated-diagnostic-no-registered-matched-a-a-null"
+                ),
+            }:
+                raise PilotContractError("V2 cross-model stop/go drifted")
+            if _json_copy(
+                _mapping(stop_go.get("global"), "stop_go.global")
+            ) != {
+                "contract_hash_match": True,
+                "annotated_tag_peel_match": True,
+                "clean_worktree_required": True,
+                "all_registered_runs_have_terminal_ledger_rows": True,
+                "provider_and_parse_failures_remain_in_denominator": True,
+                "budget_or_storage_projection_failure": "stop-before-dispatch",
+            }:
+                raise PilotContractError("V2 global stop/go drifted")
 
         experiment_c = _mapping(
             stop_go.get("experiment_c"), "stop_go.experiment_c"
         )
+        if is_v2:
+            if tuple(experiment_c.get("required_directions", ())) != (
+                "verifier lowers false activation",
+                "verifier lowers harmful exposure",
+                "verifier lowers cumulative utility loss",
+            ) or experiment_c.get("failure_action") != (
+                "withdraw-or-narrow-rule-reliability-claim"
+            ):
+                raise PilotContractError("V2 Experiment C stop/go drifted")
         sensitivity = _mapping(
             experiment_c.get("zero_api_sensitivity"),
             "stop_go.experiment_c.zero_api_sensitivity",
@@ -1069,6 +2285,105 @@ class PilotContract:
         experiment_d = _mapping(
             stop_go.get("experiment_d"), "stop_go.experiment_d"
         )
+        if is_v2:
+            expected_d_scalars = {
+                "complete_pairs_min": 4,
+                "same_direction_min": 4,
+                "total_registered_pairs": 5,
+                "effect_exceeds_matched_a_b_max_null": True,
+                "effect_exceeds_one_action_bin": True,
+            }
+            if any(
+                experiment_d.get(key) != expected
+                for key, expected in expected_d_scalars.items()
+            ):
+                raise PilotContractError("V2 Experiment D stop/go drifted")
+            expected_memory_pulse = {
+                "schema_version": "finevo-pilot-d-memory-pulse-v1",
+                "treatment_arms": [
+                    "no-memory",
+                    "shuffled-episodic",
+                    "wrong-context",
+                ],
+                "focal_agent_id": 0,
+                "wrong_context_source_agent_id": 1,
+                "decision_t": 6,
+                "duration_decisions": 1,
+                "continuation_horizon_steps": 6,
+                "pulse_at_first_continuation_step": True,
+                "direct_treatment_only_at_pulse": True,
+                "claim_label": (
+                    "focal-agent decision-6 memory pulse with six-step "
+                    "downstream continuation"
+                ),
+            }
+            expected_shuffle = {
+                "algorithm": (
+                    "checkpoint-bound-sha256-rank-permutation-v1"
+                ),
+                "non_identity_required": True,
+                "fixed_reversal_prohibited_for_three_or_more_items": True,
+                "checkpoint_hash_bound": True,
+            }
+            expected_journal = {
+                "required": True,
+                "calls_per_branch": 24,
+                "completion_events_per_branch": 24,
+                "terminal_parse_dispositions_per_branch": 24,
+                "raw_output_storage": "sha256-and-byte-count-only",
+            }
+            expected_narrative_pulse = {
+                "schema_version": "finevo-pilot-d-narrative-pulse-v1",
+                "treatment_narratives": [
+                    "aligned",
+                    "paraphrase",
+                    "opposite",
+                ],
+                "focal_agent_id": 0,
+                "decision_t": 6,
+                "duration_decisions": 1,
+                "continuation_horizon_steps": 6,
+                "pulse_at_first_continuation_step": True,
+                "direct_treatment_only_at_pulse": True,
+            }
+            expected_narrative_gate = {
+                "primary_contrast": "aligned-minus-opposite",
+                "directional_action_metric": (
+                    "focal_first_consumption_rate"
+                ),
+                "expected_sign": "negative",
+                "same_direction_min": 4,
+                "must_exceed_matched_a_b_max_null": True,
+                "must_exceed_one_consumption_action_bin": True,
+                "labor_action_metric": "diagnostic-only",
+                "paraphrase_equivalence": (
+                    "aligned-within-one-labor-and-consumption-action-bin"
+                ),
+            }
+            expected_nested = {
+                "memory_pulse_contract": expected_memory_pulse,
+                "shuffle_policy": expected_shuffle,
+                "branch_provider_call_journal": expected_journal,
+                "narrative_pulse_contract": expected_narrative_pulse,
+                "narrative_semantic_gate": expected_narrative_gate,
+                "source_schema_versions": {
+                    "continuation": "finevo-pilot-continuation-v2",
+                    "narrative": "finevo-pilot-narrative-v2",
+                },
+            }
+            if any(
+                _json_copy(
+                    _mapping(
+                        experiment_d.get(key),
+                        f"stop_go.experiment_d.{key}",
+                    )
+                )
+                != expected
+                for key, expected in expected_nested.items()
+            ):
+                raise PilotContractError(
+                    "V2 Experiment D pulse/journal/narrative contract drifted"
+                )
         action_grid = _mapping(
             experiment_d.get("action_grid"),
             "stop_go.experiment_d.action_grid",
@@ -1095,6 +2410,114 @@ class PilotContract:
         stage_ids = tuple(stage.stage_id for stage in stages)
         if len(stage_ids) != len(set(stage_ids)):
             raise PilotContractError("stage IDs must be unique")
+        if is_v2:
+            expected_stage_order = (
+                "capability-gate",
+                "closed-loop-preflight",
+                "secondary-capability-gate",
+                "secondary-closed-loop-preflight",
+                "q-ref-resolution",
+                "stage0-calibration",
+                "experiment-a",
+                "experiment-c",
+                "experiment-d",
+                "experiment-b",
+                "controlled-second",
+                "cross-model-diagnostics",
+            )
+            if stage_ids != expected_stage_order:
+                raise PilotContractError(
+                    "V2 stages must keep capability/preflight split and A-C-D-B order"
+                )
+            stage_map = {stage.stage_id: stage for stage in stages}
+            models_by_stage = {
+                stage.stage_id: {
+                    model for cell in stage.cells for model in cell.models
+                }
+                for stage in stages
+            }
+            primary_gate_models = {"gpt52_main", "llama33_local_controlled"}
+            secondary_gate_models = {
+                "gpt56_diagnostic",
+                "gemini35_flash_diagnostic",
+                "llama4_maverick_diagnostic",
+            }
+            if (
+                models_by_stage["capability-gate"] != primary_gate_models
+                or models_by_stage["closed-loop-preflight"] != primary_gate_models
+                or models_by_stage["secondary-capability-gate"]
+                != secondary_gate_models
+                or models_by_stage["secondary-closed-loop-preflight"]
+                != secondary_gate_models
+            ):
+                raise PilotContractError(
+                    "V2 primary and secondary capability tiers drifted"
+                )
+            if (
+                stage_map["capability-gate"].budget_bucket != "capability"
+                or stage_map["closed-loop-preflight"].budget_bucket != "capability"
+                or stage_map["secondary-capability-gate"].budget_bucket
+                != "cross_model"
+                or stage_map["secondary-closed-loop-preflight"].budget_bucket
+                != "cross_model"
+            ):
+                raise PilotContractError(
+                    "V2 capability tiers must use their frozen budget buckets"
+                )
+            if stage_map["secondary-capability-gate"].prerequisites != (
+                "closed-loop-preflight",
+            ) or stage_map[
+                "secondary-closed-loop-preflight"
+            ].prerequisites != ("secondary-capability-gate",):
+                raise PilotContractError(
+                    "V2 secondary gates must follow primary closed-loop preflight"
+                )
+            if "secondary-closed-loop-preflight" not in stage_map[
+                "cross-model-diagnostics"
+            ].prerequisites:
+                raise PilotContractError(
+                    "cross-model diagnostics require secondary preflight"
+                )
+            if "experiment-b" in stage_map["experiment-c"].prerequisites:
+                raise PilotContractError("Experiment C cannot depend on Experiment B")
+            if stage_map["experiment-d"].prerequisites != (
+                "experiment-a",
+                "experiment-c",
+            ):
+                raise PilotContractError("Experiment D must depend on A and C only")
+            if "experiment-d" not in stage_map["experiment-b"].prerequisites:
+                raise PilotContractError("Experiment B must run after Experiment D")
+
+            expected_roles = {
+                "gpt52_main": "primary",
+                "llama33_local_controlled": "controlled_second",
+                "gpt56_diagnostic": "secondary_diagnostic",
+                "gemini35_flash_diagnostic": "secondary_diagnostic",
+                "llama4_maverick_diagnostic": "secondary_diagnostic",
+                "opus48_no_go": "capability_no_go",
+                "qref_scripted": "calibration_only",
+            }
+            if {
+                key: role.role for key, role in model_roles.items()
+            } != expected_roles:
+                raise PilotContractError("V2 model scientific roles drifted")
+            allowed_special_roles = {
+                "qref-scripted",
+                "offline-verifier",
+                "checkpoint-branch",
+            }
+            for role in model_roles.values():
+                if not set(role.allowed_stages) <= set(stage_ids):
+                    raise PilotContractError(
+                        f"model role {role.profile_id} references an unknown stage"
+                    )
+                if not set(role.allowed_call_roles) <= {
+                    *task_output_contracts,
+                    *allowed_special_roles,
+                }:
+                    raise PilotContractError(
+                        f"model role {role.profile_id} references an unknown call role"
+                    )
         for stage in stages:
             if stage.seed_set not in normalized_seed_sets:
                 raise PilotContractError(
@@ -1119,6 +2542,20 @@ class PilotContract:
                     raise PilotContractError(
                         f"stage {stage.stage_id} has unknown prerequisite"
                     )
+            if is_v2:
+                if not stage.call_roles:
+                    raise PilotContractError(
+                        f"V2 stage {stage.stage_id} must declare call_roles"
+                    )
+                if not set(stage.call_roles) <= {
+                    *task_output_contracts,
+                    "qref-scripted",
+                    "offline-verifier",
+                    "checkpoint-branch",
+                }:
+                    raise PilotContractError(
+                        f"stage {stage.stage_id} has an unknown V2 call role"
+                    )
             for cell in stage.cells:
                 if not set(cell.models) <= set(profiles):
                     raise PilotContractError(
@@ -1132,6 +2569,24 @@ class PilotContract:
                     raise PilotContractError(
                         f"stage {stage.stage_id} references unknown narrative"
                     )
+                if is_v2:
+                    for model_id in cell.models:
+                        role = model_roles[model_id]
+                        if not role.dispatch_eligible:
+                            raise PilotContractError(
+                                f"dispatch-ineligible profile {model_id} appears in "
+                                f"stage {stage.stage_id}"
+                            )
+                        if stage.stage_id not in role.allowed_stages:
+                            raise PilotContractError(
+                                f"profile {model_id} is not eligible for stage "
+                                f"{stage.stage_id}"
+                            )
+                        if not set(stage.call_roles) <= set(role.allowed_call_roles):
+                            raise PilotContractError(
+                                f"profile {model_id} is not eligible for all call "
+                                f"roles in stage {stage.stage_id}"
+                            )
 
         integrity = _mapping(value["integrity"], "integrity")
         _strict_keys(
@@ -1170,6 +2625,11 @@ class PilotContract:
             budgets=_freeze_json(budgets),
             stop_go=_freeze_json(stop_go),
             stages=stages,
+            parameter_dispatch_policy=parameter_dispatch_policy,
+            task_output_contracts=MappingProxyType(dict(task_output_contracts)),
+            model_roles=MappingProxyType(dict(model_roles)),
+            denominator_policy=denominator_policy,
+            release_requirements=release_requirements,
             non_claims=non_claims,
             canonicalization=integrity["canonicalization"],
             declared_sha256=declared,
@@ -1256,10 +2716,21 @@ class PilotContract:
                                             narrative_id=narrative_id,
                                             environment_seed=seed_value,
                                             decoding_seed=(
-                                                None
-                                                if profile.seed_capability
-                                                == "unsupported"
-                                                else seed_value
+                                                (
+                                                    seed_value
+                                                    if dict(
+                                                        profile.decoding_fields
+                                                    )["seed"].dispatch_mode
+                                                    == "explicit_supported"
+                                                    else None
+                                                )
+                                                if profile.decoding_fields
+                                                else (
+                                                    None
+                                                    if profile.seed_capability
+                                                    == "unsupported"
+                                                    else seed_value
+                                                )
                                             ),
                                             utility_profile_id=utility_id,
                                             shock_id=stage_spec.shock_id,
@@ -1307,7 +2778,7 @@ class PilotContract:
         }
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "schema_version": self.schema_version,
             "contract_id": self.contract_id,
             "status": self.status,
@@ -1330,6 +2801,30 @@ class PilotContract:
                 "declared_sha256": self.declared_sha256,
             },
         }
+        if self.schema_version == PILOT_CONTRACT_SCHEMA_VERSION_V2:
+            if (
+                self.parameter_dispatch_policy is None
+                or self.denominator_policy is None
+                or self.release_requirements is None
+            ):
+                raise PilotContractError("incomplete typed V2 contract")
+            result.update(
+                {
+                    "parameter_dispatch_policy": (
+                        self.parameter_dispatch_policy.to_dict()
+                    ),
+                    "task_output_contracts": {
+                        key: item.to_dict()
+                        for key, item in self.task_output_contracts.items()
+                    },
+                    "model_roles": {
+                        key: item.to_dict() for key, item in self.model_roles.items()
+                    },
+                    "denominator_policy": self.denominator_policy.to_dict(),
+                    "release_requirements": self.release_requirements.to_dict(),
+                }
+            )
+        return result
 
 
 def load_pilot_contract(path: str | Path) -> PilotContract:
@@ -1370,6 +2865,12 @@ def load_pilot_contract(path: str | Path) -> PilotContract:
 __all__ = [
     "PILOT_CONTRACT_CANONICALIZATION",
     "PILOT_CONTRACT_SCHEMA_VERSION",
+    "PILOT_CONTRACT_SCHEMA_VERSION_V1",
+    "PILOT_CONTRACT_SCHEMA_VERSION_V2",
+    "DecodingFieldDispatch",
+    "DenominatorPolicy",
+    "ModelRolePolicy",
+    "ParameterDispatchPolicy",
     "PilotContract",
     "PilotContractError",
     "PilotRunSpec",
@@ -1378,6 +2879,8 @@ __all__ = [
     "PriceSnapshot",
     "ProviderRequestProfile",
     "ReasoningProfile",
+    "ReleaseRequirements",
+    "TaskOutputContract",
     "canonical_contract_sha256",
     "canonical_sha256",
     "load_pilot_contract",

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
+import hashlib
 import json
 import math
 import os
@@ -17,6 +18,7 @@ from typing import Any, Mapping, Sequence
 
 
 PILOT_BUDGET_SCHEMA_VERSION = "finevo-pilot-budget-ledger-v1"
+PILOT_BUDGET_SCHEMA_VERSION_V2 = "finevo-pilot-budget-ledger-v2"
 DEFAULT_STAGE_USD_CAPS = {
     "capability_preflight": 2.0,
     "calibration": 3.0,
@@ -35,6 +37,17 @@ class PilotBudgetError(RuntimeError):
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _canonical_sha256(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
 
 
 def _finite_nonnegative(value: Any, name: str) -> float:
@@ -159,6 +172,7 @@ class PilotBudgetLedger:
         *,
         contract_hash: str,
         caps: PilotBudgetCaps | None = None,
+        tamper_evident: bool = False,
     ) -> None:
         self.path = Path(path)
         if not isinstance(contract_hash, str) or len(contract_hash) != 64:
@@ -169,24 +183,41 @@ class PilotBudgetLedger:
             raise ValueError("contract_hash must be hexadecimal") from exc
         self.contract_hash = contract_hash
         self.caps = caps or PilotBudgetCaps()
+        if not isinstance(tamper_evident, bool):
+            raise TypeError("tamper_evident must be boolean")
+        self.tamper_evident = tamper_evident
+        self.schema_version = (
+            PILOT_BUDGET_SCHEMA_VERSION_V2
+            if tamper_evident
+            else PILOT_BUDGET_SCHEMA_VERSION
+        )
         if self.path.exists():
             self._state = self._load()
         else:
             self._state = {
-                "schema_version": PILOT_BUDGET_SCHEMA_VERSION,
+                "schema_version": self.schema_version,
                 "contract_hash": contract_hash,
                 "created_at": _utc_now(),
                 "updated_at": _utc_now(),
                 "caps": self.caps.to_dict(),
                 "runs": {},
             }
+            if self.tamper_evident:
+                self._state["events"] = []
+                self._append_event(
+                    "genesis",
+                    {
+                        "contract_hash": contract_hash,
+                        "caps_sha256": _canonical_sha256(self.caps.to_dict()),
+                    },
+                )
             self._write()
 
     def _load(self) -> dict[str, Any]:
         value = json.loads(self.path.read_text(encoding="utf-8"))
         if not isinstance(value, dict):
             raise PilotBudgetError("budget ledger root must be an object")
-        if value.get("schema_version") != PILOT_BUDGET_SCHEMA_VERSION:
+        if value.get("schema_version") != self.schema_version:
             raise PilotBudgetError("unsupported pilot budget ledger schema")
         if value.get("contract_hash") != self.contract_hash:
             raise PilotBudgetError("budget ledger contract hash mismatch")
@@ -194,11 +225,60 @@ class PilotBudgetLedger:
             raise PilotBudgetError("budget ledger caps differ from frozen caps")
         if not isinstance(value.get("runs"), dict):
             raise PilotBudgetError("budget ledger runs must be an object")
+        if self.tamper_evident:
+            self._verify_event_chain(value)
+            expected = value.get("ledger_sha256")
+            unsigned = dict(value)
+            unsigned.pop("ledger_sha256", None)
+            if expected != _canonical_sha256(unsigned):
+                raise PilotBudgetError("budget ledger self-hash mismatch")
         return value
+
+    def _append_event(self, event_type: str, payload: Mapping[str, Any]) -> None:
+        if not self.tamper_evident:
+            return
+        events = self._state.setdefault("events", [])
+        if not isinstance(events, list):
+            raise PilotBudgetError("budget ledger events must be an array")
+        previous = events[-1]["event_sha256"] if events else "0" * 64
+        event = {
+            "event_index": len(events),
+            "event_type": str(event_type),
+            "created_at": _utc_now(),
+            "previous_event_sha256": previous,
+            "payload": json.loads(
+                json.dumps(payload, sort_keys=True, allow_nan=False)
+            ),
+        }
+        event["event_sha256"] = _canonical_sha256(event)
+        events.append(event)
+
+    @staticmethod
+    def _verify_event_chain(value: Mapping[str, Any]) -> None:
+        events = value.get("events")
+        if not isinstance(events, list) or not events:
+            raise PilotBudgetError("budget ledger v2 requires a non-empty event chain")
+        previous = "0" * 64
+        for index, row in enumerate(events):
+            if not isinstance(row, Mapping):
+                raise PilotBudgetError("budget ledger event must be an object")
+            unsigned = dict(row)
+            digest = unsigned.pop("event_sha256", None)
+            if (
+                row.get("event_index") != index
+                or row.get("previous_event_sha256") != previous
+                or digest != _canonical_sha256(unsigned)
+            ):
+                raise PilotBudgetError("budget ledger event chain mismatch")
+            previous = str(digest)
 
     def _write(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._state["updated_at"] = _utc_now()
+        if self.tamper_evident:
+            unsigned = dict(self._state)
+            unsigned.pop("ledger_sha256", None)
+            self._state["ledger_sha256"] = _canonical_sha256(unsigned)
         temporary = self.path.with_suffix(self.path.suffix + ".tmp")
         temporary.write_text(
             json.dumps(self._state, indent=2, sort_keys=True, allow_nan=False) + "\n",
@@ -279,6 +359,13 @@ class PilotBudgetLedger:
             "reserved_at": _utc_now(),
             "finalized_at": None,
         }
+        self._append_event(
+            "run_reserved",
+            {
+                "run_id": projection.run_id,
+                "projection_sha256": _canonical_sha256(projection.to_dict()),
+            },
+        )
         self._write()
 
     def finalize(
@@ -331,11 +418,22 @@ class PilotBudgetLedger:
         row["status"] = status
         row["failure"] = dict(failure) if failure else None
         row["finalized_at"] = _utc_now()
+        self._append_event(
+            "run_finalized",
+            {
+                "run_id": run_id,
+                "status": status,
+                "actual_sha256": _canonical_sha256(actual),
+                "failure_sha256": (
+                    None if failure is None else _canonical_sha256(dict(failure))
+                ),
+            },
+        )
         self._write()
 
     def snapshot(self) -> dict[str, Any]:
-        return {
-            "schema_version": PILOT_BUDGET_SCHEMA_VERSION,
+        result = {
+            "schema_version": self.schema_version,
             "contract_hash": self.contract_hash,
             "caps": self.caps.to_dict(),
             "committed": self._totals(include_reservations=False),
@@ -344,6 +442,15 @@ class PilotBudgetLedger:
                 json.dumps(self._state["runs"], sort_keys=True, allow_nan=False)
             ),
         }
+        if self.tamper_evident:
+            result["events"] = json.loads(
+                json.dumps(self._state["events"], sort_keys=True, allow_nan=False)
+            )
+            result["event_chain_head"] = self._state["events"][-1][
+                "event_sha256"
+            ]
+            result["ledger_sha256"] = self._state["ledger_sha256"]
+        return result
 
 
 def _conservative_observed_p95(values: Sequence[float]) -> float:

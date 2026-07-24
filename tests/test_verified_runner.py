@@ -1,9 +1,17 @@
+from dataclasses import replace
+import hashlib
+import json
 from pathlib import Path
 
 import pytest
 
 from llm_providers import MultiModelLLM, StructuredCompletion
-from verified_memory.budget import BudgetLimits, RunBudget
+from verified_memory.budget import (
+    BudgetExceeded,
+    BudgetLimits,
+    RunBudget,
+    UsageRecord,
+)
 from verified_memory.foundation_adapter import locate_component
 from verified_memory.runner import (
     ERROR_RULE_INJECTION_SCHEMA_VERSION,
@@ -13,6 +21,7 @@ from verified_memory.runner import (
     VerifiedRunError,
     build_sealed_run_config,
     run_verified_experiment,
+    verify_provider_call_journal,
 )
 from verified_memory.runner_artifacts import (
     load_verified_run_artifacts,
@@ -61,6 +70,197 @@ class PrefixedSemanticProvider(ScriptedDiagnosticProvider):
     def _proposal(prompt: str) -> str:
         payload = ScriptedDiagnosticProvider._proposal(prompt)
         return f"Candidate follows: {payload}"
+
+
+class PositiveCostProvider(ScriptedDiagnosticProvider):
+    def __init__(self, *, semantic_only: bool = False) -> None:
+        self.semantic_only = semantic_only
+
+    def get_structured_completion(self, messages, **kwargs):
+        result = super().get_structured_completion(messages, **kwargs)
+        semantic = "Propose one semantic decision rule" in self._prompt(messages)
+        cost = 0.0001 if semantic or not self.semantic_only else 0.0
+        return replace(
+            result,
+            usage=UsageRecord(
+                prompt_tokens=result.usage.prompt_tokens,
+                completion_tokens=result.usage.completion_tokens,
+                cost_usd=cost,
+            ),
+        )
+
+
+def _canonical_sha256(value) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode()
+    ).hexdigest()
+
+
+def test_provider_call_journal_pairs_every_completion_and_detects_chain_tamper(
+    tmp_path: Path,
+) -> None:
+    journal = tmp_path / "provider_call_journal.json"
+    result = run_verified_experiment(
+        VerifiedRunConfig(
+            run_id="journal-record-and-skip",
+            seed=17,
+            num_agents=2,
+            episode_length=4,
+            semantic_parse_failure_policy="record-and-skip",
+        ),
+        llm=MultiModelLLM(MalformedSemanticProvider(), num_workers=2),
+        budget=RunBudget(BudgetLimits(max_calls=10, max_cost_usd=0.01)),
+        env_config_source=ROOT / "config.yaml",
+        call_journal_path=journal,
+    )
+    assert result.summary["result_complete"] is True
+
+    value = verify_provider_call_journal(
+        journal,
+        expected_run_id="journal-record-and-skip",
+        expected_contract_hash=None,
+        require_terminal_dispositions=True,
+    )
+    completion_count = sum(
+        event["event_type"] == "completion_received"
+        for event in value["events"]
+    )
+    disposition_count = sum(
+        event["event_type"] == "parse_disposition"
+        for event in value["events"]
+    )
+    assert completion_count == disposition_count == 10
+    assert any(
+        event["payload"].get("call_kind") == "semantic"
+        and event["payload"].get("parse_mode") == "parse_failure"
+        and event["payload"].get("accepted") is False
+        for event in value["events"]
+        if event["event_type"] == "parse_disposition"
+    )
+    assert "malformed semantic candidate" not in journal.read_text(
+        encoding="utf-8"
+    )
+
+    tampered = json.loads(journal.read_text(encoding="utf-8"))
+    tampered["events"][0]["payload"]["attempts"] = 99
+    unsigned_event = dict(tampered["events"][0])
+    unsigned_event.pop("event_sha256")
+    tampered["events"][0]["event_sha256"] = _canonical_sha256(unsigned_event)
+    unsigned_journal = dict(tampered)
+    unsigned_journal.pop("journal_sha256")
+    tampered["journal_sha256"] = _canonical_sha256(unsigned_journal)
+    with pytest.raises(VerifiedRunError, match="event chain mismatch"):
+        verify_provider_call_journal(
+            tampered,
+            require_terminal_dispositions=True,
+        )
+
+
+def test_provider_call_journal_closes_unprocessed_batch_after_provider_failure(
+    tmp_path: Path,
+) -> None:
+    journal = tmp_path / "failed_provider_call_journal.json"
+    with pytest.raises(VerifiedRunError, match="provider semantic failure"):
+        run_verified_experiment(
+            VerifiedRunConfig(
+                run_id="journal-provider-failure",
+                seed=23,
+                num_agents=2,
+                episode_length=4,
+            ),
+            llm=MultiModelLLM(FailingSemanticProvider(), num_workers=2),
+            budget=RunBudget(
+                BudgetLimits(max_calls=10, max_cost_usd=0.01)
+            ),
+            env_config_source=ROOT / "config.yaml",
+            call_journal_path=journal,
+        )
+    value = verify_provider_call_journal(
+        journal,
+        expected_run_id="journal-provider-failure",
+        expected_contract_hash=None,
+        require_terminal_dispositions=True,
+    )
+    semantic_dispositions = [
+        event["payload"]
+        for event in value["events"]
+        if event["event_type"] == "parse_disposition"
+        and event["payload"].get("call_kind") == "semantic"
+    ]
+    assert [row["parse_status"] for row in semantic_dispositions] == [
+        "unavailable",
+        "not_evaluated",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("provider", "episode_length", "expected_call_kind", "expected_completions"),
+    [
+        (PositiveCostProvider(), 1, "action", 2),
+        (
+            PositiveCostProvider(semantic_only=True),
+            3,
+            "semantic",
+            8,
+        ),
+    ],
+)
+def test_budget_overage_terminalizes_every_dispatched_runner_completion(
+    tmp_path: Path,
+    provider: PositiveCostProvider,
+    episode_length: int,
+    expected_call_kind: str,
+    expected_completions: int,
+) -> None:
+    journal = tmp_path / f"{expected_call_kind}-budget-overage.json"
+    with pytest.raises(BudgetExceeded) as caught:
+        run_verified_experiment(
+            VerifiedRunConfig(
+                run_id=f"runner-{expected_call_kind}-budget-overage",
+                seed=29,
+                num_agents=2,
+                episode_length=episode_length,
+            ),
+            llm=MultiModelLLM(provider, num_workers=2),
+            budget=RunBudget(
+                BudgetLimits(max_calls=10, max_cost_usd=0.00015)
+            ),
+            env_config_source=ROOT / "config.yaml",
+            call_journal_path=journal,
+        )
+
+    assert len(caught.value.structured_completions) == 2
+    value = verify_provider_call_journal(
+        journal,
+        expected_run_id=f"runner-{expected_call_kind}-budget-overage",
+        expected_contract_hash=None,
+        require_terminal_dispositions=True,
+    )
+    completion_events = [
+        event
+        for event in value["events"]
+        if event["event_type"] == "completion_received"
+    ]
+    assert len(completion_events) == expected_completions
+    budget_dispositions = [
+        event["payload"]
+        for event in value["events"]
+        if event["event_type"] == "parse_disposition"
+        and event["payload"].get("parse_mode") == "budget_failure"
+    ]
+    assert len(budget_dispositions) == 2
+    assert all(
+        row["call_kind"] == expected_call_kind
+        and row["parse_status"] == "not_evaluated"
+        and row["accepted"] is False
+        and row["rejection"] == "run_budget_exceeded"
+        for row in budget_dispositions
+    )
 
 
 @pytest.mark.parametrize("consumption_step", [0.02, 0.05])

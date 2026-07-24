@@ -2,6 +2,11 @@ import hashlib
 
 import pytest
 
+from verified_memory.pilot_continuation import (
+    MEMORY_PULSE_CONTRACT,
+    MEMORY_PULSE_TREATMENTS,
+    NARRATIVE_PULSE_CONTRACT,
+)
 from verified_memory.pilot_orchestrator import (
     PilotOrchestrationError,
     _d_continuation_causal_bindings,
@@ -26,7 +31,14 @@ def _rng_binding() -> dict:
 
 def _branch(treatment: str = "matched-a") -> dict:
     hashes = [_digest(f"rng:{offset}") for offset in range(6)]
-    intervention = {"kind": treatment}
+    pulse_only = treatment in MEMORY_PULSE_TREATMENTS
+    intervention = {
+        "kind": treatment,
+        "pulse_only": pulse_only,
+        "memory_pulse_binding": (
+            {"kind": treatment} if pulse_only else None
+        ),
+    }
     if treatment.startswith("erroneous-"):
         intervention["forced_active_start_hash"] = _digest("common-start")
     return {
@@ -34,6 +46,10 @@ def _branch(treatment: str = "matched-a") -> dict:
         "shock_schedule_hash": _digest("shock"),
         "rng_pre_step_hashes": hashes,
         "api_usage": [{} for _ in range(24)],
+        "provider_call_journal": {
+            "enabled": True,
+            "journal_sha256": _digest(f"journal:{treatment}"),
+        },
         "proposal_counters_before": {
             "0": 2,
             "1": 2,
@@ -51,6 +67,7 @@ def _branch(treatment: str = "matched-a") -> dict:
         "narrative": {
             "narrative_id": "aligned",
             "text_hash": _digest("aligned text"),
+            "pulse_only": True,
         },
     }
 
@@ -66,6 +83,7 @@ def _continuation() -> dict:
         "matched_replay_equal": True,
         "focal_agent_id": 0,
         "wrong_context_source_agent_id": 1,
+        "memory_pulse_contract": dict(MEMORY_PULSE_CONTRACT),
         "action_grid": {
             "labor_step_hours": 8.0,
             "consumption_step": 0.02,
@@ -90,6 +108,10 @@ def test_continuation_binding_carries_exact_shared_and_branch_receipts() -> None
         "rng_pre_step_hashes"
     ]
     assert causal["branch_action_completions"] == 24
+    assert causal["branch_provider_call_journal"] == branch[
+        "provider_call_journal"
+    ]
+    assert causal["memory_pulse_contract"] == MEMORY_PULSE_CONTRACT
     assert causal["proposals_frozen"] is True
     assert causal["proposal_counters_before"] == causal[
         "proposal_counters_after"
@@ -107,6 +129,8 @@ def test_non_error_continuation_has_no_forced_start_hash() -> None:
     )
     assert causal["branch_forced_active_start_hash"] is None
     assert causal["wrong_context_source_agent_id"] == 1
+    assert causal["branch_intervention_pulse_only"] is True
+    assert causal["branch_memory_pulse_binding"] == {"kind": "wrong-context"}
 
 
 def test_narrative_binding_carries_fixture_text_and_rng_receipts() -> None:
@@ -114,11 +138,13 @@ def test_narrative_binding_carries_fixture_text_and_rng_receipts() -> None:
     narratives = {
         "checkpoint_hash": _digest("checkpoint"),
         "prefix_hash": _digest("prefix"),
+        "shock_schedule_hash": _digest("shock"),
         "pre_generated_rng_hashes": branch["rng_pre_step_hashes"],
         "rng_schedule_binding": _rng_binding(),
         "result_hash": _digest("narratives"),
         "fixture_hash": _digest("fixtures"),
         "focal_agent_id": 0,
+        "narrative_pulse_contract": dict(NARRATIVE_PULSE_CONTRACT),
         "action_grid": {
             "labor_step_hours": 8.0,
             "consumption_step": 0.02,
@@ -132,6 +158,12 @@ def test_narrative_binding_carries_fixture_text_and_rng_receipts() -> None:
     assert causal["branch_narrative_id"] == "aligned"
     assert causal["branch_text_hash"] == _digest("aligned text")
     assert causal["branch_action_completions"] == 24
+    assert causal["shock_schedule_hash"] == narratives["shock_schedule_hash"]
+    assert causal["branch_provider_call_journal"] == branch[
+        "provider_call_journal"
+    ]
+    assert causal["narrative_pulse_contract"] == NARRATIVE_PULSE_CONTRACT
+    assert causal["branch_narrative_pulse_only"] is True
     assert causal["pre_generated_rng_hashes"] == causal[
         "branch_rng_pre_step_hashes"
     ]

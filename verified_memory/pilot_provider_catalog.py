@@ -50,8 +50,8 @@ def _finite_price(value: Any, name: str) -> float:
         result = float(value)
     except (TypeError, ValueError) as exc:
         raise ProviderCatalogError(f"{name} is not numeric") from exc
-    if not math.isfinite(result) or result < 0:
-        raise ProviderCatalogError(f"{name} is not finite and nonnegative")
+    if not math.isfinite(result) or result <= 0:
+        raise ProviderCatalogError(f"{name} is not finite and positive")
     return result
 
 
@@ -74,6 +74,66 @@ def _prices_match(profile: ProviderRequestProfile, endpoint: Mapping[str, Any]) 
         rel_tol=0.0,
         abs_tol=1e-12,
     )
+
+
+def _decoding_catalog_policy(
+    profile: ProviderRequestProfile,
+    supported_parameters: Sequence[Any] | None = None,
+) -> dict[str, Any]:
+    """Resolve the frozen per-field wire policy against catalog evidence.
+
+    V1 profiles predate the explicit field policy and retain their historical
+    required-parameter behavior.  V2 profiles distinguish parameters that must
+    be sent from documented unsupported parameters that must be absent from the
+    wire.  When a V2 field requires catalog evidence, an OpenRouter endpoint
+    declaration must agree in both directions; unknown support therefore fails
+    before a completion can be dispatched.
+    """
+
+    if not profile.decoding_fields:
+        required = {"max_tokens", "temperature", "top_p", "response_format"}
+        if profile.seed_capability != "unsupported":
+            required.add("seed")
+        if profile.reasoning.mode == "fixed":
+            required.add("reasoning")
+        return {
+            "required_parameters": sorted(required),
+            "omitted_unsupported_parameters": [],
+            "catalog_evidence_parameters": sorted(required),
+        }
+
+    explicit: set[str] = set()
+    omitted: set[str] = set()
+    evidence: set[str] = set()
+    for field, disposition in profile.decoding_fields:
+        if disposition.dispatch_mode == "explicit_supported":
+            explicit.add(field)
+        else:
+            omitted.add(field)
+        if disposition.catalog_evidence_required:
+            evidence.add(field)
+
+    required = {"max_tokens", *explicit}
+    if supported_parameters is not None:
+        supported = {str(item) for item in supported_parameters}
+        missing = sorted((explicit & evidence) - supported)
+        contradicted = sorted((omitted & evidence) & supported)
+        if missing:
+            raise ProviderCatalogError(
+                f"{profile.profile_id} endpoint lacks explicit-supported "
+                f"parameters: {missing}"
+            )
+        if contradicted:
+            raise ProviderCatalogError(
+                f"{profile.profile_id} endpoint catalog contradicts frozen "
+                f"unsupported omissions: {contradicted}"
+            )
+
+    return {
+        "required_parameters": sorted(required),
+        "omitted_unsupported_parameters": sorted(omitted),
+        "catalog_evidence_parameters": sorted(evidence),
+    }
 
 
 def _openrouter_row(
@@ -132,11 +192,8 @@ def _openrouter_row(
         raise ProviderCatalogError(
             f"{profile.profile_id} has no supported-parameter declaration"
         )
-    required = {"max_tokens", "temperature", "top_p", "response_format"}
-    if profile.seed_capability != "unsupported":
-        required.add("seed")
-    if profile.reasoning.mode == "fixed":
-        required.add("reasoning")
+    dispatch_policy = _decoding_catalog_policy(profile, supported)
+    required = set(dispatch_policy["required_parameters"])
     missing = sorted(required - {str(item) for item in supported})
     if missing:
         raise ProviderCatalogError(
@@ -168,7 +225,7 @@ def _openrouter_row(
         "live_output_per_million_usd": (
             _finite_price(pricing["completion"], "live completion price") * 1_000_000
         ),
-        "required_parameters": sorted(required),
+        **dispatch_policy,
     }
 
 
@@ -220,6 +277,7 @@ def _openai_row(
             profile.price_snapshot.dispatch_output
         ),
         "document_checks": checks,
+        "parameter_dispatch_policy": _decoding_catalog_policy(profile),
     }
 
 
@@ -237,6 +295,7 @@ def _ollama_row(
     profile: ProviderRequestProfile,
     *,
     model_root: Path,
+    runtime_fetch_bytes: Callable[[str], bytes] | None = None,
 ) -> dict[str, Any]:
     identity = dict(profile.artifact_identity)
     manifest_path = _ollama_manifest_path(profile, model_root)
@@ -273,6 +332,33 @@ def _ollama_row(
     blob = model_root / "blobs" / f"sha256-{digest.split(':', 1)[1]}"
     if not blob.is_file() or blob.stat().st_size != int(layer.get("size", -1)):
         raise ProviderCatalogError("local model-layer blob is absent or truncated")
+    frozen_size = identity.get("model_layer_size_bytes")
+    if frozen_size is not None and blob.stat().st_size != int(frozen_size):
+        raise ProviderCatalogError("local model-layer size differs from the contract")
+    runtime_version = None
+    if runtime_fetch_bytes is not None:
+        base_url = identity.get("base_url")
+        expected_version = identity.get("ollama_version")
+        if not base_url or not expected_version:
+            raise ProviderCatalogError(
+                "local runtime check requires frozen base_url and Ollama version"
+            )
+        version_url = f"{base_url.rstrip('/')}/api/version"
+        try:
+            version_payload = json.loads(runtime_fetch_bytes(version_url))
+        except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ProviderCatalogError(
+                "local Ollama runtime version endpoint is unavailable"
+            ) from exc
+        if not isinstance(version_payload, Mapping):
+            raise ProviderCatalogError(
+                "local Ollama runtime version payload is invalid"
+            )
+        runtime_version = str(version_payload.get("version") or "")
+        if runtime_version != expected_version:
+            raise ProviderCatalogError(
+                "local Ollama runtime version differs from the contract"
+            )
     return {
         "profile_id": profile.profile_id,
         "transport": profile.transport,
@@ -282,6 +368,11 @@ def _ollama_row(
         "model_layer_digest": digest,
         "model_layer_size": blob.stat().st_size,
         "served_snapshot": profile.served_model,
+        "ollama_version": identity.get("ollama_version"),
+        "runtime_ollama_version": runtime_version,
+        "adapter": identity.get("adapter"),
+        "base_url": identity.get("base_url"),
+        "parameter_dispatch_policy": _decoding_catalog_policy(profile),
     }
 
 
@@ -321,7 +412,11 @@ def validate_live_provider_catalog(
         elif profile.transport == "openai":
             row = _openai_row(profile, fetch_bytes=fetch_bytes)
         elif profile.transport == "ollama":
-            row = _ollama_row(profile, model_root=root)
+            row = _ollama_row(
+                profile,
+                model_root=root,
+                runtime_fetch_bytes=fetch_bytes,
+            )
         else:  # pragma: no cover - contract validation owns the transport enum
             raise ProviderCatalogError(
                 f"unsupported live catalog transport {profile.transport!r}"
@@ -346,10 +441,56 @@ def validate_live_provider_catalog(
     return receipt
 
 
+def verify_provider_catalog_receipt(
+    value: Mapping[str, Any],
+    *,
+    contract_hash: str | None = None,
+    require_pass: bool = True,
+) -> dict[str, Any]:
+    """Verify a persisted zero-completion catalog receipt without refetching.
+
+    Catalog receipts are launch controls, not mutable caches.  A resumed stage
+    may reuse the exact bytes only after this self-hash and contract binding
+    pass; it must never silently overwrite a prior observation.
+    """
+
+    if not isinstance(value, Mapping):
+        raise ProviderCatalogError("provider catalog receipt must be an object")
+    payload = dict(value)
+    expected = payload.pop("receipt_sha256", None)
+    if expected != _sha256_bytes(
+        json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    ):
+        raise ProviderCatalogError("provider catalog receipt hash mismatch")
+    if value.get("schema_version") != PROVIDER_CATALOG_RECEIPT_SCHEMA_VERSION:
+        raise ProviderCatalogError("unsupported provider catalog receipt schema")
+    if contract_hash is not None and value.get("contract_sha256") != contract_hash:
+        raise ProviderCatalogError("provider catalog receipt contract mismatch")
+    if value.get("paid_completions") != 0:
+        raise ProviderCatalogError(
+            "provider catalog receipt must have zero paid completions"
+        )
+    if require_pass and value.get("status") != "pass":
+        raise ProviderCatalogError("provider catalog receipt is not passing")
+    rows = value.get("rows")
+    if not isinstance(rows, list):
+        raise ProviderCatalogError("provider catalog receipt rows must be an array")
+    result = json.loads(
+        json.dumps(value, sort_keys=True, allow_nan=False)
+    )
+    return result
+
+
 def validate_local_ollama_profile(
     profile: ProviderRequestProfile,
     *,
     model_root: str | Path,
+    fetch_bytes: Callable[[str], bytes] | None = None,
 ) -> dict[str, Any]:
     """Validate one local profile without constructing a full pilot contract."""
 
@@ -357,7 +498,11 @@ def validate_local_ollama_profile(
         raise TypeError("profile must be a ProviderRequestProfile")
     if profile.transport != "ollama":
         raise ProviderCatalogError("profile is not an Ollama profile")
-    return _ollama_row(profile, model_root=Path(model_root))
+    return _ollama_row(
+        profile,
+        model_root=Path(model_root),
+        runtime_fetch_bytes=fetch_bytes,
+    )
 
 
 __all__ = [
@@ -365,4 +510,5 @@ __all__ = [
     "ProviderCatalogError",
     "validate_local_ollama_profile",
     "validate_live_provider_catalog",
+    "verify_provider_catalog_receipt",
 ]

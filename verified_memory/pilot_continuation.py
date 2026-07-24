@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+from pathlib import Path
 import random
 from statistics import mean
 from typing import Any, Mapping, Sequence
@@ -19,8 +20,8 @@ import numpy as np
 
 from llm_providers import MultiModelLLM
 
-from .actions import ActionDecision, parse_direct_action
-from .budget import RunBudget
+from .actions import ActionDecision, ActionParseError, parse_direct_action
+from .budget import BudgetExceeded, RunBudget
 from .foundation_adapter import (
     build_foundation_actions,
     capture_foundation_snapshots,
@@ -52,18 +53,53 @@ from .prompts import build_base_decision_prompt, compose_decision_prompt
 from .runner import (
     FIXED_ERRONEOUS_RULE,
     RUNNER_SCHEMA_VERSION,
+    _action_parse_mode,
+    _append_provider_call_journal,
     _context_observation,
     _m2_state,
     _monthly_inflation,
+    _provider_row,
     _prompt_state,
     preflight_p95_reservation_for_call,
     validate_preflight_p95_reservations,
+    verify_provider_call_journal,
 )
 
 
-PILOT_CONTINUATION_SCHEMA_VERSION = "finevo-pilot-continuation-v1"
-PILOT_NARRATIVE_SCHEMA_VERSION = "finevo-pilot-narrative-v1"
+PILOT_CONTINUATION_SCHEMA_VERSION = "finevo-pilot-continuation-v2"
+PILOT_NARRATIVE_SCHEMA_VERSION = "finevo-pilot-narrative-v2"
 DEFAULT_CONTINUATION_HORIZON = 6
+MEMORY_PULSE_TREATMENTS = (
+    "no-memory",
+    "shuffled-episodic",
+    "wrong-context",
+)
+MEMORY_PULSE_CONTRACT = {
+    "schema_version": "finevo-pilot-d-memory-pulse-v1",
+    "treatment_arms": list(MEMORY_PULSE_TREATMENTS),
+    "focal_agent_id": 0,
+    "wrong_context_source_agent_id": 1,
+    "decision_t": 6,
+    "duration_decisions": 1,
+    "continuation_horizon_steps": DEFAULT_CONTINUATION_HORIZON,
+    "pulse_at_first_continuation_step": True,
+    "direct_treatment_only_at_pulse": True,
+    "claim_label": (
+        "focal-agent decision-6 memory pulse with six-step downstream "
+        "continuation"
+    ),
+}
+NARRATIVE_PULSE_CONTRACT = {
+    "schema_version": "finevo-pilot-d-narrative-pulse-v1",
+    "treatment_narratives": ["aligned", "paraphrase", "opposite"],
+    "focal_agent_id": 0,
+    "decision_t": 6,
+    "duration_decisions": 1,
+    "continuation_horizon_steps": DEFAULT_CONTINUATION_HORIZON,
+    "pulse_at_first_continuation_step": True,
+    "direct_treatment_only_at_pulse": True,
+}
+SHUFFLE_ALGORITHM = "checkpoint-bound-sha256-rank-permutation-v1"
 DEFAULT_TREATMENTS = (
     "matched-a",
     "matched-b",
@@ -193,46 +229,169 @@ def _apply_semantic_treatment(
     }
 
 
-def _shuffled_memory_text(bundle: Any) -> str:
+def _checkpoint_bound_shuffle(
+    bundle: Any,
+    *,
+    checkpoint_hash: str,
+    focal_agent_id: int,
+    decision_t: int,
+) -> tuple[list[Any], dict[str, Any]]:
+    """Return a non-trivial, checkpoint-bound permutation and its receipt."""
+
+    hits = list(bundle.episodic_hits)
+    if len(hits) < 2:
+        raise PilotContinuationError(
+            "shuffled-episodic pulse requires at least two retrieved episodes"
+        )
+    original_ids = [str(hit.episode.episode_id) for hit in hits]
+    ranked = sorted(
+        range(len(hits)),
+        key=lambda index: (
+            hashlib.sha256(
+                json.dumps(
+                    {
+                        "domain": SHUFFLE_ALGORITHM,
+                        "checkpoint_hash": checkpoint_hash,
+                        "decision_t": int(decision_t),
+                        "focal_agent_id": int(focal_agent_id),
+                        "episode_id": original_ids[index],
+                        "original_index": index,
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            index,
+        ),
+    )
+    identity = list(range(len(hits)))
+    reversed_identity = list(reversed(identity))
+    adjustment = "none"
+    if ranked == identity:
+        ranked = ranked[1:] + ranked[:1]
+        adjustment = "rotate-left-to-avoid-identity"
+    if len(ranked) > 2 and ranked == reversed_identity:
+        ranked = ranked[1:] + ranked[:1]
+        adjustment = "rotate-left-to-avoid-fixed-reversal"
+    shuffled = [hits[index] for index in ranked]
+    binding = {
+        "schema_version": "finevo-pilot-d-shuffle-binding-v1",
+        "algorithm": SHUFFLE_ALGORITHM,
+        "checkpoint_hash": checkpoint_hash,
+        "decision_t": int(decision_t),
+        "focal_agent_id": int(focal_agent_id),
+        "original_episode_ids": original_ids,
+        "permutation": ranked,
+        "shuffled_episode_ids": [
+            str(hit.episode.episode_id) for hit in shuffled
+        ],
+        "non_identity": ranked != identity,
+        "not_fixed_reversal": (
+            len(ranked) <= 2 or ranked != reversed_identity
+        ),
+        "deterministic_adjustment": adjustment,
+    }
+    binding["permutation_hash"] = canonical_hash(binding)
+    return shuffled, binding
+
+
+def _shuffled_memory_text(
+    bundle: Any,
+    *,
+    checkpoint_hash: str,
+    focal_agent_id: int,
+    decision_t: int,
+) -> tuple[str, dict[str, Any]]:
+    shuffled_hits, shuffle_binding = _checkpoint_bound_shuffle(
+        bundle,
+        checkpoint_hash=checkpoint_hash,
+        focal_agent_id=focal_agent_id,
+        decision_t=decision_t,
+    )
     parts: list[str] = []
-    if bundle.episodic_hits:
+    if shuffled_hits:
         parts.append("Finalized experience evidence:")
         parts.extend(
             f"- {hit.episode.to_prompt_text()}"
-            for hit in reversed(bundle.episodic_hits)
+            for hit in shuffled_hits
         )
     if bundle.active_rules:
         parts.append("Verified active rules:")
         parts.extend(
             f"- {rule.to_prompt_text()}" for rule in bundle.active_rules
         )
-    return " ".join(parts)
+    return " ".join(parts), shuffle_binding
 
 
 def _memory_text_for_treatment(
     treatment: str,
     *,
+    checkpoint_hash: str,
     focal_agent_id: int,
     agent_id: int,
     bundles: Mapping[int, Any],
     intervention_t: int,
     decision_t: int,
-) -> str:
+) -> tuple[str, Mapping[str, Any] | None]:
     bundle = bundles[agent_id]
     if agent_id != focal_agent_id or decision_t != intervention_t:
-        return bundle.memory_prompt
+        return bundle.memory_prompt, None
     if treatment == "no-memory":
-        return ""
+        treated = ""
+        return treated, {
+            "schema_version": "finevo-pilot-d-memory-pulse-binding-v1",
+            "kind": treatment,
+            "checkpoint_hash": checkpoint_hash,
+            "focal_agent_id": focal_agent_id,
+            "decision_t": decision_t,
+            "pulse_only": True,
+            "duration_decisions": 1,
+            "original_memory_hash": canonical_hash(bundle.memory_prompt),
+            "treated_memory_hash": canonical_hash(treated),
+            "shuffle_binding": None,
+            "wrong_context_source_agent_id": None,
+        }
     if treatment == "shuffled-episodic":
-        return _shuffled_memory_text(bundle)
+        treated, shuffle_binding = _shuffled_memory_text(
+            bundle,
+            checkpoint_hash=checkpoint_hash,
+            focal_agent_id=focal_agent_id,
+            decision_t=decision_t,
+        )
+        return treated, {
+            "schema_version": "finevo-pilot-d-memory-pulse-binding-v1",
+            "kind": treatment,
+            "checkpoint_hash": checkpoint_hash,
+            "focal_agent_id": focal_agent_id,
+            "decision_t": decision_t,
+            "pulse_only": True,
+            "duration_decisions": 1,
+            "original_memory_hash": canonical_hash(bundle.memory_prompt),
+            "treated_memory_hash": canonical_hash(treated),
+            "shuffle_binding": shuffle_binding,
+            "wrong_context_source_agent_id": None,
+        }
     if treatment == "wrong-context":
         donor = next(
             candidate
             for candidate in sorted(bundles)
             if candidate != focal_agent_id
         )
-        return bundles[donor].memory_prompt
-    return bundle.memory_prompt
+        treated = bundles[donor].memory_prompt
+        return treated, {
+            "schema_version": "finevo-pilot-d-memory-pulse-binding-v1",
+            "kind": treatment,
+            "checkpoint_hash": checkpoint_hash,
+            "focal_agent_id": focal_agent_id,
+            "decision_t": decision_t,
+            "pulse_only": True,
+            "duration_decisions": 1,
+            "original_memory_hash": canonical_hash(bundle.memory_prompt),
+            "treated_memory_hash": canonical_hash(treated),
+            "shuffle_binding": None,
+            "wrong_context_source_agent_id": donor,
+        }
+    return bundle.memory_prompt, None
 
 
 def _provider_state_restore(
@@ -317,57 +476,143 @@ def _completion_usage_row(
     treatment: str,
     decision_t: int,
     agent_id: int,
+    prompt_hash: str,
 ) -> dict[str, Any]:
+    row = _provider_row(
+        completion,
+        call_kind="pilot_continuation_action",
+        decision_t=decision_t,
+        agent_id=agent_id,
+        prompt_hash=prompt_hash,
+    )
+    row["treatment"] = treatment
+    return row
+
+
+def _normalize_journal_target(
+    value: Mapping[str, Any] | None,
+) -> tuple[Path, str, str | None] | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping) or set(value) != {
+        "path",
+        "run_id",
+        "contract_hash",
+    }:
+        raise PilotContinuationError(
+            "provider journal target must contain path/run_id/contract_hash"
+        )
+    path = Path(value["path"]).resolve()
+    run_id = value["run_id"]
+    contract_hash = value["contract_hash"]
+    if not isinstance(run_id, str) or not run_id:
+        raise PilotContinuationError("provider journal target run_id is invalid")
+    if contract_hash is not None and (
+        not isinstance(contract_hash, str) or len(contract_hash) != 64
+    ):
+        raise PilotContinuationError(
+            "provider journal target contract_hash is invalid"
+        )
+    if path.exists():
+        raise PilotContinuationError(
+            "provider journal already exists; refusing branch redispatch"
+        )
+    return path, run_id, contract_hash
+
+
+def _journal_event(
+    target: tuple[Path, str, str | None] | None,
+    *,
+    event_type: str,
+    payload: Mapping[str, Any],
+) -> None:
+    if target is None:
+        return
+    path, run_id, contract_hash = target
+    _append_provider_call_journal(
+        path,
+        run_id=run_id,
+        contract_hash=contract_hash,
+        event_type=event_type,
+        payload=payload,
+    )
+
+
+def _parse_disposition(
+    usage_row: Mapping[str, Any],
+    *,
+    parse_status: str,
+    parse_mode: str,
+    accepted: bool,
+    extra: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload = {
+        "call_kind": usage_row["call_kind"],
+        "decision_t": usage_row["decision_t"],
+        "agent_id": usage_row["agent_id"],
+        "prompt_hash": usage_row["prompt_hash"],
+        "raw_output_hash": usage_row["raw_output_hash"],
+        "parse_status": parse_status,
+        "parse_mode": parse_mode,
+        "accepted": accepted,
+    }
+    payload.update(dict(extra or {}))
+    return payload
+
+
+def _journal_binding(
+    target: tuple[Path, str, str | None] | None,
+    *,
+    expected_completions: int,
+) -> dict[str, Any]:
+    if target is None:
+        return {
+            "enabled": False,
+            "path": None,
+            "file_sha256": None,
+            "journal_sha256": None,
+            "run_id": None,
+            "contract_hash": None,
+            "event_count": 0,
+            "completion_event_count": 0,
+            "parse_disposition_event_count": 0,
+            "terminal_dispositions_verified": False,
+        }
+    path, run_id, contract_hash = target
+    journal = verify_provider_call_journal(
+        path,
+        expected_run_id=run_id,
+        expected_contract_hash=contract_hash,
+        require_terminal_dispositions=True,
+    )
+    completions = [
+        event
+        for event in journal["events"]
+        if event["event_type"] == "completion_received"
+    ]
+    dispositions = [
+        event
+        for event in journal["events"]
+        if event["event_type"] == "parse_disposition"
+    ]
+    if (
+        len(completions) != expected_completions
+        or len(dispositions) != expected_completions
+    ):
+        raise PilotContinuationError(
+            "provider journal does not contain the complete branch denominator"
+        )
     return {
-        "schema_version": RUNNER_SCHEMA_VERSION,
-        "call_kind": "pilot_continuation_action",
-        "treatment": treatment,
-        "decision_t": decision_t,
-        "agent_id": agent_id,
-        "usage": completion.usage.to_dict(),
-        "model": completion.model,
-        "provider": completion.provider,
-        "response_model": completion.response_model,
-        "request_seed": completion.request_seed,
-        "attempts": completion.attempts,
-        "latency_seconds": completion.latency_seconds,
-        "error_type": completion.error_type,
-        "provider_error_details": (
-            completion.provider_error_details.to_dict()
-            if completion.provider_error_details is not None
-            else None
-        ),
-        "cached_prompt_tokens": completion.cached_prompt_tokens,
-        "reasoning_tokens": completion.reasoning_tokens,
-        "request_id": completion.request_id,
-        "response_provider": completion.response_provider,
-        "response_route": completion.response_route,
-        "request_profile_id": completion.request_profile_id,
-        "request_provider_pin": list(completion.request_provider_pin),
-        "request_artifact_identity": dict(
-            completion.request_artifact_identity
-        ),
-        "request_price_snapshot_source": (
-            completion.request_price_snapshot_source
-        ),
-        "request_price_snapshot_captured_at": (
-            completion.request_price_snapshot_captured_at
-        ),
-        "finish_reason": completion.finish_reason,
-        "native_finish_reason": completion.native_finish_reason,
-        "response_completed": completion.response_completed,
-        "provider_sdk_name": completion.provider_sdk_name,
-        "provider_sdk_version": completion.provider_sdk_version,
-        "route_attestation_code": completion.route_attestation_code,
-        "route_attestation_path": completion.route_attestation_path,
-        "route_attestation_source": completion.route_attestation_source,
-        "request_parameters": list(completion.request_parameters),
-        "temperature_dispatch": completion.temperature_dispatch,
-        "output_disposition": completion.output_disposition,
-        "raw_output_bytes": len(completion.text.encode("utf-8")),
-        "raw_output_hash": hashlib.sha256(
-            completion.text.encode("utf-8")
-        ).hexdigest(),
+        "enabled": True,
+        "path": str(path),
+        "file_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "journal_sha256": journal["journal_sha256"],
+        "run_id": run_id,
+        "contract_hash": contract_hash,
+        "event_count": len(journal["events"]),
+        "completion_event_count": len(completions),
+        "parse_disposition_event_count": len(dispositions),
+        "terminal_dispositions_verified": True,
     }
 
 
@@ -587,6 +832,7 @@ def _run_branch(
     strict_code_binding: bool,
     narrative_text: str = "",
     narrative_id: str | None = None,
+    provider_call_journal: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     _provider_state_restore(checkpoint, llm)
     state = restore_pilot_checkpoint(
@@ -615,6 +861,8 @@ def _run_branch(
     continuation_ledger_rows: list[dict[str, Any]] = []
     api_usage_rows: list[dict[str, Any]] = []
     rng_schedule: list[dict[str, Any]] = []
+    memory_pulse_binding: Mapping[str, Any] | None = None
+    journal_target = _normalize_journal_target(provider_call_journal)
     shocks = _shock_by_decision_t(config)
     if len(common_rng_schedule) != horizon:
         raise PilotContinuationError(
@@ -692,54 +940,226 @@ def _run_branch(
 
         composed = []
         memory_texts: dict[str, str] = {}
+        memory_pulse_bindings: dict[str, Mapping[str, Any]] = {}
         for agent_id in range(config.num_agents):
-            memory_text = _memory_text_for_treatment(
+            memory_text, pulse_binding = _memory_text_for_treatment(
                 treatment,
+                checkpoint_hash=checkpoint.checkpoint_hash,
                 focal_agent_id=focal_agent_id,
                 agent_id=agent_id,
                 bundles=bundles,
                 intervention_t=intervention_t,
                 decision_t=decision_t,
             )
+            if pulse_binding is not None:
+                memory_pulse_bindings[str(agent_id)] = pulse_binding
+                if memory_pulse_binding is not None:
+                    raise PilotContinuationError(
+                        "memory pulse was applied more than once in one branch"
+                    )
+                memory_pulse_binding = pulse_binding
             prompt = compose_decision_prompt(
                 base_prompts[agent_id], memory_text
             )
             composed.append(prompt)
             memory_texts[str(agent_id)] = memory_text
-        completions = _complete_actions(
-            config=config,
-            llm=llm,
-            budget=budget,
-            treatment=treatment,
-            decision_t=decision_t,
-            prompts=[prompt.full_prompt for prompt in composed],
-        )
-        decisions: dict[str, ActionDecision] = {}
-        for agent_id, completion in enumerate(completions):
-            api_usage_rows.append(
-                _completion_usage_row(
-                    completion,
-                    treatment=treatment,
-                    decision_t=decision_t,
-                    agent_id=agent_id,
-                )
+        prompt_hashes = [
+            prompt.full_prompt_hash for prompt in composed
+        ]
+        try:
+            completions = _complete_actions(
+                config=config,
+                llm=llm,
+                budget=budget,
+                treatment=treatment,
+                decision_t=decision_t,
+                prompts=[prompt.full_prompt for prompt in composed],
             )
+        except Exception as exc:
+            settled = getattr(exc, "structured_completions", None)
+            if settled is not None:
+                if (
+                    not isinstance(settled, tuple)
+                    or len(settled) != config.num_agents
+                ):
+                    raise PilotContinuationError(
+                        "failed continuation batch exposed an incomplete "
+                        "completion denominator"
+                    ) from exc
+                failure_mode = (
+                    "budget_failure"
+                    if isinstance(exc, BudgetExceeded)
+                    else "batch_failure"
+                )
+                for agent_id, completion in enumerate(settled):
+                    usage_row = _completion_usage_row(
+                        completion,
+                        treatment=treatment,
+                        decision_t=decision_t,
+                        agent_id=agent_id,
+                        prompt_hash=prompt_hashes[agent_id],
+                    )
+                    _journal_event(
+                        journal_target,
+                        event_type="completion_received",
+                        payload=usage_row,
+                    )
+                    _journal_event(
+                        journal_target,
+                        event_type="parse_disposition",
+                        payload=_parse_disposition(
+                            usage_row,
+                            parse_status="not_evaluated",
+                            parse_mode=failure_mode,
+                            accepted=False,
+                            extra={
+                                "rejection": type(exc).__name__,
+                            },
+                        ),
+                    )
+            raise
+        if len(completions) != config.num_agents:
+            raise PilotContinuationError(
+                "continuation action batch denominator mismatch"
+            )
+        usage_rows: list[dict[str, Any]] = []
+        for agent_id, completion in enumerate(completions):
+            usage_row = _completion_usage_row(
+                completion,
+                treatment=treatment,
+                decision_t=decision_t,
+                agent_id=agent_id,
+                prompt_hash=prompt_hashes[agent_id],
+            )
+            api_usage_rows.append(usage_row)
+            usage_rows.append(usage_row)
+            _journal_event(
+                journal_target,
+                event_type="completion_received",
+                payload=usage_row,
+            )
+
+        def close_later_dispositions(current_agent_id: int) -> None:
+            for pending_row in usage_rows[current_agent_id + 1 :]:
+                _journal_event(
+                    journal_target,
+                    event_type="parse_disposition",
+                    payload=_parse_disposition(
+                        pending_row,
+                        parse_status="not_evaluated",
+                        parse_mode="prior_batch_failure",
+                        accepted=False,
+                    ),
+                )
+
+        decisions: dict[str, ActionDecision] = {}
+        for agent_id, (completion, usage_row) in enumerate(
+            zip(completions, usage_rows, strict=True)
+        ):
             if not completion.ok or completion.text == "Error":
+                _journal_event(
+                    journal_target,
+                    event_type="parse_disposition",
+                    payload=_parse_disposition(
+                        usage_row,
+                        parse_status="unavailable",
+                        parse_mode=completion.output_disposition,
+                        accepted=False,
+                        extra={"rejection": "provider_failure"},
+                    ),
+                )
+                close_later_dispositions(agent_id)
                 raise PilotContinuationError(
                     f"provider failure in {treatment} at t={decision_t}, "
                     f"agent={agent_id}"
                 )
-            decision = parse_direct_action(
-                completion.text,
-                max_labor_hours=config.max_labor_hours,
-                labor_step=config.labor_step,
-                consumption_step=config.consumption_step,
-            )
+            if (
+                len(completion.text.encode("utf-8"))
+                > config.action_max_visible_json_bytes
+            ):
+                _journal_event(
+                    journal_target,
+                    event_type="parse_disposition",
+                    payload=_parse_disposition(
+                        usage_row,
+                        parse_status="failure",
+                        parse_mode="visible_limit_exceeded",
+                        accepted=False,
+                    ),
+                )
+                close_later_dispositions(agent_id)
+                raise PilotContinuationError(
+                    f"continuation action exceeds visible JSON limit at "
+                    f"t={decision_t}, agent={agent_id}"
+                )
+            try:
+                decision = parse_direct_action(
+                    completion.text,
+                    max_labor_hours=config.max_labor_hours,
+                    labor_step=config.labor_step,
+                    consumption_step=config.consumption_step,
+                )
+            except ActionParseError as exc:
+                _journal_event(
+                    journal_target,
+                    event_type="parse_disposition",
+                    payload=_parse_disposition(
+                        usage_row,
+                        parse_status="failure",
+                        parse_mode="parse_failure",
+                        accepted=False,
+                    ),
+                )
+                close_later_dispositions(agent_id)
+                raise PilotContinuationError(
+                    f"continuation action parse failure at t={decision_t}, "
+                    f"agent={agent_id}: {exc}"
+                ) from exc
+            action_parse_mode = _action_parse_mode(completion.text, decision)
+            if action_parse_mode not in config.accepted_action_parse_modes:
+                _journal_event(
+                    journal_target,
+                    event_type="parse_disposition",
+                    payload=_parse_disposition(
+                        usage_row,
+                        parse_status="success",
+                        parse_mode=action_parse_mode,
+                        accepted=False,
+                        extra={"rejection": "unaccepted_parse_mode"},
+                    ),
+                )
+                close_later_dispositions(agent_id)
+                raise PilotContinuationError(
+                    f"continuation action parse mode {action_parse_mode!r} "
+                    f"is not accepted at t={decision_t}, agent={agent_id}"
+                )
             if config.fail_on_clipped_action and decision.clipped:
+                _journal_event(
+                    journal_target,
+                    event_type="parse_disposition",
+                    payload=_parse_disposition(
+                        usage_row,
+                        parse_status="success",
+                        parse_mode=action_parse_mode,
+                        accepted=False,
+                        extra={"rejection": "clipped_action"},
+                    ),
+                )
+                close_later_dispositions(agent_id)
                 raise PilotContinuationError(
                     f"clipped continuation action at t={decision_t}, "
                     f"agent={agent_id}"
                 )
+            _journal_event(
+                journal_target,
+                event_type="parse_disposition",
+                payload=_parse_disposition(
+                    usage_row,
+                    parse_status="success",
+                    parse_mode=action_parse_mode,
+                    accepted=True,
+                ),
+            )
             agent_key = str(agent_id)
             decisions[agent_key] = decision
             pre_state = _m2_state(
@@ -859,6 +1279,7 @@ def _run_branch(
                     for agent_id in range(config.num_agents)
                 },
                 "memory_texts": memory_texts,
+                "memory_pulse_bindings": memory_pulse_bindings,
                 "ledger_rows": [
                     row.to_dict() for row in utility_rows
                 ],
@@ -874,6 +1295,20 @@ def _run_branch(
     if state.proposals_made != initial_proposals:
         raise PilotContinuationError(
             f"semantic proposal counters changed in frozen branch {treatment}"
+        )
+    if treatment in MEMORY_PULSE_TREATMENTS:
+        if (
+            memory_pulse_binding is None
+            or memory_pulse_binding.get("pulse_only") is not True
+            or memory_pulse_binding.get("decision_t") != intervention_t
+            or memory_pulse_binding.get("focal_agent_id") != focal_agent_id
+        ):
+            raise PilotContinuationError(
+                f"{treatment} lacks its exact focal decision-6 pulse binding"
+            )
+    elif memory_pulse_binding is not None:
+        raise PilotContinuationError(
+            f"non-memory-pulse branch {treatment} recorded a memory pulse"
         )
     for memory in state.memories.values():
         memory.validate()
@@ -918,6 +1353,10 @@ def _run_branch(
         },
         "final_ledger_hash": canonical_hash(state.ledger.records()),
     }
+    provider_call_journal_binding = _journal_binding(
+        journal_target,
+        expected_completions=config.num_agents * horizon,
+    )
     return (
         {
             "treatment": treatment,
@@ -925,7 +1364,9 @@ def _run_branch(
                 **semantic_intervention,
                 "focal_agent_id": focal_agent_id,
                 "decision_t": intervention_t,
-                "pulse_only": True,
+                "pulse_only": treatment in MEMORY_PULSE_TREATMENTS,
+                "memory_pulse_binding": memory_pulse_binding,
+                "continuation_horizon_steps": horizon,
             },
             "narrative": {
                 "narrative_id": narrative_id,
@@ -933,7 +1374,9 @@ def _run_branch(
                 "text_hash": canonical_hash(narrative_text),
                 "focal_agent_id": focal_agent_id,
                 "decision_t": intervention_t,
-                "pulse_only": True,
+                "pulse_only": narrative_id
+                in NARRATIVE_PULSE_CONTRACT["treatment_narratives"],
+                "continuation_horizon_steps": horizon,
             },
             "prefix_hash": state.prefix_hash,
             "checkpoint_hash": state.checkpoint_hash,
@@ -952,6 +1395,7 @@ def _run_branch(
             ],
             "api_usage": api_usage_rows,
             "api_usage_hash": canonical_hash(api_usage_rows),
+            "provider_call_journal": provider_call_journal_binding,
             "trajectory": branch_rows,
             "trajectory_hash": canonical_hash(trajectory_payload),
             "metrics": metrics,
@@ -984,6 +1428,7 @@ def run_pilot_continuations(
     focal_agent_id: int = 0,
     treatments: Sequence[str] = DEFAULT_TREATMENTS,
     strict_code_binding: bool = True,
+    provider_call_journals: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> PilotContinuationResult:
     """Run paired 4-agent Experiment-D continuations with frozen proposals."""
 
@@ -1013,11 +1458,25 @@ def run_pilot_continuations(
     )
     if not 0 <= focal_agent_id < 4:
         raise ValueError("focal_agent_id must identify one of four agents")
+    if focal_agent_id != MEMORY_PULSE_CONTRACT["focal_agent_id"]:
+        raise ValueError("Experiment D freezes focal_agent_id=0")
     normalized = tuple(str(value) for value in treatments)
     if normalized != DEFAULT_TREATMENTS:
         raise ValueError(
             "Experiment D requires the preregistered ordered treatment set"
         )
+    if provider_call_journals is not None and set(provider_call_journals) != set(
+        normalized
+    ):
+        raise ValueError(
+            "continuation provider journals must cover every registered branch"
+        )
+    journal_paths = [
+        str(Path(value["path"]).resolve())
+        for value in (provider_call_journals or {}).values()
+    ]
+    if len(journal_paths) != len(set(journal_paths)):
+        raise ValueError("continuation provider journal paths must be unique")
 
     branches: dict[str, Any] = {}
     common_rng_schedule, rng_schedule_binding = _pre_generate_rng_schedule(
@@ -1033,6 +1492,11 @@ def run_pilot_continuations(
             focal_agent_id=focal_agent_id,
             common_rng_schedule=common_rng_schedule,
             strict_code_binding=strict_code_binding,
+            provider_call_journal=(
+                None
+                if provider_call_journals is None
+                else provider_call_journals[treatment]
+            ),
         )
         if observed_schedule != common_rng_schedule:
             raise PilotContinuationError(
@@ -1171,6 +1635,7 @@ def run_pilot_continuations(
         "num_agents": 4,
         "focal_agent_id": focal_agent_id,
         "wrong_context_source_agent_id": 1,
+        "memory_pulse_contract": dict(MEMORY_PULSE_CONTRACT),
         "action_grid": {
             "labor_step_hours": float(
                 checkpoint.payload["run_config"]["labor_step"]
@@ -1235,6 +1700,7 @@ def run_pilot_narratives(
     focal_agent_id: int = 0,
     narratives: Mapping[str, str] = DEFAULT_NARRATIVES,
     strict_code_binding: bool = True,
+    provider_call_journals: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> PilotContinuationResult:
     """Run four content interventions from one hash-bound checkpoint."""
 
@@ -1242,6 +1708,8 @@ def run_pilot_narratives(
         checkpoint = PilotCheckpoint.from_dict(checkpoint)
     if dict(narratives) != DEFAULT_NARRATIVES:
         raise ValueError("narrative fixtures differ from the preregistration")
+    if focal_agent_id != NARRATIVE_PULSE_CONTRACT["focal_agent_id"]:
+        raise ValueError("Experiment D freezes narrative focal_agent_id=0")
     if checkpoint.next_decision_t != 6:
         raise PilotContinuationError(
             "narrative branches must start before decision 6"
@@ -1250,6 +1718,18 @@ def run_pilot_narratives(
         config_from_dict(checkpoint.payload["run_config"]),
         provider_model_name=llm.get_model_name(),
     )
+    if provider_call_journals is not None and set(provider_call_journals) != set(
+        DEFAULT_NARRATIVES
+    ):
+        raise ValueError(
+            "narrative provider journals must cover every registered branch"
+        )
+    journal_paths = [
+        str(Path(value["path"]).resolve())
+        for value in (provider_call_journals or {}).values()
+    ]
+    if len(journal_paths) != len(set(journal_paths)):
+        raise ValueError("narrative provider journal paths must be unique")
     branches: dict[str, Any] = {}
     common_rng_schedule, rng_schedule_binding = _pre_generate_rng_schedule(
         checkpoint, horizon=horizon
@@ -1266,6 +1746,11 @@ def run_pilot_narratives(
             strict_code_binding=strict_code_binding,
             narrative_text=narrative_text,
             narrative_id=narrative_id,
+            provider_call_journal=(
+                None
+                if provider_call_journals is None
+                else provider_call_journals[narrative_id]
+            ),
         )
         if observed_schedule != common_rng_schedule:
             raise PilotContinuationError(
@@ -1303,6 +1788,10 @@ def run_pilot_narratives(
         "prefix_hash": checkpoint.payload["prefix_hash"],
         "focal_agent_id": focal_agent_id,
         "horizon": horizon,
+        "narrative_pulse_contract": dict(NARRATIVE_PULSE_CONTRACT),
+        "shock_schedule_hash": canonical_hash(
+            checkpoint.payload["run_config"].get("shock_schedule", [])
+        ),
         "action_grid": {
             "labor_step_hours": float(config["labor_step"]),
             "consumption_step": float(config["consumption_step"]),
@@ -1335,10 +1824,14 @@ __all__ = [
     "DEFAULT_CONTINUATION_HORIZON",
     "DEFAULT_NARRATIVES",
     "DEFAULT_TREATMENTS",
+    "MEMORY_PULSE_CONTRACT",
+    "MEMORY_PULSE_TREATMENTS",
+    "NARRATIVE_PULSE_CONTRACT",
     "PILOT_CONTINUATION_SCHEMA_VERSION",
     "PILOT_NARRATIVE_SCHEMA_VERSION",
     "PilotContinuationError",
     "PilotContinuationResult",
+    "SHUFFLE_ALGORITHM",
     "run_pilot_continuations",
     "run_pilot_narratives",
 ]

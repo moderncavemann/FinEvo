@@ -3,19 +3,30 @@ from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from llm_providers import MultiModelLLM
-from verified_memory.budget import BudgetLimits, RunBudget
+from verified_memory.actions import ActionParseError
+from verified_memory.budget import BudgetExceeded, BudgetLimits, RunBudget, UsageRecord
 from verified_memory.pilot_checkpoint import build_pilot_checkpoint
+import verified_memory.pilot_continuation as continuation_module
 from verified_memory.pilot_continuation import (
     DEFAULT_NARRATIVES,
     DEFAULT_TREATMENTS,
+    MEMORY_PULSE_CONTRACT,
+    MEMORY_PULSE_TREATMENTS,
     PILOT_CONTINUATION_SCHEMA_VERSION,
     PILOT_NARRATIVE_SCHEMA_VERSION,
+    SHUFFLE_ALGORITHM,
+    PilotContinuationError,
     run_pilot_continuations,
     run_pilot_narratives,
 )
-from verified_memory.runner import ShockEvent, VerifiedRunConfig
+from verified_memory.runner import (
+    ShockEvent,
+    VerifiedRunConfig,
+    verify_provider_call_journal,
+)
 from verified_memory.scripted_provider import ScriptedDiagnosticProvider
 
 
@@ -47,6 +58,35 @@ class _RngMutatingScriptedProvider(ScriptedDiagnosticProvider):
         return super().get_structured_completion(messages, **kwargs)
 
 
+class _PositiveCostScriptedProvider(ScriptedDiagnosticProvider):
+    def get_structured_completion(self, messages, **kwargs):
+        result = super().get_structured_completion(messages, **kwargs)
+        return replace(
+            result,
+            usage=UsageRecord(
+                prompt_tokens=result.usage.prompt_tokens,
+                completion_tokens=result.usage.completion_tokens,
+                cost_usd=0.0001,
+            ),
+        )
+
+
+def _journal_targets(
+    root: Path,
+    names,
+    *,
+    prefix: str,
+) -> dict[str, dict[str, object]]:
+    return {
+        str(name): {
+            "path": root / f"{prefix}-{name}.json",
+            "run_id": f"{prefix}-{name}",
+            "contract_hash": None,
+        }
+        for name in names
+    }
+
+
 def _shock_schedule() -> tuple[ShockEvent, ...]:
     return tuple(
         ShockEvent(
@@ -64,7 +104,9 @@ def _shock_schedule() -> tuple[ShockEvent, ...]:
     )
 
 
-def test_four_agent_experiment_d_runs_all_matched_branches_without_api() -> None:
+def test_four_agent_experiment_d_runs_all_matched_branches_without_api(
+    tmp_path: Path,
+) -> None:
     provider = _RecordingScriptedProvider()
     llm = MultiModelLLM(
         provider, num_workers=4
@@ -93,6 +135,11 @@ def test_four_agent_experiment_d_runs_all_matched_branches_without_api() -> None
             BudgetLimits(max_calls=200, max_cost_usd=0.01),
             budget_id="pilot-continuation-branches",
         ),
+        provider_call_journals=_journal_targets(
+            tmp_path,
+            DEFAULT_TREATMENTS,
+            prefix="continuation",
+        ),
     ).to_dict()
 
     assert (
@@ -106,6 +153,7 @@ def test_four_agent_experiment_d_runs_all_matched_branches_without_api() -> None
     assert result["num_agents"] == 4
     assert result["focal_agent_id"] == 0
     assert result["wrong_context_source_agent_id"] == 1
+    assert result["memory_pulse_contract"] == MEMORY_PULSE_CONTRACT
     assert result["action_grid"] == {
         "labor_step_hours": 8.0,
         "consumption_step": 0.02,
@@ -147,6 +195,21 @@ def test_four_agent_experiment_d_runs_all_matched_branches_without_api() -> None
         ]
         assert set(branch["proposal_counters_before"].values()) == {2}
         assert len(branch["api_usage"]) == 24
+        journal_binding = branch["provider_call_journal"]
+        assert journal_binding["enabled"] is True
+        assert journal_binding["event_count"] == 48
+        assert journal_binding["completion_event_count"] == 24
+        assert journal_binding["parse_disposition_event_count"] == 24
+        journal = verify_provider_call_journal(
+            journal_binding["path"],
+            expected_run_id=journal_binding["run_id"],
+            expected_contract_hash=None,
+            require_terminal_dispositions=True,
+        )
+        assert len(journal["events"]) == 48
+        assert "Synthetic diagnostic action" not in Path(
+            journal_binding["path"]
+        ).read_text(encoding="utf-8")
         assert {
             (row["decision_t"], row["agent_id"])
             for row in branch["api_usage"]
@@ -256,6 +319,38 @@ def test_four_agent_experiment_d_runs_all_matched_branches_without_api() -> None
         branches["shuffled-episodic"]["trajectory"][0]["memory_hashes"]["0"]
         != branches["matched-a"]["trajectory"][0]["memory_hashes"]["0"]
     )
+    for treatment in MEMORY_PULSE_TREATMENTS:
+        intervention = branches[treatment]["intervention"]
+        pulse = intervention["memory_pulse_binding"]
+        assert intervention["pulse_only"] is True
+        assert intervention["decision_t"] == 6
+        assert intervention["continuation_horizon_steps"] == 6
+        assert pulse["pulse_only"] is True
+        assert pulse["duration_decisions"] == 1
+        assert pulse["checkpoint_hash"] == result["checkpoint_hash"]
+        assert (
+            branches[treatment]["trajectory"][0]["memory_pulse_bindings"]["0"]
+            == pulse
+        )
+        assert all(
+            row["memory_pulse_bindings"] == {}
+            for row in branches[treatment]["trajectory"][1:]
+        )
+    shuffle = branches["shuffled-episodic"]["intervention"][
+        "memory_pulse_binding"
+    ]["shuffle_binding"]
+    assert shuffle["algorithm"] == SHUFFLE_ALGORITHM
+    assert shuffle["non_identity"] is True
+    assert shuffle["not_fixed_reversal"] is True
+    assert sorted(shuffle["permutation"]) == list(
+        range(len(shuffle["permutation"]))
+    )
+    assert shuffle["shuffled_episode_ids"] == [
+        shuffle["original_episode_ids"][index]
+        for index in shuffle["permutation"]
+    ]
+    assert branches["matched-a"]["intervention"]["pulse_only"] is False
+    assert branches["erroneous-verified"]["intervention"]["pulse_only"] is False
     assert (
         branches["erroneous-verified"]["intervention"]["rule_status"]
         == "active"
@@ -320,10 +415,16 @@ def test_four_agent_experiment_d_runs_all_matched_branches_without_api() -> None
             BudgetLimits(max_calls=120, max_cost_usd=0.01),
             budget_id="pilot-narrative-branches",
         ),
+        provider_call_journals=_journal_targets(
+            tmp_path,
+            DEFAULT_NARRATIVES,
+            prefix="narrative",
+        ),
     ).to_dict()
     assert narrative["schema_version"] == PILOT_NARRATIVE_SCHEMA_VERSION
     assert narrative["fixtures"] == DEFAULT_NARRATIVES
     assert set(narrative["branches"]) == set(DEFAULT_NARRATIVES)
+    assert narrative["narrative_pulse_contract"]["decision_t"] == 6
     assert narrative["semantic_equivalence_within_one_action_bin"]["pass"] is True
     assert narrative["action_grid"] == {
         "labor_step_hours": 8.0,
@@ -341,6 +442,20 @@ def test_four_agent_experiment_d_runs_all_matched_branches_without_api() -> None
         branch["rng_pre_step_hashes"]
         == narrative["pre_generated_rng_hashes"]
         for branch in narrative["branches"].values()
+    )
+    assert all(
+        branch["provider_call_journal"]["event_count"] == 48
+        and branch["provider_call_journal"][
+            "terminal_dispositions_verified"
+        ]
+        is True
+        for branch in narrative["branches"].values()
+    )
+    assert narrative["branches"]["none"]["narrative"]["pulse_only"] is False
+    assert all(
+        narrative["branches"][narrative_id]["narrative"]["pulse_only"]
+        is True
+        for narrative_id in ("aligned", "paraphrase", "opposite")
     )
     narrative_branches = narrative["branches"]
     assert len(
@@ -395,7 +510,7 @@ def test_four_agent_experiment_d_runs_all_matched_branches_without_api() -> None
             ) == 1
 
 
-def test_branch_rng_schedule_is_provider_independent() -> None:
+def test_branch_rng_schedule_is_provider_independent(tmp_path: Path) -> None:
     prefix_llm = MultiModelLLM(ScriptedDiagnosticProvider(), num_workers=4)
     checkpoint = build_pilot_checkpoint(
         VerifiedRunConfig(
@@ -422,6 +537,11 @@ def test_branch_rng_schedule_is_provider_independent() -> None:
             budget=RunBudget(
                 BudgetLimits(max_calls=200, max_cost_usd=0.01),
                 budget_id=budget_id,
+            ),
+            provider_call_journals=_journal_targets(
+                tmp_path,
+                DEFAULT_TREATMENTS,
+                prefix=budget_id,
             ),
         ).to_dict()
 
@@ -459,3 +579,120 @@ def test_branch_rng_schedule_is_provider_independent() -> None:
             clean_branch["trajectory_hash"]
             == contaminated_branch["trajectory_hash"]
         )
+    assert (
+        clean["branches"]["shuffled-episodic"]["intervention"][
+            "memory_pulse_binding"
+        ]["shuffle_binding"]
+        == contaminated["branches"]["shuffled-episodic"]["intervention"][
+            "memory_pulse_binding"
+        ]["shuffle_binding"]
+    )
+
+
+def _continuation_checkpoint(run_id: str) -> object:
+    llm = MultiModelLLM(ScriptedDiagnosticProvider(), num_workers=4)
+    return build_pilot_checkpoint(
+        VerifiedRunConfig(
+            run_id=run_id,
+            seed=31,
+            num_agents=4,
+            episode_length=12,
+            max_rule_proposals_per_agent=4,
+            freeze_new_proposals_after=6,
+            shock_schedule=_shock_schedule(),
+        ),
+        llm=llm,
+        budget=RunBudget(
+            BudgetLimits(max_calls=40, max_cost_usd=0.01),
+            budget_id=f"{run_id}-prefix",
+        ),
+        env_config_source=ROOT / "config.yaml",
+    )
+
+
+def test_branch_parse_failure_terminalizes_every_dispatched_completion(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    checkpoint = _continuation_checkpoint("pilot-continuation-parse-failure")
+    journals = _journal_targets(
+        tmp_path,
+        DEFAULT_TREATMENTS,
+        prefix="parse-failure",
+    )
+
+    def fail_parse(*args, **kwargs):
+        raise ActionParseError("synthetic parse failure")
+
+    monkeypatch.setattr(
+        continuation_module,
+        "parse_direct_action",
+        fail_parse,
+    )
+    with pytest.raises(PilotContinuationError, match="parse failure"):
+        run_pilot_continuations(
+            checkpoint,
+            llm=MultiModelLLM(ScriptedDiagnosticProvider(), num_workers=4),
+            budget=RunBudget(
+                BudgetLimits(max_calls=200, max_cost_usd=0.01),
+                budget_id="parse-failure-branches",
+            ),
+            provider_call_journals=journals,
+        )
+
+    journal = verify_provider_call_journal(
+        journals["matched-a"]["path"],
+        expected_run_id=journals["matched-a"]["run_id"],
+        expected_contract_hash=None,
+        require_terminal_dispositions=True,
+    )
+    completions = [
+        event for event in journal["events"]
+        if event["event_type"] == "completion_received"
+    ]
+    dispositions = [
+        event["payload"] for event in journal["events"]
+        if event["event_type"] == "parse_disposition"
+    ]
+    assert len(completions) == len(dispositions) == 4
+    assert dispositions[0]["parse_mode"] == "parse_failure"
+    assert all(row["accepted"] is False for row in dispositions)
+
+
+def test_branch_budget_overage_terminalizes_every_dispatched_completion(
+    tmp_path: Path,
+) -> None:
+    checkpoint = _continuation_checkpoint("pilot-continuation-budget-overage")
+    journals = _journal_targets(
+        tmp_path,
+        DEFAULT_TREATMENTS,
+        prefix="budget-overage",
+    )
+    with pytest.raises(BudgetExceeded):
+        run_pilot_continuations(
+            checkpoint,
+            llm=MultiModelLLM(_PositiveCostScriptedProvider(), num_workers=4),
+            budget=RunBudget(
+                BudgetLimits(max_calls=200, max_cost_usd=0.00015),
+                budget_id="budget-overage-branches",
+            ),
+            provider_call_journals=journals,
+        )
+
+    journal = verify_provider_call_journal(
+        journals["matched-a"]["path"],
+        expected_run_id=journals["matched-a"]["run_id"],
+        expected_contract_hash=None,
+        require_terminal_dispositions=True,
+    )
+    completions = [
+        event for event in journal["events"]
+        if event["event_type"] == "completion_received"
+    ]
+    dispositions = [
+        event["payload"] for event in journal["events"]
+        if event["event_type"] == "parse_disposition"
+    ]
+    assert len(completions) == len(dispositions) == 4
+    assert all(row["parse_mode"] == "budget_failure" for row in dispositions)
+    assert all(row["accepted"] is False for row in dispositions)

@@ -697,6 +697,7 @@ def test_continuation_usage_row_is_current_and_evidence_valid() -> None:
         treatment="matched-a",
         decision_t=6,
         agent_id=0,
+        prompt_hash="a" * 64,
     )
 
     assert row["schema_version"] == "verified-simulation-runner-v3"

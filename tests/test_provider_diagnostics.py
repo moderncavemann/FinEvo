@@ -24,6 +24,10 @@ from verified_memory.provider_diagnostics import (
     _assert_diagnostic_output_path,
     _cumulative_reservation_cost,
     _estimated_usage,
+    _expected_parameter_dispatch,
+    _expected_request_parameters,
+    _expected_temperature_dispatch,
+    _interface_checks,
     _ledger_path,
     _reserve_cumulative_diagnostic_budget,
     run_provider_interface_probe,
@@ -34,6 +38,7 @@ from verified_memory.provider_diagnostics import (
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = ROOT / "experiments" / "pilot_v1.yaml"
+V2_CONTRACT_PATH = ROOT / "experiments" / "pilot_v2.yaml"
 
 
 @pytest.fixture
@@ -85,9 +90,18 @@ class _FixtureProvider:
         assert len(messages) == 1
         assert kwargs["max_retries"] == 1
         expected_seed = (
-            None
-            if self.profile.seed_capability == "unsupported"
-            else 2010922376
+            (
+                2010922376
+                if dict(self.profile.decoding_fields)["seed"].dispatch_mode
+                == "explicit_supported"
+                else None
+            )
+            if self.profile.decoding_fields
+            else (
+                None
+                if self.profile.seed_capability == "unsupported"
+                else 2010922376
+            )
         )
         assert kwargs["seed"] == expected_seed
         common = {
@@ -112,6 +126,7 @@ class _FixtureProvider:
             "finish_reason": "stop",
             "native_finish_reason": "stop",
             "response_completed": True,
+            "parameter_dispatch": _expected_parameter_dispatch(self.profile),
         }
         if self.profile.transport == "openai":
             return StructuredCompletion(
@@ -120,16 +135,10 @@ class _FixtureProvider:
                 response_route="direct",
                 provider_sdk_name="openai-python",
                 provider_sdk_version="2.46.0",
-                request_parameters=(
-                    "max_completion_tokens",
-                    "messages",
-                    "model",
-                    "reasoning_effort",
-                    "response_format",
-                    "seed",
-                    "top_p",
+                request_parameters=_expected_request_parameters(self.profile),
+                temperature_dispatch=_expected_temperature_dispatch(
+                    self.profile
                 ),
-                temperature_dispatch="omitted_unsupported",
                 **common,
             )
         if self.profile.transport == "ollama":
@@ -139,14 +148,10 @@ class _FixtureProvider:
                 response_route="local",
                 provider_sdk_name="requests",
                 provider_sdk_version="2.34.2",
-                request_parameters=(
-                    "format",
-                    "messages",
-                    "model",
-                    "options",
-                    "stream",
+                request_parameters=_expected_request_parameters(self.profile),
+                temperature_dispatch=_expected_temperature_dispatch(
+                    self.profile
                 ),
-                temperature_dispatch="explicit",
                 **common,
             )
         if self.profile.transport == "openrouter":
@@ -160,17 +165,10 @@ class _FixtureProvider:
                 provider_sdk_version="2.46.0",
                 route_attestation_code="OR_RA_PASS",
                 route_attestation_source="inline-attribute",
-                request_parameters=(
-                    "extra_body",
-                    "max_tokens",
-                    "messages",
-                    "model",
-                    "response_format",
-                    "seed",
-                    "temperature",
-                    "top_p",
+                request_parameters=_expected_request_parameters(self.profile),
+                temperature_dispatch=_expected_temperature_dispatch(
+                    self.profile
                 ),
-                temperature_dispatch="explicit",
                 **common,
             )
         raise AssertionError("fixture received an unsupported transport")
@@ -196,6 +194,7 @@ def _run(
     max_tokens: int | None = 32,
     max_cost_usd: float = 0.05,
     force_json_object: bool = False,
+    contract_path: Path = CONTRACT_PATH,
 ):
     providers = []
 
@@ -205,7 +204,7 @@ def _run(
         return provider
 
     kwargs = {
-        "contract_path": CONTRACT_PATH,
+        "contract_path": contract_path,
         "model_id": model_id,
         "output_path": _output(root, name),
         "repo_root": root,
@@ -464,6 +463,199 @@ def test_probe_rejects_incomplete_dispatched_parameter_shape(
     assert result["checks"]["request_parameters_exact"] is False
     assert result["checks"]["strict_json_valid"] is True
     assert result["dispatch"]["provider_call_attempted"] is True
+
+
+def test_v2_probe_uses_contract_driven_wire_omissions_and_receipts(
+    diagnostic_root: Path,
+) -> None:
+    result, providers = _run(
+        diagnostic_root,
+        name="v2-gpt52.json",
+        model_id="gpt52_main",
+        contract_path=V2_CONTRACT_PATH,
+    )
+
+    assert result["status"] == "pass"
+    assert providers[0].calls == 1
+    assert result["request"]["seed"] is None
+    assert result["completion"]["request_parameters"] == [
+        "max_completion_tokens",
+        "messages",
+        "model",
+        "reasoning_effort",
+        "response_format",
+    ]
+    assert result["completion"]["parameter_dispatch"] == {
+        "reasoning": "explicit_supported",
+        "response_format": "explicit_supported",
+        "seed": "omitted_unsupported",
+        "temperature": "omitted_unsupported",
+        "top_p": "omitted_unsupported",
+    }
+    assert result["checks"]["parameter_dispatch_exact"] is True
+    assert result["checks"]["explicit_parameters_dispatched"] is True
+    assert result["checks"]["unsupported_parameters_omitted"] is True
+    verify_provider_interface_receipt(result)
+
+
+def test_v2_interface_checks_fail_closed_on_wire_and_receipt_drift() -> None:
+    contract = load_pilot_contract(V2_CONTRACT_PATH)
+    profile = contract.provider_profiles["gpt52_main"]
+    provider = _FixtureProvider(profile)
+    completion = provider.get_structured_completion(
+        [{"role": "user", "content": "fixture"}],
+        max_retries=1,
+        seed=None,
+    )
+    baseline = _interface_checks(
+        completion,
+        profile,
+        strict_json_valid=True,
+    )
+    assert all(baseline.values())
+
+    leaked_unsupported = replace(
+        completion,
+        request_parameters=tuple(
+            sorted((*completion.request_parameters, "top_p"))
+        ),
+    )
+    leaked_checks = _interface_checks(
+        leaked_unsupported,
+        profile,
+        strict_json_valid=True,
+    )
+    assert leaked_checks["request_parameters_exact"] is False
+    assert leaked_checks["unsupported_parameters_omitted"] is False
+    assert leaked_checks["parameter_dispatch_exact"] is True
+
+    forged_omission_receipt = replace(
+        completion,
+        parameter_dispatch=tuple(
+            (
+                field,
+                "explicit_supported" if field == "seed" else status,
+            )
+            for field, status in completion.parameter_dispatch
+        ),
+    )
+    forged_checks = _interface_checks(
+        forged_omission_receipt,
+        profile,
+        strict_json_valid=True,
+    )
+    assert forged_checks["request_parameters_exact"] is True
+    assert forged_checks["parameter_dispatch_exact"] is False
+    assert forged_checks["unsupported_parameters_omitted"] is False
+
+    missing_explicit_wire = replace(
+        completion,
+        request_parameters=tuple(
+            field
+            for field in completion.request_parameters
+            if field != "response_format"
+        ),
+    )
+    missing_wire_checks = _interface_checks(
+        missing_explicit_wire,
+        profile,
+        strict_json_valid=True,
+    )
+    assert missing_wire_checks["request_parameters_exact"] is False
+    assert missing_wire_checks["explicit_parameters_dispatched"] is False
+
+    forged_explicit_receipt = replace(
+        completion,
+        parameter_dispatch=tuple(
+            (
+                field,
+                "omitted_unsupported"
+                if field == "response_format"
+                else status,
+            )
+            for field, status in completion.parameter_dispatch
+        ),
+    )
+    forged_explicit_checks = _interface_checks(
+        forged_explicit_receipt,
+        profile,
+        strict_json_valid=True,
+    )
+    assert forged_explicit_checks["request_parameters_exact"] is True
+    assert forged_explicit_checks["parameter_dispatch_exact"] is False
+    assert forged_explicit_checks["explicit_parameters_dispatched"] is False
+
+
+def test_v2_request_shapes_cover_openrouter_and_ollama_nested_fields() -> None:
+    contract = load_pilot_contract(V2_CONTRACT_PATH)
+    gemini = contract.provider_profiles["gemini35_flash_diagnostic"]
+    llama4 = contract.provider_profiles["llama4_maverick_diagnostic"]
+    local = contract.provider_profiles["llama33_local_controlled"]
+
+    assert _expected_request_parameters(gemini) == (
+        "extra_body",
+        "max_tokens",
+        "messages",
+        "model",
+        "response_format",
+        "seed",
+        "temperature",
+        "top_p",
+    )
+    assert _expected_request_parameters(llama4) == (
+        "extra_body",
+        "max_tokens",
+        "messages",
+        "model",
+        "response_format",
+        "seed",
+        "temperature",
+        "top_p",
+    )
+    assert dict(_expected_parameter_dispatch(llama4))["reasoning"] == (
+        "omitted_unsupported"
+    )
+    assert _expected_request_parameters(local) == (
+        "format",
+        "messages",
+        "model",
+        "options",
+        "stream",
+    )
+    assert dict(_expected_parameter_dispatch(local)) == {
+        "reasoning": "omitted_unsupported",
+        "response_format": "explicit_supported",
+        "seed": "explicit_supported",
+        "temperature": "explicit_supported",
+        "top_p": "explicit_supported",
+    }
+
+
+def test_v1_request_expectation_remains_strict_and_receipt_neutral() -> None:
+    profile = load_pilot_contract(CONTRACT_PATH).provider_profiles["gpt52_main"]
+    completion = _FixtureProvider(profile).get_structured_completion(
+        [{"role": "user", "content": "fixture"}],
+        max_retries=1,
+        seed=2010922376,
+    )
+
+    assert _expected_request_parameters(profile) == (
+        "max_completion_tokens",
+        "messages",
+        "model",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "top_p",
+    )
+    checks = _interface_checks(
+        completion,
+        profile,
+        strict_json_valid=True,
+    )
+    assert all(checks.values())
+    assert "parameter_dispatch_exact" not in checks
+    assert completion.parameter_dispatch == ()
 
 
 def test_output_is_confined_ignored_json_non_overwriting_and_internal_safe(

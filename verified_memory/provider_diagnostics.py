@@ -494,6 +494,63 @@ def _strict_probe_json(text: str) -> bool:
 def _expected_request_parameters(
     profile: ProviderRequestProfile,
 ) -> tuple[str, ...]:
+    # V2 freezes every potentially unsupported decoding field independently.
+    # Keep the immutable V1 request shapes below as a strict compatibility
+    # branch; a missing ``decoding_fields`` collection is the V1 discriminator.
+    if profile.decoding_fields:
+        fields = dict(profile.decoding_fields)
+
+        def dispatched(name: str) -> bool:
+            return fields[name].dispatch_mode == "explicit_supported"
+
+        if profile.transport == "openai":
+            names = {"messages", "model"}
+            names.add(
+                "max_completion_tokens"
+                if profile.requested_model.startswith(("gpt-5", "o1", "o3"))
+                else "max_tokens"
+            )
+            wire_names = {
+                "temperature": "temperature",
+                "top_p": "top_p",
+                "seed": "seed",
+                "reasoning": "reasoning_effort",
+                "response_format": "response_format",
+            }
+            names.update(
+                wire_name
+                for field, wire_name in wire_names.items()
+                if dispatched(field)
+            )
+            return tuple(sorted(names))
+        if profile.transport == "openrouter":
+            # ``extra_body`` is always present because it carries the frozen
+            # provider route.  The reasoning field itself is nested inside it;
+            # its exact disposition is attested by ``parameter_dispatch``.
+            names = {"extra_body", "max_tokens", "messages", "model"}
+            wire_names = {
+                "temperature": "temperature",
+                "top_p": "top_p",
+                "seed": "seed",
+                "response_format": "response_format",
+            }
+            names.update(
+                wire_name
+                for field, wire_name in wire_names.items()
+                if dispatched(field)
+            )
+            return tuple(sorted(names))
+        if profile.transport == "ollama":
+            # temperature/top_p/seed are nested in ``options``; ``format`` is
+            # the only decoding field represented by a top-level wire key.
+            names = {"messages", "model", "options", "stream"}
+            if dispatched("response_format"):
+                names.add("format")
+            return tuple(sorted(names))
+        raise ProviderDiagnosticError(
+            f"unsupported diagnostic transport: {profile.transport}"
+        )
+
     if profile.transport == "openai":
         names = {"messages", "model", "top_p"}
         names.add(
@@ -533,6 +590,112 @@ def _expected_request_parameters(
     )
 
 
+def _expected_parameter_dispatch(
+    profile: ProviderRequestProfile,
+) -> tuple[tuple[str, str], ...]:
+    """Return the V2 receipt status for every frozen decoding field."""
+
+    return tuple(
+        (
+            field,
+            (
+                "explicit_supported"
+                if disposition.dispatch_mode == "explicit_supported"
+                else "omitted_unsupported"
+            ),
+        )
+        for field, disposition in profile.decoding_fields
+    )
+
+
+def _expected_temperature_dispatch(
+    profile: ProviderRequestProfile,
+) -> str:
+    if profile.decoding_fields:
+        return (
+            "explicit"
+            if dict(profile.decoding_fields)["temperature"].dispatch_mode
+            == "explicit_supported"
+            else "omitted_unsupported"
+        )
+    if (
+        profile.transport == "openai"
+        and profile.requested_model.startswith(("gpt-5", "o1", "o3"))
+    ):
+        return "omitted_unsupported"
+    return "explicit"
+
+
+def _v2_parameter_disposition_checks(
+    completion: StructuredCompletion,
+    profile: ProviderRequestProfile,
+) -> dict[str, bool]:
+    """Cross-check V2 logical dispositions against wire and receipt evidence."""
+
+    declared = dict(profile.decoding_fields)
+    observed_dispatch = dict(completion.parameter_dispatch)
+    expected_dispatch = dict(_expected_parameter_dispatch(profile))
+    request_parameters = set(completion.request_parameters)
+
+    # These fields have a one-to-one top-level representation.  OpenRouter
+    # reasoning and Ollama sampling fields are nested in mandatory containers,
+    # so their presence/omission is represented by the provider's per-field
+    # ``parameter_dispatch`` receipt instead.
+    direct_wire_names: dict[str, str] = {}
+    if profile.transport == "openai":
+        direct_wire_names = {
+            "temperature": "temperature",
+            "top_p": "top_p",
+            "seed": "seed",
+            "reasoning": "reasoning_effort",
+            "response_format": "response_format",
+        }
+    elif profile.transport == "openrouter":
+        direct_wire_names = {
+            "temperature": "temperature",
+            "top_p": "top_p",
+            "seed": "seed",
+            "response_format": "response_format",
+        }
+    elif profile.transport == "ollama":
+        direct_wire_names = {"response_format": "format"}
+
+    explicit_receipts = all(
+        observed_dispatch.get(field) == "explicit_supported"
+        for field, disposition in declared.items()
+        if disposition.dispatch_mode == "explicit_supported"
+    )
+    omitted_receipts = all(
+        observed_dispatch.get(field) == "omitted_unsupported"
+        for field, disposition in declared.items()
+        if disposition.dispatch_mode == "documented_unsupported_omitted"
+    )
+    explicit_wire = all(
+        wire_name in request_parameters
+        for field, wire_name in direct_wire_names.items()
+        if declared[field].dispatch_mode == "explicit_supported"
+    )
+    omitted_wire = all(
+        wire_name not in request_parameters
+        for field, wire_name in direct_wire_names.items()
+        if declared[field].dispatch_mode
+        == "documented_unsupported_omitted"
+    )
+    return {
+        "parameter_dispatch_exact": (
+            completion.parameter_dispatch
+            == _expected_parameter_dispatch(profile)
+            and observed_dispatch == expected_dispatch
+        ),
+        "explicit_parameters_dispatched": (
+            explicit_receipts and explicit_wire
+        ),
+        "unsupported_parameters_omitted": (
+            omitted_receipts and omitted_wire
+        ),
+    }
+
+
 def _interface_checks(
     completion: StructuredCompletion,
     profile: ProviderRequestProfile,
@@ -560,6 +723,10 @@ def _interface_checks(
             == _expected_request_parameters(profile)
         ),
     }
+    if profile.decoding_fields:
+        checks.update(
+            _v2_parameter_disposition_checks(completion, profile)
+        )
     if profile.transport == "openrouter":
         checks.update(
             {
@@ -574,7 +741,8 @@ def _interface_checks(
                     == dict(profile.artifact_identity).get("served_snapshot")
                 ),
                 "temperature_dispatch_exact": (
-                    completion.temperature_dispatch == "explicit"
+                    completion.temperature_dispatch
+                    == _expected_temperature_dispatch(profile)
                 ),
             }
         )
@@ -587,13 +755,7 @@ def _interface_checks(
                 "route_snapshot_exact": completion.response_route == "direct",
                 "temperature_dispatch_exact": (
                     completion.temperature_dispatch
-                    == (
-                        "omitted_unsupported"
-                        if profile.requested_model.startswith(
-                            ("gpt-5", "o1", "o3")
-                        )
-                        else "explicit"
-                    )
+                    == _expected_temperature_dispatch(profile)
                 ),
             }
         )
@@ -604,10 +766,24 @@ def _interface_checks(
                     completion.response_provider == "local-ollama"
                 ),
                 "route_snapshot_exact": completion.response_route == "local",
-                "json_format_dispatched": "format"
-                in completion.request_parameters,
+                "json_format_dispatched": (
+                    (
+                        "format" in completion.request_parameters
+                    )
+                    if not profile.decoding_fields
+                    else (
+                        ("format" in completion.request_parameters)
+                        == (
+                            dict(profile.decoding_fields)[
+                                "response_format"
+                            ].dispatch_mode
+                            == "explicit_supported"
+                        )
+                    )
+                ),
                 "temperature_dispatch_exact": (
-                    completion.temperature_dispatch == "explicit"
+                    completion.temperature_dispatch
+                    == _expected_temperature_dispatch(profile)
                 ),
             }
         )
@@ -909,7 +1085,16 @@ def run_provider_interface_probe(
         ),
         force_json_object=force_json_object,
     )
-    seed = 2010922376 if profile.seed_capability != "unsupported" else None
+    if profile.decoding_fields:
+        seed = (
+            2010922376
+            if dict(profile.decoding_fields)["seed"].dispatch_mode
+            == "explicit_supported"
+            else None
+        )
+    else:
+        # Immutable V1 compatibility uses the historical coarse capability.
+        seed = 2010922376 if profile.seed_capability != "unsupported" else None
 
     provider = None
     provider_constructed = False

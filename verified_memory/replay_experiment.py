@@ -371,6 +371,10 @@ def run_paired_replay(
                 "response_model": result.response_model,
                 "cached_prompt_tokens": result.cached_prompt_tokens,
                 "reasoning_tokens": result.reasoning_tokens,
+                "visible_completion_tokens": max(
+                    0,
+                    result.usage.completion_tokens - result.reasoning_tokens,
+                ),
                 "response_provider": result.response_provider,
                 "response_route": result.response_route,
                 "request_profile_id": result.request_profile_id,
@@ -394,6 +398,7 @@ def run_paired_replay(
                 "route_attestation_source": result.route_attestation_source,
                 "request_parameters": list(result.request_parameters),
                 "temperature_dispatch": result.temperature_dispatch,
+                "parameter_dispatch": dict(result.parameter_dispatch),
                 "output_disposition": result.output_disposition,
                 "raw_output_bytes": len(result.text.encode("utf-8")),
             },

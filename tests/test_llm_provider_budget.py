@@ -16,12 +16,37 @@ from llm_providers import (
     OpenAIProvider,
     ProviderErrorDetails,
     StructuredCompletion,
+    _usage_record,
 )
 from verified_memory.budget import BudgetExceeded, BudgetLimits, RunBudget, UsageRecord
 
 
 def dialog(index: int):
     return [{"role": "user", "content": str(index)}]
+
+
+def test_usage_cost_never_falls_below_frozen_token_price_estimate() -> None:
+    costs = {
+        "prompt": 0.01,
+        "cached_prompt": 0.005,
+        "completion": 0.02,
+    }
+
+    underreported = _usage_record(
+        1000,
+        1000,
+        costs,
+        reported_cost=0.0,
+    )
+    higher_reported = _usage_record(
+        1000,
+        1000,
+        costs,
+        reported_cost=0.04,
+    )
+
+    assert underreported.cost_usd == pytest.approx(0.03)
+    assert higher_reported.cost_usd == pytest.approx(0.04)
 
 
 def _openai_provider_raising(exc: Exception) -> OpenAIProvider:
@@ -270,7 +295,7 @@ def test_actual_batch_cost_overage_raises_after_all_calls_are_accounted() -> Non
     llm = MultiModelLLM(provider, num_workers=2)
     budget = RunBudget(BudgetLimits(max_calls=2, max_cost_usd=0.30))
 
-    with pytest.raises(BudgetExceeded):
+    with pytest.raises(BudgetExceeded) as caught:
         llm.get_multiple_structured_completions(
             [dialog(0), dialog(1)],
             budget=budget,
@@ -282,6 +307,10 @@ def test_actual_batch_cost_overage_raises_after_all_calls_are_accounted() -> Non
     assert snapshot.completed_calls == 2
     assert snapshot.active_calls == 0
     assert snapshot.accounted_usage.cost_usd == pytest.approx(0.40)
+    assert [item.text for item in caught.value.structured_completions] == [
+        "structured-0",
+        "structured-1",
+    ]
 
 
 def test_provider_error_is_returned_as_immutable_record_and_accounted() -> None:
