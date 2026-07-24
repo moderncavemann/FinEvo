@@ -4140,6 +4140,25 @@ def _validate_v2_release_attestation(
     return checks
 
 
+def _expected_parent_budget_debit(
+    contract: PilotContract,
+) -> Mapping[str, Any] | None:
+    from .pilot_amendment import parent_budget_debit_for_contract
+    from .pilot_evaluation_amendment import (
+        parent_budget_debit_for_evaluator_amendment,
+    )
+    from .pilot_preflight_amendment import (
+        parent_budget_debit_for_preflight_amendment,
+    )
+
+    debit = parent_budget_debit_for_preflight_amendment(contract)
+    if debit is None:
+        debit = parent_budget_debit_for_evaluator_amendment(contract)
+    if debit is None:
+        debit = parent_budget_debit_for_contract(contract)
+    return None if debit is None else debit.to_dict()
+
+
 def _validate_v2_budget_hash_chain(
     contract: PilotContract,
     budget: Mapping[str, Any],
@@ -4173,11 +4192,35 @@ def _validate_v2_budget_hash_chain(
         previous = str(event_hash)
     genesis = _mapping(events[0], "V2 budget genesis")
     payload = _mapping(genesis.get("payload"), "V2 budget genesis payload")
+    expected_parent = _expected_parent_budget_debit(contract)
+    parent_valid = budget.get("parent_debit") == expected_parent
+    parent_hash = (
+        None
+        if expected_parent is None
+        else expected_parent.get("record_sha256")
+    )
+    parent_event_valid = True
+    if expected_parent is not None:
+        if len(events) < 2:
+            parent_event_valid = False
+        else:
+            parent_event = _mapping(
+                events[1],
+                "V2 budget parent debit event",
+            )
+            parent_event_valid = bool(
+                parent_event.get("event_type") == "parent_debit_imported"
+                and parent_event.get("payload")
+                == {"parent_debit": expected_parent}
+            )
     return bool(
         genesis.get("event_type") == "genesis"
         and payload.get("contract_hash") == contract.canonical_hash
         and payload.get("caps_sha256")
         == canonical_sha256(budget.get("caps"))
+        and payload.get("parent_debit_sha256") == parent_hash
+        and parent_valid
+        and parent_event_valid
     )
 
 
@@ -4453,14 +4496,31 @@ def _validated_release_controls(
             for seed in contract.seeds["sets"]["main"]
         }
         expected_budget_ids = expected_standard_ids | expected_d_ids
+        expected_parent_debit = _expected_parent_budget_debit(contract)
         totals = {
-            "cost_usd": 0.0,
-            "completions": 0,
-            "storage_bytes": 0,
+            "cost_usd": (
+                0.0
+                if expected_parent_debit is None
+                else float(expected_parent_debit["cost_usd"])
+            ),
+            "completions": (
+                0
+                if expected_parent_debit is None
+                else int(expected_parent_debit["hosted_completions"])
+            ),
+            "storage_bytes": (
+                0
+                if expected_parent_debit is None
+                else int(expected_parent_debit["storage_bytes"])
+            ),
         }
         by_stage = {
             str(stage): 0.0 for stage in expected_caps["stage_usd_caps"]
         }
+        if expected_parent_debit is not None:
+            by_stage[str(expected_parent_debit["stage_bucket"])] = float(
+                expected_parent_debit["cost_usd"]
+            )
         # A capability, projection, integrity, or budget no-go can terminalize
         # registered ITT cells before a provider reservation exists.  The
         # durable budget ledger must therefore be an exact, finalized account
@@ -4559,6 +4619,11 @@ def _validated_release_controls(
                 _validate_v2_budget_hash_chain(contract, budget)
                 if _is_v2_contract(contract)
                 else True
+            ),
+            "parent_debit_exact": (
+                budget.get("parent_debit") == expected_parent_debit
+                if _is_v2_contract(contract)
+                else expected_parent_debit is None
             ),
             "exact_frozen_caps": dict(caps) == expected_caps,
             "valid_finalized_dispatch_units": rows_valid,

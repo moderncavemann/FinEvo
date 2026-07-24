@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError
+from copy import deepcopy
+from dataclasses import FrozenInstanceError, replace
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -17,13 +18,14 @@ from verified_memory.budget import BudgetLimits, RunBudget, UsageRecord
 from verified_memory.pilot_checkpoint import config_from_dict
 from verified_memory.pilot_contract import load_pilot_contract
 from verified_memory.runner import (
-    PreflightP95Reservation,
+    ObservedPreflightP95Reservation,
     ShockEvent,
     VerifiedRunConfig,
     VerifiedRunError,
     _provider_row,
     preflight_p95_reservation_for_call,
     run_verified_experiment,
+    serialized_has_sealed_observed_p95_authority,
 )
 
 
@@ -60,6 +62,8 @@ def _scientific_config(
     reservations: dict | None,
     episode_length: int = 1,
     semantic_after: int = 3,
+    pilot_contract_hash: str = "a" * 64,
+    pilot_tag: str = "pilot-v1",
 ) -> VerifiedRunConfig:
     return VerifiedRunConfig(
         run_id="strict-p95",
@@ -75,10 +79,10 @@ def _scientific_config(
             for decision_t in range(episode_length)
         ),
         scientific_scope="preregistered_mechanism_micro_pilot",
-        pilot_contract_hash="a" * 64,
-        pilot_tag="pilot-v1",
+        pilot_contract_hash=pilot_contract_hash,
+        pilot_tag=pilot_tag,
         allow_scientific_scope=True,
-        preflight_p95_reservations=reservations or {},
+        preflight_p95_reservations=(reservations or {}),
     )
 
 
@@ -136,20 +140,32 @@ def test_bounded_hosted_unknown_model_also_cannot_reserve_zero_cost() -> None:
 
 
 def test_missing_semantic_p95_refuses_entire_scientific_run_before_action_dispatch(
+    observed_p95_source_chain,
+    monkeypatch,
 ) -> None:
-    provider = _NeverDispatchProvider("hosted/frozen-model")
+    case = observed_p95_source_chain
+    model = next(iter(case.reservations))
+    provider = _NeverDispatchProvider(model)
+    monkeypatch.setattr(
+        "verified_memory.runner._verify_local_release_identity",
+        lambda **kwargs: None,
+    )
     config = _scientific_config(
-        model=provider.model_name,
+        model=model,
         episode_length=3,
         semantic_after=3,
         reservations={
-            provider.model_name: {
-                "action": _p95_entry(),
+            model: {
+                "action": deepcopy(
+                    case.reservations[model]["action"]
+                ),
             }
         },
+        pilot_contract_hash=case.contract.canonical_hash,
+        pilot_tag=case.paid.git_tag,
     )
 
-    with pytest.raises(VerifiedRunError, match=r"frozen-model::semantic"):
+    with pytest.raises(VerifiedRunError, match=rf"{model}::semantic"):
         run_verified_experiment(
             config,
             llm=MultiModelLLM(provider),
@@ -160,15 +176,144 @@ def test_missing_semantic_p95_refuses_entire_scientific_run_before_action_dispat
     assert provider.calls == 0
 
 
-def test_p95_mapping_is_immutable_exact_and_checkpoint_serializable() -> None:
-    model = "hosted/frozen-model"
+def test_p95_mapping_is_immutable_exact_and_checkpoint_serializable(
+    observed_p95_source_chain,
+    monkeypatch,
+) -> None:
+    case = observed_p95_source_chain
+    model = next(iter(case.reservations))
+    with pytest.raises(
+        ValueError,
+        match=(
+            "local release|annotated release tag|release commit|"
+            "clean worktree"
+        ),
+    ):
+        _scientific_config(
+            model=model,
+            reservations=deepcopy(case.reservations),
+            pilot_contract_hash=case.contract.canonical_hash,
+            pilot_tag=case.paid.git_tag,
+        )
+
+    from verified_memory import runner as runner_module
+
+    captured_git_call: dict = {}
+
+    def capture_git_call(argv, **kwargs):
+        captured_git_call["argv"] = tuple(argv)
+        captured_git_call["env"] = dict(kwargs["env"])
+        return SimpleNamespace(
+            returncode=0,
+            stdout=b"fixture-output\n",
+            stderr=b"",
+        )
+
+    with monkeypatch.context() as git_environment_patch:
+        git_environment_patch.setenv("GIT_DIR", "/tmp/foreign.git")
+        git_environment_patch.setenv(
+            "GIT_WORK_TREE",
+            "/tmp/foreign-worktree",
+        )
+        git_environment_patch.setenv(
+            "GIT_OBJECT_DIRECTORY",
+            "/tmp/foreign-objects",
+        )
+        git_environment_patch.setattr(
+            runner_module.subprocess,
+            "run",
+            capture_git_call,
+        )
+        assert runner_module._read_only_git_output(
+            ROOT,
+            "rev-parse",
+            "HEAD",
+        ) == "fixture-output"
+    assert captured_git_call["argv"][0] == "/usr/bin/git"
+    assert "GIT_DIR" not in captured_git_call["env"]
+    assert "GIT_WORK_TREE" not in captured_git_call["env"]
+    assert "GIT_OBJECT_DIRECTORY" not in captured_git_call["env"]
+    assert captured_git_call["env"]["GIT_CONFIG_GLOBAL"] == "/dev/null"
+
+    release_state = {
+        "tag_type": "tag",
+        "tag_commit": case.paid.head_commit,
+        "head_commit": case.paid.head_commit,
+        "status": "",
+    }
+    release_commands: list[tuple[str, ...]] = []
+
+    def release_git_output(_repo_root, *arguments):
+        release_commands.append(tuple(arguments))
+        if arguments[:2] == ("cat-file", "-t"):
+            return release_state["tag_type"]
+        if arguments[:2] == ("rev-parse", "--verify"):
+            return (
+                release_state["head_commit"]
+                if arguments[2] == "HEAD"
+                else release_state["tag_commit"]
+            )
+        if arguments[:2] == ("status", "--porcelain=v1"):
+            assert arguments[2] == "--untracked-files=all"
+            return release_state["status"]
+        raise AssertionError(f"unexpected git arguments: {arguments!r}")
+
+    monkeypatch.setattr(
+        runner_module,
+        "_read_only_git_output",
+        release_git_output,
+    )
+    runner_module._verify_local_release_identity(
+        repo_root=ROOT,
+        pilot_tag=case.paid.git_tag,
+        source_release_commit=case.paid.head_commit,
+    )
+    assert any(
+        command[:2] == ("status", "--porcelain=v1")
+        for command in release_commands
+    )
+    release_state["tag_type"] = "commit"
+    with pytest.raises(ValueError, match="annotated release tag"):
+        runner_module._verify_local_release_identity(
+            repo_root=ROOT,
+            pilot_tag=case.paid.git_tag,
+            source_release_commit=case.paid.head_commit,
+        )
+    release_state["tag_type"] = "tag"
+    release_state["head_commit"] = "2" * 40
+    with pytest.raises(ValueError, match="release commit differs"):
+        runner_module._verify_local_release_identity(
+            repo_root=ROOT,
+            pilot_tag=case.paid.git_tag,
+            source_release_commit=case.paid.head_commit,
+        )
+    release_state["head_commit"] = case.paid.head_commit
+    release_state["status"] = "?? untracked-source.py"
+    with pytest.raises(ValueError, match="clean worktree"):
+        runner_module._verify_local_release_identity(
+            repo_root=ROOT,
+            pilot_tag=case.paid.git_tag,
+            source_release_commit=case.paid.head_commit,
+        )
+
+    release_checks: list[dict] = []
+
+    def accept_fixture_release(**kwargs):
+        assert kwargs["repo_root"] == ROOT
+        assert kwargs["pilot_tag"] == case.paid.git_tag
+        if kwargs["source_release_commit"] != case.paid.head_commit:
+            raise ValueError("fixture release commit mismatch")
+        release_checks.append(dict(kwargs))
+
+    monkeypatch.setattr(
+        "verified_memory.runner._verify_local_release_identity",
+        accept_fixture_release,
+    )
     config = _scientific_config(
         model=model,
-        reservations={
-            model: {
-                "action": _p95_entry(),
-            }
-        },
+        reservations=deepcopy(case.reservations),
+        pilot_contract_hash=case.contract.canonical_hash,
+        pilot_tag=case.paid.git_tag,
     )
 
     usage = preflight_p95_reservation_for_call(
@@ -176,21 +321,136 @@ def test_p95_mapping_is_immutable_exact_and_checkpoint_serializable() -> None:
         provider_model_name=model,
         call_kind="action",
     )
-    assert usage == UsageRecord(10, 5, 0.025)
+    expected_usage = case.reservations[model]["action"][
+        "reservation"
+    ]["reserved_p95"]
+    assert usage == UsageRecord(
+        prompt_tokens=expected_usage["prompt_tokens"],
+        completion_tokens=expected_usage["completion_tokens"],
+        cost_usd=expected_usage["cost_usd"],
+    )
     assert isinstance(config.preflight_p95_reservations, tuple)
     assert isinstance(
         config.preflight_p95_reservations[0],
-        PreflightP95Reservation,
+        ObservedPreflightP95Reservation,
     )
     with pytest.raises(FrozenInstanceError):
-        config.preflight_p95_reservations[0].sample_count = 99
+        config.preflight_p95_reservations[0].reservation.sample_count = 99
 
     payload = config.to_dict()
-    assert payload["preflight_p95_reservations"][model]["action"] == _p95_entry()
+    assert payload["preflight_p95_reservations"] == case.reservations
     assert json.loads(json.dumps(payload)) == payload
     restored = config_from_dict(payload)
     assert restored.preflight_p95_reservations == config.preflight_p95_reservations
     assert restored.to_dict() == payload
+    assert release_checks
+
+    with pytest.raises(
+        ValueError,
+        match="requires sealed closed-loop observed authority",
+    ):
+        replace(
+            config,
+            preflight_p95_reservations={
+                model: {"action": _p95_entry()}
+            },
+        )
+
+    forged = deepcopy(case.reservations)
+    for entry in forged[model].values():
+        entry["authority"].update(
+            {
+                "source_authority_receipt_path": (
+                    "experiment_results/forged/receipt.json"
+                ),
+                "source_authority_receipt_file_sha256": "0" * 64,
+                "source_authority_receipt_content_sha256": "1" * 64,
+                "source_release_commit": "2" * 40,
+            }
+        )
+    forged_provider = _NeverDispatchProvider(model)
+    with pytest.raises(
+        ValueError,
+        match="receipt|authority|release commit|source",
+    ):
+        _scientific_config(
+            model=model,
+            reservations=forged,
+            pilot_contract_hash=case.contract.canonical_hash,
+            pilot_tag=case.paid.git_tag,
+        )
+    assert forged_provider.calls == 0
+
+    source_mutators = {
+        "receipt-delete": lambda path: path.unlink(),
+        "receipt-tamper": lambda path: path.write_bytes(
+            path.read_bytes() + b" "
+        ),
+        "projection-tamper": lambda path: path.write_bytes(
+            path.read_bytes().replace(b'"sample_count": 36', b'"sample_count": 35', 1)
+        ),
+        "journal-tamper": lambda path: path.write_bytes(
+            path.read_bytes().replace(
+                b'"event_type": "completion_received"',
+                b'"event_type": "completion_rejected"',
+                1,
+            )
+        ),
+        "checkpoint-tamper": lambda path: path.write_bytes(
+            path.read_bytes().replace(
+                case.checkpoint.checkpoint_hash.encode("ascii"),
+                ("0" * 64).encode("ascii"),
+                1,
+            )
+        ),
+    }
+    source_names = {
+        "receipt-delete": "receipt",
+        "receipt-tamper": "receipt",
+        "projection-tamper": "projection",
+        "journal-tamper": "provider_call_journal",
+        "checkpoint-tamper": "checkpoint",
+    }
+    for attack, mutate in source_mutators.items():
+        source = case.source_paths[source_names[attack]]
+        mutate(source)
+        try:
+            assert (
+                serialized_has_sealed_observed_p95_authority(payload)
+                is False
+            )
+            with pytest.raises(
+                (ValueError, VerifiedRunError),
+                match=(
+                    "receipt|source|projection|journal|checkpoint|"
+                    "authority|missing"
+                ),
+            ):
+                config_from_dict(payload)
+
+            provider = _NeverDispatchProvider(model)
+            budget = RunBudget(
+                BudgetLimits(max_calls=20, max_cost_usd=1.0)
+            )
+            with pytest.raises(
+                VerifiedRunError,
+                match=(
+                    "receipt|source|projection|journal|checkpoint|"
+                    "authority|missing"
+                ),
+            ):
+                run_verified_experiment(
+                    config,
+                    llm=MultiModelLLM(provider),
+                    budget=budget,
+                    env_config_source=ROOT / "config.yaml",
+                )
+            assert provider.calls == 0
+            assert budget.snapshot().completed_calls == 0
+            assert budget.snapshot().active_calls == 0
+        finally:
+            case.restore_sources()
+        assert serialized_has_sealed_observed_p95_authority(payload) is True
 
 
 def test_malformed_or_zero_hosted_p95_never_becomes_a_dispatch_reservation() -> None:
@@ -198,16 +458,20 @@ def test_malformed_or_zero_hosted_p95_never_becomes_a_dispatch_reservation() -> 
     malformed = _p95_entry()
     malformed["reserved_p95"]["cost_usd"] = 0.0
     with pytest.raises(ValueError, match=r"raw_p95 \* 1.25"):
-        _scientific_config(
-            model=model,
-            reservations={model: {"action": malformed}},
+        VerifiedRunConfig(
+            run_id="bounded-malformed-p95",
+            preflight_p95_reservations={
+                model: {"action": malformed}
+            },
         )
 
     zero = _p95_entry(raw_cost=0.0)
     zero["reserved_p95"]["cost_usd"] = 0.0
-    config = _scientific_config(
-        model=model,
-        reservations={model: {"action": zero}},
+    config = VerifiedRunConfig(
+        run_id="bounded-zero-p95",
+        preflight_p95_reservations={
+            model: {"action": zero}
+        },
     )
     with pytest.raises(VerifiedRunError, match="positive cost"):
         preflight_p95_reservation_for_call(

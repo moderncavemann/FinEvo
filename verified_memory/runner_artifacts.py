@@ -53,6 +53,7 @@ from .runner import (
     SHOCK_EVENT_SCHEMA_VERSION,
     VerifiedRunResult,
     _semantic_parse_mode,
+    serialized_has_sealed_observed_p95_authority,
 )
 from .system import SYSTEM_SCHEMA_VERSION
 
@@ -2477,6 +2478,8 @@ def _validate_current_utility_and_result_contract(
         and config.get("allow_scientific_scope") is True
         and config.get("pilot_contract_hash")
         and config.get("pilot_tag")
+        and config.get("preflight_measurement_role") is None
+        and serialized_has_sealed_observed_p95_authority(config)
     )
     expected_validation = {
         "status": "pass" if all(expected_checks.values()) else "fail",
@@ -2494,7 +2497,11 @@ def _validate_current_utility_and_result_contract(
         or summary.get("scientific_evidence") is not scientific_evidence
         or summary.get("result_scope")
         != (
-            config.get("scientific_scope")
+            (
+                "preregistered_capability_preflight"
+                if config.get("preflight_measurement_role") is not None
+                else config.get("scientific_scope")
+            )
             if config.get("schema_version") == RUNNER_SCHEMA_VERSION
             else "bounded_method_smoke"
         )

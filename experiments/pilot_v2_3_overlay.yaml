@@ -1,0 +1,162 @@
+{
+  "base_contract": {
+    "canonical_sha256": "72f9a4f7b687e6711d54d1bed45350963b2039e79565fffb39b03b8c6c66b493",
+    "contract_id": "finevo-pilot-v2.2",
+    "path": "pilot_v2_2.yaml",
+    "schema_version": "finevo-pilot-contract-v2"
+  },
+  "changes": {
+    "denominator_policy": {
+      "policy_id": "finevo-pilot-v2.3-itt"
+    },
+    "implementation": {
+      "required_git_tag": "pilot-v2.3-science"
+    },
+    "release_requirements": {
+      "expected_ci": {
+        "compiled_source_count": 149,
+        "compiled_source_inventory_sha256": "aacae36e803d9daacf20ea4187fc2e2a18aec9e832e9ee7fa0378cbe59658e12",
+        "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
+        "test_collection_sha256": "e0d300514990bbabc69f2203ccd5103fd7fb61c47dae006cf679e7308df55068",
+        "test_count": 771
+      },
+      "tag": "pilot-v2.3-science"
+    }
+  },
+  "contract_id": "finevo-pilot-v2.3",
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "declared_sha256": "c236f0120e6244024292f18706ccac0e8dab645c4f9cb25aad3940a1a43e73c1"
+  },
+  "preflight_bootstrap_amendment": {
+    "amendment_id": "finevo-pilot-v2.3-closed-loop-preflight-bootstrap-1",
+    "bootstrap_policy": {
+      "allowed_execution_mode": "closed_loop_preflight",
+      "applies_to_all_registered_closed_loop_preflights": true,
+      "missing_or_malformed_source_policy": "stop-before-dispatch",
+      "normal_scientific_dispatch_policy_unchanged": true,
+      "normal_scientific_dispatch_reservation_source": "sealed-closed-loop-preflight-projection-only",
+      "p95_method": "nearest-rank-with-observed-maximum-floor",
+      "required_sample_counts": {
+        "action": 24,
+        "semantic": 6
+      },
+      "target_dispatch_call_counts": {
+        "action": 12,
+        "semantic": 4
+      },
+      "reserve_multiplier": 1.25,
+      "runtime_model_prefix_required": true,
+      "same_model_validated_capability_source_required": true,
+      "source": "validated-capability-usage-projection-rows",
+      "source_output_contract_map": {
+        "actor-action": "action",
+        "semantic-proposal": "semantic"
+      },
+      "unknown_price_policy": "stop-before-dispatch"
+    },
+    "budget_carry_forward": {
+      "cost_usd": 1.53775475,
+      "hosted_completions": 60,
+      "source_contract_id": "finevo-pilot-v2.2",
+      "source_contract_sha256": "72f9a4f7b687e6711d54d1bed45350963b2039e79565fffb39b03b8c6c66b493",
+      "source_stage_bucket": "capability",
+      "storage_bytes": 751437
+    },
+    "defect": {
+      "affected_path": "verified_memory.pilot_orchestrator._preflight_config",
+      "code": "closed-loop-preflight-p95-bootstrap-cycle",
+      "failure_before_first_provider_dispatch": true,
+      "guard_path": "verified_memory.runner.validate_preflight_p95_reservations",
+      "missing_bootstrap_source": "capability usage rows",
+      "model_output_failure": false,
+      "provider_key_failure": false,
+      "required_observation": "closed-loop model-by-call-kind p95",
+      "scientific_effect_outcomes_available": false
+    },
+    "failure_audits": [
+      {
+        "completed_provider_calls": 0,
+        "completion_tokens": 0,
+        "cost_usd": 0.0,
+        "error_message": "scientific dispatch lacks an exact observed+25% preflight p95 reservation for openai/gpt-5.2-2025-12-11::action",
+        "error_type": "VerifiedRunError",
+        "failure_artifact_storage_bytes": 17663,
+        "failure_manifest_file_sha256": "c9cbef1ef06afa3e731cb25f7371ba7227a78feeef94acc8cc111a0850b5e63e",
+        "failure_payload_sha256": "6a1566b8e9db8f9ac10e8875ba09b070f15a64b910890ee9a75c05bc2f3d70b9",
+        "failure_payload_size_bytes": 17370,
+        "model_id": "gpt52_main",
+        "partial_streams_persisted": false,
+        "prompt_tokens": 0,
+        "provider_transport": "openai",
+        "run_id": "finevo-pilot-v2.2--closed-loop-preflight--gpt52_main--closed-loop-preflight--none--provider-preflight-default--s2010922376"
+      },
+      {
+        "completed_provider_calls": 0,
+        "completion_tokens": 0,
+        "cost_usd": 0.0,
+        "error_message": "scientific dispatch lacks an exact observed+25% preflight p95 reservation for ollama/llama3.3:70b-instruct-q4_K_M::action",
+        "error_type": "VerifiedRunError",
+        "failure_artifact_storage_bytes": 17914,
+        "failure_manifest_file_sha256": "e8296a010529aa28e2440fb5f18a474d7cd6bd7963aecbd00fc4d7270b390a7d",
+        "failure_payload_sha256": "efad5d73e6c23cf097dc7a0db8da022d8a4a37d6b9627cecce3beceee05eff6a",
+        "failure_payload_size_bytes": 17621,
+        "model_id": "llama33_local_controlled",
+        "partial_streams_persisted": false,
+        "prompt_tokens": 0,
+        "provider_transport": "ollama",
+        "run_id": "finevo-pilot-v2.2--closed-loop-preflight--llama33_local_controlled--closed-loop-preflight--none--provider-preflight-default--s2010922376"
+      }
+    ],
+    "limitations": [
+      "Only the two zero-dispatch V2.2 primary preflight cells are operational retries; the same bootstrap mechanism applies to every registered V2.3 closed-loop preflight after its same-model capability source passes. No science arms, seeds, shocks, utility candidates, or stop/go thresholds change.",
+      "Capability observations bootstrap the measurement run only; all later scientific calls still require the sealed closed-loop observed-plus-25-percent projection.",
+      "The immutable V2.2 no-go remains an implementation failure receipt and is not reclassified as model or scientific evidence."
+    ],
+    "parent": {
+      "budget_ledger_event_count": 6,
+      "budget_ledger_event_head": "cfdf85abc6b843ab775ff06bbce4afa2c26a3af2f02f97a4bddc3f0693dbf8a8",
+      "budget_ledger_file_sha256": "0ca717fd2dea5d5292a372434e94ee850542274d32f951b5a71cf5bb8ff2b388",
+      "budget_ledger_internal_sha256": "021d451e5b06a893d466848fd6313555dc24c13269376de06e398ff47b3bd998",
+      "capability_stage_receipt_content_sha256": "f96a514b481e861a5102d5bd7af8e839d2e1eab70a436c92fcd32c57de8d7180",
+      "capability_stage_receipt_file_sha256": "6eae7ea2132e5a332defec22db56ee78a2718964967e591ea6f566e120aef72e",
+      "contract_id": "finevo-pilot-v2.2",
+      "contract_sha256": "72f9a4f7b687e6711d54d1bed45350963b2039e79565fffb39b03b8c6c66b493",
+      "launch_input_file_sha256": "c5c184e98e2745a418784b7245447044e169bd7bf5627c9baf4c58ae9fe99487",
+      "launch_input_sha256": "ad49daca5cf3b087c18cd7693a0eb9f9f21cff7ac7949758e7bc849f9d9eb529",
+      "preflight_stage_receipt_content_sha256": "c6b4a899a85f7e0edff3221df6a62d8884961955e5321aad8394b4273d5119e3",
+      "preflight_stage_receipt_file_sha256": "d38829ebf569c7af5fb7ec8157fd9375bcb4300db873ed3d428edcc85723a411",
+      "release_attestation_file_sha256": "700e3acf33aadae8c21da78751be63cffb277d75402fb1da8cd14ebac5032498",
+      "release_attestation_sha256": "cfc544ab6cf3c22824f23b60d62b25a2ac5447c5af800f51a5376ef287d42ffd",
+      "release_commit": "25bca84ab7e50a5bfbd48646fa954b73c8f0e2b4",
+      "release_tag": "pilot-v2.2-science",
+      "run_ledger_event_count": 151,
+      "run_ledger_event_head": "ca077ef0bbcacdb75e238abf9e166c8382351e2661597c19aec1cf5de8787b2e",
+      "run_ledger_file_sha256": "8667a0de51f6281fb51bd3087f5256f912209ca07857aea524d249952e5bf3fb",
+      "run_ledger_internal_sha256": "19c89a56e6b2317bf97eccd631a472fd2772fd37deede0117d2723b827ed9d42"
+    },
+    "retry_policy": {
+      "capability_import_reused": true,
+      "eligible_model_ids": [
+        "gpt52_main",
+        "llama33_local_controlled"
+      ],
+      "eligible_stage_ids": [
+        "closed-loop-preflight"
+      ],
+      "failed_seed_replacement": "forbidden",
+      "implementation_failure_inspected": true,
+      "model_outputs_inspected": false,
+      "parent_actual_cost_usd": 0.0,
+      "preserve_parent_denominator": true,
+      "provider_calls_in_parent_attempt": 0,
+      "provider_redispatch": "allowed-once-after-zero-dispatch-parent",
+      "retry_is_operational_amendment": true,
+      "same_environment_seed_required": 2010922376,
+      "scientific_effect_outcomes_inspected": false
+    },
+    "schema_version": "finevo-pilot-preflight-bootstrap-amendment-v1"
+  },
+  "schema_version": "finevo-pilot-contract-v2.3-preflight-bootstrap-overlay-v1",
+  "status": "frozen"
+}
