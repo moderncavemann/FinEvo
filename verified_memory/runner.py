@@ -13,10 +13,11 @@ import hashlib
 import json
 import math
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import random
 import re
 from statistics import mean
+import subprocess
 from typing import Any, Mapping, Optional, Sequence
 
 import numpy as np
@@ -66,6 +67,9 @@ SCIENTIFIC_SCOPES = frozenset(
 )
 PREFLIGHT_P95_CALL_KINDS = frozenset({"action", "semantic"})
 PREFLIGHT_P95_RESERVE_MULTIPLIER = 1.25
+OBSERVED_P95_AUTHORITY_ID = "finevo-closed-loop-observed-p95-v1"
+OBSERVED_P95_SOURCE_KIND = "sealed-closed-loop-observed-p95"
+OBSERVED_P95_PROJECTION_SCHEMA_VERSION = "finevo-pilot-projection-p95-v1"
 CONTEXT_FEATURES = (
     "log_price",
     "interest_rate",
@@ -316,12 +320,666 @@ class PreflightP95Reservation:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class ObservedPreflightP95Reservation:
+    """Normal scientific p95 plus its sealed closed-loop source authority."""
+
+    reservation: PreflightP95Reservation
+    authority_id: str
+    source_kind: str
+    pilot_contract_hash: str
+    pilot_tag: str
+    source_projection_schema_version: str
+    source_projection_file_sha256: str
+    source_projection_content_sha256: str
+    source_preflight_run_id: str
+    source_preflight_run_spec_sha256: str
+    source_model_id: str
+    source_served_model: str
+    source_execution_artifact_sha256: str
+    source_provider_call_journal_sha256: str
+    source_authority_receipt_path: str
+    source_authority_receipt_file_sha256: str
+    source_authority_receipt_content_sha256: str
+    source_release_commit: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.reservation, PreflightP95Reservation):
+            raise TypeError(
+                "observed p95 authority must wrap a preflight reservation"
+            )
+        if self.authority_id != OBSERVED_P95_AUTHORITY_ID:
+            raise ValueError("unsupported observed p95 authority")
+        if self.source_kind != OBSERVED_P95_SOURCE_KIND:
+            raise ValueError("normal p95 must come from a sealed closed-loop source")
+        if (
+            self.source_projection_schema_version
+            != OBSERVED_P95_PROJECTION_SCHEMA_VERSION
+        ):
+            raise ValueError("observed p95 projection schema drifted")
+        for name in (
+            "pilot_tag",
+            "source_preflight_run_id",
+            "source_model_id",
+            "source_served_model",
+        ):
+            value = getattr(self, name)
+            if (
+                not isinstance(value, str)
+                or not value.strip()
+                or value != value.strip()
+            ):
+                raise ValueError(f"{name} must be a normalized non-empty string")
+        receipt_path = self.source_authority_receipt_path
+        if not isinstance(receipt_path, str):
+            raise TypeError(
+                "source_authority_receipt_path must be a string"
+            )
+        normalized_receipt_path = PurePosixPath(receipt_path)
+        if (
+            not receipt_path
+            or "\\" in receipt_path
+            or "\x00" in receipt_path
+            or normalized_receipt_path.is_absolute()
+            or len(normalized_receipt_path.parts) < 2
+            or normalized_receipt_path.parts[0] != "experiment_results"
+            or any(
+                part in {"", ".", ".."}
+                for part in normalized_receipt_path.parts
+            )
+            or normalized_receipt_path.as_posix() != receipt_path
+        ):
+            raise ValueError(
+                "source_authority_receipt_path must be a normalized "
+                "repository-relative path below experiment_results/"
+            )
+        for name in (
+            "pilot_contract_hash",
+            "source_projection_file_sha256",
+            "source_projection_content_sha256",
+            "source_preflight_run_spec_sha256",
+            "source_execution_artifact_sha256",
+            "source_provider_call_journal_sha256",
+            "source_authority_receipt_file_sha256",
+            "source_authority_receipt_content_sha256",
+        ):
+            value = getattr(self, name)
+            if (
+                not isinstance(value, str)
+                or re.fullmatch(r"[0-9a-f]{64}", value) is None
+            ):
+                raise ValueError(f"{name} must be a lowercase SHA-256 digest")
+        if (
+            not isinstance(self.source_release_commit, str)
+            or re.fullmatch(
+                r"[0-9a-f]{40}",
+                self.source_release_commit,
+            )
+            is None
+        ):
+            raise ValueError(
+                "source_release_commit must be a lowercase 40-hex commit"
+            )
+
+    @property
+    def model(self) -> str:
+        return self.reservation.model
+
+    @property
+    def call_kind(self) -> str:
+        return self.reservation.call_kind
+
+    @property
+    def reserved_usage(self) -> UsageRecord:
+        return self.reservation.reserved_usage
+
+    @property
+    def authority_binding(self) -> tuple[str, ...]:
+        return (
+            self.authority_id,
+            self.source_kind,
+            self.pilot_contract_hash,
+            self.pilot_tag,
+            self.source_projection_schema_version,
+            self.source_projection_file_sha256,
+            self.source_projection_content_sha256,
+            self.source_preflight_run_id,
+            self.source_preflight_run_spec_sha256,
+            self.source_model_id,
+            self.source_served_model,
+            self.source_execution_artifact_sha256,
+            self.source_provider_call_journal_sha256,
+            self.source_authority_receipt_path,
+            self.source_authority_receipt_file_sha256,
+            self.source_authority_receipt_content_sha256,
+            self.source_release_commit,
+        )
+
+    @classmethod
+    def from_dict(
+        cls,
+        *,
+        model: str,
+        call_kind: str,
+        value: Mapping[str, Any],
+    ) -> "ObservedPreflightP95Reservation":
+        if not isinstance(value, Mapping) or set(value) != {
+            "authority",
+            "reservation",
+        }:
+            raise ValueError(
+                "sealed observed p95 entry must contain authority and reservation"
+            )
+        authority = value["authority"]
+        expected_authority = {
+            "authority_id",
+            "source_kind",
+            "pilot_contract_hash",
+            "pilot_tag",
+            "source_projection_schema_version",
+            "source_projection_file_sha256",
+            "source_projection_content_sha256",
+            "source_preflight_run_id",
+            "source_preflight_run_spec_sha256",
+            "source_model_id",
+            "source_served_model",
+            "source_execution_artifact_sha256",
+            "source_provider_call_journal_sha256",
+            "source_authority_receipt_path",
+            "source_authority_receipt_file_sha256",
+            "source_authority_receipt_content_sha256",
+            "source_release_commit",
+        }
+        if (
+            not isinstance(authority, Mapping)
+            or set(authority) != expected_authority
+        ):
+            raise ValueError("sealed observed p95 authority fields drifted")
+        return cls(
+            reservation=PreflightP95Reservation.from_dict(
+                model=model,
+                call_kind=call_kind,
+                value=value["reservation"],
+            ),
+            **{name: str(authority[name]) for name in expected_authority},
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "authority": {
+                "authority_id": self.authority_id,
+                "source_kind": self.source_kind,
+                "pilot_contract_hash": self.pilot_contract_hash,
+                "pilot_tag": self.pilot_tag,
+                "source_projection_schema_version": (
+                    self.source_projection_schema_version
+                ),
+                "source_projection_file_sha256": (
+                    self.source_projection_file_sha256
+                ),
+                "source_projection_content_sha256": (
+                    self.source_projection_content_sha256
+                ),
+                "source_preflight_run_id": self.source_preflight_run_id,
+                "source_preflight_run_spec_sha256": (
+                    self.source_preflight_run_spec_sha256
+                ),
+                "source_model_id": self.source_model_id,
+                "source_served_model": self.source_served_model,
+                "source_execution_artifact_sha256": (
+                    self.source_execution_artifact_sha256
+                ),
+                "source_provider_call_journal_sha256": (
+                    self.source_provider_call_journal_sha256
+                ),
+                "source_authority_receipt_path": (
+                    self.source_authority_receipt_path
+                ),
+                "source_authority_receipt_file_sha256": (
+                    self.source_authority_receipt_file_sha256
+                ),
+                "source_authority_receipt_content_sha256": (
+                    self.source_authority_receipt_content_sha256
+                ),
+                "source_release_commit": self.source_release_commit,
+            },
+            "reservation": self.reservation.to_dict(),
+        }
+
+
+_OBSERVED_P95_RECEIPT_AUTHORITY_FIELDS = frozenset(
+    {
+        "source_authority_receipt_path",
+        "source_authority_receipt_file_sha256",
+        "source_authority_receipt_content_sha256",
+        "source_release_commit",
+    }
+)
+
+
+def _read_only_git_output(
+    repo_root: Path,
+    *arguments: str,
+) -> str:
+    # Never inherit repository-redirection variables from the caller.  The
+    # authority is this checked-out release tree, not an arbitrary GIT_DIR or
+    # alternate object database supplied through the environment.
+    environment = {
+        name: value
+        for name, value in os.environ.items()
+        if not name.startswith("GIT_")
+        and not name.startswith("DYLD_")
+        and name not in {"LD_LIBRARY_PATH", "LD_PRELOAD"}
+    }
+    environment.update(
+        {
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_OPTIONAL_LOCKS": "0",
+            "GIT_TERMINAL_PROMPT": "0",
+        }
+    )
+    git_binary = Path("/usr/bin/git")
+    if not git_binary.is_file():
+        raise ValueError(
+            "source-backed observed p95 requires the system git binary"
+        )
+    try:
+        completed = subprocess.run(
+            (str(git_binary), *arguments),
+            cwd=repo_root,
+            env=environment,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ValueError(
+            "source-backed observed p95 local release identity is unavailable"
+        ) from exc
+    if completed.returncode != 0 or completed.stderr:
+        raise ValueError(
+            "source-backed observed p95 local release identity check failed"
+        )
+    try:
+        return completed.stdout.decode("utf-8", "strict").strip()
+    except UnicodeDecodeError as exc:
+        raise ValueError(
+            "source-backed observed p95 local release identity is not UTF-8"
+        ) from exc
+
+
+def _verify_local_release_identity(
+    *,
+    repo_root: Path,
+    pilot_tag: str,
+    source_release_commit: str,
+) -> None:
+    """Bind source authority to this clean annotated-tag checkout."""
+
+    if (
+        not isinstance(pilot_tag, str)
+        or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]*", pilot_tag) is None
+        or ".." in pilot_tag
+        or "@{" in pilot_tag
+        or pilot_tag.endswith((".", "/", ".lock"))
+    ):
+        raise ValueError(
+            "source-backed observed p95 pilot tag is not a safe ref name"
+        )
+    tag_ref = f"refs/tags/{pilot_tag}"
+    if _read_only_git_output(
+        repo_root,
+        "cat-file",
+        "-t",
+        tag_ref,
+    ) != "tag":
+        raise ValueError(
+            "source-backed observed p95 requires an annotated release tag"
+        )
+    peeled_commit = _read_only_git_output(
+        repo_root,
+        "rev-parse",
+        "--verify",
+        f"{tag_ref}^{{commit}}",
+    )
+    head_commit = _read_only_git_output(
+        repo_root,
+        "rev-parse",
+        "--verify",
+        "HEAD",
+    )
+    if (
+        peeled_commit != source_release_commit
+        or head_commit != source_release_commit
+    ):
+        raise ValueError(
+            "source-backed observed p95 release commit differs from the "
+            "annotated tag or current HEAD"
+        )
+    if _read_only_git_output(
+        repo_root,
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+    ):
+        raise ValueError(
+            "source-backed observed p95 requires a clean worktree "
+            "including untracked files"
+        )
+
+
+def _verify_source_backed_observed_p95_rows(
+    rows: Sequence[ObservedPreflightP95Reservation],
+) -> None:
+    """Rebuild each unique receipt and compare every serialized authority row.
+
+    This deliberately lives outside the reservation dataclass initializer.
+    The receipt builder imports :class:`PreflightP95Reservation` to validate
+    its numeric rows, so performing filesystem verification from the wrapper's
+    ``__post_init__`` would create a verifier recursion.
+    """
+
+    if any(
+        not isinstance(item, ObservedPreflightP95Reservation)
+        for item in rows
+    ):
+        raise ValueError(
+            "source-backed observed p95 verification requires observed rows"
+        )
+    if not rows:
+        raise ValueError(
+            "source-backed observed p95 verification requires at least one row"
+        )
+
+    grouped: dict[
+        str,
+        tuple[tuple[str, str, str], list[ObservedPreflightP95Reservation]],
+    ] = {}
+    for item in rows:
+        receipt_binding = (
+            item.source_authority_receipt_file_sha256,
+            item.source_authority_receipt_content_sha256,
+            item.source_release_commit,
+        )
+        existing = grouped.get(item.source_authority_receipt_path)
+        if existing is None:
+            grouped[item.source_authority_receipt_path] = (
+                receipt_binding,
+                [item],
+            )
+        else:
+            if existing[0] != receipt_binding:
+                raise ValueError(
+                    "source-backed observed p95 rows disagree on the "
+                    "declared receipt binding"
+                )
+            existing[1].append(item)
+
+    # Keep this import local.  The authority module imports the runner lazily
+    # while rebuilding its numeric reservation rows.
+    from .observed_p95_authority import (
+        ObservedP95AuthorityError,
+        verified_observed_p95_authority_binding,
+    )
+
+    repo_root = Path(__file__).resolve().parents[1]
+    release_bindings = {
+        (item.pilot_tag, item.source_release_commit)
+        for item in rows
+    }
+    for pilot_tag, source_release_commit in release_bindings:
+        _verify_local_release_identity(
+            repo_root=repo_root,
+            pilot_tag=pilot_tag,
+            source_release_commit=source_release_commit,
+        )
+    for receipt_path, (declared_binding, receipt_rows) in grouped.items():
+        try:
+            verified_binding = verified_observed_p95_authority_binding(
+                receipt_path,
+                repo_root=repo_root,
+                expected_git_commit=declared_binding[2],
+            )
+        except ObservedP95AuthorityError as exc:
+            raise ValueError(
+                "source-backed observed p95 receipt verification failed: "
+                f"{exc}"
+            ) from exc
+
+        expected_receipt_binding = {
+            "receipt_path": receipt_path,
+            "receipt_file_sha256": declared_binding[0],
+            "receipt_content_sha256": declared_binding[1],
+            "git_commit": declared_binding[2],
+        }
+        if (
+            not isinstance(verified_binding, Mapping)
+            or set(verified_binding)
+            != {*expected_receipt_binding, "reservations"}
+            or {
+                name: verified_binding.get(name)
+                for name in expected_receipt_binding
+            }
+            != expected_receipt_binding
+        ):
+            raise ValueError(
+                "source-backed observed p95 receipt file/content/release "
+                "binding differs from the runner authority"
+            )
+        verified_reservations = verified_binding.get("reservations")
+        if not isinstance(verified_reservations, Mapping):
+            raise ValueError(
+                "source-backed observed p95 receipt lacks verified "
+                "reservations"
+            )
+
+        for item in receipt_rows:
+            by_kind = verified_reservations.get(item.model)
+            if not isinstance(by_kind, Mapping):
+                raise ValueError(
+                    "source-backed observed p95 receipt lacks the exact "
+                    f"runner model {item.model!r}"
+                )
+            verified_entry = by_kind.get(item.call_kind)
+            if (
+                not isinstance(verified_entry, Mapping)
+                or set(verified_entry) != {"authority", "reservation"}
+            ):
+                raise ValueError(
+                    "source-backed observed p95 receipt lacks the exact "
+                    f"{item.model}::{item.call_kind} reservation"
+                )
+            serialized_authority = item.to_dict()["authority"]
+            source_authority = {
+                name: value
+                for name, value in serialized_authority.items()
+                if name not in _OBSERVED_P95_RECEIPT_AUTHORITY_FIELDS
+            }
+            if verified_entry.get("authority") != source_authority:
+                raise ValueError(
+                    "source-backed observed p95 source authority differs for "
+                    f"{item.model}::{item.call_kind}"
+                )
+            if verified_entry.get("reservation") != item.reservation.to_dict():
+                raise ValueError(
+                    "source-backed observed p95 numeric reservation differs "
+                    f"for {item.model}::{item.call_kind}"
+                )
+
+
+@dataclass(frozen=True, slots=True)
+class ContractBootstrapReservation:
+    """Capability-observed authority used only by a closed-loop preflight.
+
+    This is intentionally a different type and config field from
+    :class:`ObservedPreflightP95Reservation`.  The latter is the independently
+    sealed closed-loop output accepted by normal scientific runs.
+    """
+
+    reservation: PreflightP95Reservation
+    authority_id: str
+    pilot_contract_hash: str
+    pilot_tag: str
+    authorized_run_id: str
+    authorized_seed: int
+    authorized_config_sha256: str
+    target_run_spec_sha256: str
+    source_run_id: str
+    source_capability_file_sha256: str
+    source_group_sha256: str
+    policy_sha256: str
+    source_projection_sha256: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.reservation, PreflightP95Reservation):
+            raise TypeError(
+                "contract bootstrap reservation must wrap a preflight p95 value"
+            )
+        if self.authority_id != "finevo-capability-observed-bootstrap-v1":
+            raise ValueError("unsupported contract bootstrap authority")
+        if (
+            not isinstance(self.pilot_tag, str)
+            or not self.pilot_tag.strip()
+            or not isinstance(self.authorized_run_id, str)
+            or not self.authorized_run_id.strip()
+            or not isinstance(self.source_run_id, str)
+            or not self.source_run_id.strip()
+        ):
+            raise ValueError(
+                "contract bootstrap tag and run bindings must be non-empty"
+            )
+        if (
+            isinstance(self.authorized_seed, bool)
+            or not isinstance(self.authorized_seed, int)
+            or self.authorized_seed < 0
+        ):
+            raise ValueError(
+                "contract bootstrap authorized_seed must be nonnegative"
+            )
+        for name in (
+            "pilot_contract_hash",
+            "authorized_config_sha256",
+            "target_run_spec_sha256",
+            "source_capability_file_sha256",
+            "source_group_sha256",
+            "policy_sha256",
+            "source_projection_sha256",
+        ):
+            value = getattr(self, name)
+            if (
+                not isinstance(value, str)
+                or re.fullmatch(r"[0-9a-f]{64}", value) is None
+            ):
+                raise ValueError(f"{name} must be a lowercase SHA-256 digest")
+
+    @property
+    def model(self) -> str:
+        return self.reservation.model
+
+    @property
+    def call_kind(self) -> str:
+        return self.reservation.call_kind
+
+    @property
+    def reserved_usage(self) -> UsageRecord:
+        return self.reservation.reserved_usage
+
+    @classmethod
+    def from_dict(
+        cls,
+        *,
+        model: str,
+        call_kind: str,
+        value: Mapping[str, Any],
+    ) -> "ContractBootstrapReservation":
+        if not isinstance(value, Mapping):
+            raise TypeError("contract bootstrap entry must be a mapping")
+        if set(value) != {"authority", "reservation"}:
+            raise ValueError(
+                "contract bootstrap entry must contain authority and reservation"
+            )
+        authority = value["authority"]
+        if not isinstance(authority, Mapping) or set(authority) != {
+            "authority_id",
+            "pilot_contract_hash",
+            "pilot_tag",
+            "authorized_run_id",
+            "authorized_seed",
+            "authorized_config_sha256",
+            "target_run_spec_sha256",
+            "source_run_id",
+            "source_capability_file_sha256",
+            "source_group_sha256",
+            "policy_sha256",
+            "source_projection_sha256",
+        }:
+            raise ValueError("contract bootstrap authority fields drifted")
+        return cls(
+            reservation=PreflightP95Reservation.from_dict(
+                model=model,
+                call_kind=call_kind,
+                value=value["reservation"],
+            ),
+            authority_id=str(authority["authority_id"]),
+            pilot_contract_hash=str(authority["pilot_contract_hash"]),
+            pilot_tag=str(authority["pilot_tag"]),
+            authorized_run_id=str(authority["authorized_run_id"]),
+            authorized_seed=authority["authorized_seed"],
+            authorized_config_sha256=str(
+                authority["authorized_config_sha256"]
+            ),
+            target_run_spec_sha256=str(
+                authority["target_run_spec_sha256"]
+            ),
+            source_run_id=str(authority["source_run_id"]),
+            source_capability_file_sha256=str(
+                authority["source_capability_file_sha256"]
+            ),
+            source_group_sha256=str(authority["source_group_sha256"]),
+            policy_sha256=str(authority["policy_sha256"]),
+            source_projection_sha256=str(
+                authority["source_projection_sha256"]
+            ),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "authority": {
+                "authority_id": self.authority_id,
+                "pilot_contract_hash": self.pilot_contract_hash,
+                "pilot_tag": self.pilot_tag,
+                "authorized_run_id": self.authorized_run_id,
+                "authorized_seed": self.authorized_seed,
+                "authorized_config_sha256": (
+                    self.authorized_config_sha256
+                ),
+                "target_run_spec_sha256": self.target_run_spec_sha256,
+                "source_run_id": self.source_run_id,
+                "source_capability_file_sha256": (
+                    self.source_capability_file_sha256
+                ),
+                "source_group_sha256": self.source_group_sha256,
+                "policy_sha256": self.policy_sha256,
+                "source_projection_sha256": (
+                    self.source_projection_sha256
+                ),
+            },
+            "reservation": self.reservation.to_dict(),
+        }
+
+
 def _normalize_preflight_p95_reservations(
     value: Any,
-) -> tuple[PreflightP95Reservation, ...]:
+) -> tuple[
+    PreflightP95Reservation | ObservedPreflightP95Reservation, ...
+]:
     if value is None:
         return ()
-    entries: list[PreflightP95Reservation] = []
+    entries: list[
+        PreflightP95Reservation | ObservedPreflightP95Reservation
+    ] = []
     if isinstance(value, Mapping):
         for model, by_kind in value.items():
             if not isinstance(by_kind, Mapping):
@@ -329,8 +987,14 @@ def _normalize_preflight_p95_reservations(
                     "preflight_p95_reservations model values must be mappings"
                 )
             for call_kind, item in by_kind.items():
+                reservation_type = (
+                    ObservedPreflightP95Reservation
+                    if isinstance(item, Mapping)
+                    and set(item) == {"authority", "reservation"}
+                    else PreflightP95Reservation
+                )
                 entries.append(
-                    PreflightP95Reservation.from_dict(
+                    reservation_type.from_dict(
                         model=str(model),
                         call_kind=str(call_kind),
                         value=item,
@@ -347,15 +1011,70 @@ def _normalize_preflight_p95_reservations(
             raise TypeError(
                 "preflight_p95_reservations must be a mapping or iterable"
             ) from exc
-        if any(not isinstance(item, PreflightP95Reservation) for item in raw_entries):
+        if any(
+            not isinstance(
+                item,
+                (
+                    PreflightP95Reservation,
+                    ObservedPreflightP95Reservation,
+                ),
+            )
+            for item in raw_entries
+        ):
             raise TypeError(
                 "preflight_p95_reservations iterable must contain "
-                "PreflightP95Reservation values"
+                "preflight reservation values"
             )
         entries.extend(raw_entries)
     keys = [(item.model, item.call_kind) for item in entries]
     if len(keys) != len(set(keys)):
         raise ValueError("duplicate model x call-kind preflight p95 reservation")
+    return tuple(sorted(entries, key=lambda item: (item.model, item.call_kind)))
+
+
+def _normalize_contract_bootstrap_reservations(
+    value: Any,
+) -> tuple[ContractBootstrapReservation, ...]:
+    if value is None:
+        return ()
+    entries: list[ContractBootstrapReservation] = []
+    if isinstance(value, Mapping):
+        for model, by_kind in value.items():
+            if not isinstance(by_kind, Mapping):
+                raise TypeError(
+                    "contract bootstrap model values must be mappings"
+                )
+            for call_kind, item in by_kind.items():
+                entries.append(
+                    ContractBootstrapReservation.from_dict(
+                        model=str(model),
+                        call_kind=str(call_kind),
+                        value=item,
+                    )
+                )
+    else:
+        if isinstance(value, (str, bytes)):
+            raise TypeError(
+                "contract bootstrap reservations must be a mapping or iterable"
+            )
+        try:
+            raw_entries = tuple(value)
+        except TypeError as exc:
+            raise TypeError(
+                "contract bootstrap reservations must be a mapping or iterable"
+            ) from exc
+        if any(
+            not isinstance(item, ContractBootstrapReservation)
+            for item in raw_entries
+        ):
+            raise TypeError(
+                "contract bootstrap iterable must contain "
+                "ContractBootstrapReservation values"
+            )
+        entries.extend(raw_entries)
+    keys = [(item.model, item.call_kind) for item in entries]
+    if len(keys) != len(set(keys)):
+        raise ValueError("duplicate model x call-kind bootstrap reservation")
     return tuple(sorted(entries, key=lambda item: (item.model, item.call_kind)))
 
 
@@ -498,7 +1217,13 @@ class VerifiedRunConfig:
     pilot_contract_hash: Optional[str] = None
     pilot_tag: Optional[str] = None
     allow_scientific_scope: bool = False
-    preflight_p95_reservations: tuple[PreflightP95Reservation, ...] = ()
+    preflight_p95_reservations: tuple[
+        PreflightP95Reservation | ObservedPreflightP95Reservation, ...
+    ] = ()
+    contract_bootstrap_reservations: tuple[
+        ContractBootstrapReservation, ...
+    ] = ()
+    preflight_measurement_role: Optional[str] = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.run_id, str) or not self.run_id.strip():
@@ -745,6 +1470,126 @@ class VerifiedRunConfig:
                 self.preflight_p95_reservations
             ),
         )
+        object.__setattr__(
+            self,
+            "contract_bootstrap_reservations",
+            _normalize_contract_bootstrap_reservations(
+                self.contract_bootstrap_reservations
+            ),
+        )
+        if (
+            self.scientific_scope
+            == "preregistered_mechanism_micro_pilot"
+            and self.preflight_p95_reservations
+        ):
+            if any(
+                not isinstance(
+                    item,
+                    ObservedPreflightP95Reservation,
+                )
+                for item in self.preflight_p95_reservations
+            ):
+                raise ValueError(
+                    "normal scientific p95 requires sealed closed-loop "
+                    "observed authority"
+                )
+            observed = tuple(
+                item
+                for item in self.preflight_p95_reservations
+                if isinstance(item, ObservedPreflightP95Reservation)
+            )
+            if (
+                len({item.model for item in observed}) != 1
+                or len(
+                    {item.authority_binding for item in observed}
+                )
+                != 1
+                or any(
+                    item.pilot_contract_hash != self.pilot_contract_hash
+                    or item.pilot_tag != self.pilot_tag
+                    for item in observed
+                )
+            ):
+                raise ValueError(
+                    "sealed observed p95 authority is not bound to this "
+                    "contract/tag/model source"
+                )
+            _verify_source_backed_observed_p95_rows(observed)
+        if self.preflight_measurement_role is not None:
+            if not isinstance(self.preflight_measurement_role, str):
+                raise TypeError("preflight_measurement_role must be a string or None")
+            role = self.preflight_measurement_role.strip().lower().replace("-", "_")
+            if role != "closed_loop_preflight":
+                raise ValueError(
+                    "preflight_measurement_role must be closed_loop_preflight"
+                )
+            object.__setattr__(self, "preflight_measurement_role", role)
+        if self.contract_bootstrap_reservations:
+            if self.preflight_p95_reservations:
+                raise ValueError(
+                    "bootstrap and observed-p95 authorities cannot coexist"
+                )
+            if (
+                self.preflight_measurement_role != "closed_loop_preflight"
+                or self.scientific_scope
+                != "preregistered_mechanism_micro_pilot"
+                or self.num_agents != 2
+                or self.episode_length != 6
+            ):
+                raise ValueError(
+                    "contract bootstrap authority is restricted to the exact "
+                    "2-agent x 6-month closed-loop preflight"
+                )
+            bootstrap_models = {
+                item.model for item in self.contract_bootstrap_reservations
+            }
+            bootstrap_kinds = {
+                item.call_kind for item in self.contract_bootstrap_reservations
+            }
+            authority_bindings = {
+                (
+                    item.authority_id,
+                    item.pilot_contract_hash,
+                    item.pilot_tag,
+                    item.authorized_run_id,
+                    item.authorized_seed,
+                    item.authorized_config_sha256,
+                    item.target_run_spec_sha256,
+                    item.source_run_id,
+                    item.source_capability_file_sha256,
+                    item.source_group_sha256,
+                    item.policy_sha256,
+                    item.source_projection_sha256,
+                )
+                for item in self.contract_bootstrap_reservations
+            }
+            if (
+                len(bootstrap_models) != 1
+                or bootstrap_kinds != {"action", "semantic"}
+                or len(authority_bindings) != 1
+            ):
+                raise ValueError(
+                    "contract bootstrap authority requires one model, both "
+                    "call kinds, and one exact source/policy binding"
+                )
+            expected_config_sha256 = bootstrap_config_binding_sha256(self)
+            for item in self.contract_bootstrap_reservations:
+                if (
+                    item.pilot_contract_hash != self.pilot_contract_hash
+                    or item.pilot_tag != self.pilot_tag
+                    or item.authorized_run_id != self.run_id
+                    or item.authorized_seed != self.seed
+                    or item.authorized_config_sha256
+                    != expected_config_sha256
+                ):
+                    raise ValueError(
+                        "contract bootstrap authority is not bound to this "
+                        "exact contract/tag/run/seed/config"
+                    )
+        elif self.preflight_measurement_role is not None:
+            raise ValueError(
+                "preflight measurement role requires contract bootstrap authority"
+            )
         if self.scientific_scope == "preregistered_mechanism_micro_pilot":
             if not self.allow_scientific_scope:
                 raise ValueError(
@@ -793,8 +1638,124 @@ class VerifiedRunConfig:
         for item in self.preflight_p95_reservations:
             reservations.setdefault(item.model, {})[item.call_kind] = item.to_dict()
         result["preflight_p95_reservations"] = reservations
+        if self.contract_bootstrap_reservations:
+            bootstrap: dict[str, dict[str, Any]] = {}
+            for item in self.contract_bootstrap_reservations:
+                bootstrap.setdefault(item.model, {})[
+                    item.call_kind
+                ] = item.to_dict()
+            result["contract_bootstrap_reservations"] = bootstrap
+            result["preflight_measurement_role"] = self.preflight_measurement_role
+        else:
+            result.pop("contract_bootstrap_reservations", None)
+            result.pop("preflight_measurement_role", None)
         result["schema_version"] = RUNNER_SCHEMA_VERSION
         return result
+
+
+def bootstrap_config_binding_sha256(
+    config: VerifiedRunConfig,
+    *,
+    measurement_role: str | None = None,
+) -> str:
+    """Hash the complete preflight config while excluding its authority rows.
+
+    A provisional config may provide ``measurement_role`` before the
+    capability-derived authority exists.  Once authority rows are attached,
+    the runner recomputes the same hash from the final config and rejects any
+    contract, tag, run, seed, shock, utility, parsing, or output-cap drift.
+    """
+
+    if not isinstance(config, VerifiedRunConfig):
+        raise TypeError("config must be a VerifiedRunConfig")
+    role = config.preflight_measurement_role
+    if measurement_role is not None:
+        normalized = measurement_role.strip().lower().replace("-", "_")
+        if normalized != "closed_loop_preflight":
+            raise ValueError(
+                "measurement_role must be closed_loop_preflight"
+            )
+        if role is not None and role != normalized:
+            raise ValueError("measurement role override differs from config")
+        role = normalized
+    if role != "closed_loop_preflight":
+        raise ValueError(
+            "bootstrap config binding requires closed_loop_preflight"
+        )
+    payload = config.to_dict()
+    payload.pop("contract_bootstrap_reservations", None)
+    payload["preflight_measurement_role"] = role
+    return _sha256(payload)
+
+
+def has_sealed_observed_p95_authority(config: VerifiedRunConfig) -> bool:
+    """Return whether normal p95 rows still match their complete source chain."""
+
+    rows = config.preflight_p95_reservations
+    structurally_bound = bool(rows) and all(
+        isinstance(item, ObservedPreflightP95Reservation)
+        and item.pilot_contract_hash == config.pilot_contract_hash
+        and item.pilot_tag == config.pilot_tag
+        for item in rows
+    ) and len({item.model for item in rows}) == 1 and len(
+        {item.authority_binding for item in rows}
+    ) == 1
+    if not structurally_bound:
+        return False
+    try:
+        _verify_source_backed_observed_p95_rows(
+            tuple(
+                item
+                for item in rows
+                if isinstance(item, ObservedPreflightP95Reservation)
+            )
+        )
+    except Exception:
+        # This predicate is used while deriving result evidence status.  Any
+        # missing, changed, or unreadable source must demote the result rather
+        # than escaping as scientific evidence.
+        return False
+    return True
+
+
+def serialized_has_sealed_observed_p95_authority(
+    config: Mapping[str, Any],
+) -> bool:
+    """Revalidate the same authority from a serialized runner config."""
+
+    reservations = config.get("preflight_p95_reservations")
+    if not isinstance(reservations, Mapping) or not reservations:
+        return False
+    rows: list[ObservedPreflightP95Reservation] = []
+    try:
+        for model, by_kind in reservations.items():
+            if not isinstance(by_kind, Mapping):
+                return False
+            for call_kind, value in by_kind.items():
+                rows.append(
+                    ObservedPreflightP95Reservation.from_dict(
+                        model=str(model),
+                        call_kind=str(call_kind),
+                        value=value,
+                    )
+                )
+    except (TypeError, ValueError):
+        return False
+    structurally_bound = bool(rows) and all(
+        item.pilot_contract_hash == config.get("pilot_contract_hash")
+        and item.pilot_tag == config.get("pilot_tag")
+        for item in rows
+    ) and len({item.model for item in rows}) == 1 and len(
+        {item.authority_binding for item in rows}
+    ) == 1
+    if not structurally_bound:
+        return False
+    try:
+        _verify_source_backed_observed_p95_rows(tuple(rows))
+    except Exception:
+        # Artifact load/write checks are intentionally boolean and fail closed.
+        return False
+    return True
 
 
 @dataclass(frozen=True, slots=True)
@@ -864,10 +1825,22 @@ def required_preflight_p95_call_kinds(
 
 def _reservation_index(
     config: VerifiedRunConfig,
-) -> dict[tuple[str, str], PreflightP95Reservation]:
+) -> dict[
+    tuple[str, str],
+    PreflightP95Reservation | ObservedPreflightP95Reservation,
+]:
     return {
         (item.model, item.call_kind): item
         for item in config.preflight_p95_reservations
+    }
+
+
+def _bootstrap_reservation_index(
+    config: VerifiedRunConfig,
+) -> dict[tuple[str, str], ContractBootstrapReservation]:
+    return {
+        (item.model, item.call_kind): item
+        for item in config.contract_bootstrap_reservations
     }
 
 
@@ -920,6 +1893,24 @@ def preflight_p95_reservation_for_call(
                 f"{key[0]}::{key[1]}"
             )
         return usage
+    bootstrap = _bootstrap_reservation_index(config).get(key)
+    if bootstrap is not None:
+        if config.preflight_measurement_role != "closed_loop_preflight":
+            raise VerifiedRunError(
+                "contract bootstrap authority escaped its preflight scope"
+            )
+        usage = bootstrap.reserved_usage
+        if usage.prompt_tokens < 1 or usage.completion_tokens < 1:
+            raise VerifiedRunError(
+                "contract bootstrap reservation must reserve positive prompt "
+                f"and completion tokens for {key[0]}::{key[1]}"
+            )
+        if usage.cost_usd <= 0 and not _zero_cost_is_permitted(key[0]):
+            raise VerifiedRunError(
+                "hosted contract bootstrap reservation must have a positive "
+                f"cost for {key[0]}::{key[1]}"
+            )
+        return usage
     if (
         config.scientific_scope == "preregistered_mechanism_micro_pilot"
         and not provider_model_name.startswith(f"{DIAGNOSTIC_PROVIDER_NAME}/")
@@ -945,6 +1936,23 @@ def validate_preflight_p95_reservations(
     provider_model_name: str,
 ) -> dict[str, UsageRecord]:
     """Validate every potentially dispatched call kind before a run starts."""
+
+    if (
+        config.scientific_scope == "preregistered_mechanism_micro_pilot"
+        and config.preflight_p95_reservations
+    ):
+        observed_rows = tuple(
+            item
+            for item in config.preflight_p95_reservations
+            if isinstance(item, ObservedPreflightP95Reservation)
+        )
+        try:
+            _verify_source_backed_observed_p95_rows(observed_rows)
+        except (TypeError, ValueError) as exc:
+            raise VerifiedRunError(
+                "scientific dispatch failed source-backed observed p95 "
+                f"verification: {exc}"
+            ) from exc
 
     result: dict[str, UsageRecord] = {}
     for call_kind in required_preflight_p95_call_kinds(config):
@@ -2668,6 +3676,8 @@ def run_verified_experiment(
         and config.allow_scientific_scope
         and config.pilot_contract_hash
         and config.pilot_tag
+        and config.preflight_measurement_role is None
+        and has_sealed_observed_p95_authority(config)
     )
     validation_status = {
         "status": "pass" if validation_pass else "fail",
@@ -2695,7 +3705,11 @@ def run_verified_experiment(
         "provider_model": provider_model_name,
         "diagnostic_only": diagnostic_only,
         "scientific_evidence": scientific_evidence,
-        "result_scope": config.scientific_scope,
+        "result_scope": (
+            "preregistered_capability_preflight"
+            if config.preflight_measurement_role is not None
+            else config.scientific_scope
+        ),
         "result_complete": completed_periods == config.episode_length,
         "num_agents": config.num_agents,
         "episode_length": config.episode_length,
@@ -2802,6 +3816,11 @@ __all__ = [
     "ERROR_RULE_INJECTION_SCHEMA_VERSION",
     "ERROR_RULE_MODES",
     "FIXED_ERRONEOUS_RULE",
+    "ContractBootstrapReservation",
+    "ObservedPreflightP95Reservation",
+    "OBSERVED_P95_AUTHORITY_ID",
+    "OBSERVED_P95_PROJECTION_SCHEMA_VERSION",
+    "OBSERVED_P95_SOURCE_KIND",
     "PREFLIGHT_P95_CALL_KINDS",
     "PREFLIGHT_P95_RESERVE_MULTIPLIER",
     "PROVIDER_CALL_JOURNAL_SCHEMA_VERSION",
@@ -2816,8 +3835,11 @@ __all__ = [
     "VerifiedRunConfig",
     "VerifiedRunError",
     "VerifiedRunResult",
+    "bootstrap_config_binding_sha256",
+    "has_sealed_observed_p95_authority",
     "preflight_p95_reservation_for_call",
     "required_preflight_p95_call_kinds",
+    "serialized_has_sealed_observed_p95_authority",
     "run_verified_experiment",
     "validate_preflight_p95_reservations",
     "verify_provider_call_journal",

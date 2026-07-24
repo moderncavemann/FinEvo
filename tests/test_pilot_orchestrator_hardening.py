@@ -32,6 +32,7 @@ from verified_memory.pilot_orchestrator import (
     _assert_prerequisites,
     _build_experiment_c_sensitivity,
     _derive_stage0_absolute_flow_threshold,
+    _execute_actor_run,
     _execute_d_seed,
     _execute_q_ref,
     _exclusive_real_stage_lock,
@@ -53,7 +54,11 @@ from verified_memory.pilot_orchestrator import (
 from verified_memory.pilot_provider_catalog import (
     PROVIDER_CATALOG_RECEIPT_SCHEMA_VERSION,
 )
-from verified_memory.runner import RunnerFailure, VerifiedRunError
+from verified_memory.runner import (
+    RunnerFailure,
+    VerifiedRunConfig,
+    VerifiedRunError,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -538,6 +543,81 @@ def test_d_group_failure_receipt_is_shared_and_preserves_runner_details(
 ) -> None:
     contract = load_pilot_contract(CONTRACT_PATH)
     paid = _paid(contract)
+    actor_spec = contract.expand(
+        stage="experiment-a",
+        model="gpt52_main",
+        arm="full",
+    )[0]
+    actor_projection = RunProjection(
+        run_id=actor_spec.run_id,
+        stage_bucket="core",
+        cost_usd=0.01,
+        completions=1,
+        storage_bytes=100_000,
+        basis={
+            "method": "fixture",
+            "run_call_limit": 1,
+            "hosted_completion_cap_counted": True,
+            "prompt_tokens": 10,
+            "completion_tokens": 10,
+        },
+    )
+    actor_budget = _run_budget_from_projection(actor_projection)
+    actor_config = VerifiedRunConfig(
+        run_id=actor_spec.run_id,
+        episode_length=12,
+        enable_semantic=True,
+    )
+    actor_events: list[tuple[str, str]] = []
+    with monkeypatch.context() as actor_patch:
+        actor_patch.setattr(
+            "verified_memory.pilot_orchestrator._runner_p95_reservations",
+            lambda *_args, **_kwargs: {"sealed": {}},
+        )
+        actor_patch.setattr(
+            "verified_memory.pilot_orchestrator.config_for_spec",
+            lambda *_args, **_kwargs: actor_config,
+        )
+
+        def validate_actor_authority(config, *, provider_model_name):
+            assert config is actor_config
+            assert config.enable_semantic is True
+            actor_events.append(("validate-action-semantic", provider_model_name))
+            return {}
+
+        def actor_provider_after_validation(*_args, **_kwargs):
+            actor_events.append(("provider", "constructed"))
+            raise RuntimeError("actor provider construction sentinel")
+
+        actor_patch.setattr(
+            "verified_memory.pilot_orchestrator."
+            "validate_preflight_p95_reservations",
+            validate_actor_authority,
+        )
+        actor_patch.setattr(
+            "verified_memory.pilot_orchestrator._provider_for_profile",
+            actor_provider_after_validation,
+        )
+        with pytest.raises(
+            RuntimeError,
+            match="actor provider construction sentinel",
+        ):
+            _execute_actor_run(
+                contract,
+                actor_spec,
+                raw_root=tmp_path / "actor-raw",
+                paid=paid,
+                projection=actor_projection,
+                budget=actor_budget,
+            )
+    assert actor_events == [
+        (
+            "validate-action-semantic",
+            "openai/gpt-5.2-2025-12-11",
+        ),
+        ("provider", "constructed"),
+    ]
+
     seed = contract.seeds["sets"]["main"][0]
     specs = tuple(
         spec
@@ -573,7 +653,25 @@ def test_d_group_failure_receipt_is_shared_and_preserves_runner_details(
             },
         ),
     )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator._load_verified_stage0_selection",
+        lambda *_args, **_kwargs: {
+            "selected_utility": {
+                "rho": 1.0,
+                "labor_weight": 2.0,
+                "inverse_frisch": 1.0,
+                "consumption_scale": 1.0,
+                "discount_factor": 0.99,
+            }
+        },
+    )
     failure_error = _runner_failure("D branch provider failure")
+    d_events: list[tuple[str, str]] = []
+
+    def validate_d_authority(config, *, provider_model_name):
+        assert config.enable_semantic is True
+        d_events.append(("validate-action-semantic", provider_model_name))
+        return {}
 
     def fail_before_provider_dispatch(*_args, **_kwargs):
         # The failure is deliberately injected after the durable group
@@ -582,8 +680,14 @@ def test_d_group_failure_receipt_is_shared_and_preserves_runner_details(
         reserved = budget_ledger.snapshot()["runs"][projection_id]
         assert reserved["status"] == "reserved"
         assert reserved["actual"] is None
+        d_events.append(("provider", "constructed"))
         raise failure_error
 
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator."
+        "validate_preflight_p95_reservations",
+        validate_d_authority,
+    )
     monkeypatch.setattr(
         "verified_memory.pilot_orchestrator._provider_for_profile",
         fail_before_provider_dispatch,
@@ -628,6 +732,13 @@ def test_d_group_failure_receipt_is_shared_and_preserves_runner_details(
         == failure_error.failure.to_dict()
         for spec in specs
     )
+    assert d_events == [
+        (
+            "validate-action-semantic",
+            "openai/gpt-5.2-2025-12-11",
+        ),
+        ("provider", "constructed"),
+    ]
 
     group_dir = failure_manifest.parent.parent
     accounted_size = sum(
@@ -700,6 +811,611 @@ def test_d_reservation_rejection_does_not_create_a_failure_receipt(
         for spec in specs
     } == {"scheduled"}
     assert not tuple(raw.rglob("failure_manifest.json"))
+
+    continuation_treatments = (
+        "matched-a",
+        "matched-b",
+        "no-memory",
+        "shuffled-episodic",
+        "wrong-context",
+        "erroneous-verified",
+        "erroneous-unverified",
+    )
+    narrative_ids = tuple(
+        sorted(
+            str(spec.narrative_id)
+            for spec in specs
+            if spec.arm_id == "narrative-content"
+        )
+    )
+    continuation_fixture = {
+        "matched_replay_equal": True,
+        "checkpoint_hash": "a" * 64,
+        "prefix_hash": "b" * 64,
+        "branches": {
+            treatment: {
+                "metrics": {},
+                "delta_vs_matched_a": {},
+                "trajectory": [{"decisions": []}],
+                "provider_call_journal": {},
+            }
+            for treatment in continuation_treatments
+        },
+    }
+    narrative_fixture = {
+        "metrics": {narrative_id: {} for narrative_id in narrative_ids},
+        "semantic_equivalence_within_one_action_bin": {},
+        "aligned_vs_opposite_delta": {},
+        "claim_boundary": "fixture",
+        "branches": {
+            narrative_id: {
+                "trajectory": [{"decisions": []}],
+                "provider_call_journal": {},
+            }
+            for narrative_id in narrative_ids
+        },
+    }
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator._load_verified_stage0_selection",
+        lambda *_args, **_kwargs: {
+            "selected_utility": {
+                "rho": 1.0,
+                "labor_weight": 2.0,
+                "inverse_frisch": 1.0,
+                "consumption_scale": 1.0,
+                "discount_factor": 0.99,
+            }
+        },
+    )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator."
+        "validate_preflight_p95_reservations",
+        lambda *_args, **_kwargs: {},
+    )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator._provider_for_profile",
+        lambda *_args, **_kwargs: object(),
+    )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator.build_pilot_checkpoint",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            to_dict=lambda: {"schema_version": "fixture-checkpoint"}
+        ),
+    )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator.run_pilot_continuations",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            to_dict=lambda: json.loads(json.dumps(continuation_fixture))
+        ),
+    )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator.run_pilot_narratives",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            to_dict=lambda: json.loads(json.dumps(narrative_fixture))
+        ),
+    )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator._d_continuation_causal_bindings",
+        lambda *_args, **_kwargs: {"fixture": "continuation"},
+    )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator._d_narrative_causal_bindings",
+        lambda *_args, **_kwargs: {"fixture": "narrative"},
+    )
+
+    from verified_memory import pilot_orchestrator as orchestrator_module
+
+    real_terminal_writer = orchestrator_module.write_terminal_summary
+
+    reconcile_raw = tmp_path / "reconcile-raw"
+    reconcile_runs = PilotRunLedger(
+        reconcile_raw / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+    )
+    reconcile_runs.register(specs)
+    reconcile_budget = PilotBudgetLedger(
+        reconcile_raw / "budget_ledger.json",
+        contract_hash=contract.canonical_hash,
+    )
+    reconcile_projection_id = f"reconcile-d-group-{seed}"
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator._d_group_projection",
+        lambda *_args, **_kwargs: RunProjection(
+            run_id=reconcile_projection_id,
+            stage_bucket="core",
+            cost_usd=0.0,
+            completions=1,
+            storage_bytes=10_000_000,
+            basis={
+                "method": "fixture",
+                "run_call_limit": 1,
+                "hosted_completion_cap_counted": True,
+                "prompt_tokens": 10,
+                "completion_tokens": 10,
+            },
+        ),
+    )
+    reconciliation_flags: list[tuple[bool, str]] = []
+
+    def observe_terminal_before_reconciliation(path, **kwargs):
+        state = reconcile_budget.snapshot()["runs"][reconcile_projection_id]
+        reconciliation_flags.append(
+            (bool(kwargs["scientific_evidence"]), str(state["status"]))
+        )
+        return real_terminal_writer(path, **kwargs)
+
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator.write_terminal_summary",
+        observe_terminal_before_reconciliation,
+    )
+    real_reconcile_finalize = reconcile_budget.finalize
+    reconcile_finalize_statuses: list[str] = []
+
+    def reject_complete_reconciliation(run_id: str, *, status: str, **kwargs):
+        reconcile_finalize_statuses.append(status)
+        if status == "complete":
+            raise PilotBudgetError("injected D reconciliation failure")
+        return real_reconcile_finalize(run_id, status=status, **kwargs)
+
+    monkeypatch.setattr(
+        reconcile_budget,
+        "finalize",
+        reject_complete_reconciliation,
+    )
+    _execute_d_seed(
+        contract,
+        specs,
+        raw_root=reconcile_raw,
+        paid=paid,
+        diagnostic=False,
+        budget_ledger=reconcile_budget,
+        run_ledger=reconcile_runs,
+    )
+    assert reconciliation_flags == [(False, "reserved")] * len(specs)
+    assert reconcile_finalize_statuses == ["complete", "integrity-stopped"]
+    assert {
+        reconcile_runs.status(spec.run_id) for spec in specs
+    } == {"integrity-stopped"}
+    assert not tuple(
+        (reconcile_raw / "experiment-d" / "summaries").glob("*.json")
+    )
+    assert not (
+        reconcile_raw
+        / "experiment-d"
+        / "checkpoints"
+        / f"s{seed}"
+        / "pending_non_scientific_summaries"
+    ).exists()
+    for source_name in ("continuations.json", "narratives.json"):
+        source = json.loads(
+            (
+                reconcile_raw
+                / "experiment-d"
+                / "checkpoints"
+                / f"s{seed}"
+                / source_name
+            ).read_text(encoding="utf-8")
+        )
+        assert source["scientific_evidence"] is False
+    reconciliation_artifact = Path(
+        reconcile_runs.snapshot()["runs"][specs[0].run_id]["artifact"]
+    )
+    reconciliation_receipt = verify_failure_receipt(
+        reconciliation_artifact.parent
+    )
+    assert reconciliation_receipt["provenance"]["scientific_evidence"] is False
+
+    ledger_finalize_raw = tmp_path / "ledger-finalize-raw"
+    ledger_finalize_runs = PilotRunLedger(
+        ledger_finalize_raw / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+    )
+    ledger_finalize_runs.register(specs)
+    ledger_finalize_budget = PilotBudgetLedger(
+        ledger_finalize_raw / "budget_ledger.json",
+        contract_hash=contract.canonical_hash,
+    )
+    ledger_finalize_projection_id = f"ledger-finalize-d-group-{seed}"
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator._d_group_projection",
+        lambda *_args, **_kwargs: RunProjection(
+            run_id=ledger_finalize_projection_id,
+            stage_bucket="core",
+            cost_usd=0.0,
+            completions=1,
+            storage_bytes=10_000_000,
+            basis={
+                "method": "fixture",
+                "run_call_limit": 1,
+                "hosted_completion_cap_counted": True,
+                "prompt_tokens": 10,
+                "completion_tokens": 10,
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator.write_terminal_summary",
+        real_terminal_writer,
+    )
+    real_ledger_finalize_budget = ledger_finalize_budget.finalize
+    ledger_finalize_budget_statuses: list[str] = []
+
+    def observe_ledger_finalize_budget(
+        run_id: str,
+        *,
+        status: str,
+        **kwargs,
+    ):
+        ledger_finalize_budget_statuses.append(status)
+        return real_ledger_finalize_budget(
+            run_id,
+            status=status,
+            **kwargs,
+        )
+
+    monkeypatch.setattr(
+        ledger_finalize_budget,
+        "finalize",
+        observe_ledger_finalize_budget,
+    )
+    real_finalize_many = ledger_finalize_runs.finalize_many
+    ledger_finalize_many_statuses: list[tuple[str, ...]] = []
+
+    def fail_first_complete_batch(finalizations):
+        statuses = tuple(str(row["status"]) for row in finalizations)
+        ledger_finalize_many_statuses.append(statuses)
+        if set(statuses) == {"complete"}:
+            raise OSError("injected complete run-ledger batch failure")
+        return real_finalize_many(finalizations)
+
+    monkeypatch.setattr(
+        ledger_finalize_runs,
+        "finalize_many",
+        fail_first_complete_batch,
+    )
+    _execute_d_seed(
+        contract,
+        specs,
+        raw_root=ledger_finalize_raw,
+        paid=paid,
+        diagnostic=False,
+        budget_ledger=ledger_finalize_budget,
+        run_ledger=ledger_finalize_runs,
+    )
+    assert ledger_finalize_budget_statuses == ["complete"]
+    assert ledger_finalize_many_statuses == [
+        ("complete",) * len(specs),
+        ("integrity-stopped",) * len(specs),
+    ]
+    ledger_finalize_state = ledger_finalize_runs.snapshot()["runs"]
+    assert {
+        ledger_finalize_state[spec.run_id]["status"] for spec in specs
+    } == {"integrity-stopped"}
+    assert not tuple(
+        (ledger_finalize_raw / "experiment-d" / "summaries").glob("*.json")
+    )
+    ledger_finalize_group = (
+        ledger_finalize_raw
+        / "experiment-d"
+        / "checkpoints"
+        / f"s{seed}"
+    )
+    for source_name in ("continuations.json", "narratives.json"):
+        source = json.loads(
+            (ledger_finalize_group / source_name).read_text(encoding="utf-8")
+        )
+        assert source["scientific_evidence"] is False
+    ledger_finalize_artifacts = {
+        ledger_finalize_state[spec.run_id]["artifact"] for spec in specs
+    }
+    assert len(ledger_finalize_artifacts) == 1
+    ledger_finalize_receipt = verify_failure_receipt(
+        Path(ledger_finalize_artifacts.pop()).parent
+    )
+    assert (
+        ledger_finalize_receipt["scope"]
+        == "finevo-pilot/experiment-d/post-reconciliation-publication"
+    )
+    assert (
+        ledger_finalize_receipt["provenance"]["scientific_evidence"] is False
+    )
+
+    interruption_raw = tmp_path / "interruption-raw"
+    interruption_runs = PilotRunLedger(
+        interruption_raw / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+    )
+    interruption_runs.register(specs)
+    interruption_budget = PilotBudgetLedger(
+        interruption_raw / "budget_ledger.json",
+        contract_hash=contract.canonical_hash,
+    )
+    interruption_projection_id = f"interruption-d-group-{seed}"
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator._d_group_projection",
+        lambda *_args, **_kwargs: RunProjection(
+            run_id=interruption_projection_id,
+            stage_bucket="core",
+            cost_usd=0.0,
+            completions=1,
+            storage_bytes=10_000_000,
+            basis={
+                "method": "fixture",
+                "run_call_limit": 1,
+                "hosted_completion_cap_counted": True,
+                "prompt_tokens": 10,
+                "completion_tokens": 10,
+            },
+        ),
+    )
+    interruption_calls = {
+        "provider": 0,
+        "checkpoint": 0,
+        "continuation": 0,
+        "narrative": 0,
+    }
+
+    def interruption_provider(*_args, **_kwargs):
+        interruption_calls["provider"] += 1
+        return object()
+
+    def interruption_checkpoint(*_args, **_kwargs):
+        interruption_calls["checkpoint"] += 1
+        return SimpleNamespace(
+            to_dict=lambda: {"schema_version": "fixture-checkpoint"}
+        )
+
+    def interruption_continuation(*_args, **_kwargs):
+        interruption_calls["continuation"] += 1
+        return SimpleNamespace(
+            to_dict=lambda: json.loads(json.dumps(continuation_fixture))
+        )
+
+    def interruption_narrative(*_args, **_kwargs):
+        interruption_calls["narrative"] += 1
+        return SimpleNamespace(
+            to_dict=lambda: json.loads(json.dumps(narrative_fixture))
+        )
+
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator._provider_for_profile",
+        interruption_provider,
+    )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator.build_pilot_checkpoint",
+        interruption_checkpoint,
+    )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator.run_pilot_continuations",
+        interruption_continuation,
+    )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator.run_pilot_narratives",
+        interruption_narrative,
+    )
+    scientific_write_count = 0
+
+    def interrupt_fifth_scientific_writer(path, **kwargs):
+        nonlocal scientific_write_count
+        if kwargs["scientific_evidence"]:
+            scientific_write_count += 1
+            if scientific_write_count == 5:
+                raise KeyboardInterrupt(
+                    "injected fifth scientific publication interruption"
+                )
+        return real_terminal_writer(path, **kwargs)
+
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator.write_terminal_summary",
+        interrupt_fifth_scientific_writer,
+    )
+    with pytest.raises(
+        KeyboardInterrupt,
+        match="fifth scientific publication interruption",
+    ):
+        _execute_d_seed(
+            contract,
+            specs,
+            raw_root=interruption_raw,
+            paid=paid,
+            diagnostic=False,
+            budget_ledger=interruption_budget,
+            run_ledger=interruption_runs,
+        )
+    assert interruption_calls == {
+        "provider": 1,
+        "checkpoint": 1,
+        "continuation": 1,
+        "narrative": 1,
+    }
+    assert (
+        interruption_budget.snapshot()["runs"][interruption_projection_id][
+            "status"
+        ]
+        == "complete"
+    )
+    assert {
+        interruption_runs.status(spec.run_id) for spec in specs
+    } == {"scheduled"}
+    interruption_summaries = (
+        interruption_raw / "experiment-d" / "summaries"
+    )
+    assert len(tuple(interruption_summaries.glob("*.json"))) == 4
+    interruption_group = (
+        interruption_raw
+        / "experiment-d"
+        / "checkpoints"
+        / f"s{seed}"
+    )
+    for source_name in ("continuations.json", "narratives.json"):
+        source = json.loads(
+            (interruption_group / source_name).read_text(encoding="utf-8")
+        )
+        assert source["scientific_evidence"] is True
+
+    def provider_must_not_resume(*_args, **_kwargs):
+        raise AssertionError("resume must not construct a provider")
+
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator._provider_for_profile",
+        provider_must_not_resume,
+    )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator.write_terminal_summary",
+        real_terminal_writer,
+    )
+    _execute_d_seed(
+        contract,
+        specs,
+        raw_root=interruption_raw,
+        paid=paid,
+        diagnostic=False,
+        budget_ledger=interruption_budget,
+        run_ledger=interruption_runs,
+    )
+    assert interruption_calls == {
+        "provider": 1,
+        "checkpoint": 1,
+        "continuation": 1,
+        "narrative": 1,
+    }
+    interruption_state = interruption_runs.snapshot()["runs"]
+    assert {
+        interruption_state[spec.run_id]["status"] for spec in specs
+    } == {"integrity-stopped"}
+    assert not tuple(interruption_summaries.glob("*.json"))
+    for source_name in ("continuations.json", "narratives.json"):
+        source = json.loads(
+            (interruption_group / source_name).read_text(encoding="utf-8")
+        )
+        assert source["scientific_evidence"] is False
+
+    promotion_raw = tmp_path / "promotion-raw"
+    promotion_runs = PilotRunLedger(
+        promotion_raw / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+    )
+    promotion_runs.register(specs)
+    promotion_budget = PilotBudgetLedger(
+        promotion_raw / "budget_ledger.json",
+        contract_hash=contract.canonical_hash,
+    )
+    promotion_projection_id = f"promotion-d-group-{seed}"
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator._d_group_projection",
+        lambda *_args, **_kwargs: RunProjection(
+            run_id=promotion_projection_id,
+            stage_bucket="core",
+            cost_usd=0.0,
+            completions=1,
+            storage_bytes=10_000_000,
+            basis={
+                "method": "fixture",
+                "run_call_limit": 1,
+                "hosted_completion_cap_counted": True,
+                "prompt_tokens": 10,
+                "completion_tokens": 10,
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator._provider_for_profile",
+        lambda *_args, **_kwargs: object(),
+    )
+    promotion_writer_flags: list[bool] = []
+    huge_post_reconcile_message = "x" * (2 * 1024 * 1024)
+
+    def fail_first_scientific_promotion(path, **kwargs):
+        scientific = bool(kwargs["scientific_evidence"])
+        promotion_writer_flags.append(scientific)
+        if scientific:
+            raise OSError(huge_post_reconcile_message)
+        return real_terminal_writer(path, **kwargs)
+
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator.write_terminal_summary",
+        fail_first_scientific_promotion,
+    )
+    real_promotion_finalize = promotion_budget.finalize
+    promotion_finalize_statuses: list[str] = []
+
+    def observe_promotion_finalize(run_id: str, *, status: str, **kwargs):
+        promotion_finalize_statuses.append(status)
+        return real_promotion_finalize(run_id, status=status, **kwargs)
+
+    monkeypatch.setattr(
+        promotion_budget,
+        "finalize",
+        observe_promotion_finalize,
+    )
+    _execute_d_seed(
+        contract,
+        specs,
+        raw_root=promotion_raw,
+        paid=paid,
+        diagnostic=False,
+        budget_ledger=promotion_budget,
+        run_ledger=promotion_runs,
+    )
+    assert promotion_writer_flags == [False] * len(specs) + [True]
+    assert promotion_finalize_statuses == ["complete"]
+    assert (
+        promotion_budget.snapshot()["runs"][promotion_projection_id]["status"]
+        == "complete"
+    )
+    promotion_state = promotion_runs.snapshot()["runs"]
+    assert {
+        promotion_state[spec.run_id]["status"] for spec in specs
+    } == {"integrity-stopped"}
+    assert {
+        promotion_state[spec.run_id]["failure"]["error_type"]
+        for spec in specs
+    } == {"PostReconciliationPublicationFailure"}
+    assert not tuple(
+        (promotion_raw / "experiment-d" / "summaries").glob("*.json")
+    )
+    promotion_artifact = Path(
+        promotion_state[specs[0].run_id]["artifact"]
+    )
+    promotion_receipt = verify_failure_receipt(promotion_artifact.parent)
+    assert (
+        promotion_receipt["scope"]
+        == "finevo-pilot/experiment-d/post-reconciliation-publication"
+    )
+    assert promotion_receipt["provenance"]["scientific_evidence"] is False
+    assert promotion_receipt["error"]["message_bytes"] == len(
+        huge_post_reconcile_message.encode("utf-8")
+    )
+    assert promotion_receipt["error"]["message_sha256"] == hashlib.sha256(
+        huge_post_reconcile_message.encode("utf-8")
+    ).hexdigest()
+    assert promotion_receipt["error"]["message_truncated"] is True
+    assert len(
+        promotion_receipt["error"]["message"].encode("utf-8")
+    ) <= 2048
+    promotion_group = (
+        promotion_raw
+        / "experiment-d"
+        / "checkpoints"
+        / f"s{seed}"
+    )
+    promotion_group_size = sum(
+        path.stat().st_size
+        for path in promotion_group.rglob("*")
+        if path.is_file()
+    )
+    promotion_budget_row = promotion_budget.snapshot()["runs"][
+        promotion_projection_id
+    ]
+    assert (
+        promotion_group_size
+        <= promotion_budget_row["actual"]["storage_bytes"]
+    )
+    for source_name in ("continuations.json", "narratives.json"):
+        source = json.loads(
+            (promotion_group / source_name).read_text(encoding="utf-8")
+        )
+        assert source["scientific_evidence"] is False
 
 
 def test_remaining_core_projection_covers_a_b_c_and_d_once_per_seed(

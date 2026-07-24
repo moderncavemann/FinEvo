@@ -45,12 +45,12 @@ The only scientific-pilot entry point is:
 
 ```bash
 python run_pilot.py \
-  --contract experiments/pilot_v2_2.yaml \
+  --contract experiments/pilot_v2_3.yaml \
   --stage <stage> \
   --resume
 ```
 
-The V2.2 frozen order is `capability-gate`, `closed-loop-preflight`,
+The V2.3 frozen order is `capability-gate`, `closed-loop-preflight`,
 `secondary-capability-gate`, `secondary-closed-loop-preflight`,
 `q-ref-resolution`, `stage0-calibration`, `experiment-a`, `experiment-c`,
 `experiment-d`, `experiment-b`, `controlled-second`, and
@@ -77,8 +77,20 @@ scientific-effect outcome. Passing it is permission to attempt the separately
 registered closed-loop preflight, not evidence that FinEvo improves utility,
 wealth, robustness, or rule reliability.
 
-Real V2.2 stages require a clean checkout at the peeled annotated
-`pilot-v2.2-science` tag,
+V2.2 then exposed an implementation bootstrap cycle before either preflight
+provider dispatched: the runner required the closed-loop p95 measurement that
+the preflight itself was registered to produce. V2.3 preserves the complete
+V2.2 denominator, failure receipts, and cumulative budget debit. For each
+registered 2-agent × 6-month preflight, it derives a distinct, hash-bound
+bootstrap reservation from the same model's already validated 30-task
+capability usage rows. This authority is valid only for that exact preflight
+contract, tag, run, seed, and full runner configuration. The resulting
+closed-loop observed p95 plus 25% remains the only reservation authority for
+normal scientific stages. The bootstrap measurement is explicitly
+`scientific_evidence=false`.
+
+Real V2.3 stages require a clean checkout at the peeled annotated
+`pilot-v2.3-science` tag,
 the same commit on `origin/main`, the remote annotated tag, and successful
 Python 3.12.7 CI jobs on both `ubuntu-24.04` and `macos-14`. Provider runs use
 the sealed model-by-call-kind preflight p95 plus 25% reservation; unknown hosted
@@ -91,7 +103,7 @@ Exercise all A–D paths without network access or scientific claims:
 
 ```bash
 python run_pilot.py \
-  --contract experiments/pilot_v2_2.yaml \
+  --contract experiments/pilot_v2_3.yaml \
   --stage development-a-d \
   --development-fake \
   --resume
@@ -99,9 +111,9 @@ python run_pilot.py \
 
 The failed parent attempt remains under
 `experiment_results/pilot-v2/raw/` and is never rewritten. New raw state is
-ignored under `experiment_results/pilot-v2.2/raw/`. Only
+ignored under `experiment_results/pilot-v2.3/raw/`. Only
 validated contracts, aggregates, checksums, failure ledgers, and reviewer
-reports may enter `evidence/current_v2/pilot-v2.2/`. Historical artifacts remain
+reports may enter `evidence/current_v2/pilot-v2.3/`. Historical artifacts remain
 separate and cannot satisfy this pilot contract. This is a 4-agent × 12-month
 mechanism micro-pilot, not the 10×24×5 confirmatory design and not a 100×240
 simulation.
@@ -111,7 +123,7 @@ zero-provider reviewer package through the same entry point:
 
 ```bash
 python run_pilot.py \
-  --contract experiments/pilot_v2_2.yaml \
+  --contract experiments/pilot_v2_3.yaml \
   --stage publish-evidence \
   --resume
 ```

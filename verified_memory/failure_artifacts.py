@@ -15,6 +15,8 @@ from typing import Any, Mapping
 
 
 FAILURE_RECEIPT_SCHEMA_VERSION = "verified-failure-receipt-v1"
+FAILURE_MESSAGE_MAX_BYTES = 2048
+FAILURE_DETAILS_MAX_BYTES = 65_536
 
 
 def _canonical(value: Mapping[str, Any]) -> str:
@@ -25,6 +27,45 @@ def _canonical(value: Mapping[str, Any]) -> str:
 
 def _sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def bounded_failure_message(error: BaseException) -> dict[str, Any]:
+    """Return useful error text without allowing an unbounded artifact."""
+
+    raw = str(error).encode("utf-8", "replace")
+    prefix = raw[:FAILURE_MESSAGE_MAX_BYTES]
+    while prefix:
+        try:
+            message = prefix.decode("utf-8", "strict")
+            break
+        except UnicodeDecodeError:
+            prefix = prefix[:-1]
+    else:
+        message = ""
+    return {
+        "message": message,
+        "message_bytes": len(raw),
+        "message_sha256": _sha256_bytes(raw),
+        "message_truncated": len(raw) > len(prefix),
+    }
+
+
+def bounded_failure_details(details: Any) -> dict[str, Any]:
+    details_bytes = json.dumps(
+        details,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    if len(details_bytes) <= FAILURE_DETAILS_MAX_BYTES:
+        return {"details": details}
+    return {
+        "details_omitted": {
+            "bytes": len(details_bytes),
+            "sha256": _sha256_bytes(details_bytes),
+            "reason": "structured failure exceeds bounded receipt limit",
+        }
+    }
 
 
 def write_failure_receipt(
@@ -50,13 +91,15 @@ def write_failure_receipt(
         raise FileExistsError("refusing to add a failure receipt to a completed run")
     error_record: dict[str, Any] = {
         "type": type(error).__name__,
-        "message": str(error),
+        **bounded_failure_message(error),
     }
     structured_failure = getattr(error, "failure", None)
     if structured_failure is not None and callable(
         getattr(structured_failure, "to_dict", None)
     ):
-        error_record["details"] = structured_failure.to_dict()
+        error_record.update(
+            bounded_failure_details(structured_failure.to_dict())
+        )
     receipt = {
         "schema_version": FAILURE_RECEIPT_SCHEMA_VERSION,
         "status": "failed",
@@ -106,7 +149,11 @@ def verify_failure_receipt(run_dir: str | Path) -> Mapping[str, Any]:
 
 
 __all__ = [
+    "FAILURE_DETAILS_MAX_BYTES",
+    "FAILURE_MESSAGE_MAX_BYTES",
     "FAILURE_RECEIPT_SCHEMA_VERSION",
+    "bounded_failure_details",
+    "bounded_failure_message",
     "verify_failure_receipt",
     "write_failure_receipt",
 ]
