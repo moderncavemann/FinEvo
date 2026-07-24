@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 
 import pytest
 
@@ -49,6 +50,69 @@ def test_reservation_and_finalize_are_idempotent(tmp_path: Path) -> None:
     snapshot = ledger.snapshot()
     assert snapshot["committed"]["cost_usd"] == pytest.approx(0.25)
     assert snapshot["committed_plus_reserved"]["cost_usd"] == pytest.approx(0.25)
+
+
+def test_tamper_evident_ledger_hashes_genesis_reserve_and_finalize(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "budget-v2.json"
+    ledger = PilotBudgetLedger(
+        path,
+        contract_hash=CONTRACT_HASH,
+        tamper_evident=True,
+    )
+    ledger.reserve(_projection("run-a"))
+    ledger.finalize(
+        "run-a",
+        status="complete",
+        cost_usd=0.25,
+        completions=8,
+        storage_bytes=90,
+    )
+
+    snapshot = ledger.snapshot()
+    assert snapshot["schema_version"] == "finevo-pilot-budget-ledger-v2"
+    assert [row["event_type"] for row in snapshot["events"]] == [
+        "genesis",
+        "run_reserved",
+        "run_finalized",
+    ]
+    assert snapshot["event_chain_head"] == snapshot["events"][-1]["event_sha256"]
+    assert len(snapshot["ledger_sha256"]) == 64
+
+    restored = PilotBudgetLedger(
+        path,
+        contract_hash=CONTRACT_HASH,
+        tamper_evident=True,
+    )
+    assert restored.snapshot()["ledger_sha256"] == snapshot["ledger_sha256"]
+
+
+@pytest.mark.parametrize("target", ["state", "event"])
+def test_tamper_evident_ledger_rejects_modified_bytes(
+    tmp_path: Path,
+    target: str,
+) -> None:
+    path = tmp_path / "budget-v2.json"
+    ledger = PilotBudgetLedger(
+        path,
+        contract_hash=CONTRACT_HASH,
+        tamper_evident=True,
+    )
+    ledger.reserve(_projection("run-a"))
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if target == "state":
+        value["runs"]["run-a"]["reservation"]["cost_usd"] = 0.25
+    else:
+        value["events"][1]["payload"]["projection_sha256"] = "0" * 64
+    path.write_text(json.dumps(value), encoding="utf-8")
+
+    with pytest.raises(PilotBudgetError, match="hash|chain"):
+        PilotBudgetLedger(
+            path,
+            contract_hash=CONTRACT_HASH,
+            tamper_evident=True,
+        )
 
 
 def test_stage_cap_stops_before_dispatch(tmp_path: Path) -> None:

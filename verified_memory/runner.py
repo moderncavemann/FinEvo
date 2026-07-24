@@ -12,19 +12,20 @@ from dataclasses import asdict, dataclass, field
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import random
 import re
 from statistics import mean
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 import numpy as np
 
 import ai_economist.foundation as foundation
 from llm_providers import MODEL_COSTS, MultiModelLLM, StructuredCompletion
 
-from .actions import ActionDecision, parse_direct_action
-from .budget import RunBudget, UsageRecord
+from .actions import ActionDecision, ActionParseError, parse_direct_action
+from .budget import BudgetExceeded, RunBudget, UsageRecord
 from .foundation_adapter import (
     capture_foundation_snapshots,
     build_foundation_actions,
@@ -55,6 +56,8 @@ from .system import MemoryBundle, VerifiedDualTrackMemory
 RUNNER_SCHEMA_VERSION = "verified-simulation-runner-v3"
 SHOCK_EVENT_SCHEMA_VERSION = "finevo-shock-event-v1"
 ERROR_RULE_INJECTION_SCHEMA_VERSION = "finevo-error-rule-injection-v1"
+PROVIDER_CALL_JOURNAL_SCHEMA_VERSION = "finevo-provider-call-journal-v1"
+_UNSET_JOURNAL_BINDING = object()
 SEMANTIC_PARSE_FAILURE_POLICIES = frozenset({"record-and-skip", "fail-run"})
 SEMANTIC_POLICIES = frozenset({"evidence-grounded", "unverified-immediate"})
 ERROR_RULE_MODES = frozenset({"none", "candidate-admission", "forced-active"})
@@ -461,6 +464,18 @@ class VerifiedRunConfig:
     top_p: float = 1.0
     action_max_tokens: int = 220
     rule_max_tokens: int = 450
+    action_max_visible_json_bytes: int = 1_000_000
+    rule_max_visible_json_bytes: int = 1_000_000
+    accepted_action_parse_modes: tuple[str, ...] = (
+        "exact_json",
+        "fenced_recovery",
+        "substring_recovery",
+    )
+    accepted_semantic_parse_modes: tuple[str, ...] = (
+        "exact_json",
+        "fenced_recovery",
+        "substring_recovery",
+    )
     max_retries: int = 1
     fail_on_clipped_action: bool = True
     semantic_parse_failure_policy: str = "record-and-skip"
@@ -504,6 +519,8 @@ class VerifiedRunConfig:
             "retirement_patience",
             "action_max_tokens",
             "rule_max_tokens",
+            "action_max_visible_json_bytes",
+            "rule_max_visible_json_bytes",
             "max_retries",
         ):
             value = getattr(self, name)
@@ -527,6 +544,8 @@ class VerifiedRunConfig:
             "retirement_patience",
             "action_max_tokens",
             "rule_max_tokens",
+            "action_max_visible_json_bytes",
+            "rule_max_visible_json_bytes",
             "max_retries",
         ):
             if getattr(self, name) < 1:
@@ -536,6 +555,26 @@ class VerifiedRunConfig:
                 "verified runs require max_retries=1 so each provider attempt "
                 "consumes one hard-budget call"
             )
+        parse_modes = {
+            "exact_json",
+            "fenced_recovery",
+            "substring_recovery",
+        }
+        for name in (
+            "accepted_action_parse_modes",
+            "accepted_semantic_parse_modes",
+        ):
+            raw = getattr(self, name)
+            if isinstance(raw, (str, bytes)) or not isinstance(raw, (list, tuple)):
+                raise TypeError(f"{name} must be an array of parse modes")
+            normalized = tuple(str(item) for item in raw)
+            if (
+                not normalized
+                or len(normalized) != len(set(normalized))
+                or not set(normalized) <= parse_modes
+            ):
+                raise ValueError(f"{name} contains invalid or duplicate parse modes")
+            object.__setattr__(self, name, normalized)
         if self.activation_min_support < self.min_candidate_support:
             raise ValueError(
                 "activation_min_support cannot be below min_candidate_support"
@@ -744,6 +783,12 @@ class VerifiedRunConfig:
         result["shock_schedule"] = [
             event.to_dict() for event in self.shock_schedule
         ]
+        result["accepted_action_parse_modes"] = list(
+            self.accepted_action_parse_modes
+        )
+        result["accepted_semantic_parse_modes"] = list(
+            self.accepted_semantic_parse_modes
+        )
         reservations: dict[str, dict[str, Any]] = {}
         for item in self.preflight_p95_reservations:
             reservations.setdefault(item.model, {})[item.call_kind] = item.to_dict()
@@ -936,12 +981,21 @@ def _provider_row(
         "attempts": result.attempts,
         "latency_seconds": result.latency_seconds,
         "error_type": result.error_type,
+        "provider_error_details": (
+            result.provider_error_details.to_dict()
+            if result.provider_error_details is not None
+            else None
+        ),
         "usage": result.usage.to_dict(),
         "request_seed": result.request_seed,
         "system_fingerprint": result.system_fingerprint,
         "response_model": result.response_model,
         "cached_prompt_tokens": result.cached_prompt_tokens,
         "reasoning_tokens": result.reasoning_tokens,
+        "visible_completion_tokens": max(
+            0,
+            result.usage.completion_tokens - result.reasoning_tokens,
+        ),
         "provider_request_id": result.request_id,
         "response_provider": result.response_provider,
         "response_route": result.response_route,
@@ -952,8 +1006,187 @@ def _provider_row(
         "request_price_snapshot_captured_at": (
             result.request_price_snapshot_captured_at
         ),
+        "finish_reason": result.finish_reason,
+        "native_finish_reason": result.native_finish_reason,
+        "response_completed": result.response_completed,
+        "provider_sdk_name": result.provider_sdk_name,
+        "provider_sdk_version": result.provider_sdk_version,
+        "route_attestation_code": result.route_attestation_code,
+        "route_attestation_path": result.route_attestation_path,
+        "route_attestation_source": result.route_attestation_source,
+        "request_parameters": list(result.request_parameters),
+        "temperature_dispatch": result.temperature_dispatch,
+        "parameter_dispatch": dict(result.parameter_dispatch),
+        "output_disposition": result.output_disposition,
+        "raw_output_bytes": len(result.text.encode("utf-8")),
         "raw_output_hash": hashlib.sha256(result.text.encode("utf-8")).hexdigest(),
     }
+
+
+def _append_provider_call_journal(
+    path: Path | None,
+    *,
+    run_id: str,
+    contract_hash: str | None,
+    event_type: str,
+    payload: Mapping[str, Any],
+) -> None:
+    """Atomically append one hash-chained, output-free provider audit event."""
+
+    if path is None:
+        return
+    path = Path(path)
+    if path.exists():
+        value = verify_provider_call_journal(
+            path,
+            expected_run_id=run_id,
+            expected_contract_hash=contract_hash,
+        )
+        expected = value.pop("journal_sha256", None)
+        if expected is None:  # pragma: no cover - verifier owns the invariant
+            raise VerifiedRunError("provider call journal self-hash is absent")
+    else:
+        value = {
+            "schema_version": PROVIDER_CALL_JOURNAL_SCHEMA_VERSION,
+            "run_id": run_id,
+            "contract_hash": contract_hash,
+            "events": [],
+        }
+    events = value["events"]
+    previous = events[-1]["event_sha256"] if events else "0" * 64
+    event = {
+        "event_index": len(events),
+        "event_type": event_type,
+        "previous_event_sha256": previous,
+        "payload": _json_copy(payload),
+    }
+    event["event_sha256"] = _sha256(event)
+    events.append(event)
+    value["journal_sha256"] = _sha256(value)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    os.replace(temporary, path)
+
+
+def verify_provider_call_journal(
+    value_or_path: Mapping[str, Any] | str | Path,
+    *,
+    expected_run_id: str | object = _UNSET_JOURNAL_BINDING,
+    expected_contract_hash: str | None | object = _UNSET_JOURNAL_BINDING,
+    require_terminal_dispositions: bool = False,
+) -> dict[str, Any]:
+    """Verify journal self-hash, event chain, bindings, and call disposition.
+
+    ``require_terminal_dispositions`` is used only after a run (including a
+    fail-closed run) has stopped mutating the journal.  During the brief atomic
+    window between a completion event and its parse event the append path uses
+    the structural checks without requiring the pair to be terminal yet.
+    """
+
+    try:
+        if isinstance(value_or_path, Mapping):
+            value = _json_copy(value_or_path)
+        else:
+            value = json.loads(Path(value_or_path).read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise VerifiedRunError("provider call journal is not strict JSON") from exc
+    if not isinstance(value, dict) or set(value) != {
+        "schema_version",
+        "run_id",
+        "contract_hash",
+        "events",
+        "journal_sha256",
+    }:
+        raise VerifiedRunError("provider call journal top-level shape mismatch")
+    if value["schema_version"] != PROVIDER_CALL_JOURNAL_SCHEMA_VERSION:
+        raise VerifiedRunError("provider call journal schema mismatch")
+    if not isinstance(value["run_id"], str) or not value["run_id"]:
+        raise VerifiedRunError("provider call journal run_id is invalid")
+    if value["contract_hash"] is not None and (
+        not isinstance(value["contract_hash"], str)
+        or len(value["contract_hash"]) != 64
+    ):
+        raise VerifiedRunError("provider call journal contract hash is invalid")
+    if (
+        expected_run_id is not _UNSET_JOURNAL_BINDING
+        and value["run_id"] != expected_run_id
+    ):
+        raise VerifiedRunError("provider call journal run binding mismatch")
+    if (
+        expected_contract_hash is not _UNSET_JOURNAL_BINDING
+        and value["contract_hash"] != expected_contract_hash
+    ):
+        raise VerifiedRunError("provider call journal contract binding mismatch")
+
+    unsigned = dict(value)
+    claimed_journal_hash = unsigned.pop("journal_sha256")
+    if claimed_journal_hash != _sha256(unsigned):
+        raise VerifiedRunError("provider call journal self-hash mismatch")
+    events = value["events"]
+    if not isinstance(events, list):
+        raise VerifiedRunError("provider call journal events must be an array")
+    previous = "0" * 64
+    pending: dict[tuple[Any, ...], int] = {}
+    for index, event in enumerate(events):
+        if not isinstance(event, dict) or set(event) != {
+            "event_index",
+            "event_type",
+            "previous_event_sha256",
+            "payload",
+            "event_sha256",
+        }:
+            raise VerifiedRunError("provider call journal event shape mismatch")
+        if event["event_index"] != index:
+            raise VerifiedRunError("provider call journal event index mismatch")
+        if event["event_type"] not in {
+            "completion_received",
+            "parse_disposition",
+        }:
+            raise VerifiedRunError("provider call journal event type is invalid")
+        if event["previous_event_sha256"] != previous:
+            raise VerifiedRunError("provider call journal event chain mismatch")
+        payload = event["payload"]
+        if not isinstance(payload, dict):
+            raise VerifiedRunError("provider call journal event payload is invalid")
+        claimed_event_hash = event["event_sha256"]
+        unsigned_event = dict(event)
+        unsigned_event.pop("event_sha256")
+        if claimed_event_hash != _sha256(unsigned_event):
+            raise VerifiedRunError("provider call journal event hash mismatch")
+        previous = claimed_event_hash
+
+        call_key = (
+            payload.get("call_kind"),
+            payload.get("decision_t"),
+            payload.get("agent_id"),
+            payload.get("prompt_hash"),
+            payload.get("raw_output_hash"),
+        )
+        if event["event_type"] == "completion_received":
+            if call_key in pending:
+                raise VerifiedRunError(
+                    "provider call journal has a duplicate pending completion"
+                )
+            pending[call_key] = index
+        else:
+            if call_key not in pending:
+                raise VerifiedRunError(
+                    "provider call journal parse event lacks its completion"
+                )
+            if not isinstance(payload.get("parse_status"), str):
+                raise VerifiedRunError(
+                    "provider call journal parse status is missing"
+                )
+            pending.pop(call_key)
+    if require_terminal_dispositions and pending:
+        raise VerifiedRunError(
+            "provider call journal has completion events without dispositions"
+        )
+    return _json_copy(value)
 
 
 def _semantic_parse_mode(raw_response: str) -> str:
@@ -971,6 +1204,17 @@ def _semantic_parse_mode(raw_response: str) -> str:
     if "{" in stripped and "}" in stripped:
         return "substring_recovery"
     return "parse_failure"
+
+
+def _action_parse_mode(raw_response: str, decision: ActionDecision) -> str:
+    """Classify production action parsing without losing recovery diagnostics."""
+
+    if decision.repair_attempts == 0:
+        return "exact_json"
+    stripped = raw_response.strip()
+    if "```" in stripped:
+        return "fenced_recovery"
+    return "substring_recovery"
 
 
 def _monthly_inflation(world: Any) -> float:
@@ -1285,6 +1529,7 @@ def run_verified_experiment(
     llm: MultiModelLLM,
     budget: RunBudget,
     env_config_source: Mapping[str, Any] | str,
+    call_journal_path: str | Path | None = None,
 ) -> VerifiedRunResult:
     """Run a bounded verified experiment and return finite in-memory records."""
 
@@ -1294,6 +1539,9 @@ def run_verified_experiment(
         raise TypeError("llm must be MultiModelLLM")
     if not isinstance(budget, RunBudget):
         raise TypeError("budget must be RunBudget")
+    journal_path = (
+        None if call_journal_path is None else Path(call_journal_path).resolve()
+    )
 
     provider_model_name = llm.get_model_name()
     diagnostic_only = provider_model_name.startswith(f"{DIAGNOSTIC_PROVIDER_NAME}/")
@@ -1344,6 +1592,81 @@ def run_verified_experiment(
     # injecting an artificial 100% low-labor signal.
     previous_low_labor_rate: Optional[float] = None
     completed_periods = 0
+
+    def journal_budget_failed_batch(
+        error: BudgetExceeded,
+        *,
+        call_kind: str,
+        decision_t: int,
+        agent_ids: Sequence[int],
+        prompt_hashes: Sequence[str],
+    ) -> None:
+        """Seal every settled completion before a hard overage escapes."""
+
+        completions = getattr(error, "structured_completions", None)
+        if (
+            not isinstance(completions, tuple)
+            or len(completions) != len(agent_ids)
+            or len(prompt_hashes) != len(agent_ids)
+            or any(
+                not isinstance(completion, StructuredCompletion)
+                for completion in completions
+            )
+        ):
+            raise VerifiedRunError(
+                "budget failure did not expose every dispatched completion "
+                "for terminal journaling"
+            ) from error
+        reasons = [
+            getattr(reason, "value", str(reason))
+            for reason in getattr(error, "reasons", ())
+        ]
+        for completion, agent_id, prompt_hash in zip(
+            completions,
+            agent_ids,
+            prompt_hashes,
+            strict=True,
+        ):
+            usage_row = _provider_row(
+                completion,
+                call_kind=call_kind,
+                decision_t=decision_t,
+                agent_id=agent_id,
+                prompt_hash=prompt_hash,
+            )
+            records["api_usage"].append(usage_row)
+            records["errors"].append(
+                {
+                    **usage_row,
+                    "error_type": "BudgetExceeded",
+                    "budget_stop_reasons": reasons,
+                }
+            )
+            _append_provider_call_journal(
+                journal_path,
+                run_id=config.run_id,
+                contract_hash=config.pilot_contract_hash,
+                event_type="completion_received",
+                payload=usage_row,
+            )
+            _append_provider_call_journal(
+                journal_path,
+                run_id=config.run_id,
+                contract_hash=config.pilot_contract_hash,
+                event_type="parse_disposition",
+                payload={
+                    "call_kind": call_kind,
+                    "decision_t": decision_t,
+                    "agent_id": agent_id,
+                    "prompt_hash": prompt_hash,
+                    "raw_output_hash": usage_row["raw_output_hash"],
+                    "parse_status": "not_evaluated",
+                    "parse_mode": "budget_failure",
+                    "accepted": False,
+                    "rejection": "run_budget_exceeded",
+                    "budget_stop_reasons": reasons,
+                },
+            )
 
     for decision_t in range(config.episode_length):
         current_shock = shocks_by_t.get(decision_t)
@@ -1468,22 +1791,42 @@ def run_verified_experiment(
             )
             for index in range(config.num_agents)
         ]
-        completions = llm.get_multiple_structured_completions(
-            dialogs,
-            temperature=config.temperature,
-            max_tokens=config.action_max_tokens,
-            top_p=config.top_p,
-            budget=budget,
-            labels=[f"action:t{decision_t}:a{index}" for index in range(config.num_agents)],
-            tags=[
-                {"call_kind": "action", "decision_t": decision_t, "agent_id": index}
-                for index in range(config.num_agents)
-            ],
-            estimated_usages=estimates,
-            max_retries=config.max_retries,
-            seed=config.seed if config.send_decoding_seed else None,
-        )
-        decisions: dict[str, ActionDecision] = {}
+        try:
+            completions = llm.get_multiple_structured_completions(
+                dialogs,
+                temperature=config.temperature,
+                max_tokens=config.action_max_tokens,
+                top_p=config.top_p,
+                budget=budget,
+                labels=[
+                    f"action:t{decision_t}:a{index}"
+                    for index in range(config.num_agents)
+                ],
+                tags=[
+                    {
+                        "call_kind": "action",
+                        "decision_t": decision_t,
+                        "agent_id": index,
+                    }
+                    for index in range(config.num_agents)
+                ],
+                estimated_usages=estimates,
+                max_retries=config.max_retries,
+                seed=config.seed if config.send_decoding_seed else None,
+            )
+        except BudgetExceeded as exc:
+            journal_budget_failed_batch(
+                exc,
+                call_kind="action",
+                decision_t=decision_t,
+                agent_ids=tuple(range(config.num_agents)),
+                prompt_hashes=tuple(
+                    prompt_rows[index].full_prompt_hash
+                    for index in range(config.num_agents)
+                ),
+            )
+            raise
+        usage_rows: list[dict[str, Any]] = []
         for agent_id, completion in enumerate(completions):
             prompt = prompt_rows[agent_id]
             usage_row = _provider_row(
@@ -1494,22 +1837,234 @@ def run_verified_experiment(
                 prompt_hash=prompt.full_prompt_hash,
             )
             records["api_usage"].append(usage_row)
+            _append_provider_call_journal(
+                journal_path,
+                run_id=config.run_id,
+                contract_hash=config.pilot_contract_hash,
+                event_type="completion_received",
+                payload=usage_row,
+            )
+            usage_rows.append(usage_row)
+
+        def close_later_action_dispositions(current_agent_id: int) -> None:
+            for pending_agent_id in range(
+                current_agent_id + 1, len(completions)
+            ):
+                pending_prompt = prompt_rows[pending_agent_id]
+                pending_usage = usage_rows[pending_agent_id]
+                _append_provider_call_journal(
+                    journal_path,
+                    run_id=config.run_id,
+                    contract_hash=config.pilot_contract_hash,
+                    event_type="parse_disposition",
+                    payload={
+                        "call_kind": "action",
+                        "decision_t": decision_t,
+                        "agent_id": pending_agent_id,
+                        "prompt_hash": pending_prompt.full_prompt_hash,
+                        "raw_output_hash": pending_usage["raw_output_hash"],
+                        "parse_status": "not_evaluated",
+                        "parse_mode": "prior_batch_failure",
+                        "accepted": False,
+                    },
+                )
+
+        decisions: dict[str, ActionDecision] = {}
+        for agent_id, (completion, usage_row) in enumerate(
+            zip(completions, usage_rows, strict=True)
+        ):
+            prompt = prompt_rows[agent_id]
             if not completion.ok or completion.text == "Error":
                 records["errors"].append(usage_row)
+                _append_provider_call_journal(
+                    journal_path,
+                    run_id=config.run_id,
+                    contract_hash=config.pilot_contract_hash,
+                    event_type="parse_disposition",
+                    payload={
+                        "call_kind": "action",
+                        "decision_t": decision_t,
+                        "agent_id": agent_id,
+                        "prompt_hash": prompt.full_prompt_hash,
+                        "raw_output_hash": usage_row["raw_output_hash"],
+                        "parse_status": "unavailable",
+                        "parse_mode": completion.output_disposition,
+                        "accepted": False,
+                    },
+                )
+                close_later_action_dispositions(agent_id)
                 raise VerifiedRunError(
                     f"provider action failure at t={decision_t}, agent={agent_id}: "
                     f"{completion.error_type}"
                 )
-            decision = parse_direct_action(
-                completion.text,
-                max_labor_hours=config.max_labor_hours,
-                labor_step=config.labor_step,
-                consumption_step=config.consumption_step,
-            )
+            output_bytes = len(completion.text.encode("utf-8"))
+            if output_bytes > config.action_max_visible_json_bytes:
+                usage_row["action_parse_mode"] = "visible_limit_exceeded"
+                records["errors"].append(usage_row)
+                _append_provider_call_journal(
+                    journal_path,
+                    run_id=config.run_id,
+                    contract_hash=config.pilot_contract_hash,
+                    event_type="parse_disposition",
+                    payload={
+                        "call_kind": "action",
+                        "decision_t": decision_t,
+                        "agent_id": agent_id,
+                        "prompt_hash": prompt.full_prompt_hash,
+                        "raw_output_hash": usage_row["raw_output_hash"],
+                        "parse_status": "failure",
+                        "parse_mode": "visible_limit_exceeded",
+                        "accepted": False,
+                    },
+                )
+                close_later_action_dispositions(agent_id)
+                raise VerifiedRunError(
+                    (
+                        f"action output exceeds visible JSON byte limit at "
+                        f"t={decision_t}, agent={agent_id}"
+                    ),
+                    failure=RunnerFailure(
+                        schema_version=RUNNER_SCHEMA_VERSION,
+                        error_stage="action_visible_json_limit",
+                        call_kind="action",
+                        decision_t=decision_t,
+                        agent_id=agent_id,
+                        error_type="ValueError",
+                        message="action output exceeds visible JSON byte limit",
+                        prompt_hash=prompt.full_prompt_hash,
+                        raw_output_hash=usage_row["raw_output_hash"],
+                        provider=completion.provider,
+                        model=completion.model,
+                        attempts=completion.attempts,
+                    ),
+                )
+            try:
+                decision = parse_direct_action(
+                    completion.text,
+                    max_labor_hours=config.max_labor_hours,
+                    labor_step=config.labor_step,
+                    consumption_step=config.consumption_step,
+                )
+            except ActionParseError as exc:
+                usage_row["action_parse_mode"] = "parse_failure"
+                records["errors"].append(
+                    {**usage_row, "error_type": "ActionParseError"}
+                )
+                _append_provider_call_journal(
+                    journal_path,
+                    run_id=config.run_id,
+                    contract_hash=config.pilot_contract_hash,
+                    event_type="parse_disposition",
+                    payload={
+                        "call_kind": "action",
+                        "decision_t": decision_t,
+                        "agent_id": agent_id,
+                        "prompt_hash": prompt.full_prompt_hash,
+                        "raw_output_hash": usage_row["raw_output_hash"],
+                        "parse_status": "failure",
+                        "parse_mode": "parse_failure",
+                        "accepted": False,
+                    },
+                )
+                close_later_action_dispositions(agent_id)
+                raise VerifiedRunError(
+                    str(exc),
+                    failure=RunnerFailure(
+                        schema_version=RUNNER_SCHEMA_VERSION,
+                        error_stage="action_parser",
+                        call_kind="action",
+                        decision_t=decision_t,
+                        agent_id=agent_id,
+                        error_type="ValueError",
+                        message=str(exc),
+                        prompt_hash=prompt.full_prompt_hash,
+                        raw_output_hash=usage_row["raw_output_hash"],
+                        provider=completion.provider,
+                        model=completion.model,
+                        attempts=completion.attempts,
+                    ),
+                ) from exc
+            action_parse_mode = _action_parse_mode(completion.text, decision)
+            usage_row["action_parse_mode"] = action_parse_mode
+            if action_parse_mode not in config.accepted_action_parse_modes:
+                records["errors"].append(
+                    {**usage_row, "error_type": "UnacceptedParseMode"}
+                )
+                _append_provider_call_journal(
+                    journal_path,
+                    run_id=config.run_id,
+                    contract_hash=config.pilot_contract_hash,
+                    event_type="parse_disposition",
+                    payload={
+                        "call_kind": "action",
+                        "decision_t": decision_t,
+                        "agent_id": agent_id,
+                        "prompt_hash": prompt.full_prompt_hash,
+                        "raw_output_hash": usage_row["raw_output_hash"],
+                        "parse_status": "success",
+                        "parse_mode": action_parse_mode,
+                        "accepted": False,
+                    },
+                )
+                close_later_action_dispositions(agent_id)
+                raise VerifiedRunError(
+                    (
+                        f"action parse mode {action_parse_mode!r} is not accepted "
+                        f"at t={decision_t}, agent={agent_id}"
+                    ),
+                    failure=RunnerFailure(
+                        schema_version=RUNNER_SCHEMA_VERSION,
+                        error_stage="action_parse_policy",
+                        call_kind="action",
+                        decision_t=decision_t,
+                        agent_id=agent_id,
+                        error_type="ValueError",
+                        message=f"unaccepted action parse mode: {action_parse_mode}",
+                        prompt_hash=prompt.full_prompt_hash,
+                        raw_output_hash=usage_row["raw_output_hash"],
+                        provider=completion.provider,
+                        model=completion.model,
+                        attempts=completion.attempts,
+                    ),
+                )
             if config.fail_on_clipped_action and decision.clipped:
+                _append_provider_call_journal(
+                    journal_path,
+                    run_id=config.run_id,
+                    contract_hash=config.pilot_contract_hash,
+                    event_type="parse_disposition",
+                    payload={
+                        "call_kind": "action",
+                        "decision_t": decision_t,
+                        "agent_id": agent_id,
+                        "prompt_hash": prompt.full_prompt_hash,
+                        "raw_output_hash": usage_row["raw_output_hash"],
+                        "parse_status": "success",
+                        "parse_mode": action_parse_mode,
+                        "accepted": False,
+                        "rejection": "clipped_action",
+                    },
+                )
+                close_later_action_dispositions(agent_id)
                 raise VerifiedRunError(
                     f"clipped action at t={decision_t}, agent={agent_id}"
                 )
+            _append_provider_call_journal(
+                journal_path,
+                run_id=config.run_id,
+                contract_hash=config.pilot_contract_hash,
+                event_type="parse_disposition",
+                payload={
+                    "call_kind": "action",
+                    "decision_t": decision_t,
+                    "agent_id": agent_id,
+                    "prompt_hash": prompt.full_prompt_hash,
+                    "raw_output_hash": usage_row["raw_output_hash"],
+                    "parse_status": "success",
+                    "parse_mode": action_parse_mode,
+                    "accepted": True,
+                },
+            )
             decisions[str(agent_id)] = decision
             bundle = bundles[agent_id]
             pre_state = _m2_state(
@@ -1540,13 +2095,13 @@ def run_verified_experiment(
                     "model": completion.model,
                     "prompt_hash": prompt.full_prompt_hash,
                     "raw_output": completion.text,
+                    "parse_mode": action_parse_mode,
                     "decision": decision.to_dict(),
                     "retrieved_episode_ids": list(bundle.retrieved_episode_ids),
                     "selected_rule_ids": list(bundle.selected_rule_ids),
                     "diagnostic_only": diagnostic_only,
                 }
             )
-
         pre_batch = {
             agent_id: {
                 "wealth": snapshot.wealth,
@@ -1644,32 +2199,58 @@ def run_verified_experiment(
                 memories[agent_id].build_rule_proposal_prompt(max_episodes=6)
                 for agent_id in eligible
             ]
-            proposal_results = llm.get_multiple_structured_completions(
-                [[{"role": "user", "content": prompt}] for prompt in proposal_prompts],
-                temperature=0.0,
-                max_tokens=config.rule_max_tokens,
-                top_p=1.0,
-                budget=budget,
-                labels=[f"semantic:t{current_t}:a{agent_id}" for agent_id in eligible],
-                tags=[
-                    {"call_kind": "semantic", "current_t": current_t, "agent_id": agent_id}
-                    for agent_id in eligible
-                ],
-                estimated_usages=[
-                    preflight_p95_reservation_for_call(
-                        config,
-                        provider_model_name=provider_model_name,
-                        call_kind="semantic",
-                        prompt=prompt,
-                        max_tokens=config.rule_max_tokens,
-                    )
-                    for prompt in proposal_prompts
-                ],
-                max_retries=config.max_retries,
-                seed=config.seed if config.send_decoding_seed else None,
-            )
+            try:
+                proposal_results = llm.get_multiple_structured_completions(
+                    [
+                        [{"role": "user", "content": prompt}]
+                        for prompt in proposal_prompts
+                    ],
+                    temperature=0.0,
+                    max_tokens=config.rule_max_tokens,
+                    top_p=1.0,
+                    budget=budget,
+                    labels=[
+                        f"semantic:t{current_t}:a{agent_id}"
+                        for agent_id in eligible
+                    ],
+                    tags=[
+                        {
+                            "call_kind": "semantic",
+                            "current_t": current_t,
+                            "agent_id": agent_id,
+                        }
+                        for agent_id in eligible
+                    ],
+                    estimated_usages=[
+                        preflight_p95_reservation_for_call(
+                            config,
+                            provider_model_name=provider_model_name,
+                            call_kind="semantic",
+                            prompt=prompt,
+                            max_tokens=config.rule_max_tokens,
+                        )
+                        for prompt in proposal_prompts
+                    ],
+                    max_retries=config.max_retries,
+                    seed=config.seed if config.send_decoding_seed else None,
+                )
+            except BudgetExceeded as exc:
+                journal_budget_failed_batch(
+                    exc,
+                    call_kind="semantic",
+                    decision_t=current_t,
+                    agent_ids=eligible,
+                    prompt_hashes=tuple(
+                        hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+                        for prompt in proposal_prompts
+                    ),
+                )
+                raise
+            proposal_batch: list[
+                tuple[int, str, StructuredCompletion, str, dict[str, Any]]
+            ] = []
             for agent_id, prompt, completion in zip(
-                eligible, proposal_prompts, proposal_results
+                eligible, proposal_prompts, proposal_results, strict=True
             ):
                 proposals_made[agent_id] += 1
                 prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
@@ -1681,6 +2262,51 @@ def run_verified_experiment(
                     prompt_hash=prompt_hash,
                 )
                 records["api_usage"].append(usage_row)
+                _append_provider_call_journal(
+                    journal_path,
+                    run_id=config.run_id,
+                    contract_hash=config.pilot_contract_hash,
+                    event_type="completion_received",
+                    payload=usage_row,
+                )
+                proposal_batch.append(
+                    (agent_id, prompt, completion, prompt_hash, usage_row)
+                )
+
+            def close_later_semantic_dispositions(current_index: int) -> None:
+                for (
+                    pending_agent_id,
+                    _,
+                    _,
+                    pending_prompt_hash,
+                    pending_usage,
+                ) in proposal_batch[current_index + 1 :]:
+                    _append_provider_call_journal(
+                        journal_path,
+                        run_id=config.run_id,
+                        contract_hash=config.pilot_contract_hash,
+                        event_type="parse_disposition",
+                        payload={
+                            "call_kind": "semantic",
+                            "decision_t": current_t,
+                            "agent_id": pending_agent_id,
+                            "prompt_hash": pending_prompt_hash,
+                            "raw_output_hash": pending_usage[
+                                "raw_output_hash"
+                            ],
+                            "parse_status": "not_evaluated",
+                            "parse_mode": "prior_batch_failure",
+                            "accepted": False,
+                        },
+                    )
+
+            for batch_index, (
+                agent_id,
+                prompt,
+                completion,
+                prompt_hash,
+                usage_row,
+            ) in enumerate(proposal_batch):
                 proposal_row = {
                     "schema_version": RUNNER_SCHEMA_VERSION,
                     "current_t": current_t,
@@ -1698,6 +2324,88 @@ def run_verified_experiment(
                     "diagnostic_only": diagnostic_only,
                 }
                 if completion.ok and completion.text != "Error":
+                    output_bytes = len(completion.text.encode("utf-8"))
+                    candidate_parse_mode = _semantic_parse_mode(completion.text)
+                    if output_bytes > config.rule_max_visible_json_bytes:
+                        proposal_row["parse_error"] = (
+                            "semantic output exceeds visible JSON byte limit"
+                        )
+                        proposal_row["candidate_parse_status"] = "failure"
+                        proposal_row["candidate_parse_mode"] = (
+                            "visible_limit_exceeded"
+                        )
+                        records["errors"].append(
+                            {
+                                **usage_row,
+                                "error_type": "VisibleJSONLimitExceeded",
+                            }
+                        )
+                        _append_provider_call_journal(
+                            journal_path,
+                            run_id=config.run_id,
+                            contract_hash=config.pilot_contract_hash,
+                            event_type="parse_disposition",
+                            payload={
+                                "call_kind": "semantic",
+                                "decision_t": current_t,
+                                "agent_id": agent_id,
+                                "prompt_hash": prompt_hash,
+                                "raw_output_hash": usage_row["raw_output_hash"],
+                                "parse_status": "failure",
+                                "parse_mode": "visible_limit_exceeded",
+                                "accepted": False,
+                            },
+                        )
+                        records["semantic_proposals"].append(proposal_row)
+                        if config.semantic_parse_failure_policy == "fail-run":
+                            close_later_semantic_dispositions(batch_index)
+                            raise VerifiedRunError(
+                                proposal_row["parse_error"]
+                            )
+                        continue
+                    if (
+                        candidate_parse_mode != "parse_failure"
+                        and
+                        candidate_parse_mode
+                        not in config.accepted_semantic_parse_modes
+                    ):
+                        proposal_row["parse_error"] = (
+                            f"unaccepted semantic parse mode: "
+                            f"{candidate_parse_mode}"
+                        )
+                        proposal_row["candidate_parse_status"] = "failure"
+                        proposal_row["candidate_parse_mode"] = (
+                            candidate_parse_mode
+                        )
+                        records["errors"].append(
+                            {
+                                **usage_row,
+                                "error_type": "UnacceptedParseMode",
+                            }
+                        )
+                        _append_provider_call_journal(
+                            journal_path,
+                            run_id=config.run_id,
+                            contract_hash=config.pilot_contract_hash,
+                            event_type="parse_disposition",
+                            payload={
+                                "call_kind": "semantic",
+                                "decision_t": current_t,
+                                "agent_id": agent_id,
+                                "prompt_hash": prompt_hash,
+                                "raw_output_hash": usage_row["raw_output_hash"],
+                                "parse_status": "success",
+                                "parse_mode": candidate_parse_mode,
+                                "accepted": False,
+                            },
+                        )
+                        records["semantic_proposals"].append(proposal_row)
+                        if config.semantic_parse_failure_policy == "fail-run":
+                            close_later_semantic_dispositions(batch_index)
+                            raise VerifiedRunError(
+                                proposal_row["parse_error"]
+                            )
+                        continue
                     try:
                         rule = memories[agent_id].submit_rule_proposal(
                             completion.text,
@@ -1708,8 +2416,24 @@ def run_verified_experiment(
                         proposal_row["rule_id"] = rule.rule_id
                         proposal_row["rule_status"] = rule.status
                         proposal_row["candidate_parse_status"] = "success"
-                        proposal_row["candidate_parse_mode"] = _semantic_parse_mode(
-                            completion.text
+                        proposal_row["candidate_parse_mode"] = candidate_parse_mode
+                        _append_provider_call_journal(
+                            journal_path,
+                            run_id=config.run_id,
+                            contract_hash=config.pilot_contract_hash,
+                            event_type="parse_disposition",
+                            payload={
+                                "call_kind": "semantic",
+                                "decision_t": current_t,
+                                "agent_id": agent_id,
+                                "prompt_hash": prompt_hash,
+                                "raw_output_hash": usage_row["raw_output_hash"],
+                                "parse_status": "success",
+                                "parse_mode": candidate_parse_mode,
+                                "accepted": True,
+                                "rule_id": rule.rule_id,
+                                "rule_status": rule.status,
+                            },
                         )
                     except CandidateParseError as exc:
                         proposal_row["parse_error"] = str(exc)
@@ -1722,8 +2446,25 @@ def run_verified_experiment(
                                 "message": str(exc),
                             }
                         )
+                        _append_provider_call_journal(
+                            journal_path,
+                            run_id=config.run_id,
+                            contract_hash=config.pilot_contract_hash,
+                            event_type="parse_disposition",
+                            payload={
+                                "call_kind": "semantic",
+                                "decision_t": current_t,
+                                "agent_id": agent_id,
+                                "prompt_hash": prompt_hash,
+                                "raw_output_hash": usage_row["raw_output_hash"],
+                                "parse_status": "failure",
+                                "parse_mode": "parse_failure",
+                                "accepted": False,
+                            },
+                        )
                         records["semantic_proposals"].append(proposal_row)
                         if config.semantic_parse_failure_policy == "fail-run":
+                            close_later_semantic_dispositions(batch_index)
                             raise VerifiedRunError(
                                 str(exc),
                                 failure=RunnerFailure(
@@ -1745,6 +2486,23 @@ def run_verified_experiment(
                 else:
                     records["errors"].append(usage_row)
                     records["semantic_proposals"].append(proposal_row)
+                    _append_provider_call_journal(
+                        journal_path,
+                        run_id=config.run_id,
+                        contract_hash=config.pilot_contract_hash,
+                        event_type="parse_disposition",
+                        payload={
+                            "call_kind": "semantic",
+                            "decision_t": current_t,
+                            "agent_id": agent_id,
+                            "prompt_hash": prompt_hash,
+                            "raw_output_hash": usage_row["raw_output_hash"],
+                            "parse_status": "unavailable",
+                            "parse_mode": completion.output_disposition,
+                            "accepted": False,
+                        },
+                    )
+                    close_later_semantic_dispositions(batch_index)
                     raise VerifiedRunError(
                         (
                             f"provider semantic failure at t={current_t}, "
@@ -2022,6 +2780,13 @@ def run_verified_experiment(
         foundation_config=foundation_config,
         memories=memories,
     )
+    if journal_path is not None:
+        verify_provider_call_journal(
+            journal_path,
+            expected_run_id=config.run_id,
+            expected_contract_hash=config.pilot_contract_hash,
+            require_terminal_dispositions=True,
+        )
     return VerifiedRunResult(
         config=_json_copy(sealed_config),
         summary=_json_copy(summary),
@@ -2039,6 +2804,7 @@ __all__ = [
     "FIXED_ERRONEOUS_RULE",
     "PREFLIGHT_P95_CALL_KINDS",
     "PREFLIGHT_P95_RESERVE_MULTIPLIER",
+    "PROVIDER_CALL_JOURNAL_SCHEMA_VERSION",
     "PreflightP95Reservation",
     "RUNNER_SCHEMA_VERSION",
     "RunnerFailure",
@@ -2054,4 +2820,5 @@ __all__ = [
     "required_preflight_p95_call_kinds",
     "run_verified_experiment",
     "validate_preflight_p95_reservations",
+    "verify_provider_call_journal",
 ]

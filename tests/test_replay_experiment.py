@@ -28,6 +28,16 @@ from verified_memory.scripted_provider import ScriptedDiagnosticProvider
 ROOT = Path(__file__).resolve().parents[1]
 
 
+class _ProfileMetadataScriptedProvider(ScriptedDiagnosticProvider):
+    def get_structured_completion(self, messages, **kwargs):
+        return replace(
+            super().get_structured_completion(messages, **kwargs),
+            request_profile_id="fixture-profile",
+            request_price_snapshot_source="fixture-price-snapshot",
+            request_price_snapshot_captured_at="2026-07-24T00:00:00Z",
+        )
+
+
 def test_sealed_run_to_paired_replay_preserves_integrity(tmp_path: Path) -> None:
     source = run_verified_experiment(
         VerifiedRunConfig(run_id="replay-source", episode_length=6),
@@ -65,7 +75,7 @@ def test_sealed_run_to_paired_replay_preserves_integrity(tmp_path: Path) -> None
     replay_budget = RunBudget(BudgetLimits(max_calls=5, max_cost_usd=0.01))
     replay = run_paired_replay(
         snapshot,
-        llm=MultiModelLLM(ScriptedDiagnosticProvider(), num_workers=1),
+        llm=MultiModelLLM(_ProfileMetadataScriptedProvider(), num_workers=1),
         budget=replay_budget,
     )
     summary = summarize_paired_replay(replay)
@@ -74,8 +84,22 @@ def test_sealed_run_to_paired_replay_preserves_integrity(tmp_path: Path) -> None
     assert len(replay.records) == 5
     assert len({row.base_prompt_hash for row in replay.records}) == 1
     assert all(
+        row.to_dict()["provider_metadata"]["schema_version"]
+        == "verified-simulation-runner-v3"
+        for row in replay.records
+    )
+    assert all(
         row.to_dict()["provider_metadata"]["decoding_seed_applied"]
         == snapshot.decoding_seed
+        for row in replay.records
+    )
+    assert all(
+        row.to_dict()["provider_metadata"]["request_price_snapshot_source"]
+        == "fixture-price-snapshot"
+        and row.to_dict()["provider_metadata"][
+            "request_price_snapshot_captured_at"
+        ]
+        == "2026-07-24T00:00:00Z"
         for row in replay.records
     )
     replay_dir = tmp_path / "replay"
@@ -268,11 +292,12 @@ def test_replay_summary_rejects_forged_provider_seed_or_served_model() -> None:
     )
     replay = run_paired_replay(
         snapshot,
-        llm=MultiModelLLM(ScriptedDiagnosticProvider(), num_workers=1),
+        llm=MultiModelLLM(_ProfileMetadataScriptedProvider(), num_workers=1),
         budget=RunBudget(BudgetLimits(max_calls=5, max_cost_usd=0.01)),
     )
-    records = list(replay.records)
-    metadata = json.loads(records[2].provider_metadata_json)
+    original_records = list(replay.records)
+    records = list(original_records)
+    metadata = json.loads(original_records[2].provider_metadata_json)
     metadata.update(
         {"decoding_seed_applied": 999, "response_model": "forged-served-model"}
     )
@@ -287,6 +312,21 @@ def test_replay_summary_rejects_forged_provider_seed_or_served_model() -> None:
     forged = PairedReplayResult(snapshot=snapshot, records=tuple(records))
 
     with pytest.raises(ReplayIntegrityError, match="protected decoding seed"):
+        summarize_paired_replay(forged)
+
+    records = list(original_records)
+    metadata = json.loads(original_records[2].provider_metadata_json)
+    metadata["request_price_snapshot_source"] = "forged-price-snapshot"
+    records[2] = replace(
+        records[2],
+        provider_metadata_json=json.dumps(
+            metadata,
+            sort_keys=True,
+            separators=(",", ":"),
+        ),
+    )
+    forged = PairedReplayResult(snapshot=snapshot, records=tuple(records))
+    with pytest.raises(ReplayIntegrityError, match="multiple price snapshots"):
         summarize_paired_replay(forged)
 
 

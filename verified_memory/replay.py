@@ -840,6 +840,31 @@ class PairedReplayResult:
             raise ReplayIntegrityError(
                 "provider metadata reports multiple system fingerprints"
             )
+        price_bindings = {
+            (
+                row.get("request_price_snapshot_source"),
+                row.get("request_price_snapshot_captured_at"),
+            )
+            for row in metadata
+        }
+        if len(price_bindings) != 1:
+            raise ReplayIntegrityError(
+                "provider metadata reports multiple price snapshots"
+            )
+        price_source, price_captured_at = next(iter(price_bindings))
+        if (price_source is None) != (price_captured_at is None):
+            raise ReplayIntegrityError(
+                "provider metadata has an incomplete price snapshot"
+            )
+        if any(row.get("request_profile_id") is not None for row in metadata) and (
+            not isinstance(price_source, str)
+            or not price_source
+            or not isinstance(price_captured_at, str)
+            or not price_captured_at
+        ):
+            raise ReplayIntegrityError(
+                "strict provider replay lacks a frozen price snapshot"
+            )
 
     def to_jsonl(self) -> str:
         self.validate_integrity()

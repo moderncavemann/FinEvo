@@ -45,19 +45,23 @@ The only scientific-pilot entry point is:
 
 ```bash
 python run_pilot.py \
-  --contract experiments/pilot_v1.yaml \
+  --contract experiments/pilot_v2.yaml \
   --stage <stage> \
   --resume
 ```
 
-The frozen order is `capability-preflight`, `q-ref-resolution`,
-`stage0-calibration`, `experiment-a`, `experiment-b`, `experiment-c`,
-`experiment-d`, and `cross-model-sentinels`. The runner registers the complete
-ITT denominator before dispatch and stops rather than dropping seeds, changing
-models, or reducing reasoning when a capability, provenance, integrity, or
-budget gate fails.
+The V2 frozen order is `capability-gate`, `closed-loop-preflight`,
+`secondary-capability-gate`, `secondary-closed-loop-preflight`,
+`q-ref-resolution`, `stage0-calibration`, `experiment-a`, `experiment-c`,
+`experiment-d`, `experiment-b`, `controlled-second`, and
+`cross-model-diagnostics`. The runner registers the complete 174-cell ITT
+denominator before dispatch and stops rather than dropping seeds, changing
+models, reducing reasoning, or silently substituting routes when a capability,
+provenance, integrity, or budget gate fails. The V1 contract remains
+read-only compatibility evidence and is not the launch contract.
 
-Real stages require a clean checkout at the peeled annotated `pilot-v1` tag,
+Real V2 stages require a clean checkout at the peeled annotated
+`pilot-v2-science` tag,
 the same commit on `origin/main`, the remote annotated tag, and successful
 Python 3.12.7 CI jobs on both `ubuntu-24.04` and `macos-14`. Provider runs use
 the sealed model-by-call-kind preflight p95 plus 25% reservation; unknown hosted
@@ -70,15 +74,15 @@ Exercise all A–D paths without network access or scientific claims:
 
 ```bash
 python run_pilot.py \
-  --contract experiments/pilot_v1.yaml \
+  --contract experiments/pilot_v2.yaml \
   --stage development-a-d \
   --development-fake \
   --resume
 ```
 
-Raw run state is ignored under `experiment_results/pilot-v1/raw/`. Only
+Raw run state is ignored under `experiment_results/pilot-v2/raw/`. Only
 validated contracts, aggregates, checksums, failure ledgers, and reviewer
-reports may enter `evidence/current_v2/pilot-v1/`. Historical artifacts remain
+reports may enter `evidence/current_v2/pilot-v2/`. Historical artifacts remain
 separate and cannot satisfy this pilot contract. This is a 4-agent × 12-month
 mechanism micro-pilot, not the 10×24×5 confirmatory design and not a 100×240
 simulation.
@@ -88,7 +92,7 @@ zero-provider reviewer package through the same entry point:
 
 ```bash
 python run_pilot.py \
-  --contract experiments/pilot_v1.yaml \
+  --contract experiments/pilot_v2.yaml \
   --stage publish-evidence \
   --resume
 ```

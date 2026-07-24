@@ -19,7 +19,7 @@ from .replay import (
     ProviderCompletion,
     ReplayIntegrityError,
 )
-from .runner import VerifiedRunResult, _estimate_usage
+from .runner import RUNNER_SCHEMA_VERSION, VerifiedRunResult, _estimate_usage
 from .prompts import LEGACY_PROMPT_SCHEMA_VERSION
 
 
@@ -355,16 +355,52 @@ def run_paired_replay(
             model=result.model,
             request_id=result.request_id,
             metadata={
+                "schema_version": RUNNER_SCHEMA_VERSION,
                 "usage": result.usage.to_dict(),
                 "attempts": result.attempts,
                 "latency_seconds": result.latency_seconds,
                 "error_type": result.error_type,
+                "provider_error_details": (
+                    result.provider_error_details.to_dict()
+                    if result.provider_error_details is not None
+                    else None
+                ),
                 "decoding_seed_requested": snapshot.decoding_seed,
                 "decoding_seed_applied": result.request_seed,
                 "system_fingerprint": result.system_fingerprint,
                 "response_model": result.response_model,
                 "cached_prompt_tokens": result.cached_prompt_tokens,
                 "reasoning_tokens": result.reasoning_tokens,
+                "visible_completion_tokens": max(
+                    0,
+                    result.usage.completion_tokens - result.reasoning_tokens,
+                ),
+                "response_provider": result.response_provider,
+                "response_route": result.response_route,
+                "request_profile_id": result.request_profile_id,
+                "request_provider_pin": list(result.request_provider_pin),
+                "request_artifact_identity": dict(
+                    result.request_artifact_identity
+                ),
+                "request_price_snapshot_source": (
+                    result.request_price_snapshot_source
+                ),
+                "request_price_snapshot_captured_at": (
+                    result.request_price_snapshot_captured_at
+                ),
+                "finish_reason": result.finish_reason,
+                "native_finish_reason": result.native_finish_reason,
+                "response_completed": result.response_completed,
+                "provider_sdk_name": result.provider_sdk_name,
+                "provider_sdk_version": result.provider_sdk_version,
+                "route_attestation_code": result.route_attestation_code,
+                "route_attestation_path": result.route_attestation_path,
+                "route_attestation_source": result.route_attestation_source,
+                "request_parameters": list(result.request_parameters),
+                "temperature_dispatch": result.temperature_dispatch,
+                "parameter_dispatch": dict(result.parameter_dispatch),
+                "output_disposition": result.output_disposition,
+                "raw_output_bytes": len(result.text.encode("utf-8")),
             },
         )
 
