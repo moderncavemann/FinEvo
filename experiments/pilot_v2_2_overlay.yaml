@@ -1,0 +1,192 @@
+{
+  "schema_version": "finevo-pilot-contract-v2.2-evaluator-overlay-v1",
+  "contract_id": "finevo-pilot-v2.2",
+  "status": "frozen",
+  "base_contract": {
+    "path": "pilot_v2_1.yaml",
+    "schema_version": "finevo-pilot-contract-v2",
+    "contract_id": "finevo-pilot-v2.1",
+    "canonical_sha256": "ac1011e70f3fe85716c4f5c1497812e3c83b3112d7661d234fdaa913f58eadca"
+  },
+  "changes": {
+    "implementation": {
+      "required_git_tag": "pilot-v2.2-science"
+    },
+    "release_requirements": {
+      "tag": "pilot-v2.2-science",
+      "expected_ci": {
+        "test_count": 748,
+        "test_collection_sha256": "17644ad90479f854a1ac472fea6aa281e8be8d541a3f1e3082a6df71dd7c6f1d",
+        "compiled_source_count": 142,
+        "compiled_source_inventory_sha256": "83b7065cd13e315a660c639dd112912e42395d723184e938a18a9ead97830844",
+        "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952"
+      }
+    },
+    "denominator_policy": {
+      "policy_id": "finevo-pilot-v2.2-itt"
+    }
+  },
+  "evaluator_amendment": {
+    "schema_version": "finevo-pilot-evaluator-amendment-v1",
+    "amendment_id": "finevo-pilot-v2.2-capability-admission-correction-1",
+    "parent": {
+      "contract_id": "finevo-pilot-v2.1",
+      "contract_sha256": "ac1011e70f3fe85716c4f5c1497812e3c83b3112d7661d234fdaa913f58eadca",
+      "release_tag": "pilot-v2.1-science",
+      "release_commit": "5d604eea3b14113a55599806b31c2f8f09089bbd",
+      "launch_input_sha256": "0598ec40701a660fd2d32709ab8f6a8dd5ccae8b965cff76f1992a5d00021716",
+      "release_attestation_sha256": "3a23899160eadb37135384e5dbbdbf034e485ab0bf51ba5521dab6c56abd65bc",
+      "run_ledger_file_sha256": "73b4e8572730ea91a9ab3838ea36b65b6d17625797333ee2eee53c2186ac736e",
+      "run_ledger_internal_sha256": "ad3e5deb3a01f0ab4b5d079657830755170f9cbe88ab8b8d5cbdf21625738de9",
+      "budget_ledger_file_sha256": "405a818a1ee0dd4562e3a5452104f6b3411834f1d9d5800a81dcbc515b0144f2",
+      "budget_ledger_internal_sha256": "8a871a52014a49d50ac8c8701022fea74b57df61aaa2e6a9f4d18c009200d2e1",
+      "capability_stage_receipt_file_sha256": "5aa7374c1e2cc942cfa3a86c01256a8b59b954de2129aa3c855c2d411281704f",
+      "capability_stage_receipt_content_sha256": "0e98cddf636a6912692ff081fa2e152a49c119608d43fa8ae5debfb1906d9ac8"
+    },
+    "source_attempts": [
+      {
+        "model_id": "gpt52_main",
+        "contract_id": "finevo-pilot-v2.1",
+        "contract_sha256": "ac1011e70f3fe85716c4f5c1497812e3c83b3112d7661d234fdaa913f58eadca",
+        "release_tag": "pilot-v2.1-science",
+        "release_commit": "5d604eea3b14113a55599806b31c2f8f09089bbd",
+        "run_id": "finevo-pilot-v2.1--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376",
+        "capability_sha256": "bd64ace07e04b13755ed46f9b2599b9c11a7fadf902500f57b9ab020cba4448d",
+        "gate_sha256": "01c61c25e7d25577975dbe3aae8a408f464d685210b071aa612f4bd46bb78eda",
+        "terminal_sha256": "b653b8bf4f702632fb9781e884c63ecabd285eef548df64ed8ddd3247b64fb2b",
+        "terminal_content_sha256": "1e1122c419a49728c796cd682670c9e3f314183ac0a86bc6a72a58082695d39f",
+        "old_scores": {
+          "utility_ranking": {
+            "correct": 12,
+            "denominator": 12
+          },
+          "rule_application": {
+            "correct": 12,
+            "denominator": 12
+          },
+          "rule_proposal": {
+            "correct": 0,
+            "denominator": 6
+          }
+        },
+        "old_status": "capability-no-go"
+      },
+      {
+        "model_id": "llama33_local_controlled",
+        "contract_id": "finevo-pilot-v2",
+        "contract_sha256": "980deddf2f82a762db7d73baa6ee0428c5e653298f4f275c5b3a5b23a95865c5",
+        "release_tag": "pilot-v2-science",
+        "release_commit": "3664778727813e5e8328b4b17b91a28c8122f87c",
+        "run_id": "finevo-pilot-v2--capability-gate--llama33_local_controlled--capability-probe--none--provider-preflight-default--s2010922376",
+        "capability_sha256": "4c4c864733f32166c286e22b446dc3849df624a267ad083426ee4a89e79052ca",
+        "gate_sha256": "01c61c25e7d25577975dbe3aae8a408f464d685210b071aa612f4bd46bb78eda",
+        "terminal_sha256": "544b409e6ce8538958ec6278f5311429f14cf24591f8479bff287512d02e7380",
+        "terminal_content_sha256": "16a5f772eeb952aba55dcb2f655642fa7a9db1c3c9453a82b40617278f660070",
+        "old_scores": {
+          "utility_ranking": {
+            "correct": 12,
+            "denominator": 12
+          },
+          "rule_application": {
+            "correct": 10,
+            "denominator": 12
+          },
+          "rule_proposal": {
+            "correct": 0,
+            "denominator": 6
+          }
+        },
+        "old_status": "capability-no-go"
+      }
+    ],
+    "defect": {
+      "code": "hidden-exact-expected-match-not-preregistered",
+      "affected_capability_schema": "finevo-capability-gate-v3",
+      "contract_gate_path": "stop_go.capability.semantic_candidate_acceptance_required",
+      "contract_gate_value": true,
+      "old_proposal_gate": "semantic_candidate_accepted && semantic_match",
+      "corrected_proposal_gate": "semantic_candidate_accepted",
+      "semantic_match_disposition": "diagnostic-only",
+      "source_candidate_payload_retained": false,
+      "independent_candidate_replay_available": false
+    },
+    "rescore_policy": {
+      "eligible_source_model_ids": [
+        "gpt52_main",
+        "llama33_local_controlled"
+      ],
+      "apply_uniformly_to_all_source_models": true,
+      "interface_valid_required": true,
+      "strict_parse_required": true,
+      "strict_schema_required": true,
+      "accepted_parse_mode_required": true,
+      "semantic_candidate_acceptance_required": true,
+      "candidate_status_required": "provisional",
+      "minimum_unique_support_ids": 2,
+      "support_ids_must_be_allowed": true,
+      "semantic_match_required": false,
+      "source_denominator_preserved": true,
+      "provider_redispatch": "forbidden",
+      "failed_seed_replacement": "forbidden",
+      "provider_calls": 0,
+      "old_scores_retained": true,
+      "capability_outcomes_inspected": true,
+      "scientific_effect_outcomes_inspected": false,
+      "rescore_is_scientific_evidence": false
+    },
+    "corrected_results": [
+      {
+        "model_id": "gpt52_main",
+        "source_run_id": "finevo-pilot-v2.1--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376",
+        "status": "complete",
+        "scores": {
+          "utility_ranking": {
+            "correct": 12,
+            "denominator": 12
+          },
+          "rule_application": {
+            "correct": 12,
+            "denominator": 12
+          },
+          "rule_proposal": {
+            "correct": 6,
+            "denominator": 6
+          }
+        },
+        "provider_calls": 0
+      },
+      {
+        "model_id": "llama33_local_controlled",
+        "source_run_id": "finevo-pilot-v2--capability-gate--llama33_local_controlled--capability-probe--none--provider-preflight-default--s2010922376",
+        "status": "complete",
+        "scores": {
+          "utility_ranking": {
+            "correct": 12,
+            "denominator": 12
+          },
+          "rule_application": {
+            "correct": 10,
+            "denominator": 12
+          },
+          "rule_proposal": {
+            "correct": 6,
+            "denominator": 6
+          }
+        },
+        "provider_calls": 0
+      }
+    ],
+    "budget_carry_forward": {
+      "source_contract_id": "finevo-pilot-v2.1",
+      "source_contract_sha256": "ac1011e70f3fe85716c4f5c1497812e3c83b3112d7661d234fdaa913f58eadca",
+      "source_stage_bucket": "capability",
+      "cost_usd": 1.53775475,
+      "hosted_completions": 60,
+      "storage_bytes": 715860
+    }
+  },
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "declared_sha256": "96f7ff9cdcc8c98c95a6789f89da293d4692f4116439e2c7055ff1c736d06eec"
+  }
+}

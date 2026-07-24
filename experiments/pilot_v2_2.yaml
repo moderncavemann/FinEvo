@@ -1,0 +1,2098 @@
+{
+  "schema_version": "finevo-pilot-contract-v2",
+  "contract_id": "finevo-pilot-v2.2",
+  "status": "frozen",
+  "implementation": {
+    "commit_resolution": "annotated_tag_peel",
+    "p0_base_commit": "01684c5fd465d43eeb748d11f5937383df9ce602",
+    "require_clean_worktree": true,
+    "required_git_branch": "main",
+    "required_git_commit": null,
+    "required_git_tag": "pilot-v2.2-science"
+  },
+  "seeds": {
+    "failed_seed_replacement": "forbidden",
+    "generation": {
+      "generated_before_results": true,
+      "method": "user-preregistered-v1",
+      "salt": "frozen-in-author-plan-before-pilot-execution",
+      "values": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ]
+    },
+    "preflight_seed": 2010922376,
+    "sets": {
+      "calibration": [
+        1942013315,
+        760687867
+      ],
+      "cross-model": [
+        1099057501,
+        1421875452,
+        1769977770
+      ],
+      "main": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ],
+      "preflight": [
+        2010922376
+      ],
+      "q-ref": [
+        2010922376
+      ]
+    }
+  },
+  "provider_profiles": {
+    "gpt52_main": {
+      "profile_id": "gpt52_main",
+      "transport": "openai",
+      "requested_model": "gpt-5.2-2025-12-11",
+      "served_model": "gpt-5.2-2025-12-11",
+      "provider_pin": [
+        "OpenAI-direct"
+      ],
+      "routing_mode": "direct",
+      "seed_capability": "best_effort",
+      "reasoning": {
+        "mode": "fixed",
+        "effort": "medium",
+        "exclude": true
+      },
+      "json_mode": "json_object",
+      "price_snapshot": {
+        "captured_at": "2026-07-22",
+        "source": "https://developers.openai.com/api/docs/models/gpt-5.2",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 1.75,
+        "catalog_output": 14.0,
+        "catalog_cached_input": 0.175,
+        "endpoint_input": 1.75,
+        "endpoint_output": 14.0,
+        "endpoint_cached_input": 0.175
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {
+        "route": "OpenAI-direct",
+        "served_snapshot": "gpt-5.2-2025-12-11"
+      },
+      "decoding_fields": {
+        "reasoning": {
+          "requested_value": {
+            "effort": "medium",
+            "exclude": true
+          },
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        },
+        "response_format": {
+          "requested_value": {
+            "type": "json_object"
+          },
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        },
+        "seed": {
+          "requested_value": "environment_seed",
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": true
+        },
+        "temperature": {
+          "requested_value": 0.0,
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": true
+        },
+        "top_p": {
+          "requested_value": 1.0,
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": true
+        }
+      },
+      "dispatch_eligible": true,
+      "ineligibility_reason": null
+    },
+    "gpt56_diagnostic": {
+      "profile_id": "gpt56_diagnostic",
+      "transport": "openai",
+      "requested_model": "gpt-5.6-sol",
+      "served_model": "gpt-5.6-sol",
+      "provider_pin": [
+        "OpenAI-direct"
+      ],
+      "routing_mode": "direct",
+      "seed_capability": "best_effort",
+      "reasoning": {
+        "mode": "fixed",
+        "effort": "medium",
+        "exclude": true
+      },
+      "json_mode": "json_object",
+      "price_snapshot": {
+        "captured_at": "2026-07-23",
+        "source": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 5.0,
+        "catalog_output": 30.0,
+        "catalog_cached_input": 0.5,
+        "endpoint_input": 5.0,
+        "endpoint_output": 30.0,
+        "endpoint_cached_input": 0.5
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {
+        "route": "OpenAI-direct",
+        "served_snapshot": "gpt-5.6-sol"
+      },
+      "decoding_fields": {
+        "reasoning": {
+          "requested_value": {
+            "effort": "medium",
+            "exclude": true
+          },
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        },
+        "response_format": {
+          "requested_value": {
+            "type": "json_object"
+          },
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        },
+        "seed": {
+          "requested_value": "environment_seed",
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": true
+        },
+        "temperature": {
+          "requested_value": 0.0,
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": true
+        },
+        "top_p": {
+          "requested_value": 1.0,
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": true
+        }
+      },
+      "dispatch_eligible": true,
+      "ineligibility_reason": null
+    },
+    "opus48_no_go": {
+      "profile_id": "opus48_no_go",
+      "transport": "openrouter",
+      "requested_model": "anthropic/claude-opus-4.8",
+      "served_model": "anthropic/claude-opus-4.8",
+      "provider_pin": [
+        "Anthropic"
+      ],
+      "routing_mode": "standard",
+      "seed_capability": "unsupported",
+      "reasoning": {
+        "mode": "fixed",
+        "effort": "medium",
+        "exclude": true
+      },
+      "json_mode": "json_object",
+      "price_snapshot": {
+        "captured_at": "2026-07-23",
+        "source": "https://openrouter.ai/api/v1/models/anthropic/claude-opus-4.8/endpoints",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 5.0,
+        "catalog_output": 25.0,
+        "catalog_cached_input": null,
+        "endpoint_input": 5.0,
+        "endpoint_output": 25.0,
+        "endpoint_cached_input": null
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {
+        "endpoint_tag": "anthropic",
+        "served_snapshot": "anthropic/claude-4.8-opus-20260528"
+      },
+      "decoding_fields": {
+        "reasoning": {
+          "requested_value": {
+            "effort": "medium",
+            "exclude": true
+          },
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        },
+        "response_format": {
+          "requested_value": {
+            "type": "json_object"
+          },
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        },
+        "seed": {
+          "requested_value": "environment_seed",
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": true
+        },
+        "temperature": {
+          "requested_value": 0.0,
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": true
+        },
+        "top_p": {
+          "requested_value": 1.0,
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": true
+        }
+      },
+      "dispatch_eligible": false,
+      "ineligibility_reason": "cross_model_budget_no_go_under_nonshrink_policy"
+    },
+    "gemini35_flash_diagnostic": {
+      "profile_id": "gemini35_flash_diagnostic",
+      "transport": "openrouter",
+      "requested_model": "google/gemini-3.5-flash",
+      "served_model": "google/gemini-3.5-flash",
+      "provider_pin": [
+        "Google"
+      ],
+      "routing_mode": "standard",
+      "seed_capability": "best_effort",
+      "reasoning": {
+        "mode": "fixed",
+        "effort": "medium",
+        "exclude": true
+      },
+      "json_mode": "json_object",
+      "price_snapshot": {
+        "captured_at": "2026-07-23",
+        "source": "https://openrouter.ai/api/v1/models/google/gemini-3.5-flash/endpoints",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 1.5,
+        "catalog_output": 9.0,
+        "catalog_cached_input": null,
+        "endpoint_input": 1.5,
+        "endpoint_output": 9.0,
+        "endpoint_cached_input": null
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {
+        "endpoint_tag": "google-vertex/global",
+        "served_snapshot": "google/gemini-3.5-flash-20260519"
+      },
+      "decoding_fields": {
+        "reasoning": {
+          "requested_value": {
+            "effort": "medium",
+            "exclude": true
+          },
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        },
+        "response_format": {
+          "requested_value": {
+            "type": "json_object"
+          },
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        },
+        "seed": {
+          "requested_value": "environment_seed",
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        },
+        "temperature": {
+          "requested_value": 0.0,
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        },
+        "top_p": {
+          "requested_value": 1.0,
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        }
+      },
+      "dispatch_eligible": true,
+      "ineligibility_reason": null
+    },
+    "llama4_maverick_diagnostic": {
+      "profile_id": "llama4_maverick_diagnostic",
+      "transport": "openrouter",
+      "requested_model": "meta-llama/llama-4-maverick",
+      "served_model": "meta-llama/llama-4-maverick",
+      "provider_pin": [
+        "DeepInfra"
+      ],
+      "routing_mode": "standard",
+      "seed_capability": "best_effort",
+      "reasoning": {
+        "mode": "omitted",
+        "effort": null,
+        "exclude": true
+      },
+      "json_mode": "json_object",
+      "price_snapshot": {
+        "captured_at": "2026-07-23",
+        "source": "https://openrouter.ai/api/v1/models/meta-llama/llama-4-maverick/endpoints",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 0.2,
+        "catalog_output": 0.8,
+        "catalog_cached_input": null,
+        "endpoint_input": 0.2,
+        "endpoint_output": 0.8,
+        "endpoint_cached_input": null
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {
+        "endpoint_tag": "deepinfra/base",
+        "quantization": "fp8",
+        "served_snapshot": "meta-llama/llama-4-maverick-17b-128e-instruct"
+      },
+      "decoding_fields": {
+        "reasoning": {
+          "requested_value": null,
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": true
+        },
+        "response_format": {
+          "requested_value": {
+            "type": "json_object"
+          },
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        },
+        "seed": {
+          "requested_value": "environment_seed",
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        },
+        "temperature": {
+          "requested_value": 0.0,
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        },
+        "top_p": {
+          "requested_value": 1.0,
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": true
+        }
+      },
+      "dispatch_eligible": true,
+      "ineligibility_reason": null
+    },
+    "llama33_local_controlled": {
+      "profile_id": "llama33_local_controlled",
+      "transport": "ollama",
+      "requested_model": "llama3.3:70b-instruct-q4_K_M",
+      "served_model": "llama3.3:70b-instruct-q4_K_M",
+      "provider_pin": [
+        "local-ollama"
+      ],
+      "routing_mode": "local",
+      "seed_capability": "deterministic",
+      "reasoning": {
+        "mode": "omitted",
+        "effort": null,
+        "exclude": true
+      },
+      "json_mode": "json_object",
+      "price_snapshot": {
+        "captured_at": "2026-07-23",
+        "source": "local-model-manifest",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 0.0,
+        "catalog_output": 0.0,
+        "catalog_cached_input": 0.0,
+        "endpoint_input": 0.0,
+        "endpoint_output": 0.0,
+        "endpoint_cached_input": 0.0
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {
+        "adapter": "ollama-python",
+        "base_url": "http://127.0.0.1:11434",
+        "manifest_sha256": "a6eb4748fd2990ad2952b2335a95a7f952d1a06119a0aa6a2df6cd052a93a3fa",
+        "model_layer_digest": "sha256:4824460d29f2058aaf6e1118a63a7a197a09bed509f0e7d4e2efb1ee273b447d",
+        "model_layer_size_bytes": "42520398528",
+        "ollama_version": "0.15.4"
+      },
+      "decoding_fields": {
+        "reasoning": {
+          "requested_value": null,
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": false
+        },
+        "response_format": {
+          "requested_value": {
+            "format": "json"
+          },
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": false
+        },
+        "seed": {
+          "requested_value": "environment_seed",
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": false
+        },
+        "temperature": {
+          "requested_value": 0.0,
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": false
+        },
+        "top_p": {
+          "requested_value": 1.0,
+          "dispatch_mode": "explicit_supported",
+          "catalog_evidence_required": false
+        }
+      },
+      "dispatch_eligible": true,
+      "ineligibility_reason": null
+    },
+    "qref_scripted": {
+      "profile_id": "qref_scripted",
+      "transport": "diagnostic",
+      "requested_model": "qref-scripted-v1",
+      "served_model": "qref-scripted-v1",
+      "provider_pin": [
+        "deterministic-local-script"
+      ],
+      "routing_mode": "diagnostic",
+      "seed_capability": "deterministic",
+      "reasoning": {
+        "mode": "omitted",
+        "effort": null,
+        "exclude": true
+      },
+      "json_mode": "prompt_only",
+      "price_snapshot": {
+        "captured_at": "2026-07-23",
+        "source": "repository-scripted-schedule",
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "dispatch_basis": "endpoint",
+        "catalog_input": 0.0,
+        "catalog_output": 0.0,
+        "catalog_cached_input": 0.0,
+        "endpoint_input": 0.0,
+        "endpoint_output": 0.0,
+        "endpoint_cached_input": 0.0
+      },
+      "max_attempts": 1,
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "artifact_identity": {},
+      "decoding_fields": {
+        "reasoning": {
+          "requested_value": null,
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": false
+        },
+        "response_format": {
+          "requested_value": null,
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": false
+        },
+        "seed": {
+          "requested_value": "environment_seed",
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": false
+        },
+        "temperature": {
+          "requested_value": 0.0,
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": false
+        },
+        "top_p": {
+          "requested_value": 1.0,
+          "dispatch_mode": "documented_unsupported_omitted",
+          "catalog_evidence_required": false
+        }
+      },
+      "dispatch_eligible": true,
+      "ineligibility_reason": null
+    }
+  },
+  "arms": {
+    "capability-probe": {
+      "arm_id": "capability-probe",
+      "execution_mode": "capability_probe",
+      "family": "capability-gate",
+      "parameters": {
+        "all_attempts_in_denominator": true,
+        "prompt_source": "actual-runner-task-shapes",
+        "required_families": [
+          "action-generation",
+          "m3-proposal",
+          "evidence-citation",
+          "context-scope",
+          "strict-json",
+          "long-memory-context"
+        ]
+      }
+    },
+    "closed-loop-preflight": {
+      "arm_id": "closed-loop-preflight",
+      "execution_mode": "closed_loop_preflight",
+      "family": "closed-loop-preflight",
+      "parameters": {
+        "action_calls_expected": 12,
+        "checkpoint_save_restore_replay": true,
+        "scientific_evidence": false,
+        "semantic_proposals_accounted": true
+      }
+    },
+    "episodic-only": {
+      "arm_id": "episodic-only",
+      "family": "memory",
+      "parameters": {
+        "context_mode": "full",
+        "episodic_actor_exposure": true,
+        "semantic_actor_exposure": false
+      }
+    },
+    "error-unverified": {
+      "arm_id": "error-unverified",
+      "family": "experiment-d",
+      "parameters": {
+        "memory_treatment": "erroneous-rule",
+        "verifier_enabled": false
+      }
+    },
+    "error-verified": {
+      "arm_id": "error-verified",
+      "family": "experiment-d",
+      "parameters": {
+        "memory_treatment": "erroneous-rule",
+        "verifier_enabled": true
+      }
+    },
+    "full": {
+      "arm_id": "full",
+      "family": "memory",
+      "parameters": {
+        "context_mode": "full",
+        "episodic_actor_exposure": true,
+        "semantic_actor_exposure": true,
+        "verifier_enabled": true
+      }
+    },
+    "matched-a": {
+      "arm_id": "matched-a",
+      "family": "matched-null",
+      "parameters": {
+        "duplicate_id": "a",
+        "memory_treatment": "matched"
+      }
+    },
+    "matched-b": {
+      "arm_id": "matched-b",
+      "family": "matched-null",
+      "parameters": {
+        "duplicate_id": "b",
+        "memory_treatment": "matched"
+      }
+    },
+    "narrative-content": {
+      "arm_id": "narrative-content",
+      "family": "experiment-d",
+      "parameters": {
+        "memory_treatment": "matched",
+        "narrative_intervention": true
+      }
+    },
+    "no-context": {
+      "arm_id": "no-context",
+      "family": "experiment-a",
+      "parameters": {
+        "context_mode": "no-context",
+        "episodic_actor_exposure": true,
+        "semantic_actor_exposure": true,
+        "verifier_enabled": true
+      }
+    },
+    "no-memory": {
+      "arm_id": "no-memory",
+      "family": "memory",
+      "parameters": {
+        "context_mode": "full",
+        "episodic_actor_exposure": false,
+        "m2_writes_for_provenance": true,
+        "semantic_actor_exposure": false
+      }
+    },
+    "prompt-only": {
+      "arm_id": "prompt-only",
+      "family": "experiment-a",
+      "parameters": {
+        "context_mode": "prompt-only",
+        "episodic_actor_exposure": true,
+        "semantic_actor_exposure": true,
+        "verifier_enabled": true
+      }
+    },
+    "qref-scripted": {
+      "arm_id": "qref-scripted",
+      "execution_mode": "q_ref_resolution",
+      "family": "calibration",
+      "parameters": {
+        "context_mode": "no-context",
+        "memory_exposure": "none"
+      }
+    },
+    "retrieval-only": {
+      "arm_id": "retrieval-only",
+      "family": "experiment-a",
+      "parameters": {
+        "context_mode": "retrieval-only",
+        "episodic_actor_exposure": true,
+        "semantic_actor_exposure": true,
+        "verifier_enabled": true
+      }
+    },
+    "semantic-only": {
+      "arm_id": "semantic-only",
+      "family": "memory",
+      "parameters": {
+        "context_mode": "full",
+        "episodic_actor_exposure": false,
+        "m2_writes_for_proposal_only": true,
+        "semantic_actor_exposure": true,
+        "verifier_enabled": true
+      }
+    },
+    "shuffled-episodic": {
+      "arm_id": "shuffled-episodic",
+      "family": "experiment-d",
+      "parameters": {
+        "memory_treatment": "shuffled-episodic"
+      }
+    },
+    "stage0-no-memory-no-context": {
+      "arm_id": "stage0-no-memory-no-context",
+      "execution_mode": "actor_run",
+      "family": "calibration",
+      "parameters": {
+        "context_mode": "no-context",
+        "episodic_actor_exposure": false,
+        "m2_writes_for_provenance": true,
+        "semantic_actor_exposure": false
+      }
+    },
+    "unverified-dual": {
+      "arm_id": "unverified-dual",
+      "family": "memory",
+      "parameters": {
+        "candidate_activation": "immediate",
+        "context_mode": "full",
+        "episodic_actor_exposure": true,
+        "semantic_actor_exposure": true,
+        "verifier_enabled": false
+      }
+    },
+    "unverified-error-forced": {
+      "arm_id": "unverified-error-forced",
+      "family": "experiment-c",
+      "parameters": {
+        "error_rule_mode": "forced-active",
+        "verifier_enabled": false
+      }
+    },
+    "verified-error-candidate": {
+      "arm_id": "verified-error-candidate",
+      "execution_mode": "offline_candidate_admission",
+      "family": "experiment-c",
+      "parameters": {
+        "error_rule_mode": "candidate-admission",
+        "extra_actor_run": false,
+        "verifier_enabled": true
+      }
+    },
+    "verified-error-forced": {
+      "arm_id": "verified-error-forced",
+      "family": "experiment-c",
+      "parameters": {
+        "error_rule_mode": "forced-active",
+        "lifecycle_observation": true,
+        "verifier_enabled": true
+      }
+    },
+    "wrong-context": {
+      "arm_id": "wrong-context",
+      "family": "experiment-d",
+      "parameters": {
+        "memory_treatment": "wrong-context"
+      }
+    }
+  },
+  "narratives": {
+    "aligned": {
+      "narrative_id": "aligned",
+      "relation_to_shock": "aligned",
+      "text": "Savings now earn a high interest rate. Preserving cash and reducing current consumption is directionally consistent with this environment."
+    },
+    "none": {
+      "narrative_id": "none",
+      "relation_to_shock": "absent",
+      "text": ""
+    },
+    "opposite": {
+      "narrative_id": "opposite",
+      "relation_to_shock": "opposite",
+      "text": "A high interest rate makes immediate spending more attractive; increase current consumption rather than preserving cash."
+    },
+    "paraphrase": {
+      "narrative_id": "paraphrase",
+      "relation_to_shock": "aligned-paraphrase",
+      "text": "Returns on saved funds are elevated, so conserving available cash and lowering near-term spending points in the same direction."
+    }
+  },
+  "shocks": {
+    "baseline-3pct": {
+      "experimental": false,
+      "schedule": [
+        {
+          "end": 11,
+          "interest_rate": 0.03,
+          "phase": "baseline",
+          "start": 0
+        }
+      ],
+      "shock_id": "baseline-3pct",
+      "target": "interest_rate"
+    },
+    "registered-rate-shock": {
+      "experimental": true,
+      "hook_semantics": {
+        "environment_effective_before_step": true,
+        "future_values_hidden": true,
+        "prompt_effective_before_decision": true,
+        "write_independent_event_stream": true
+      },
+      "schedule": [
+        {
+          "end": 4,
+          "interest_rate": 0.03,
+          "phase": "pre-shock",
+          "start": 0
+        },
+        {
+          "end": 7,
+          "interest_rate": 0.08,
+          "phase": "shock",
+          "start": 5
+        },
+        {
+          "end": 11,
+          "interest_rate": 0.03,
+          "phase": "recovery",
+          "start": 8
+        }
+      ],
+      "shock_id": "registered-rate-shock",
+      "target": "interest_rate"
+    }
+  },
+  "utility": {
+    "profiles": {
+      "center": {
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 1.0,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate",
+        "inverse_frisch": 1.0,
+        "labor_weight": 2.0,
+        "rho": 1.0
+      },
+      "nu-0.5": {
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 1.0,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate",
+        "inverse_frisch": 0.5,
+        "labor_weight": 2.0,
+        "rho": 1.0
+      },
+      "nu-2": {
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 1.0,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate",
+        "inverse_frisch": 2.0,
+        "labor_weight": 2.0,
+        "rho": 1.0
+      },
+      "provider-preflight-default": {
+        "consumption_scale": 1.0,
+        "consumption_scale_multiplier_of_q_ref": null,
+        "discount_factor": 0.99,
+        "evidence_use": "capability-only",
+        "inverse_frisch": 1.0,
+        "labor_weight": 2.0,
+        "rho": 1.0
+      },
+      "psi-1": {
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 1.0,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate",
+        "inverse_frisch": 1.0,
+        "labor_weight": 1.0,
+        "rho": 1.0
+      },
+      "psi-4": {
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 1.0,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate",
+        "inverse_frisch": 1.0,
+        "labor_weight": 4.0,
+        "rho": 1.0
+      },
+      "q0-0.5x": {
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 0.5,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate",
+        "inverse_frisch": 1.0,
+        "labor_weight": 2.0,
+        "rho": 1.0
+      },
+      "q0-2x": {
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": 2.0,
+        "discount_factor": 0.99,
+        "evidence_use": "stage0-candidate",
+        "inverse_frisch": 1.0,
+        "labor_weight": 2.0,
+        "rho": 1.0
+      },
+      "stage0-selected": {
+        "consumption_scale": null,
+        "consumption_scale_multiplier_of_q_ref": null,
+        "discount_factor": null,
+        "evidence_use": "resolved-from-stage0-selection-artifact",
+        "inverse_frisch": null,
+        "labor_weight": null,
+        "rho": null
+      }
+    },
+    "q_ref_resolution": {
+      "aggregation": "median",
+      "artifact": "q_ref_resolution.json",
+      "consumption_fraction_cycle": [
+        0.3,
+        0.35,
+        0.3,
+        0.25
+      ],
+      "episode_length": 12,
+      "expected_rows": 48,
+      "gate": "finite_and_strictly_positive",
+      "ledger_field": "realized_consumption_quantity",
+      "num_agents": 4,
+      "required_before": [
+        "stage0-calibration",
+        "experiment-a",
+        "experiment-c",
+        "experiment-d",
+        "experiment-b",
+        "controlled-second",
+        "cross-model-diagnostics"
+      ],
+      "seed": 2010922376,
+      "shock_id": "baseline-3pct",
+      "source_manifest_required": true,
+      "source_manifest_sha256_required": true,
+      "work_fraction_cycle": [
+        0.25,
+        0.5,
+        0.75,
+        0.5
+      ]
+    },
+    "selection_rule": {
+      "method": "guardrail-then-registered-tiebreak-v1",
+      "outcome_blind": true,
+      "required_before": [
+        "experiment-a",
+        "experiment-c",
+        "experiment-d",
+        "experiment-b",
+        "controlled-second",
+        "cross-model-diagnostics"
+      ],
+      "result_artifact": "stage0_selection.json",
+      "tiebreak_order": [
+        "maximize mean interior action coverage",
+        "minimize component-balance log distance from one",
+        "minimize normalized center distance",
+        "declaration order only for an exact remaining tie"
+      ]
+    }
+  },
+  "budgets": {
+    "automatic_reserve_usd": 1.0,
+    "completion_scope": "hosted-api-only",
+    "max_provider_completions": 7500,
+    "max_storage_bytes": 5000000000,
+    "pre_dispatch_projection": {
+      "basis": "model-by-call-role preflight p95",
+      "over_budget_policy": "no-go-no-matrix-shrink",
+      "required": true,
+      "reserve_multiplier": 1.25,
+      "unknown_price_policy": "stop-before-dispatch"
+    },
+    "stage_usd_caps": {
+      "calibration": 3.0,
+      "capability": 3.0701145,
+      "core": 13.0,
+      "cross_model": 4.9298855,
+      "manual_reserve": 1.0
+    },
+    "total_usd": 25.0
+  },
+  "stop_go": {
+    "calibration": {
+      "ceiling_labor_rate_max": 0.5,
+      "clipping_count": 0,
+      "interior_consumption_rate_min": 0.75,
+      "interior_labor_rate_min": 0.5,
+      "max_abs_budget_residual": 1e-08,
+      "median_labor_disutility_to_consumption_utility": [
+        0.5,
+        2.0
+      ],
+      "no_candidate_action": "stop",
+      "zero_labor_rate_max": 0.25
+    },
+    "capability": {
+      "all_provider_and_parse_outcomes_in_denominator": true,
+      "interface_valid_required": true,
+      "recovery_is_report_only": true,
+      "required_task_families": [
+        "action-generation",
+        "m3-proposal",
+        "evidence-citation",
+        "context-scope",
+        "strict-json",
+        "long-memory-context"
+      ],
+      "semantic_candidate_acceptance_required": true,
+      "strict_parse_required": true,
+      "truncation_is_failure": true
+    },
+    "closed_loop_preflight": {
+      "action_parse_success": "12/12",
+      "attempts_per_request": 1,
+      "clipping_count": 0,
+      "cost_metadata_complete": true,
+      "fallback_observed": false,
+      "provider_failure_count": 0,
+      "provider_pin_exact": true,
+      "route_metadata_complete": true,
+      "semantic_proposals_all_accounted": true,
+      "served_model_exact": true,
+      "usage_metadata_complete": true
+    },
+    "core_completeness": {
+      "complete_pairs_min": 4,
+      "failed_and_missing_runs_remain_in_itt_denominator": true,
+      "total_registered_pairs": 5
+    },
+    "cross_model": {
+      "direction_replication_complete_pairs": 3,
+      "direction_replication_requires_capability_pass": true,
+      "missing_matched_a_a_null_action": "uncalibrated-diagnostic-no-registered-matched-a-a-null",
+      "reportable_complete_pairs_min": 2,
+      "seed_unsupported_directional_replication_requires_registered_matched_a_a_null": true,
+      "total_registered_pairs": 3
+    },
+    "experiment_a": {
+      "complete_pairs_min": 4,
+      "median_relative_effect_min": 0.05,
+      "route_manipulation_checks_required": true,
+      "same_direction_min": 4,
+      "total_registered_pairs": 5
+    },
+    "experiment_c": {
+      "failure_action": "withdraw-or-narrow-rule-reliability-claim",
+      "required_directions": [
+        "verifier lowers false activation",
+        "verifier lowers harmful exposure",
+        "verifier lowers cumulative utility loss"
+      ],
+      "zero_api_sensitivity": {
+        "absolute_flow_threshold": {
+          "aggregation": "median",
+          "derived_after_profile_selection": true,
+          "field": "flow_utility",
+          "source_profile": "selected-profile-only",
+          "source_seeds": "all-two-calibration-seeds",
+          "source_stage": "stage0-calibration",
+          "treatment_outcomes_inspected": false
+        },
+        "alternative_success_weights": [
+          0.25,
+          0.5,
+          0.75
+        ],
+        "descriptive_only": true,
+        "effectiveness_gate": false,
+        "outcome_definitions": [
+          "utility_advantage_positive",
+          "absolute_flow_utility",
+          "three_period_cumulative_advantage_positive"
+        ]
+      }
+    },
+    "experiment_d": {
+      "action_grid": {
+        "consumption_step": 0.02,
+        "labor_step_hours": 8.0
+      },
+      "branch_provider_call_journal": {
+        "calls_per_branch": 24,
+        "completion_events_per_branch": 24,
+        "raw_output_storage": "sha256-and-byte-count-only",
+        "required": true,
+        "terminal_parse_dispositions_per_branch": 24
+      },
+      "complete_pairs_min": 4,
+      "effect_exceeds_matched_a_b_max_null": true,
+      "effect_exceeds_one_action_bin": true,
+      "memory_pulse_contract": {
+        "claim_label": "focal-agent decision-6 memory pulse with six-step downstream continuation",
+        "continuation_horizon_steps": 6,
+        "decision_t": 6,
+        "direct_treatment_only_at_pulse": true,
+        "duration_decisions": 1,
+        "focal_agent_id": 0,
+        "pulse_at_first_continuation_step": true,
+        "schema_version": "finevo-pilot-d-memory-pulse-v1",
+        "treatment_arms": [
+          "no-memory",
+          "shuffled-episodic",
+          "wrong-context"
+        ],
+        "wrong_context_source_agent_id": 1
+      },
+      "narrative_fixture_hash": "b29a4027044730739d5b52be73dd8c558be188a84b3ba4dc63530cf7f18d0d61",
+      "narrative_pulse_contract": {
+        "continuation_horizon_steps": 6,
+        "decision_t": 6,
+        "direct_treatment_only_at_pulse": true,
+        "duration_decisions": 1,
+        "focal_agent_id": 0,
+        "pulse_at_first_continuation_step": true,
+        "schema_version": "finevo-pilot-d-narrative-pulse-v1",
+        "treatment_narratives": [
+          "aligned",
+          "paraphrase",
+          "opposite"
+        ]
+      },
+      "narrative_semantic_gate": {
+        "directional_action_metric": "focal_first_consumption_rate",
+        "expected_sign": "negative",
+        "labor_action_metric": "diagnostic-only",
+        "must_exceed_matched_a_b_max_null": true,
+        "must_exceed_one_consumption_action_bin": true,
+        "paraphrase_equivalence": "aligned-within-one-labor-and-consumption-action-bin",
+        "primary_contrast": "aligned-minus-opposite",
+        "same_direction_min": 4
+      },
+      "same_direction_min": 4,
+      "shuffle_policy": {
+        "algorithm": "checkpoint-bound-sha256-rank-permutation-v1",
+        "checkpoint_hash_bound": true,
+        "fixed_reversal_prohibited_for_three_or_more_items": true,
+        "non_identity_required": true
+      },
+      "source_schema_versions": {
+        "continuation": "finevo-pilot-continuation-v2",
+        "narrative": "finevo-pilot-narrative-v2"
+      },
+      "total_registered_pairs": 5
+    },
+    "global": {
+      "all_registered_runs_have_terminal_ledger_rows": true,
+      "annotated_tag_peel_match": true,
+      "budget_or_storage_projection_failure": "stop-before-dispatch",
+      "clean_worktree_required": true,
+      "contract_hash_match": true,
+      "provider_and_parse_failures_remain_in_denominator": true
+    },
+    "q_ref": {
+      "aggregation": "median",
+      "finite": true,
+      "row_count": 48,
+      "source_manifest_and_hash_required": true,
+      "strictly_positive": true
+    }
+  },
+  "stages": [
+    {
+      "stage_id": "capability-gate",
+      "enabled": true,
+      "budget_bucket": "capability",
+      "num_agents": 2,
+      "episode_length": 6,
+      "seed_set": "preflight",
+      "utility_profiles": [
+        "provider-preflight-default"
+      ],
+      "shock_id": "baseline-3pct",
+      "cells": [
+        {
+          "models": [
+            "gpt52_main",
+            "llama33_local_controlled"
+          ],
+          "arms": [
+            "capability-probe"
+          ],
+          "narratives": [
+            "none"
+          ],
+          "execution_mode": "capability_probe"
+        }
+      ],
+      "prerequisites": [],
+      "reuse": [],
+      "call_roles": [
+        "capability-choice",
+        "capability-proposal",
+        "actor-action",
+        "semantic-proposal"
+      ]
+    },
+    {
+      "stage_id": "closed-loop-preflight",
+      "enabled": true,
+      "budget_bucket": "capability",
+      "num_agents": 2,
+      "episode_length": 6,
+      "seed_set": "preflight",
+      "utility_profiles": [
+        "provider-preflight-default"
+      ],
+      "shock_id": "baseline-3pct",
+      "cells": [
+        {
+          "models": [
+            "gpt52_main",
+            "llama33_local_controlled"
+          ],
+          "arms": [
+            "closed-loop-preflight"
+          ],
+          "narratives": [
+            "none"
+          ],
+          "execution_mode": "closed_loop_preflight"
+        }
+      ],
+      "prerequisites": [
+        "capability-gate"
+      ],
+      "reuse": [],
+      "call_roles": [
+        "actor-action",
+        "semantic-proposal"
+      ]
+    },
+    {
+      "stage_id": "secondary-capability-gate",
+      "enabled": true,
+      "budget_bucket": "cross_model",
+      "num_agents": 2,
+      "episode_length": 6,
+      "seed_set": "preflight",
+      "utility_profiles": [
+        "provider-preflight-default"
+      ],
+      "shock_id": "baseline-3pct",
+      "cells": [
+        {
+          "models": [
+            "gpt56_diagnostic",
+            "gemini35_flash_diagnostic",
+            "llama4_maverick_diagnostic"
+          ],
+          "arms": [
+            "capability-probe"
+          ],
+          "narratives": [
+            "none"
+          ],
+          "execution_mode": "capability_probe"
+        }
+      ],
+      "prerequisites": [
+        "closed-loop-preflight"
+      ],
+      "reuse": [],
+      "call_roles": [
+        "capability-choice",
+        "capability-proposal",
+        "actor-action",
+        "semantic-proposal"
+      ]
+    },
+    {
+      "stage_id": "secondary-closed-loop-preflight",
+      "enabled": true,
+      "budget_bucket": "cross_model",
+      "num_agents": 2,
+      "episode_length": 6,
+      "seed_set": "preflight",
+      "utility_profiles": [
+        "provider-preflight-default"
+      ],
+      "shock_id": "baseline-3pct",
+      "cells": [
+        {
+          "models": [
+            "gpt56_diagnostic",
+            "gemini35_flash_diagnostic",
+            "llama4_maverick_diagnostic"
+          ],
+          "arms": [
+            "closed-loop-preflight"
+          ],
+          "narratives": [
+            "none"
+          ],
+          "execution_mode": "closed_loop_preflight"
+        }
+      ],
+      "prerequisites": [
+        "secondary-capability-gate"
+      ],
+      "reuse": [],
+      "call_roles": [
+        "actor-action",
+        "semantic-proposal"
+      ]
+    },
+    {
+      "stage_id": "q-ref-resolution",
+      "enabled": true,
+      "budget_bucket": "calibration",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "q-ref",
+      "utility_profiles": [
+        "provider-preflight-default"
+      ],
+      "shock_id": "baseline-3pct",
+      "cells": [
+        {
+          "models": [
+            "qref_scripted"
+          ],
+          "arms": [
+            "qref-scripted"
+          ],
+          "narratives": [
+            "none"
+          ],
+          "execution_mode": "q_ref_resolution"
+        }
+      ],
+      "prerequisites": [],
+      "reuse": [],
+      "call_roles": [
+        "qref-scripted"
+      ]
+    },
+    {
+      "stage_id": "stage0-calibration",
+      "enabled": true,
+      "budget_bucket": "calibration",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "calibration",
+      "utility_profiles": [
+        "center",
+        "psi-1",
+        "psi-4",
+        "nu-0.5",
+        "nu-2",
+        "q0-0.5x",
+        "q0-2x"
+      ],
+      "shock_id": "baseline-3pct",
+      "cells": [
+        {
+          "models": [
+            "gpt52_main"
+          ],
+          "arms": [
+            "stage0-no-memory-no-context"
+          ],
+          "narratives": [
+            "none"
+          ],
+          "execution_mode": "actor_run"
+        }
+      ],
+      "prerequisites": [
+        "capability-gate",
+        "closed-loop-preflight",
+        "q-ref-resolution"
+      ],
+      "reuse": [],
+      "call_roles": [
+        "actor-action"
+      ]
+    },
+    {
+      "stage_id": "experiment-a",
+      "enabled": true,
+      "budget_bucket": "core",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "main",
+      "utility_profiles": [
+        "stage0-selected"
+      ],
+      "shock_id": "registered-rate-shock",
+      "cells": [
+        {
+          "models": [
+            "gpt52_main"
+          ],
+          "arms": [
+            "no-context",
+            "prompt-only",
+            "retrieval-only",
+            "full"
+          ],
+          "narratives": [
+            "none"
+          ],
+          "execution_mode": "actor_run"
+        }
+      ],
+      "prerequisites": [
+        "stage0-calibration"
+      ],
+      "reuse": [],
+      "call_roles": [
+        "actor-action",
+        "semantic-proposal"
+      ]
+    },
+    {
+      "stage_id": "experiment-c",
+      "enabled": true,
+      "budget_bucket": "core",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "main",
+      "utility_profiles": [
+        "stage0-selected"
+      ],
+      "shock_id": "registered-rate-shock",
+      "cells": [
+        {
+          "models": [
+            "gpt52_main"
+          ],
+          "arms": [
+            "full",
+            "unverified-dual",
+            "verified-error-candidate",
+            "verified-error-forced",
+            "unverified-error-forced"
+          ],
+          "narratives": [
+            "none"
+          ],
+          "execution_mode": "actor_run"
+        }
+      ],
+      "prerequisites": [
+        "stage0-calibration"
+      ],
+      "reuse": [],
+      "call_roles": [
+        "actor-action",
+        "semantic-proposal",
+        "offline-verifier"
+      ]
+    },
+    {
+      "stage_id": "experiment-d",
+      "enabled": true,
+      "budget_bucket": "core",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "main",
+      "utility_profiles": [
+        "stage0-selected"
+      ],
+      "shock_id": "registered-rate-shock",
+      "cells": [
+        {
+          "models": [
+            "gpt52_main"
+          ],
+          "arms": [
+            "matched-a",
+            "matched-b",
+            "no-memory",
+            "shuffled-episodic",
+            "wrong-context",
+            "error-verified",
+            "error-unverified"
+          ],
+          "narratives": [
+            "none"
+          ],
+          "execution_mode": "checkpoint_continuation"
+        },
+        {
+          "models": [
+            "gpt52_main"
+          ],
+          "arms": [
+            "narrative-content"
+          ],
+          "narratives": [
+            "none",
+            "aligned",
+            "paraphrase",
+            "opposite"
+          ],
+          "execution_mode": "checkpoint_continuation"
+        }
+      ],
+      "prerequisites": [
+        "experiment-a",
+        "experiment-c"
+      ],
+      "reuse": [],
+      "call_roles": [
+        "actor-action",
+        "checkpoint-branch"
+      ]
+    },
+    {
+      "stage_id": "experiment-b",
+      "enabled": true,
+      "budget_bucket": "core",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "main",
+      "utility_profiles": [
+        "stage0-selected"
+      ],
+      "shock_id": "registered-rate-shock",
+      "cells": [
+        {
+          "models": [
+            "gpt52_main"
+          ],
+          "arms": [
+            "no-memory",
+            "episodic-only",
+            "semantic-only",
+            "unverified-dual",
+            "full"
+          ],
+          "narratives": [
+            "none"
+          ],
+          "execution_mode": "actor_run"
+        }
+      ],
+      "prerequisites": [
+        "experiment-d"
+      ],
+      "reuse": [],
+      "call_roles": [
+        "actor-action",
+        "semantic-proposal"
+      ]
+    },
+    {
+      "stage_id": "controlled-second",
+      "enabled": true,
+      "budget_bucket": "cross_model",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "cross-model",
+      "utility_profiles": [
+        "stage0-selected"
+      ],
+      "shock_id": "registered-rate-shock",
+      "cells": [
+        {
+          "models": [
+            "llama33_local_controlled"
+          ],
+          "arms": [
+            "full",
+            "no-memory"
+          ],
+          "narratives": [
+            "none"
+          ],
+          "execution_mode": "actor_run"
+        }
+      ],
+      "prerequisites": [
+        "closed-loop-preflight",
+        "experiment-b"
+      ],
+      "reuse": [],
+      "call_roles": [
+        "actor-action",
+        "semantic-proposal"
+      ]
+    },
+    {
+      "stage_id": "cross-model-diagnostics",
+      "enabled": true,
+      "budget_bucket": "cross_model",
+      "num_agents": 4,
+      "episode_length": 12,
+      "seed_set": "cross-model",
+      "utility_profiles": [
+        "stage0-selected"
+      ],
+      "shock_id": "registered-rate-shock",
+      "cells": [
+        {
+          "models": [
+            "gpt56_diagnostic",
+            "gemini35_flash_diagnostic",
+            "llama4_maverick_diagnostic"
+          ],
+          "arms": [
+            "full",
+            "no-memory"
+          ],
+          "narratives": [
+            "none"
+          ],
+          "execution_mode": "actor_run"
+        }
+      ],
+      "prerequisites": [
+        "secondary-closed-loop-preflight",
+        "experiment-b"
+      ],
+      "reuse": [
+        "experiment-b:gpt52_main:full:first-three-main-seeds",
+        "experiment-b:gpt52_main:no-memory:first-three-main-seeds"
+      ],
+      "call_roles": [
+        "actor-action",
+        "semantic-proposal"
+      ]
+    }
+  ],
+  "non_claims": [
+    "This frozen pilot does not include a proposer-by-actor model cross.",
+    "Documented unsupported request fields are omitted and receipted; this does not establish compute matching across model families.",
+    "A model whose decoding seed is documented unsupported is uncalibrated and diagnostic-only unless this exact contract registers and executes a matched A/A null for that model.",
+    "GPT-5.2 Experiment A and C cells are paired on environment seed but reuse no decoded completion and therefore are not fully decoding-matched causal pairs.",
+    "Experiment D memory treatments are a single focal-agent decision-6 prompt pulse followed by a six-step downstream continuation, not a six-step persistent no-memory intervention.",
+    "Experiment C no-error controls are rerun inside Experiment C rather than reused from Experiment B.",
+    "Opus-4.8 has a catalog-attested omission profile but remains zero-dispatch because adding its preregistered capability, preflight, and sentinel cells would violate the frozen cross-model cap under the no-matrix-shrink policy.",
+    "Secondary diagnostic models do not multiply the full A-D matrix.",
+    "The 4-agent by 12-month pilot does not establish full-scale or real-economy validity.",
+    "Legacy, pilot-v1, and interface-debug artifacts are not scientific evidence for this contract."
+  ],
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "declared_sha256": "72f9a4f7b687e6711d54d1bed45350963b2039e79565fffb39b03b8c6c66b493"
+  },
+  "parameter_dispatch_policy": {
+    "policy_id": "finevo-parameter-dispatch-v2",
+    "fields": [
+      "temperature",
+      "top_p",
+      "seed",
+      "reasoning",
+      "response_format"
+    ],
+    "allowed_modes": [
+      "explicit_supported",
+      "documented_unsupported_omitted"
+    ],
+    "unsupported_field_action": "omit-before-dispatch",
+    "unknown_support_action": "stop-before-dispatch",
+    "omission_receipt_status": "omitted_unsupported",
+    "uniform_across_profiles": true
+  },
+  "task_output_contracts": {
+    "capability-choice": {
+      "task_id": "capability-choice",
+      "max_completion_tokens": 2048,
+      "max_visible_json_bytes": 512,
+      "visible_token_count_required": true,
+      "reasoning_token_count_required": true,
+      "science_parse_mode": "exact_json_only",
+      "report_recovery_modes": [
+        "fenced_json",
+        "substring_json"
+      ],
+      "recovered_output_scientific_success": false,
+      "required_finish_reason": "stop"
+    },
+    "capability-proposal": {
+      "task_id": "capability-proposal",
+      "max_completion_tokens": 4096,
+      "max_visible_json_bytes": 4096,
+      "visible_token_count_required": true,
+      "reasoning_token_count_required": true,
+      "science_parse_mode": "exact_json_only",
+      "report_recovery_modes": [
+        "fenced_json",
+        "substring_json"
+      ],
+      "recovered_output_scientific_success": false,
+      "required_finish_reason": "stop"
+    },
+    "actor-action": {
+      "task_id": "actor-action",
+      "max_completion_tokens": 2048,
+      "max_visible_json_bytes": 1024,
+      "visible_token_count_required": true,
+      "reasoning_token_count_required": true,
+      "science_parse_mode": "exact_json_only",
+      "report_recovery_modes": [
+        "fenced_json",
+        "substring_json"
+      ],
+      "recovered_output_scientific_success": false,
+      "required_finish_reason": "stop"
+    },
+    "semantic-proposal": {
+      "task_id": "semantic-proposal",
+      "max_completion_tokens": 4096,
+      "max_visible_json_bytes": 4096,
+      "visible_token_count_required": true,
+      "reasoning_token_count_required": true,
+      "science_parse_mode": "exact_json_only",
+      "report_recovery_modes": [
+        "fenced_json",
+        "substring_json"
+      ],
+      "recovered_output_scientific_success": false,
+      "required_finish_reason": "stop"
+    }
+  },
+  "model_roles": {
+    "gpt52_main": {
+      "profile_id": "gpt52_main",
+      "role": "primary",
+      "dispatch_eligible": true,
+      "ineligibility_reason": null,
+      "allowed_stages": [
+        "capability-gate",
+        "closed-loop-preflight",
+        "stage0-calibration",
+        "experiment-a",
+        "experiment-c",
+        "experiment-d",
+        "experiment-b"
+      ],
+      "allowed_call_roles": [
+        "capability-choice",
+        "capability-proposal",
+        "actor-action",
+        "semantic-proposal",
+        "offline-verifier",
+        "checkpoint-branch"
+      ]
+    },
+    "llama33_local_controlled": {
+      "profile_id": "llama33_local_controlled",
+      "role": "controlled_second",
+      "dispatch_eligible": true,
+      "ineligibility_reason": null,
+      "allowed_stages": [
+        "capability-gate",
+        "closed-loop-preflight",
+        "controlled-second"
+      ],
+      "allowed_call_roles": [
+        "capability-choice",
+        "capability-proposal",
+        "actor-action",
+        "semantic-proposal"
+      ]
+    },
+    "gpt56_diagnostic": {
+      "profile_id": "gpt56_diagnostic",
+      "role": "secondary_diagnostic",
+      "dispatch_eligible": true,
+      "ineligibility_reason": null,
+      "allowed_stages": [
+        "secondary-capability-gate",
+        "secondary-closed-loop-preflight",
+        "cross-model-diagnostics"
+      ],
+      "allowed_call_roles": [
+        "capability-choice",
+        "capability-proposal",
+        "actor-action",
+        "semantic-proposal"
+      ]
+    },
+    "gemini35_flash_diagnostic": {
+      "profile_id": "gemini35_flash_diagnostic",
+      "role": "secondary_diagnostic",
+      "dispatch_eligible": true,
+      "ineligibility_reason": null,
+      "allowed_stages": [
+        "secondary-capability-gate",
+        "secondary-closed-loop-preflight",
+        "cross-model-diagnostics"
+      ],
+      "allowed_call_roles": [
+        "capability-choice",
+        "capability-proposal",
+        "actor-action",
+        "semantic-proposal"
+      ]
+    },
+    "llama4_maverick_diagnostic": {
+      "profile_id": "llama4_maverick_diagnostic",
+      "role": "secondary_diagnostic",
+      "dispatch_eligible": true,
+      "ineligibility_reason": null,
+      "allowed_stages": [
+        "secondary-capability-gate",
+        "secondary-closed-loop-preflight",
+        "cross-model-diagnostics"
+      ],
+      "allowed_call_roles": [
+        "capability-choice",
+        "capability-proposal",
+        "actor-action",
+        "semantic-proposal"
+      ]
+    },
+    "opus48_no_go": {
+      "profile_id": "opus48_no_go",
+      "role": "capability_no_go",
+      "dispatch_eligible": false,
+      "ineligibility_reason": "cross_model_budget_no_go_under_nonshrink_policy",
+      "allowed_stages": [],
+      "allowed_call_roles": []
+    },
+    "qref_scripted": {
+      "profile_id": "qref_scripted",
+      "role": "calibration_only",
+      "dispatch_eligible": true,
+      "ineligibility_reason": null,
+      "allowed_stages": [
+        "q-ref-resolution"
+      ],
+      "allowed_call_roles": [
+        "qref-scripted"
+      ]
+    }
+  },
+  "denominator_policy": {
+    "policy_id": "finevo-pilot-v2.2-itt",
+    "registered_cells_are_itt": true,
+    "parse_failure_outcome": "candidate_not_activated",
+    "provider_budget_integrity_failure_outcome": "terminate_run_keep_denominator",
+    "failed_seed_replacement": "forbidden",
+    "seed_inference_unit": "seed",
+    "rule_inference_unit": "seed-agent-family",
+    "checkpoint_inference_unit": "seed-checkpoint",
+    "core_complete_pairs_min": 4,
+    "core_registered_pairs": 5,
+    "cross_model_complete_pairs_min": 2,
+    "cross_model_registered_pairs": 3,
+    "raw_paired_deltas_required": true
+  },
+  "release_requirements": {
+    "remote": "origin",
+    "branch": "main",
+    "tag": "pilot-v2.2-science",
+    "workflow_file": ".github/workflows/verified-memory-ci.yml",
+    "workflow_name": "Verified memory CI",
+    "required_job_names": [
+      "Python 3.12.7 / ubuntu-24.04",
+      "Python 3.12.7 / macos-14"
+    ],
+    "expected_ci": {
+      "compiled_source_count": 142,
+      "compiled_source_inventory_sha256": "83b7065cd13e315a660c639dd112912e42395d723184e938a18a9ead97830844",
+      "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
+      "test_collection_sha256": "17644ad90479f854a1ac472fea6aa281e8be8d541a3f1e3082a6df71dd7c6f1d",
+      "test_count": 748
+    }
+  },
+  "operational_amendment": {
+    "amendment_id": "finevo-pilot-v2.1-operational-retry-1",
+    "budget_carry_forward": {
+      "cost_usd": 1.0701145,
+      "hosted_completions": 30,
+      "source_stage_bucket": "capability",
+      "storage_bytes": 479367
+    },
+    "failure": {
+      "affected_run_id": "finevo-pilot-v2--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376",
+      "capability_sha256": "da9076389db58fd682d213ccb932d66bb767f73423e5476abea788eb1f8fd294",
+      "capability_status": "not_evaluable",
+      "error_type": "APIConnectionError",
+      "failure_count": 30,
+      "gate_sha256": "176547171d88dad5e757dc1795cef749bea57ea7e7291191a240c8cd92c57997",
+      "parent_terminal_status": "capability-no-go",
+      "root_cause_codes": [
+        "credential-header-trailing-whitespace",
+        "capability-reader-nullability-drift"
+      ],
+      "secret_rotation_required": true,
+      "served_model_observation": "null-pre-response",
+      "terminal_sha256": "10b5ff7c78b4697b9754c809bed0e7d14380729a640632585085ad7f886704c6"
+    },
+    "inherited_results": [
+      {
+        "capability_sha256": "4c4c864733f32166c286e22b446dc3849df624a267ad083426ee4a89e79052ca",
+        "gate_sha256": "01c61c25e7d25577975dbe3aae8a408f464d685210b071aa612f4bd46bb78eda",
+        "model_id": "llama33_local_controlled",
+        "run_id": "finevo-pilot-v2--capability-gate--llama33_local_controlled--capability-probe--none--provider-preflight-default--s2010922376",
+        "scores": {
+          "rule_application": {
+            "correct": 10,
+            "denominator": 12
+          },
+          "rule_proposal": {
+            "correct": 0,
+            "denominator": 6
+          },
+          "utility_ranking": {
+            "correct": 12,
+            "denominator": 12
+          }
+        },
+        "status": "capability-no-go",
+        "terminal_sha256": "544b409e6ce8538958ec6278f5311429f14cf24591f8479bff287512d02e7380"
+      }
+    ],
+    "parent": {
+      "budget_ledger_file_sha256": "f1318f47977ad956e206dfb53ff8a14350338c691b17f44280121504a99d2882",
+      "budget_ledger_internal_sha256": "d9ec2c1bdfcc407aeb555ba71ee9d5e274d924e9a98791c5839ec749f3b1a0f2",
+      "contract_id": "finevo-pilot-v2",
+      "contract_sha256": "980deddf2f82a762db7d73baa6ee0428c5e653298f4f275c5b3a5b23a95865c5",
+      "launch_input_sha256": "6516ce8660d588aaf13381353f67d9cacd991d5236a7d3ae8c41ef1c0a88d357",
+      "release_attestation_sha256": "54a11dc86df139a3656934ff81920ae1f10c9425afa44815e30c9befda583895",
+      "release_commit": "3664778727813e5e8328b4b17b91a28c8122f87c",
+      "release_tag": "pilot-v2-science",
+      "run_ledger_file_sha256": "34b1a763f4f1c5824249e4acaaa83334f2b254eb899b4def14a4c3365eefd60f",
+      "run_ledger_internal_sha256": "9d54ac1f22a56bafbe59164c7074d87bf914d290bc1282c631d50a4529f41fff"
+    },
+    "retry_policy": {
+      "eligible_model_ids": [
+        "gpt52_main"
+      ],
+      "failed_seed_replacement": "forbidden",
+      "ineligible_parent_terminal_model_ids": [
+        "llama33_local_controlled"
+      ],
+      "outcome_inspected_for_retry": false,
+      "preserve_parent_denominator": true,
+      "retry_is_operational_amendment": true,
+      "unchanged_science_fields": "science-critical-v2-fieldset"
+    },
+    "schema_version": "finevo-pilot-operational-amendment-v1"
+  },
+  "evaluator_amendment": {
+    "amendment_id": "finevo-pilot-v2.2-capability-admission-correction-1",
+    "budget_carry_forward": {
+      "cost_usd": 1.53775475,
+      "hosted_completions": 60,
+      "source_contract_id": "finevo-pilot-v2.1",
+      "source_contract_sha256": "ac1011e70f3fe85716c4f5c1497812e3c83b3112d7661d234fdaa913f58eadca",
+      "source_stage_bucket": "capability",
+      "storage_bytes": 715860
+    },
+    "corrected_results": [
+      {
+        "model_id": "gpt52_main",
+        "provider_calls": 0,
+        "scores": {
+          "rule_application": {
+            "correct": 12,
+            "denominator": 12
+          },
+          "rule_proposal": {
+            "correct": 6,
+            "denominator": 6
+          },
+          "utility_ranking": {
+            "correct": 12,
+            "denominator": 12
+          }
+        },
+        "source_run_id": "finevo-pilot-v2.1--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376",
+        "status": "complete"
+      },
+      {
+        "model_id": "llama33_local_controlled",
+        "provider_calls": 0,
+        "scores": {
+          "rule_application": {
+            "correct": 10,
+            "denominator": 12
+          },
+          "rule_proposal": {
+            "correct": 6,
+            "denominator": 6
+          },
+          "utility_ranking": {
+            "correct": 12,
+            "denominator": 12
+          }
+        },
+        "source_run_id": "finevo-pilot-v2--capability-gate--llama33_local_controlled--capability-probe--none--provider-preflight-default--s2010922376",
+        "status": "complete"
+      }
+    ],
+    "defect": {
+      "affected_capability_schema": "finevo-capability-gate-v3",
+      "code": "hidden-exact-expected-match-not-preregistered",
+      "contract_gate_path": "stop_go.capability.semantic_candidate_acceptance_required",
+      "contract_gate_value": true,
+      "corrected_proposal_gate": "semantic_candidate_accepted",
+      "independent_candidate_replay_available": false,
+      "old_proposal_gate": "semantic_candidate_accepted && semantic_match",
+      "semantic_match_disposition": "diagnostic-only",
+      "source_candidate_payload_retained": false
+    },
+    "parent": {
+      "budget_ledger_file_sha256": "405a818a1ee0dd4562e3a5452104f6b3411834f1d9d5800a81dcbc515b0144f2",
+      "budget_ledger_internal_sha256": "8a871a52014a49d50ac8c8701022fea74b57df61aaa2e6a9f4d18c009200d2e1",
+      "capability_stage_receipt_content_sha256": "0e98cddf636a6912692ff081fa2e152a49c119608d43fa8ae5debfb1906d9ac8",
+      "capability_stage_receipt_file_sha256": "5aa7374c1e2cc942cfa3a86c01256a8b59b954de2129aa3c855c2d411281704f",
+      "contract_id": "finevo-pilot-v2.1",
+      "contract_sha256": "ac1011e70f3fe85716c4f5c1497812e3c83b3112d7661d234fdaa913f58eadca",
+      "launch_input_sha256": "0598ec40701a660fd2d32709ab8f6a8dd5ccae8b965cff76f1992a5d00021716",
+      "release_attestation_sha256": "3a23899160eadb37135384e5dbbdbf034e485ab0bf51ba5521dab6c56abd65bc",
+      "release_commit": "5d604eea3b14113a55599806b31c2f8f09089bbd",
+      "release_tag": "pilot-v2.1-science",
+      "run_ledger_file_sha256": "73b4e8572730ea91a9ab3838ea36b65b6d17625797333ee2eee53c2186ac736e",
+      "run_ledger_internal_sha256": "ad3e5deb3a01f0ab4b5d079657830755170f9cbe88ab8b8d5cbdf21625738de9"
+    },
+    "rescore_policy": {
+      "accepted_parse_mode_required": true,
+      "apply_uniformly_to_all_source_models": true,
+      "candidate_status_required": "provisional",
+      "capability_outcomes_inspected": true,
+      "eligible_source_model_ids": [
+        "gpt52_main",
+        "llama33_local_controlled"
+      ],
+      "failed_seed_replacement": "forbidden",
+      "interface_valid_required": true,
+      "minimum_unique_support_ids": 2,
+      "old_scores_retained": true,
+      "provider_calls": 0,
+      "provider_redispatch": "forbidden",
+      "rescore_is_scientific_evidence": false,
+      "scientific_effect_outcomes_inspected": false,
+      "semantic_candidate_acceptance_required": true,
+      "semantic_match_required": false,
+      "source_denominator_preserved": true,
+      "strict_parse_required": true,
+      "strict_schema_required": true,
+      "support_ids_must_be_allowed": true
+    },
+    "schema_version": "finevo-pilot-evaluator-amendment-v1",
+    "source_attempts": [
+      {
+        "capability_sha256": "bd64ace07e04b13755ed46f9b2599b9c11a7fadf902500f57b9ab020cba4448d",
+        "contract_id": "finevo-pilot-v2.1",
+        "contract_sha256": "ac1011e70f3fe85716c4f5c1497812e3c83b3112d7661d234fdaa913f58eadca",
+        "gate_sha256": "01c61c25e7d25577975dbe3aae8a408f464d685210b071aa612f4bd46bb78eda",
+        "model_id": "gpt52_main",
+        "old_scores": {
+          "rule_application": {
+            "correct": 12,
+            "denominator": 12
+          },
+          "rule_proposal": {
+            "correct": 0,
+            "denominator": 6
+          },
+          "utility_ranking": {
+            "correct": 12,
+            "denominator": 12
+          }
+        },
+        "old_status": "capability-no-go",
+        "release_commit": "5d604eea3b14113a55599806b31c2f8f09089bbd",
+        "release_tag": "pilot-v2.1-science",
+        "run_id": "finevo-pilot-v2.1--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376",
+        "terminal_content_sha256": "1e1122c419a49728c796cd682670c9e3f314183ac0a86bc6a72a58082695d39f",
+        "terminal_sha256": "b653b8bf4f702632fb9781e884c63ecabd285eef548df64ed8ddd3247b64fb2b"
+      },
+      {
+        "capability_sha256": "4c4c864733f32166c286e22b446dc3849df624a267ad083426ee4a89e79052ca",
+        "contract_id": "finevo-pilot-v2",
+        "contract_sha256": "980deddf2f82a762db7d73baa6ee0428c5e653298f4f275c5b3a5b23a95865c5",
+        "gate_sha256": "01c61c25e7d25577975dbe3aae8a408f464d685210b071aa612f4bd46bb78eda",
+        "model_id": "llama33_local_controlled",
+        "old_scores": {
+          "rule_application": {
+            "correct": 10,
+            "denominator": 12
+          },
+          "rule_proposal": {
+            "correct": 0,
+            "denominator": 6
+          },
+          "utility_ranking": {
+            "correct": 12,
+            "denominator": 12
+          }
+        },
+        "old_status": "capability-no-go",
+        "release_commit": "3664778727813e5e8328b4b17b91a28c8122f87c",
+        "release_tag": "pilot-v2-science",
+        "run_id": "finevo-pilot-v2--capability-gate--llama33_local_controlled--capability-probe--none--provider-preflight-default--s2010922376",
+        "terminal_content_sha256": "16a5f772eeb952aba55dcb2f655642fa7a9db1c3c9453a82b40617278f660070",
+        "terminal_sha256": "544b409e6ce8538958ec6278f5311429f14cf24591f8479bff287512d02e7380"
+      }
+    ]
+  }
+}

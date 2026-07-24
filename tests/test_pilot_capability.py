@@ -184,6 +184,20 @@ class WrongSemanticEvidenceProvider(CapabilityFixtureProvider):
         return replace(completion, text=json.dumps(payload, sort_keys=True))
 
 
+class EquivalentConditionToleranceProvider(CapabilityFixtureProvider):
+    """Use a verifier-equivalent inequality tolerance, not the hidden literal."""
+
+    def mutate(self, task, completion):
+        if task.task_kind != "rule_proposal":
+            return completion
+        assert task.expected_condition is not None
+        assert task.expected_condition["operator"] in {">=", "<="}
+        assert task.expected_condition["tolerance"] == pytest.approx(1e-9)
+        payload = json.loads(completion.text)
+        payload["condition"]["tolerance"] = 0.0
+        return replace(completion, text=json.dumps(payload, sort_keys=True))
+
+
 class GeminiLengthProvider(CapabilityFixtureProvider):
     def mutate(self, task, completion):
         if task.task_id != "action-01":
@@ -272,7 +286,7 @@ def _run_gate(
     )
 
 
-def test_v3_taskset_uses_production_prompts_and_real_evidence() -> None:
+def test_v4_taskset_uses_production_prompts_and_real_evidence() -> None:
     tasks = build_capability_tasks()
 
     assert len(tasks) == 30
@@ -282,7 +296,7 @@ def test_v3_taskset_uses_production_prompts_and_real_evidence() -> None:
     assert [task.task_kind for task in tasks].count("action_generation") == 12
     assert [task.task_kind for task in tasks].count("rule_application") == 12
     assert [task.task_kind for task in tasks].count("rule_proposal") == 6
-    assert CAPABILITY_SCHEMA_VERSION == "finevo-capability-gate-v3"
+    assert CAPABILITY_SCHEMA_VERSION == "finevo-capability-gate-v4"
     assert len(CAPABILITY_TASKSET_SHA256) == 64
 
     action = tasks[0]
@@ -309,11 +323,11 @@ def test_scripted_production_capability_fixture_passes_30_call_gate() -> None:
     provider = CapabilityFixtureProvider()
     result = _run_gate(
         provider,
-        budget_id="capability-v3-pass",
+        budget_id="capability-v4-pass",
         contracts=_contracts(actor_tokens=333, proposal_tokens=777),
     )
 
-    assert result["schema_version"] == "finevo-capability-gate-v3"
+    assert result["schema_version"] == "finevo-capability-gate-v4"
     assert result["pass"] is True
     assert result["interface_gate"] == {"pass": True, "failure_count": 0}
     assert result["strict_parse_count"] == 30
@@ -340,7 +354,7 @@ def test_scripted_production_capability_fixture_passes_30_call_gate() -> None:
 def test_fenced_and_substring_recovery_are_itt_but_not_strict_success() -> None:
     result = _run_gate(
         RecoveryProvider(),
-        budget_id="capability-v3-recovery",
+        budget_id="capability-v4-recovery",
         contracts=_contracts(),
     )
     rows = {row["task_id"]: row for row in result["rows"]}
@@ -358,16 +372,32 @@ def test_fenced_and_substring_recovery_are_itt_but_not_strict_success() -> None:
     assert result["pass"] is True
 
 
-@pytest.mark.parametrize(
-    "mutation",
-    ("episode_id", "condition", "guidance", "scope"),
-)
-def test_wrong_semantic_evidence_fails_actual_proposal_admission_scoring(
+def test_verifier_rejected_evidence_remains_illegal() -> None:
+    result = _run_gate(
+        WrongSemanticEvidenceProvider("episode_id"),
+        budget_id="capability-v4-rejected-evidence",
+        contracts=_contracts(),
+    )
+    row = next(row for row in result["rows"] if row["task_id"] == "proposal-01")
+
+    assert row["parse_mode"] == "exact_json"
+    assert row["strict_parse"] is True
+    assert row["semantic_candidate_accepted"] is False
+    assert row["candidate_status"] == "rejected"
+    assert row["semantic_match"] is True
+    assert row["legal"] is False
+    assert row["correct"] is False
+    assert result["category_totals"]["rule-proposal"]["correct"] == 5
+    assert result["pass"] is True
+
+
+@pytest.mark.parametrize("mutation", ("condition", "guidance", "scope"))
+def test_hidden_semantic_mismatch_does_not_override_verifier_admission(
     mutation: str,
 ) -> None:
     result = _run_gate(
         WrongSemanticEvidenceProvider(mutation),
-        budget_id=f"capability-v3-wrong-{mutation}",
+        budget_id=f"capability-v4-wrong-{mutation}",
         contracts=_contracts(),
     )
     row = next(row for row in result["rows"] if row["task_id"] == "proposal-01")
@@ -375,23 +405,38 @@ def test_wrong_semantic_evidence_fails_actual_proposal_admission_scoring(
     assert row["parse_mode"] == "exact_json"
     assert row["strict_parse"] is True
     assert row["semantic_match"] is False
-    assert row["correct"] is False
-    if mutation == "episode_id":
-        assert row["semantic_candidate_accepted"] is False
-        assert row["candidate_status"] == "rejected"
-    else:
-        # These deliberately plausible but semantically wrong variants can pass
-        # generic admission.  Frozen expected semantics must still reject them.
-        assert row["semantic_candidate_accepted"] is True
-        assert row["candidate_status"] == "provisional"
-    assert result["category_totals"]["rule-proposal"]["correct"] == 5
+    assert row["semantic_candidate_accepted"] is True
+    assert row["candidate_status"] == "provisional"
+    assert row["legal"] is True
+    assert row["correct"] is True
+    assert result["category_totals"]["rule-proposal"]["correct"] == 6
+    assert result["pass"] is True
+
+
+def test_semantically_equivalent_condition_tolerance_is_legal() -> None:
+    result = _run_gate(
+        EquivalentConditionToleranceProvider(),
+        budget_id="capability-v4-equivalent-tolerance",
+        contracts=_contracts(),
+    )
+    rows = [row for row in result["rows"] if row["task_kind"] == "rule_proposal"]
+
+    assert len(rows) == 6
+    assert all(row["interface_valid"] for row in rows)
+    assert all(row["strict_parse"] for row in rows)
+    assert all(row["semantic_candidate_accepted"] for row in rows)
+    assert all(row["candidate_status"] == "provisional" for row in rows)
+    assert all(row["semantic_match"] is False for row in rows)
+    assert all(row["legal"] for row in rows)
+    assert all(row["correct"] for row in rows)
+    assert result["category_totals"]["rule-proposal"]["correct"] == 6
     assert result["pass"] is True
 
 
 def test_hidden_reasoning_and_length_are_recorded_as_truncation() -> None:
     result = _run_gate(
         GeminiLengthProvider(),
-        budget_id="capability-v3-gemini-length",
+        budget_id="capability-v4-gemini-length",
         contracts=_contracts(),
     )
     row = next(row for row in result["rows"] if row["task_id"] == "action-01")
@@ -413,7 +458,7 @@ def test_hidden_reasoning_and_length_are_recorded_as_truncation() -> None:
 def test_visible_json_byte_cap_is_fail_closed() -> None:
     result = _run_gate(
         OversizeVisibleJSONProvider(),
-        budget_id="capability-v3-visible-limit",
+        budget_id="capability-v4-visible-limit",
         contracts=_contracts(actor_bytes=256),
     )
     row = next(row for row in result["rows"] if row["task_id"] == "action-01")
@@ -430,7 +475,7 @@ def test_visible_json_byte_cap_is_fail_closed() -> None:
 def test_provider_failure_stays_in_registered_denominator() -> None:
     result = _run_gate(
         ProviderFailureProvider(),
-        budget_id="capability-v3-provider-failure",
+        budget_id="capability-v4-provider-failure",
         contracts=_contracts(),
     )
     row = next(row for row in result["rows"] if row["task_id"] == "action-01")
@@ -451,7 +496,7 @@ def test_v2_compatibility_defaults_and_caps_override_remain_bounded() -> None:
     provider = CapabilityFixtureProvider()
     result = _run_gate(
         provider,
-        budget_id="capability-v3-defaults",
+        budget_id="capability-v4-defaults",
         contracts=None,
     )
     assert result["pass"] is True
@@ -464,7 +509,7 @@ def test_v2_compatibility_defaults_and_caps_override_remain_bounded() -> None:
         llm=MultiModelLLM(provider, num_workers=4),
         budget=RunBudget(
             BudgetLimits(max_calls=30, max_cost_usd=0.1),
-            budget_id="capability-v3-caps-alias",
+            budget_id="capability-v4-caps-alias",
         ),
         seed=2010922376,
         estimate_usage=lambda prompt, max_tokens: UsageRecord(),
@@ -483,7 +528,7 @@ def test_explicit_v2_contract_requires_both_scientific_call_kinds() -> None:
     with pytest.raises(ValueError, match="semantic-proposal"):
         _run_gate(
             CapabilityFixtureProvider(),
-            budget_id="capability-v3-missing-contract",
+            budget_id="capability-v4-missing-contract",
             contracts={"actor-action": _contracts()["actor-action"]},
         )
 
@@ -508,7 +553,7 @@ def test_pilot_contract_v2_field_names_are_normalized() -> None:
     provider = CapabilityFixtureProvider()
     result = _run_gate(
         provider,
-        budget_id="capability-v3-contract-field-aliases",
+        budget_id="capability-v4-contract-field-aliases",
         contracts=contracts,
     )
 

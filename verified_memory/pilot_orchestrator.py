@@ -108,11 +108,23 @@ from .pilot_contract import (
     load_pilot_contract,
 )
 from .pilot_evidence import (
+    CAPABILITY_V3_SCHEMA_VERSION,
+    CAPABILITY_V4_SCHEMA_VERSION,
     CURRENT_SCIENTIFIC_SCOPE,
     PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION,
     PilotEvidenceError,
     _validate_capability_v3,
+    _validate_capability_v4,
     write_terminal_summary,
+)
+from .pilot_evaluation_amendment import (
+    CAPABILITY_IMPORT_SCHEMA_VERSION,
+    PilotEvaluationAmendmentError,
+    build_capability_import,
+    evaluator_amendment_control_path,
+    parent_budget_debit_for_evaluator_amendment,
+    persist_evaluator_correction_receipt,
+    validate_capability_import,
 )
 from .runner import (
     ShockEvent,
@@ -875,6 +887,13 @@ def _budget_caps(contract: PilotContract) -> PilotBudgetCaps:
         },
         automatic_reserve_usd=float(budgets["automatic_reserve_usd"]),
     )
+
+
+def _parent_budget_debit(contract: PilotContract):
+    evaluator_debit = parent_budget_debit_for_evaluator_amendment(contract)
+    if evaluator_debit is not None:
+        return evaluator_debit
+    return parent_budget_debit_for_contract(contract)
 
 
 def _shock_events(
@@ -2270,21 +2289,45 @@ def _usage_projection_rows(
     preflight_result: Any,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for row in capability["rows"]:
-        rows.append(
-            {
-                "response_model": row["served_model"],
-                "call_kind": row.get(
-                    "output_contract_id",
-                    (
-                        "capability-proposal"
-                        if row["category"] == "rule-proposal"
-                        else "capability-choice"
+    capability_rows = capability.get("rows")
+    if isinstance(capability_rows, Sequence) and not isinstance(
+        capability_rows, (str, bytes)
+    ):
+        for row in capability_rows:
+            rows.append(
+                {
+                    "response_model": row["served_model"],
+                    "call_kind": row.get(
+                        "output_contract_id",
+                        (
+                            "capability-proposal"
+                            if row["category"] == "rule-proposal"
+                            else "capability-choice"
+                        ),
                     ),
-                ),
-                "usage": row["usage"],
-            }
-        )
+                    "usage": row["usage"],
+                }
+            )
+    else:
+        imported_rows = capability.get("usage_projection_rows")
+        if isinstance(imported_rows, (str, bytes)) or not isinstance(
+            imported_rows, Sequence
+        ):
+            raise PilotOrchestrationError(
+                "capability artifact lacks replayable usage projection rows"
+            )
+        for row in imported_rows:
+            if not isinstance(row, Mapping):
+                raise PilotOrchestrationError(
+                    "capability usage projection row is malformed"
+                )
+            rows.append(
+                {
+                    "response_model": row["response_model"],
+                    "call_kind": row["call_kind"],
+                    "usage": row["usage"],
+                }
+            )
     rows.extend(
         {
             "response_model": row["response_model"],
@@ -2294,6 +2337,163 @@ def _usage_projection_rows(
         for row in preflight_result.stream("api_usage")
     )
     return rows
+
+
+def _capability_import_with_preflight(
+    capability: Mapping[str, Any],
+    *,
+    preflight_go: bool,
+    preflight_checks: Mapping[str, bool] | None,
+) -> dict[str, Any]:
+    value = _json_copy(capability)
+    value["preflight_go"] = preflight_go
+    value["preflight_checks"] = (
+        None if preflight_checks is None else dict(preflight_checks)
+    )
+    if value.get("schema_version") == CAPABILITY_IMPORT_SCHEMA_VERSION:
+        value.pop("integrity", None)
+        value["integrity"] = {
+            "canonicalization": PILOT_BOUND_ARTIFACT_CANONICALIZATION,
+            "content_sha256": canonical_sha256(value),
+        }
+    return value
+
+
+def _persist_exact_json(path: Path, value: Mapping[str, Any]) -> None:
+    if path.exists():
+        if _read_json(path) != value:
+            raise PilotOrchestrationError(
+                f"immutable pilot artifact differs on resume: {path}"
+            )
+        return
+    _atomic_json_no_overwrite(path, value)
+
+
+def _execute_evaluator_capability_import_stage(
+    contract: PilotContract,
+    specs: Sequence[PilotRunSpec],
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+    run_ledger: PilotRunLedger,
+    receipt: Mapping[str, Any],
+    receipt_path: Path,
+) -> dict[str, Any]:
+    """Materialize the frozen V2.2 capability correction with zero dispatch."""
+
+    if (
+        not specs
+        or any(
+            spec.stage_id != "capability-gate"
+            or spec.execution_mode != "capability_probe"
+            for spec in specs
+        )
+    ):
+        raise PilotOrchestrationError(
+            "evaluator amendment import is restricted to capability-gate probes"
+        )
+    go_models: list[str] = []
+    for spec in specs:
+        if run_ledger.is_terminal(spec.run_id):
+            if run_ledger.status(spec.run_id) != "complete":
+                raise PilotOrchestrationError(
+                    f"evaluator import cell is terminal no-go: {spec.run_id}"
+                )
+            go_models.append(spec.model_id)
+            continue
+        run_dir = raw_root / spec.stage_id / "runs" / spec.run_id
+        capability = build_capability_import(contract, spec, receipt)
+        try:
+            validate_capability_import(capability, contract, spec, receipt)
+        except PilotEvaluationAmendmentError as exc:
+            raise PilotOrchestrationError(
+                f"capability import failed validation for {spec.run_id}: {exc}"
+            ) from exc
+        if (
+            capability.get("provider_calls_current_attempt") != 0
+            or capability.get("pass") is not True
+        ):
+            raise PilotOrchestrationError(
+                f"capability import is not a zero-call pass for {spec.run_id}"
+            )
+        capability_path = run_dir / "capability.json"
+        _persist_exact_json(capability_path, capability)
+        gate = {
+            "capability_pass": True,
+            "capability_status": "pass",
+            "interface_pass": True,
+            "preflight_run": None,
+            "go": True,
+            "reason": None,
+            "provider_calls_current_attempt": 0,
+            "evaluator_amendment_receipt": str(receipt_path),
+        }
+        gate_path = run_dir / "gate_receipt.json"
+        _persist_exact_json(gate_path, gate)
+        terminal_path = (
+            raw_root
+            / spec.stage_id
+            / "summaries"
+            / f"{spec.run_id}.json"
+        )
+        terminal_payload = {
+            "metrics": {},
+            "gate_evidence": gate,
+            "capability": capability,
+        }
+        if terminal_path.exists():
+            terminal = _load_v2_terminal_summary(
+                contract,
+                spec,
+                terminal_path,
+                raw_root=raw_root,
+                paid=paid,
+            )
+            if (
+                terminal.get("payload") != terminal_payload
+                or terminal.get("scientific_evidence") is not False
+                or terminal.get("diagnostic_only") is not False
+                or terminal.get("evidence_scope")
+                != "preregistered_task_capability_gate"
+            ):
+                raise PilotOrchestrationError(
+                    f"capability import terminal differs on resume: {spec.run_id}"
+                )
+        else:
+            write_terminal_summary(
+                terminal_path,
+                contract=contract,
+                run_spec=spec,
+                resolved_git_commit=paid.head_commit,
+                git_tag=paid.git_tag,
+                payload=terminal_payload,
+                scientific_evidence=False,
+                diagnostic_only=False,
+                evidence_scope="preregistered_task_capability_gate",
+            )
+        run_ledger.finalize(
+            spec.run_id,
+            status="complete",
+            artifact=str(terminal_path),
+            failure=None,
+        )
+        go_models.append(spec.model_id)
+
+    stage_receipt = _write_stage_receipt(
+        contract,
+        "capability-gate",
+        raw_root=raw_root,
+        ledger=run_ledger,
+        status="complete",
+        go_models=go_models,
+        artifacts={
+            "evaluator_amendment_receipt": str(receipt_path),
+            "provider_calls_current_attempt": 0,
+            "imported_model_count": len(specs),
+        },
+        paid=paid,
+    )
+    return _read_json(stage_receipt)
 
 
 def _execute_capability_preflight(
@@ -2339,14 +2539,41 @@ def _execute_capability_preflight(
             / capability_specs[0].run_id
             / "capability.json"
         )
-        capability_payload = _read_json(capability_path)
+        source_capability = _read_json(capability_path)
         if (
-            capability_payload.get("contract_sha256") != contract.canonical_hash
-            or capability_payload.get("run_spec") != capability_specs[0].to_dict()
+            source_capability.get("schema_version")
+            == CAPABILITY_IMPORT_SCHEMA_VERSION
         ):
-            raise PilotOrchestrationError(
-                "closed-loop preflight capability binding mismatch"
+            amendment_receipt = _read_json(
+                evaluator_amendment_control_path(raw_root=raw_root)
             )
+            try:
+                validate_capability_import(
+                    source_capability,
+                    contract,
+                    capability_specs[0],
+                    amendment_receipt,
+                )
+                capability_payload = build_capability_import(
+                    contract,
+                    spec,
+                    amendment_receipt,
+                )
+            except PilotEvaluationAmendmentError as exc:
+                raise PilotOrchestrationError(
+                    f"closed-loop capability import binding mismatch: {exc}"
+                ) from exc
+        else:
+            capability_payload = source_capability
+            if (
+                capability_payload.get("contract_sha256")
+                != contract.canonical_hash
+                or capability_payload.get("run_spec")
+                != capability_specs[0].to_dict()
+            ):
+                raise PilotOrchestrationError(
+                    "closed-loop preflight capability binding mismatch"
+                )
         capability = capability_payload
     else:
         capability = run_capability_gate(
@@ -2630,11 +2857,11 @@ def _execute_capability_preflight(
             "metrics": {},
             "gate_evidence": receipt,
             "provider_call_journal": preflight_journal_binding,
-            "capability": {
-                **capability_payload,
-                "preflight_go": receipt["go"],
-                "preflight_checks": checks,
-            },
+            "capability": _capability_import_with_preflight(
+                capability_payload,
+                preflight_go=receipt["go"],
+                preflight_checks=checks,
+            ),
         },
         scientific_evidence=False,
         diagnostic_only=False,
@@ -2727,7 +2954,19 @@ def _load_verified_projection(
     if bindings.get("source_capability_sha256") != _file_sha256(capability_path):
         raise PilotOrchestrationError("preflight projection source hash mismatch")
     capability = _read_json(capability_path)
-    if (
+    if capability.get("schema_version") == CAPABILITY_IMPORT_SCHEMA_VERSION:
+        try:
+            validate_capability_import(
+                capability,
+                contract,
+                capability_specs[0],
+                _read_json(evaluator_amendment_control_path(raw_root=raw_root)),
+            )
+        except PilotEvaluationAmendmentError as exc:
+            raise PilotOrchestrationError(
+                f"preflight capability source binding mismatch: {exc}"
+            ) from exc
+    elif (
         capability.get("contract_sha256") != contract.canonical_hash
         or capability.get("run_spec") != capability_specs[0].to_dict()
     ):
@@ -3382,34 +3621,53 @@ def _v2_capability_semantic_go(
             f"{spec.run_id} terminal gate differs from its source receipt"
         )
     try:
-        _validate_capability_v3(capability)
-    except PilotEvidenceError as exc:
+        capability_schema = capability.get("schema_version")
+        if capability_schema == CAPABILITY_V3_SCHEMA_VERSION:
+            _validate_capability_v3(capability)
+        elif capability_schema == CAPABILITY_V4_SCHEMA_VERSION:
+            _validate_capability_v4(capability)
+        elif capability_schema == CAPABILITY_IMPORT_SCHEMA_VERSION:
+            amendment_receipt = _read_json(
+                evaluator_amendment_control_path(raw_root=raw_root)
+            )
+            validate_capability_import(
+                capability,
+                contract,
+                spec,
+                amendment_receipt,
+            )
+        else:
+            raise PilotEvidenceError(
+                f"unsupported capability schema {capability_schema!r}"
+            )
+    except (PilotEvidenceError, PilotEvaluationAmendmentError) as exc:
         raise PilotOrchestrationError(
             f"{spec.run_id} capability evidence failed semantic recomputation: {exc}"
         ) from exc
-    capability_spec = spec
-    if spec.execution_mode == "closed_loop_preflight":
-        source_stage = _capability_source_stage(
-            contract,
-            spec.stage_id,
-            spec.model_id,
-        )
-        source_specs = contract.expand(
-            stage=source_stage,
-            model=spec.model_id,
-        )
-        if len(source_specs) != 1:
-            raise PilotOrchestrationError(
-                f"{spec.run_id} lacks one exact capability source cell"
+    if capability_schema != CAPABILITY_IMPORT_SCHEMA_VERSION:
+        capability_spec = spec
+        if spec.execution_mode == "closed_loop_preflight":
+            source_stage = _capability_source_stage(
+                contract,
+                spec.stage_id,
+                spec.model_id,
             )
-        capability_spec = source_specs[0]
-    if (
-        capability.get("contract_sha256") != contract.canonical_hash
-        or capability.get("run_spec") != capability_spec.to_dict()
-    ):
-        raise PilotOrchestrationError(
-            f"{spec.run_id} capability payload contract/spec mismatch"
-        )
+            source_specs = contract.expand(
+                stage=source_stage,
+                model=spec.model_id,
+            )
+            if len(source_specs) != 1:
+                raise PilotOrchestrationError(
+                    f"{spec.run_id} lacks one exact capability source cell"
+                )
+            capability_spec = source_specs[0]
+        if (
+            capability.get("contract_sha256") != contract.canonical_hash
+            or capability.get("run_spec") != capability_spec.to_dict()
+        ):
+            raise PilotOrchestrationError(
+                f"{spec.run_id} capability payload contract/spec mismatch"
+            )
 
     if spec.execution_mode == "capability_probe":
         semantic_go = capability.get("pass") is True
@@ -3460,11 +3718,25 @@ def _v2_capability_semantic_go(
             / "capability.json"
         )
         source_capability = _read_json(source_capability_path)
-        expected_capability = {
-            **source_capability,
-            "preflight_go": semantic_go,
-            "preflight_checks": checks,
-        }
+        if capability_schema == CAPABILITY_IMPORT_SCHEMA_VERSION:
+            amendment_receipt = _read_json(
+                evaluator_amendment_control_path(raw_root=raw_root)
+            )
+            expected_capability = _capability_import_with_preflight(
+                build_capability_import(
+                    contract,
+                    spec,
+                    amendment_receipt,
+                ),
+                preflight_go=semantic_go,
+                preflight_checks=checks,
+            )
+        else:
+            expected_capability = {
+                **source_capability,
+                "preflight_go": semantic_go,
+                "preflight_checks": checks,
+            }
         exactness_path = run_dir / "preflight_checkpoint_exactness.json"
         if (
             capability != expected_capability
@@ -3523,6 +3795,10 @@ def _v2_stage_control_paths(
     )
     if amendment_path is not None and amendment_path.exists():
         paths.add(amendment_path)
+    if contract.evaluator_amendment is not None:
+        evaluator_path = evaluator_amendment_control_path(raw_root=raw_root)
+        if evaluator_path.exists():
+            paths.add(evaluator_path)
     if _is_capability_stage(contract, stage_id):
         for spec in contract.expand(stage=stage_id):
             run_dir = stage_root / "runs" / spec.run_id
@@ -5517,13 +5793,34 @@ def _execute_stage_locked(
             contract=contract,
             run_ledger=run_ledger,
         )
+    evaluator_receipt: Mapping[str, Any] | None = None
+    evaluator_receipt_path: Path | None = None
+    if contract.evaluator_amendment is not None:
+        evaluator_receipt, evaluator_receipt_path = (
+            persist_evaluator_correction_receipt(
+                repo_root=repository,
+                raw_root=root,
+                contract=contract,
+            )
+        )
     budget_ledger = PilotBudgetLedger(
         root / "budget_ledger.json",
         contract_hash=contract.canonical_hash,
         caps=_budget_caps(contract),
         tamper_evident=contract.schema_version.endswith("-v2"),
-        parent_debit=parent_budget_debit_for_contract(contract),
+        parent_debit=_parent_budget_debit(contract),
     )
+    if evaluator_receipt is not None and stage_id == "capability-gate":
+        assert evaluator_receipt_path is not None
+        return _execute_evaluator_capability_import_stage(
+            contract,
+            specs,
+            raw_root=root,
+            paid=paid,
+            run_ledger=run_ledger,
+            receipt=evaluator_receipt,
+            receipt_path=evaluator_receipt_path,
+        )
     try:
         verified_prerequisite_go = _assert_prerequisites(
             contract,
@@ -6401,7 +6698,7 @@ def run_development_fake_matrix(
         contract_hash=contract.canonical_hash,
         caps=_budget_caps(contract),
         tamper_evident=contract.schema_version.endswith("-v2"),
-        parent_debit=parent_budget_debit_for_contract(contract),
+        parent_debit=_parent_budget_debit(contract),
     )
 
     d_specs = tuple(spec for spec in selected if spec.stage_id == "experiment-d")
