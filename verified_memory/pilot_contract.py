@@ -22,10 +22,21 @@ from typing import Any, Mapping, Optional, Sequence
 
 PILOT_CONTRACT_SCHEMA_VERSION_V1 = "finevo-pilot-contract-v1"
 PILOT_CONTRACT_SCHEMA_VERSION_V2 = "finevo-pilot-contract-v2"
+PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_1 = (
+    "finevo-pilot-contract-v2.1-amendment-overlay-v1"
+)
 # Backward-compatible public name.  V1 artifacts remain immutable/readable;
 # callers that need the science contract should use the explicit V2 constant.
 PILOT_CONTRACT_SCHEMA_VERSION = PILOT_CONTRACT_SCHEMA_VERSION_V1
 PILOT_CONTRACT_CANONICALIZATION = "json-sort-keys-utf8-v1"
+
+PILOT_CONTRACT_ID_V2 = "finevo-pilot-v2"
+PILOT_CONTRACT_ID_V2_1 = "finevo-pilot-v2.1"
+PILOT_CONTRACT_TAG_V2 = "pilot-v2-science"
+PILOT_CONTRACT_TAG_V2_1 = "pilot-v2.1-science"
+PILOT_CONTRACT_V2_CANONICAL_SHA256 = (
+    "980deddf2f82a762db7d73baa6ee0428c5e653298f4f275c5b3a5b23a95865c5"
+)
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -725,9 +736,12 @@ class ReleaseRequirements:
             raise PilotContractError("V2 release remote must be origin")
         if self.branch != "main":
             raise PilotContractError("V2 release branch must be main")
-        if self.tag != "pilot-v2-science":
+        if self.tag not in {
+            PILOT_CONTRACT_TAG_V2,
+            PILOT_CONTRACT_TAG_V2_1,
+        }:
             raise PilotContractError(
-                "V2 release tag must be the annotated pilot-v2-science tag"
+                "V2 release tag must be a registered annotated science tag"
             )
         if self.workflow_file != ".github/workflows/verified-memory-ci.yml":
             raise PilotContractError("V2 release workflow file drifted")
@@ -1495,6 +1509,347 @@ def canonical_contract_sha256(value: Mapping[str, Any]) -> str:
     return canonical_sha256(_contract_hash_payload(value))
 
 
+_V2_1_SCIENCE_DESIGN_FIELDS = (
+    "seeds",
+    "provider_profiles",
+    "arms",
+    "narratives",
+    "shocks",
+    "utility",
+    "stop_go",
+    "stages",
+    "parameter_dispatch_policy",
+    "task_output_contracts",
+    "model_roles",
+    "non_claims",
+)
+PILOT_CONTRACT_V2_SCIENCE_DESIGN_SHA256 = (
+    "f3ea82bf587079dc5b999df71cd8bb748db7d56aa20bf759b370fd03bec82168"
+)
+
+
+def science_design_sha256(value: Mapping[str, Any]) -> str:
+    """Hash the frozen experiment design, excluding operational budget caps."""
+
+    payload = {
+        field: _json_copy(value[field])
+        for field in _V2_1_SCIENCE_DESIGN_FIELDS
+    }
+    denominator = _json_copy(value["denominator_policy"])
+    denominator.pop("policy_id")
+    payload["denominator_policy"] = denominator
+    return canonical_sha256(payload)
+
+
+_V2_1_EXPECTED_CI_FIELDS = {
+    "test_count",
+    "test_collection_sha256",
+    "compiled_source_count",
+    "compiled_source_inventory_sha256",
+    "sealed_manifest_inventory_sha256",
+}
+
+
+def _validate_v2_1_expected_ci_state(
+    value: Any,
+    *,
+    status: str,
+    name: str,
+) -> Mapping[str, Any]:
+    """Require an all-null draft or an all-concrete frozen CI identity."""
+
+    expected_ci = _mapping(value, name)
+    _strict_keys(
+        expected_ci,
+        required=_V2_1_EXPECTED_CI_FIELDS,
+        name=name,
+    )
+    null_fields = {
+        field for field in _V2_1_EXPECTED_CI_FIELDS if expected_ci[field] is None
+    }
+    if status == "draft":
+        if null_fields != _V2_1_EXPECTED_CI_FIELDS:
+            raise PilotContractError(
+                "V2.1 draft expected_ci must be exactly all-null"
+            )
+    elif status == "frozen":
+        if null_fields:
+            raise PilotContractError(
+                "V2.1 frozen expected_ci must be exactly all-concrete"
+            )
+        _integer(expected_ci["test_count"], "test_count", minimum=1)
+        _integer(
+            expected_ci["compiled_source_count"],
+            "compiled_source_count",
+            minimum=1,
+        )
+        for field in (
+            "test_collection_sha256",
+            "compiled_source_inventory_sha256",
+            "sealed_manifest_inventory_sha256",
+        ):
+            _sha256(expected_ci[field], field)
+    else:
+        raise PilotContractError("V2.1 status must be draft or frozen")
+    return expected_ci
+
+
+def _validate_v2_1_operational_amendment(
+    value: Any,
+) -> Mapping[str, Any]:
+    """Validate the one authorized operational retry and its parent receipts."""
+
+    amendment = _mapping(value, "operational_amendment")
+    _strict_keys(
+        amendment,
+        required={
+            "schema_version",
+            "amendment_id",
+            "parent",
+            "failure",
+            "inherited_results",
+            "retry_policy",
+            "budget_carry_forward",
+        },
+        name="operational_amendment",
+    )
+    if (
+        amendment["schema_version"]
+        != "finevo-pilot-operational-amendment-v1"
+        or amendment["amendment_id"]
+        != "finevo-pilot-v2.1-operational-retry-1"
+    ):
+        raise PilotContractError("V2.1 operational amendment identity drifted")
+
+    parent = _mapping(amendment["parent"], "operational_amendment.parent")
+    _strict_keys(
+        parent,
+        required={
+            "contract_id",
+            "contract_sha256",
+            "release_tag",
+            "release_commit",
+            "launch_input_sha256",
+            "release_attestation_sha256",
+            "run_ledger_file_sha256",
+            "run_ledger_internal_sha256",
+            "budget_ledger_file_sha256",
+            "budget_ledger_internal_sha256",
+        },
+        name="operational_amendment.parent",
+    )
+    expected_parent = {
+        "contract_id": PILOT_CONTRACT_ID_V2,
+        "contract_sha256": PILOT_CONTRACT_V2_CANONICAL_SHA256,
+        "release_tag": PILOT_CONTRACT_TAG_V2,
+        "release_commit": "3664778727813e5e8328b4b17b91a28c8122f87c",
+        "launch_input_sha256": (
+            "6516ce8660d588aaf13381353f67d9cacd991d5236a7d3ae8c41ef1c0a88d357"
+        ),
+        "release_attestation_sha256": (
+            "54a11dc86df139a3656934ff81920ae1f10c9425afa44815e30c9befda583895"
+        ),
+        "run_ledger_file_sha256": (
+            "34b1a763f4f1c5824249e4acaaa83334f2b254eb899b4def14a4c3365eefd60f"
+        ),
+        "run_ledger_internal_sha256": (
+            "9d54ac1f22a56bafbe59164c7074d87bf914d290bc1282c631d50a4529f41fff"
+        ),
+        "budget_ledger_file_sha256": (
+            "f1318f47977ad956e206dfb53ff8a14350338c691b17f44280121504a99d2882"
+        ),
+        "budget_ledger_internal_sha256": (
+            "d9ec2c1bdfcc407aeb555ba71ee9d5e274d924e9a98791c5839ec749f3b1a0f2"
+        ),
+    }
+    if _json_copy(parent) != expected_parent:
+        raise PilotContractError("V2.1 parent release binding drifted")
+
+    failure = _mapping(amendment["failure"], "operational_amendment.failure")
+    _strict_keys(
+        failure,
+        required={
+            "affected_run_id",
+            "error_type",
+            "failure_count",
+            "capability_sha256",
+            "gate_sha256",
+            "terminal_sha256",
+            "served_model_observation",
+            "capability_status",
+            "parent_terminal_status",
+            "root_cause_codes",
+            "secret_rotation_required",
+        },
+        name="operational_amendment.failure",
+    )
+    expected_failure = {
+        "affected_run_id": (
+            "finevo-pilot-v2--capability-gate--gpt52_main--capability-probe--"
+            "none--provider-preflight-default--s2010922376"
+        ),
+        "error_type": "APIConnectionError",
+        "failure_count": 30,
+        "capability_sha256": (
+            "da9076389db58fd682d213ccb932d66bb767f73423e5476abea788eb1f8fd294"
+        ),
+        "gate_sha256": (
+            "176547171d88dad5e757dc1795cef749bea57ea7e7291191a240c8cd92c57997"
+        ),
+        "terminal_sha256": (
+            "10b5ff7c78b4697b9754c809bed0e7d14380729a640632585085ad7f886704c6"
+        ),
+        "served_model_observation": "null-pre-response",
+        "capability_status": "not_evaluable",
+        "parent_terminal_status": "capability-no-go",
+        "root_cause_codes": [
+            "credential-header-trailing-whitespace",
+            "capability-reader-nullability-drift",
+        ],
+        "secret_rotation_required": True,
+    }
+    if _json_copy(failure) != expected_failure:
+        raise PilotContractError("V2.1 retry failure binding drifted")
+
+    inherited = amendment["inherited_results"]
+    if (
+        isinstance(inherited, (str, bytes))
+        or not isinstance(inherited, Sequence)
+        or len(inherited) != 1
+    ):
+        raise PilotContractError(
+            "V2.1 must inherit exactly one parent capability result"
+        )
+    inherited_result = _mapping(
+        inherited[0],
+        "operational_amendment.inherited_results[0]",
+    )
+    _strict_keys(
+        inherited_result,
+        required={
+            "model_id",
+            "run_id",
+            "status",
+            "capability_sha256",
+            "gate_sha256",
+            "terminal_sha256",
+            "scores",
+        },
+        name="operational_amendment.inherited_results[0]",
+    )
+    scores = _mapping(
+        inherited_result["scores"],
+        "operational_amendment.inherited_results[0].scores",
+    )
+    _strict_keys(
+        scores,
+        required={
+            "utility_ranking",
+            "rule_application",
+            "rule_proposal",
+        },
+        name="operational_amendment.inherited_results[0].scores",
+    )
+    for score_name in (
+        "utility_ranking",
+        "rule_application",
+        "rule_proposal",
+    ):
+        _strict_keys(
+            _mapping(
+                scores[score_name],
+                (
+                    "operational_amendment.inherited_results[0].scores."
+                    f"{score_name}"
+                ),
+            ),
+            required={"correct", "denominator"},
+            name=(
+                "operational_amendment.inherited_results[0].scores."
+                f"{score_name}"
+            ),
+        )
+    expected_inherited = {
+        "model_id": "llama33_local_controlled",
+        "run_id": (
+            "finevo-pilot-v2--capability-gate--llama33_local_controlled--"
+            "capability-probe--none--provider-preflight-default--s2010922376"
+        ),
+        "status": "capability-no-go",
+        "capability_sha256": (
+            "4c4c864733f32166c286e22b446dc3849df624a267ad083426ee4a89e79052ca"
+        ),
+        "gate_sha256": (
+            "01c61c25e7d25577975dbe3aae8a408f464d685210b071aa612f4bd46bb78eda"
+        ),
+        "terminal_sha256": (
+            "544b409e6ce8538958ec6278f5311429f14cf24591f8479bff287512d02e7380"
+        ),
+        "scores": {
+            "utility_ranking": {"correct": 12, "denominator": 12},
+            "rule_application": {"correct": 10, "denominator": 12},
+            "rule_proposal": {"correct": 0, "denominator": 6},
+        },
+    }
+    if _json_copy(inherited_result) != expected_inherited:
+        raise PilotContractError("V2.1 inherited capability result drifted")
+
+    retry = _mapping(
+        amendment["retry_policy"],
+        "operational_amendment.retry_policy",
+    )
+    _strict_keys(
+        retry,
+        required={
+            "eligible_model_ids",
+            "ineligible_parent_terminal_model_ids",
+            "preserve_parent_denominator",
+            "retry_is_operational_amendment",
+            "unchanged_science_fields",
+            "failed_seed_replacement",
+            "outcome_inspected_for_retry",
+        },
+        name="operational_amendment.retry_policy",
+    )
+    expected_retry = {
+        "eligible_model_ids": ["gpt52_main"],
+        "ineligible_parent_terminal_model_ids": [
+            "llama33_local_controlled"
+        ],
+        "preserve_parent_denominator": True,
+        "retry_is_operational_amendment": True,
+        "unchanged_science_fields": "science-critical-v2-fieldset",
+        "failed_seed_replacement": "forbidden",
+        "outcome_inspected_for_retry": False,
+    }
+    if _json_copy(retry) != expected_retry:
+        raise PilotContractError("V2.1 operational retry policy drifted")
+
+    carry = _mapping(
+        amendment["budget_carry_forward"],
+        "operational_amendment.budget_carry_forward",
+    )
+    _strict_keys(
+        carry,
+        required={
+            "source_stage_bucket",
+            "cost_usd",
+            "hosted_completions",
+            "storage_bytes",
+        },
+        name="operational_amendment.budget_carry_forward",
+    )
+    expected_carry = {
+        "source_stage_bucket": "capability",
+        "cost_usd": 1.0701145,
+        "hosted_completions": 30,
+        "storage_bytes": 479367,
+    }
+    if _json_copy(carry) != expected_carry:
+        raise PilotContractError("V2.1 parent budget carry-forward drifted")
+    return _freeze_json(amendment)
+
+
 @dataclass(frozen=True, slots=True)
 class PilotContract:
     schema_version: str
@@ -1515,6 +1870,7 @@ class PilotContract:
     model_roles: Mapping[str, ModelRolePolicy]
     denominator_policy: Optional[DenominatorPolicy]
     release_requirements: Optional[ReleaseRequirements]
+    operational_amendment: Optional[Mapping[str, Any]]
     non_claims: tuple[str, ...]
     canonicalization: str
     declared_sha256: str
@@ -1550,16 +1906,36 @@ class PilotContract:
         if schema_version == PILOT_CONTRACT_SCHEMA_VERSION_V1:
             fields = base_fields
             is_v2 = False
+            is_v2_1 = False
         elif schema_version == PILOT_CONTRACT_SCHEMA_VERSION_V2:
             fields = base_fields | v2_fields
             is_v2 = True
+            contract_id = value.get("contract_id")
+            is_v2_1 = contract_id == PILOT_CONTRACT_ID_V2_1
+            if is_v2_1:
+                fields = fields | {"operational_amendment"}
         else:
             raise PilotContractError("unsupported pilot contract schema")
         _strict_keys(value, required=fields, name="pilot contract")
-        if value["status"] != "frozen":
-            raise PilotContractError("pilot contract status must be frozen")
-        if is_v2 and value["contract_id"] != "finevo-pilot-v2":
-            raise PilotContractError("V2 contract_id must be finevo-pilot-v2")
+        if value["status"] != "frozen" and not (
+            is_v2_1 and value["status"] == "draft"
+        ):
+            raise PilotContractError(
+                "pilot contract status must be frozen, except a V2.1 draft"
+            )
+        if is_v2 and value["contract_id"] not in {
+            PILOT_CONTRACT_ID_V2,
+            PILOT_CONTRACT_ID_V2_1,
+        }:
+            raise PilotContractError("unsupported V2 contract_id")
+        if (
+            is_v2_1
+            and science_design_sha256(value)
+            != PILOT_CONTRACT_V2_SCIENCE_DESIGN_SHA256
+        ):
+            raise PilotContractError(
+                "V2.1 science-design fieldset differs from frozen V2"
+            )
 
         implementation = _mapping(value["implementation"], "implementation")
         implementation_fields = {
@@ -1584,9 +1960,14 @@ class PilotContract:
         _git_commit(implementation["p0_base_commit"], "p0_base_commit")
         _boolean(implementation["require_clean_worktree"], "require_clean_worktree")
         if is_v2:
-            if implementation["required_git_tag"] != "pilot-v2-science":
+            expected_tag = (
+                PILOT_CONTRACT_TAG_V2_1
+                if is_v2_1
+                else PILOT_CONTRACT_TAG_V2
+            )
+            if implementation["required_git_tag"] != expected_tag:
                 raise PilotContractError(
-                    "V2 implementation must require pilot-v2-science"
+                    f"{value['contract_id']} must require {expected_tag}"
                 )
             if implementation["required_git_branch"] != "main":
                 raise PilotContractError("V2 implementation branch must be main")
@@ -1603,6 +1984,7 @@ class PilotContract:
         model_roles: dict[str, ModelRolePolicy] = {}
         denominator_policy: Optional[DenominatorPolicy] = None
         release_requirements: Optional[ReleaseRequirements] = None
+        operational_amendment: Optional[Mapping[str, Any]] = None
         if is_v2:
             parameter_dispatch_policy = ParameterDispatchPolicy.from_dict(
                 _mapping(
@@ -1642,6 +2024,24 @@ class PilotContract:
             release_requirements = ReleaseRequirements.from_dict(
                 _mapping(value["release_requirements"], "release_requirements")
             )
+            expected_tag = (
+                PILOT_CONTRACT_TAG_V2_1
+                if is_v2_1
+                else PILOT_CONTRACT_TAG_V2
+            )
+            if release_requirements.tag != expected_tag:
+                raise PilotContractError(
+                    "release tag differs from implementation contract version"
+                )
+            if is_v2_1:
+                operational_amendment = _validate_v2_1_operational_amendment(
+                    value["operational_amendment"]
+                )
+                _validate_v2_1_expected_ci_state(
+                    release_requirements.expected_ci,
+                    status=str(value["status"]),
+                    name="release expected_ci",
+                )
 
         profiles_value = _mapping(value["provider_profiles"], "provider_profiles")
         profiles: dict[str, ProviderRequestProfile] = {}
@@ -1951,13 +2351,24 @@ class PilotContract:
             if any(budgets.get(key) != expected for key, expected in expected_budget.items()):
                 raise PilotContractError("V2 global budget limits drifted")
             caps = _mapping(budgets.get("stage_usd_caps"), "budgets.stage_usd_caps")
-            if dict(caps) != {
-                "capability": 2.0,
-                "calibration": 3.0,
-                "core": 13.0,
-                "cross_model": 6.0,
-                "manual_reserve": 1.0,
-            }:
+            expected_caps = (
+                {
+                    "capability": 3.0701145,
+                    "calibration": 3.0,
+                    "core": 13.0,
+                    "cross_model": 4.9298855,
+                    "manual_reserve": 1.0,
+                }
+                if is_v2_1
+                else {
+                    "capability": 2.0,
+                    "calibration": 3.0,
+                    "core": 13.0,
+                    "cross_model": 6.0,
+                    "manual_reserve": 1.0,
+                }
+            )
+            if dict(caps) != expected_caps:
                 raise PilotContractError("V2 stage budget caps drifted")
             projection = _mapping(
                 budgets.get("pre_dispatch_projection"),
@@ -2630,6 +3041,7 @@ class PilotContract:
             model_roles=MappingProxyType(dict(model_roles)),
             denominator_policy=denominator_policy,
             release_requirements=release_requirements,
+            operational_amendment=operational_amendment,
             non_claims=non_claims,
             canonicalization=integrity["canonicalization"],
             declared_sha256=declared,
@@ -2758,6 +3170,19 @@ class PilotContract:
         contract hash.
         """
 
+        if self.status != "frozen":
+            raise PilotContractError(
+                "paid provenance cannot be validated from a draft contract"
+            )
+        if self.contract_id == PILOT_CONTRACT_ID_V2_1:
+            if self.release_requirements is None:  # pragma: no cover - parser
+                raise PilotContractError("V2.1 lacks release requirements")
+            _validate_v2_1_expected_ci_state(
+                self.release_requirements.expected_ci,
+                status=self.status,
+                name="release expected_ci",
+            )
+
         resolved = _git_commit(git_commit, "git_commit")
         actual_tag = _text(git_tag, "git_tag")
         required_tag = str(self.implementation["required_git_tag"])
@@ -2824,7 +3249,290 @@ class PilotContract:
                     "release_requirements": self.release_requirements.to_dict(),
                 }
             )
+            if self.contract_id == PILOT_CONTRACT_ID_V2_1:
+                if self.operational_amendment is None:
+                    raise PilotContractError(
+                        "V2.1 contract lacks its operational amendment"
+                    )
+                result["operational_amendment"] = _thaw_json(
+                    self.operational_amendment
+                )
+            elif self.operational_amendment is not None:
+                raise PilotContractError(
+                    "original V2 contract cannot carry an operational amendment"
+                )
         return result
+
+
+def _assert_v2_1_base_equivalence(
+    base: Mapping[str, Any],
+    expanded: Mapping[str, Any],
+    *,
+    overlay_status: str,
+) -> None:
+    """Fail closed if the amendment changes any scientific design field."""
+
+    for field in _V2_1_SCIENCE_DESIGN_FIELDS:
+        if _json_copy(expanded[field]) != _json_copy(base[field]):
+            raise PilotContractError(
+                f"V2.1 science-critical field {field!r} differs from V2"
+            )
+
+    base_denominator = _json_copy(base["denominator_policy"])
+    expanded_denominator = _json_copy(expanded["denominator_policy"])
+    base_denominator.pop("policy_id")
+    expanded_denominator.pop("policy_id")
+    if expanded_denominator != base_denominator:
+        raise PilotContractError(
+            "V2.1 denominator differs beyond its policy identifier"
+        )
+
+    base_implementation = _json_copy(base["implementation"])
+    expanded_implementation = _json_copy(expanded["implementation"])
+    base_implementation.pop("required_git_tag")
+    expanded_implementation.pop("required_git_tag")
+    if expanded_implementation != base_implementation:
+        raise PilotContractError(
+            "V2.1 implementation differs beyond its release tag"
+        )
+
+    base_release = _json_copy(base["release_requirements"])
+    expanded_release = _json_copy(expanded["release_requirements"])
+    for release in (base_release, expanded_release):
+        release.pop("tag")
+        release.pop("expected_ci")
+    if expanded_release != base_release:
+        raise PilotContractError(
+            "V2.1 release requirements differ beyond tag/CI placeholders"
+        )
+
+    expected_budgets = _json_copy(base["budgets"])
+    expected_budgets["total_usd"] = 25.0
+    expected_budgets["automatic_reserve_usd"] = 1.0
+    expected_budgets["stage_usd_caps"] = {
+        "capability": 3.0701145,
+        "calibration": 3.0,
+        "core": 13.0,
+        "cross_model": 4.9298855,
+        "manual_reserve": 1.0,
+    }
+    if _json_copy(expanded["budgets"]) != expected_budgets:
+        raise PilotContractError("V2.1 budget reallocation drifted")
+
+    expected_ci = expanded["release_requirements"]["expected_ci"]
+    _validate_v2_1_expected_ci_state(
+        expected_ci,
+        status=overlay_status,
+        name="V2.1 expanded release expected_ci",
+    )
+    if (
+        expanded["schema_version"] != base["schema_version"]
+        or expanded["status"] != overlay_status
+        or expanded["contract_id"] != PILOT_CONTRACT_ID_V2_1
+        or expanded["implementation"]["required_git_tag"]
+        != PILOT_CONTRACT_TAG_V2_1
+        or expanded["release_requirements"]["tag"]
+        != PILOT_CONTRACT_TAG_V2_1
+        or expanded["denominator_policy"]["policy_id"]
+        != "finevo-pilot-v2.1-itt"
+        or set(expected_ci) != _V2_1_EXPECTED_CI_FIELDS
+    ):
+        raise PilotContractError("V2.1 allowed identifier/CI amendment drifted")
+
+
+def _expand_v2_1_overlay(
+    value: Mapping[str, Any],
+    *,
+    source: Path,
+) -> Mapping[str, Any]:
+    """Expand the compact V2.1 operational amendment over the frozen V2."""
+
+    _strict_keys(
+        value,
+        required={
+            "schema_version",
+            "contract_id",
+            "status",
+            "base_contract",
+            "changes",
+            "operational_amendment",
+            "integrity",
+        },
+        name="V2.1 amendment overlay",
+    )
+    if (
+        value["schema_version"]
+        != PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_1
+        or value["contract_id"] != PILOT_CONTRACT_ID_V2_1
+        or value["status"] not in {"draft", "frozen"}
+    ):
+        raise PilotContractError("V2.1 amendment overlay identity drifted")
+
+    integrity = _mapping(value["integrity"], "V2.1 overlay integrity")
+    _strict_keys(
+        integrity,
+        required={"canonicalization", "declared_sha256"},
+        name="V2.1 overlay integrity",
+    )
+    if integrity["canonicalization"] != PILOT_CONTRACT_CANONICALIZATION:
+        raise PilotContractError("unsupported V2.1 overlay canonicalization")
+    declared = _sha256(
+        integrity["declared_sha256"],
+        "V2.1 overlay declared_sha256",
+    )
+    actual = canonical_contract_sha256(value)
+    if declared != actual:
+        raise PilotContractError(
+            f"V2.1 overlay hash mismatch: declared {declared}, actual {actual}"
+        )
+
+    base_binding = _mapping(value["base_contract"], "V2.1 base_contract")
+    _strict_keys(
+        base_binding,
+        required={
+            "path",
+            "schema_version",
+            "contract_id",
+            "canonical_sha256",
+        },
+        name="V2.1 base_contract",
+    )
+    if _json_copy(base_binding) != {
+        "path": "pilot_v2.yaml",
+        "schema_version": PILOT_CONTRACT_SCHEMA_VERSION_V2,
+        "contract_id": PILOT_CONTRACT_ID_V2,
+        "canonical_sha256": PILOT_CONTRACT_V2_CANONICAL_SHA256,
+    }:
+        raise PilotContractError("V2.1 base contract binding drifted")
+    base_path = source.parent / str(base_binding["path"])
+    if (
+        base_path.name != "pilot_v2.yaml"
+        or base_path.resolve().parent != source.parent.resolve()
+    ):
+        raise PilotContractError(
+            "V2.1 base contract must be the sibling pilot_v2.yaml"
+        )
+    base_contract = load_pilot_contract(base_path)
+    if (
+        base_contract.schema_version != PILOT_CONTRACT_SCHEMA_VERSION_V2
+        or base_contract.contract_id != PILOT_CONTRACT_ID_V2
+        or base_contract.canonical_hash != PILOT_CONTRACT_V2_CANONICAL_SHA256
+    ):
+        raise PilotContractError("V2.1 resolved base contract identity drifted")
+
+    changes = _mapping(value["changes"], "V2.1 changes")
+    _strict_keys(
+        changes,
+        required={
+            "implementation",
+            "release_requirements",
+            "budgets",
+            "denominator_policy",
+        },
+        name="V2.1 changes",
+    )
+    implementation_change = _mapping(
+        changes["implementation"],
+        "V2.1 changes.implementation",
+    )
+    _strict_keys(
+        implementation_change,
+        required={"required_git_tag"},
+        name="V2.1 changes.implementation",
+    )
+    if implementation_change["required_git_tag"] != PILOT_CONTRACT_TAG_V2_1:
+        raise PilotContractError("V2.1 implementation tag drifted")
+
+    release_change = _mapping(
+        changes["release_requirements"],
+        "V2.1 changes.release_requirements",
+    )
+    _strict_keys(
+        release_change,
+        required={"tag", "expected_ci"},
+        name="V2.1 changes.release_requirements",
+    )
+    expected_ci = _mapping(
+        release_change["expected_ci"],
+        "V2.1 changes.release_requirements.expected_ci",
+    )
+    _strict_keys(
+        expected_ci,
+        required=_V2_1_EXPECTED_CI_FIELDS,
+        name="V2.1 changes.release_requirements.expected_ci",
+    )
+    if release_change["tag"] != PILOT_CONTRACT_TAG_V2_1:
+        raise PilotContractError(
+            "V2.1 release tag drifted"
+        )
+    _validate_v2_1_expected_ci_state(
+        expected_ci,
+        status=str(value["status"]),
+        name="V2.1 changes.release_requirements.expected_ci",
+    )
+
+    budget_change = _mapping(changes["budgets"], "V2.1 changes.budgets")
+    _strict_keys(
+        budget_change,
+        required={
+            "total_usd",
+            "automatic_reserve_usd",
+            "stage_usd_caps",
+        },
+        name="V2.1 changes.budgets",
+    )
+    expected_budget_change = {
+        "total_usd": 25.0,
+        "automatic_reserve_usd": 1.0,
+        "stage_usd_caps": {
+            "capability": 3.0701145,
+            "calibration": 3.0,
+            "core": 13.0,
+            "cross_model": 4.9298855,
+            "manual_reserve": 1.0,
+        },
+    }
+    if _json_copy(budget_change) != expected_budget_change:
+        raise PilotContractError("V2.1 overlay budget caps drifted")
+
+    denominator_change = _mapping(
+        changes["denominator_policy"],
+        "V2.1 changes.denominator_policy",
+    )
+    _strict_keys(
+        denominator_change,
+        required={"policy_id"},
+        name="V2.1 changes.denominator_policy",
+    )
+    if denominator_change["policy_id"] != "finevo-pilot-v2.1-itt":
+        raise PilotContractError("V2.1 denominator policy identifier drifted")
+
+    amendment = _validate_v2_1_operational_amendment(
+        value["operational_amendment"]
+    )
+    expanded = base_contract.to_dict()
+    expanded["status"] = value["status"]
+    expanded["contract_id"] = PILOT_CONTRACT_ID_V2_1
+    expanded["implementation"]["required_git_tag"] = PILOT_CONTRACT_TAG_V2_1
+    expanded["release_requirements"]["tag"] = PILOT_CONTRACT_TAG_V2_1
+    expanded["release_requirements"]["expected_ci"] = _json_copy(expected_ci)
+    expanded["budgets"]["total_usd"] = 25.0
+    expanded["budgets"]["automatic_reserve_usd"] = 1.0
+    expanded["budgets"]["stage_usd_caps"] = _json_copy(
+        budget_change["stage_usd_caps"]
+    )
+    expanded["denominator_policy"]["policy_id"] = "finevo-pilot-v2.1-itt"
+    expanded["operational_amendment"] = _thaw_json(amendment)
+    expanded["integrity"]["declared_sha256"] = "0" * 64
+    expanded["integrity"]["declared_sha256"] = canonical_contract_sha256(
+        expanded
+    )
+    _assert_v2_1_base_equivalence(
+        base_contract.to_dict(),
+        expanded,
+        overlay_status=str(value["status"]),
+    )
+    return expanded
 
 
 def load_pilot_contract(path: str | Path) -> PilotContract:
@@ -2859,7 +3567,13 @@ def load_pilot_contract(path: str | Path) -> PilotContract:
         raise PilotContractError(
             "pilot contract must use JSON-compatible YAML"
         ) from exc
-    return PilotContract.from_dict(_mapping(value, "pilot contract"))
+    document = _mapping(value, "pilot contract")
+    if (
+        document.get("schema_version")
+        == PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_1
+    ):
+        document = _expand_v2_1_overlay(document, source=source)
+    return PilotContract.from_dict(document)
 
 
 __all__ = [
@@ -2867,6 +3581,13 @@ __all__ = [
     "PILOT_CONTRACT_SCHEMA_VERSION",
     "PILOT_CONTRACT_SCHEMA_VERSION_V1",
     "PILOT_CONTRACT_SCHEMA_VERSION_V2",
+    "PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_1",
+    "PILOT_CONTRACT_ID_V2",
+    "PILOT_CONTRACT_ID_V2_1",
+    "PILOT_CONTRACT_TAG_V2",
+    "PILOT_CONTRACT_TAG_V2_1",
+    "PILOT_CONTRACT_V2_CANONICAL_SHA256",
+    "PILOT_CONTRACT_V2_SCIENCE_DESIGN_SHA256",
     "DecodingFieldDispatch",
     "DenominatorPolicy",
     "ModelRolePolicy",
@@ -2884,4 +3605,5 @@ __all__ = [
     "canonical_contract_sha256",
     "canonical_sha256",
     "load_pilot_contract",
+    "science_design_sha256",
 ]

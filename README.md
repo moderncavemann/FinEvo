@@ -45,23 +45,29 @@ The only scientific-pilot entry point is:
 
 ```bash
 python run_pilot.py \
-  --contract experiments/pilot_v2.yaml \
+  --contract experiments/pilot_v2_1.yaml \
   --stage <stage> \
   --resume
 ```
 
-The V2 frozen order is `capability-gate`, `closed-loop-preflight`,
+The V2.1 frozen order is `capability-gate`, `closed-loop-preflight`,
 `secondary-capability-gate`, `secondary-closed-loop-preflight`,
 `q-ref-resolution`, `stage0-calibration`, `experiment-a`, `experiment-c`,
 `experiment-d`, `experiment-b`, `controlled-second`, and
 `cross-model-diagnostics`. The runner registers the complete 174-cell ITT
 denominator before dispatch and stops rather than dropping seeds, changing
 models, reducing reasoning, or silently substituting routes when a capability,
-provenance, integrity, or budget gate fails. The V1 contract remains
-read-only compatibility evidence and is not the launch contract.
+provenance, integrity, or budget gate fails. V1 remains read-only compatibility
+evidence. The original V2 launch is also immutable: its GPT-5.2 capability
+probe was not evaluable after a malformed credential header, while the valid
+local-Llama capability result was a no-go (12/12 utility ranking, 10/12 rule
+application, 0/6 legal proposals). V2.1 preserves both outcomes, imports the
+parent ledger debit, forbids redispatch of the local model, and permits only
+the previously non-evaluable GPT-5.2 capability cell to retry. No V2.1 paid
+retry or current-method scientific result is claimed by this source state.
 
-Real V2 stages require a clean checkout at the peeled annotated
-`pilot-v2-science` tag,
+Real V2.1 stages require a clean checkout at the peeled annotated
+`pilot-v2.1-science` tag,
 the same commit on `origin/main`, the remote annotated tag, and successful
 Python 3.12.7 CI jobs on both `ubuntu-24.04` and `macos-14`. Provider runs use
 the sealed model-by-call-kind preflight p95 plus 25% reservation; unknown hosted
@@ -74,15 +80,17 @@ Exercise all A–D paths without network access or scientific claims:
 
 ```bash
 python run_pilot.py \
-  --contract experiments/pilot_v2.yaml \
+  --contract experiments/pilot_v2_1.yaml \
   --stage development-a-d \
   --development-fake \
   --resume
 ```
 
-Raw run state is ignored under `experiment_results/pilot-v2/raw/`. Only
+The failed parent attempt remains under
+`experiment_results/pilot-v2/raw/` and is never rewritten. New raw state is
+ignored under `experiment_results/pilot-v2.1/raw/`. Only
 validated contracts, aggregates, checksums, failure ledgers, and reviewer
-reports may enter `evidence/current_v2/pilot-v2/`. Historical artifacts remain
+reports may enter `evidence/current_v2/pilot-v2.1/`. Historical artifacts remain
 separate and cannot satisfy this pilot contract. This is a 4-agent × 12-month
 mechanism micro-pilot, not the 10×24×5 confirmatory design and not a 100×240
 simulation.
@@ -92,7 +100,7 @@ zero-provider reviewer package through the same entry point:
 
 ```bash
 python run_pilot.py \
-  --contract experiments/pilot_v2.yaml \
+  --contract experiments/pilot_v2_1.yaml \
   --stage publish-evidence \
   --resume
 ```

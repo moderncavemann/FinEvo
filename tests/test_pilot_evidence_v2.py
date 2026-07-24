@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -12,6 +13,7 @@ from verified_memory.pilot_evidence import (
     V2_NON_SCIENTIFIC_STAGES,
     V2_SCIENTIFIC_STAGES,
     _cross_model_summary,
+    _evidence_namespace,
     _narrative_gate,
     _stage_sets,
     _validate_branch_provider_journal_binding,
@@ -22,6 +24,53 @@ from verified_memory.pilot_evidence import (
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = ROOT / "experiments" / "pilot_v2.yaml"
+
+
+@pytest.mark.parametrize(
+    ("contract_id", "expected"),
+    [
+        ("finevo-pilot-v1", "current_v2/pilot-v1"),
+        ("finevo-pilot-v12", "current_v2/pilot-v12"),
+        ("finevo-pilot-v2.1", "current_v2/pilot-v2.1"),
+        ("finevo-pilot-v12.34", "current_v2/pilot-v12.34"),
+    ],
+)
+def test_evidence_namespace_accepts_integer_and_amendment_versions(
+    contract_id: str,
+    expected: str,
+) -> None:
+    contract = SimpleNamespace(contract_id=contract_id)
+
+    assert _evidence_namespace(contract) == expected
+
+
+@pytest.mark.parametrize(
+    "contract_id",
+    [
+        "finevo-pilot-v0",
+        "finevo-pilot-v01",
+        "finevo-pilot-v2.0",
+        "finevo-pilot-v2.01",
+        "finevo-pilot-v2.1.1",
+        "finevo-pilot-v2.",
+        "finevo-pilot-v2..1",
+        "finevo-pilot-v2/1",
+        r"finevo-pilot-v2\1",
+        "finevo-pilot-v2.1/../../escape",
+        "finevo-pilot-v2.1\nescape",
+        "prefix-finevo-pilot-v2.1",
+    ],
+)
+def test_evidence_namespace_rejects_paths_and_illegal_versions(
+    contract_id: str,
+) -> None:
+    contract = SimpleNamespace(contract_id=contract_id)
+
+    with pytest.raises(
+        PilotEvidenceError,
+        match="cannot be mapped to a safe evidence namespace",
+    ):
+        _evidence_namespace(contract)
 
 
 def _write_empty_ledger(path: Path, contract_hash: str) -> None:

@@ -19,6 +19,7 @@ from typing import Any, Mapping, Sequence
 
 PILOT_BUDGET_SCHEMA_VERSION = "finevo-pilot-budget-ledger-v1"
 PILOT_BUDGET_SCHEMA_VERSION_V2 = "finevo-pilot-budget-ledger-v2"
+PARENT_BUDGET_DEBIT_SCHEMA_VERSION = "finevo-parent-budget-debit-v1"
 DEFAULT_STAGE_USD_CAPS = {
     "capability_preflight": 2.0,
     "calibration": 3.0,
@@ -65,6 +66,16 @@ def _nonnegative_int(value: Any, name: str) -> int:
     if value < 0:
         raise ValueError(f"{name} must be nonnegative")
     return int(value)
+
+
+def _sha256_hex(value: Any, name: str) -> str:
+    if not isinstance(value, str) or len(value) != 64:
+        raise ValueError(f"{name} must be a SHA-256 hex digest")
+    try:
+        int(value, 16)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be hexadecimal") from exc
+    return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -163,6 +174,125 @@ class RunProjection:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class ParentBudgetDebit:
+    """Hash-bound spend imported from the immutable parent pilot ledger."""
+
+    parent_contract_sha256: str
+    parent_run_ledger_sha256: str
+    parent_budget_ledger_sha256: str
+    stage_bucket: str
+    cost_usd: float
+    hosted_completions: int
+    storage_bytes: int
+    record_sha256: str | None = None
+    schema_version: str = PARENT_BUDGET_DEBIT_SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        if self.schema_version != PARENT_BUDGET_DEBIT_SCHEMA_VERSION:
+            raise ValueError("unsupported parent budget debit schema")
+        object.__setattr__(
+            self,
+            "parent_contract_sha256",
+            _sha256_hex(
+                self.parent_contract_sha256, "parent_contract_sha256"
+            ),
+        )
+        object.__setattr__(
+            self,
+            "parent_run_ledger_sha256",
+            _sha256_hex(
+                self.parent_run_ledger_sha256, "parent_run_ledger_sha256"
+            ),
+        )
+        object.__setattr__(
+            self,
+            "parent_budget_ledger_sha256",
+            _sha256_hex(
+                self.parent_budget_ledger_sha256, "parent_budget_ledger_sha256"
+            ),
+        )
+        if not isinstance(self.stage_bucket, str) or not self.stage_bucket.strip():
+            raise ValueError("stage_bucket must be non-empty")
+        object.__setattr__(
+            self, "cost_usd", _finite_nonnegative(self.cost_usd, "cost_usd")
+        )
+        object.__setattr__(
+            self,
+            "hosted_completions",
+            _nonnegative_int(
+                self.hosted_completions, "hosted_completions"
+            ),
+        )
+        object.__setattr__(
+            self,
+            "storage_bytes",
+            _nonnegative_int(self.storage_bytes, "storage_bytes"),
+        )
+        expected = _canonical_sha256(self._unsigned_dict())
+        if self.record_sha256 is None:
+            object.__setattr__(self, "record_sha256", expected)
+        else:
+            digest = _sha256_hex(self.record_sha256, "record_sha256")
+            if digest != expected:
+                raise ValueError("parent budget debit record hash mismatch")
+            object.__setattr__(self, "record_sha256", digest)
+
+    def _unsigned_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "parent_contract_sha256": self.parent_contract_sha256,
+            "parent_run_ledger_sha256": self.parent_run_ledger_sha256,
+            "parent_budget_ledger_sha256": self.parent_budget_ledger_sha256,
+            "stage_bucket": self.stage_bucket,
+            "cost_usd": self.cost_usd,
+            "hosted_completions": self.hosted_completions,
+            "storage_bytes": self.storage_bytes,
+        }
+
+    def to_dict(self) -> dict[str, Any]:
+        result = self._unsigned_dict()
+        result["record_sha256"] = self.record_sha256
+        return result
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> ParentBudgetDebit:
+        if not isinstance(value, Mapping):
+            raise TypeError("parent_debit must be a mapping")
+        expected_keys = {
+            "schema_version",
+            "parent_contract_sha256",
+            "parent_run_ledger_sha256",
+            "parent_budget_ledger_sha256",
+            "stage_bucket",
+            "cost_usd",
+            "hosted_completions",
+            "storage_bytes",
+            "record_sha256",
+        }
+        actual_keys = set(value)
+        if actual_keys != expected_keys:
+            missing = sorted(expected_keys - actual_keys)
+            extra = sorted(actual_keys - expected_keys)
+            raise ValueError(
+                "parent budget debit fields differ from schema "
+                f"(missing={missing}, extra={extra})"
+            )
+        return cls(
+            schema_version=value["schema_version"],
+            parent_contract_sha256=value["parent_contract_sha256"],
+            parent_run_ledger_sha256=value["parent_run_ledger_sha256"],
+            parent_budget_ledger_sha256=value[
+                "parent_budget_ledger_sha256"
+            ],
+            stage_bucket=value["stage_bucket"],
+            cost_usd=value["cost_usd"],
+            hosted_completions=value["hosted_completions"],
+            storage_bytes=value["storage_bytes"],
+            record_sha256=value["record_sha256"],
+        )
+
+
 class PilotBudgetLedger:
     """Atomic, resumable budget ledger with one reservation per run."""
 
@@ -173,6 +303,7 @@ class PilotBudgetLedger:
         contract_hash: str,
         caps: PilotBudgetCaps | None = None,
         tamper_evident: bool = False,
+        parent_debit: ParentBudgetDebit | Mapping[str, Any] | None = None,
     ) -> None:
         self.path = Path(path)
         if not isinstance(contract_hash, str) or len(contract_hash) != 64:
@@ -186,6 +317,19 @@ class PilotBudgetLedger:
         if not isinstance(tamper_evident, bool):
             raise TypeError("tamper_evident must be boolean")
         self.tamper_evident = tamper_evident
+        if isinstance(parent_debit, ParentBudgetDebit):
+            requested_parent_debit = parent_debit
+        elif parent_debit is None:
+            requested_parent_debit = None
+        else:
+            requested_parent_debit = ParentBudgetDebit.from_dict(parent_debit)
+        if requested_parent_debit is not None and not tamper_evident:
+            raise PilotBudgetError(
+                "parent debit import requires a tamper-evident ledger"
+            )
+        self.parent_debit = requested_parent_debit
+        if self.parent_debit is not None:
+            self._validate_parent_debit_caps(self.parent_debit)
         self.schema_version = (
             PILOT_BUDGET_SCHEMA_VERSION_V2
             if tamper_evident
@@ -203,14 +347,29 @@ class PilotBudgetLedger:
                 "runs": {},
             }
             if self.tamper_evident:
+                self._state["parent_debit"] = (
+                    None
+                    if self.parent_debit is None
+                    else self.parent_debit.to_dict()
+                )
                 self._state["events"] = []
                 self._append_event(
                     "genesis",
                     {
                         "contract_hash": contract_hash,
                         "caps_sha256": _canonical_sha256(self.caps.to_dict()),
+                        "parent_debit_sha256": (
+                            None
+                            if self.parent_debit is None
+                            else self.parent_debit.record_sha256
+                        ),
                     },
                 )
+                if self.parent_debit is not None:
+                    self._append_event(
+                        "parent_debit_imported",
+                        {"parent_debit": self.parent_debit.to_dict()},
+                    )
             self._write()
 
     def _load(self) -> dict[str, Any]:
@@ -232,7 +391,116 @@ class PilotBudgetLedger:
             unsigned.pop("ledger_sha256", None)
             if expected != _canonical_sha256(unsigned):
                 raise PilotBudgetError("budget ledger self-hash mismatch")
+            stored_parent_debit = self._verify_parent_debit_binding(value)
+            if stored_parent_debit is not None and self.parent_debit is None:
+                raise PilotBudgetError(
+                    "expected parent debit is required to load an imported ledger"
+                )
+            if (
+                self.parent_debit is not None
+                and (
+                    stored_parent_debit is None
+                    or stored_parent_debit.to_dict()
+                    != self.parent_debit.to_dict()
+                )
+            ):
+                raise PilotBudgetError(
+                    "budget ledger parent debit differs from frozen import"
+                )
+            self.parent_debit = stored_parent_debit
         return value
+
+    def _validate_parent_debit_caps(
+        self, parent_debit: ParentBudgetDebit
+    ) -> None:
+        stage = parent_debit.stage_bucket
+        if stage == "manual_reserve":
+            raise PilotBudgetError(
+                "manual reserve cannot be consumed by a parent debit"
+            )
+        if stage not in (self.caps.stage_usd_caps or {}):
+            raise PilotBudgetError(
+                f"unknown parent debit stage budget bucket {stage!r}"
+            )
+        violations = []
+        if parent_debit.cost_usd > self.caps.dispatchable_usd + 1e-12:
+            violations.append("dispatchable global USD")
+        if (
+            parent_debit.cost_usd
+            > float((self.caps.stage_usd_caps or {})[stage]) + 1e-12
+        ):
+            violations.append(f"{stage} USD")
+        if parent_debit.hosted_completions > self.caps.max_completions:
+            violations.append("completion count")
+        if parent_debit.storage_bytes > self.caps.max_storage_bytes:
+            violations.append("storage")
+        if violations:
+            raise PilotBudgetError(
+                "parent debit exceeds " + ", ".join(violations)
+            )
+
+    def _verify_parent_debit_binding(
+        self, value: Mapping[str, Any]
+    ) -> ParentBudgetDebit | None:
+        stored = value.get("parent_debit")
+        if stored is None:
+            parent_debit = None
+        else:
+            try:
+                parent_debit = ParentBudgetDebit.from_dict(stored)
+            except (TypeError, ValueError) as exc:
+                raise PilotBudgetError(
+                    "invalid parent budget debit record"
+                ) from exc
+            self._validate_parent_debit_caps(parent_debit)
+
+        events = value["events"]
+        genesis = events[0]
+        if genesis.get("event_type") != "genesis":
+            raise PilotBudgetError("budget ledger first event must be genesis")
+        genesis_payload = genesis.get("payload")
+        if not isinstance(genesis_payload, Mapping):
+            raise PilotBudgetError("budget ledger genesis payload is invalid")
+        bound_digest = genesis_payload.get("parent_debit_sha256")
+        expected_digest = (
+            None if parent_debit is None else parent_debit.record_sha256
+        )
+        # V2 ledgers written before parent-debit imports existed had neither
+        # the top-level field nor the genesis binding.  They remain readable,
+        # but an import cannot be added to them after creation.
+        legacy_without_binding = (
+            "parent_debit" not in value
+            and "parent_debit_sha256" not in genesis_payload
+            and parent_debit is None
+        )
+        if not legacy_without_binding and bound_digest != expected_digest:
+            raise PilotBudgetError(
+                "budget ledger genesis parent debit binding mismatch"
+            )
+
+        import_events = [
+            event
+            for event in events
+            if event.get("event_type") == "parent_debit_imported"
+        ]
+        if parent_debit is None:
+            if import_events:
+                raise PilotBudgetError(
+                    "budget ledger has an event for a missing parent debit"
+                )
+            return None
+        if len(import_events) != 1 or import_events[0].get("event_index") != 1:
+            raise PilotBudgetError(
+                "budget ledger requires exactly one genesis-adjacent "
+                "parent debit import event"
+            )
+        if import_events[0].get("payload") != {
+            "parent_debit": parent_debit.to_dict()
+        }:
+            raise PilotBudgetError(
+                "budget ledger parent debit import event mismatch"
+            )
+        return parent_debit
 
     def _append_event(self, event_type: str, payload: Mapping[str, Any]) -> None:
         if not self.tamper_evident:
@@ -287,10 +555,20 @@ class PilotBudgetLedger:
         os.replace(temporary, self.path)
 
     def _totals(self, *, include_reservations: bool) -> dict[str, Any]:
-        usd = 0.0
-        completions = 0
-        storage = 0
+        usd = 0.0 if self.parent_debit is None else self.parent_debit.cost_usd
+        completions = (
+            0
+            if self.parent_debit is None
+            else self.parent_debit.hosted_completions
+        )
+        storage = (
+            0 if self.parent_debit is None else self.parent_debit.storage_bytes
+        )
         by_stage = {stage: 0.0 for stage in self.caps.stage_usd_caps or {}}
+        if self.parent_debit is not None:
+            by_stage[self.parent_debit.stage_bucket] = (
+                self.parent_debit.cost_usd
+            )
         for row in self._state["runs"].values():
             actual = row.get("actual")
             reservation = row.get("reservation")
@@ -443,6 +721,11 @@ class PilotBudgetLedger:
             ),
         }
         if self.tamper_evident:
+            result["parent_debit"] = (
+                None
+                if self.parent_debit is None
+                else self.parent_debit.to_dict()
+            )
             result["events"] = json.loads(
                 json.dumps(self._state["events"], sort_keys=True, allow_nan=False)
             )
@@ -535,7 +818,9 @@ def preflight_p95(
 
 __all__ = [
     "DEFAULT_STAGE_USD_CAPS",
+    "PARENT_BUDGET_DEBIT_SCHEMA_VERSION",
     "PILOT_BUDGET_SCHEMA_VERSION",
+    "ParentBudgetDebit",
     "PilotBudgetCaps",
     "PilotBudgetError",
     "PilotBudgetLedger",
