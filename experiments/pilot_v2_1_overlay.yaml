@@ -1,0 +1,119 @@
+{
+  "schema_version": "finevo-pilot-contract-v2.1-amendment-overlay-v1",
+  "contract_id": "finevo-pilot-v2.1",
+  "status": "frozen",
+  "base_contract": {
+    "path": "pilot_v2.yaml",
+    "schema_version": "finevo-pilot-contract-v2",
+    "contract_id": "finevo-pilot-v2",
+    "canonical_sha256": "980deddf2f82a762db7d73baa6ee0428c5e653298f4f275c5b3a5b23a95865c5"
+  },
+  "changes": {
+    "implementation": {
+      "required_git_tag": "pilot-v2.1-science"
+    },
+    "release_requirements": {
+      "tag": "pilot-v2.1-science",
+      "expected_ci": {
+        "test_count": 686,
+        "test_collection_sha256": "5bf1976e5bc11dff4ac4d6ae436fb4c4d48d54d9f811a1bf204637e862f6e23b",
+        "compiled_source_count": 138,
+        "compiled_source_inventory_sha256": "bcf420bf723521d4f54c3debde7e8aad08652206e2421ed9dd0c59aa28662f66",
+        "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952"
+      }
+    },
+    "budgets": {
+      "total_usd": 25.0,
+      "automatic_reserve_usd": 1.0,
+      "stage_usd_caps": {
+        "capability": 3.0701145,
+        "calibration": 3.0,
+        "core": 13.0,
+        "cross_model": 4.9298855,
+        "manual_reserve": 1.0
+      }
+    },
+    "denominator_policy": {
+      "policy_id": "finevo-pilot-v2.1-itt"
+    }
+  },
+  "operational_amendment": {
+    "schema_version": "finevo-pilot-operational-amendment-v1",
+    "amendment_id": "finevo-pilot-v2.1-operational-retry-1",
+    "parent": {
+      "contract_id": "finevo-pilot-v2",
+      "contract_sha256": "980deddf2f82a762db7d73baa6ee0428c5e653298f4f275c5b3a5b23a95865c5",
+      "release_tag": "pilot-v2-science",
+      "release_commit": "3664778727813e5e8328b4b17b91a28c8122f87c",
+      "launch_input_sha256": "6516ce8660d588aaf13381353f67d9cacd991d5236a7d3ae8c41ef1c0a88d357",
+      "release_attestation_sha256": "54a11dc86df139a3656934ff81920ae1f10c9425afa44815e30c9befda583895",
+      "run_ledger_file_sha256": "34b1a763f4f1c5824249e4acaaa83334f2b254eb899b4def14a4c3365eefd60f",
+      "run_ledger_internal_sha256": "9d54ac1f22a56bafbe59164c7074d87bf914d290bc1282c631d50a4529f41fff",
+      "budget_ledger_file_sha256": "f1318f47977ad956e206dfb53ff8a14350338c691b17f44280121504a99d2882",
+      "budget_ledger_internal_sha256": "d9ec2c1bdfcc407aeb555ba71ee9d5e274d924e9a98791c5839ec749f3b1a0f2"
+    },
+    "failure": {
+      "affected_run_id": "finevo-pilot-v2--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376",
+      "error_type": "APIConnectionError",
+      "failure_count": 30,
+      "capability_sha256": "da9076389db58fd682d213ccb932d66bb767f73423e5476abea788eb1f8fd294",
+      "gate_sha256": "176547171d88dad5e757dc1795cef749bea57ea7e7291191a240c8cd92c57997",
+      "terminal_sha256": "10b5ff7c78b4697b9754c809bed0e7d14380729a640632585085ad7f886704c6",
+      "served_model_observation": "null-pre-response",
+      "capability_status": "not_evaluable",
+      "parent_terminal_status": "capability-no-go",
+      "root_cause_codes": [
+        "credential-header-trailing-whitespace",
+        "capability-reader-nullability-drift"
+      ],
+      "secret_rotation_required": true
+    },
+    "inherited_results": [
+      {
+        "model_id": "llama33_local_controlled",
+        "run_id": "finevo-pilot-v2--capability-gate--llama33_local_controlled--capability-probe--none--provider-preflight-default--s2010922376",
+        "status": "capability-no-go",
+        "capability_sha256": "4c4c864733f32166c286e22b446dc3849df624a267ad083426ee4a89e79052ca",
+        "gate_sha256": "01c61c25e7d25577975dbe3aae8a408f464d685210b071aa612f4bd46bb78eda",
+        "terminal_sha256": "544b409e6ce8538958ec6278f5311429f14cf24591f8479bff287512d02e7380",
+        "scores": {
+          "utility_ranking": {
+            "correct": 12,
+            "denominator": 12
+          },
+          "rule_application": {
+            "correct": 10,
+            "denominator": 12
+          },
+          "rule_proposal": {
+            "correct": 0,
+            "denominator": 6
+          }
+        }
+      }
+    ],
+    "retry_policy": {
+      "eligible_model_ids": [
+        "gpt52_main"
+      ],
+      "ineligible_parent_terminal_model_ids": [
+        "llama33_local_controlled"
+      ],
+      "preserve_parent_denominator": true,
+      "retry_is_operational_amendment": true,
+      "unchanged_science_fields": "science-critical-v2-fieldset",
+      "failed_seed_replacement": "forbidden",
+      "outcome_inspected_for_retry": false
+    },
+    "budget_carry_forward": {
+      "source_stage_bucket": "capability",
+      "cost_usd": 1.0701145,
+      "hosted_completions": 30,
+      "storage_bytes": 479367
+    }
+  },
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "declared_sha256": "1f7dda4bb4197d31dae13936bee39b3eafc4e8825824a2c7da93a20cd9da3653"
+  }
+}

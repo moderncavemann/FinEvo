@@ -195,7 +195,10 @@ def _stage_sets(
 def _evidence_namespace(contract: PilotContract) -> str:
     """Derive a safe, versioned package namespace from the contract ID."""
 
-    match = re.fullmatch(r"finevo-(pilot-v[1-9][0-9]*)", contract.contract_id)
+    match = re.fullmatch(
+        r"finevo-(pilot-v[1-9][0-9]*(?:\.[1-9][0-9]*)?)",
+        contract.contract_id,
+    )
     if match is None:
         raise PilotEvidenceError(
             "contract_id cannot be mapped to a safe evidence namespace"
@@ -1805,11 +1808,22 @@ def _validate_capability_v3(capability: Mapping[str, Any]) -> None:
                 f"capability v3 row {task_id!r} visible cap is inconsistent"
             )
 
-        for field in ("provider", "requested_model", "served_model"):
+        for field in ("provider", "requested_model"):
             if not isinstance(row.get(field), str) or not row[field]:
                 raise PilotEvidenceError(
                     f"capability v3 row {task_id!r} lacks {field}"
                 )
+        if "served_model" not in row:
+            raise PilotEvidenceError(
+                f"capability v3 row {task_id!r} lacks served_model field"
+            )
+        served_model = row["served_model"]
+        if served_model is not None and (
+            not isinstance(served_model, str) or not served_model
+        ):
+            raise PilotEvidenceError(
+                f"capability v3 row {task_id!r} has invalid served_model"
+            )
         for field in (
             "response_provider",
             "response_route",
@@ -1896,6 +1910,10 @@ def _validate_capability_v3(capability: Mapping[str, Any]) -> None:
             or native_finish == "length"
         )
         provider_failure = provider_error is not None and not truncation
+        if not provider_failure and served_model is None:
+            raise PilotEvidenceError(
+                f"capability v3 row {task_id!r} lacks served_model"
+            )
         finish_valid = finish_reason == "stop" and response_completed is True
         interface_valid = (
             not provider_failure

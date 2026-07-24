@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import replace
 import hashlib
 from pathlib import Path
 
@@ -8,6 +9,8 @@ import pytest
 
 from test_pilot_capability import (
     CapabilityFixtureProvider,
+    GeminiLengthProvider,
+    ProviderFailureProvider,
     RecoveryProvider,
     _contracts,
     _run_gate,
@@ -36,6 +39,44 @@ def _valid_v3() -> dict:
 
 def _row(result: dict, task_id: str) -> dict:
     return next(row for row in result["rows"] if row["task_id"] == task_id)
+
+
+class _PreResponseFailureProvider(ProviderFailureProvider):
+    """Model a transport failure before any served-model response exists."""
+
+    def mutate(self, task, completion):
+        failed = super().mutate(task, completion)
+        if task.task_id != "action-01":
+            return failed
+        return replace(
+            failed,
+            response_model=None,
+            finish_reason=None,
+            native_finish_reason=None,
+            response_completed=None,
+            output_disposition="unavailable_due_to_provider_error",
+        )
+
+
+class _InvalidFinishProvider(CapabilityFixtureProvider):
+    def mutate(self, task, completion):
+        if task.task_id != "action-01":
+            return completion
+        return replace(
+            completion,
+            finish_reason="content_filter",
+            native_finish_reason="content_filter",
+            response_completed=False,
+            output_disposition="discarded_invalid_finish",
+        )
+
+
+def _pre_response_failure_v3() -> dict:
+    return _run_gate(
+        _PreResponseFailureProvider(),
+        budget_id="capability-v3-pre-response-failure",
+        contracts=_contracts(),
+    )
 
 
 def _valid_v2() -> dict:
@@ -229,6 +270,69 @@ def test_recovered_json_is_reportable_but_cannot_be_promoted_to_success() -> Non
 
     recovered["correct"] = True
     with pytest.raises(PilotEvidenceError, match="success is inconsistent"):
+        _validate_capability_v3(result)
+
+
+def test_pre_response_failure_allows_null_served_model_and_keeps_itt() -> None:
+    result = _pre_response_failure_v3()
+    failed = _row(result, "action-01")
+
+    assert failed["served_model"] is None
+    assert failed["interface_status"] == "provider_error"
+    assert failed["evaluable"] is False
+    assert failed["correct"] is False
+    assert len(result["rows"]) == 30
+    assert result["budget"]["completed_calls"] == 30
+    assert result["provider_failure_count"] == 1
+    assert {
+        category: totals["registered_total"]
+        for category, totals in result["category_totals"].items()
+    } == {
+        "utility-ranking": 12,
+        "rule-application": 12,
+        "rule-proposal": 6,
+    }
+
+    _validate_capability_v3(result)
+
+
+@pytest.mark.parametrize("served_model", ("", [], 0))
+def test_provider_failure_rejects_invalid_non_null_served_model(
+    served_model,
+) -> None:
+    result = _pre_response_failure_v3()
+    _row(result, "action-01")["served_model"] = served_model
+
+    with pytest.raises(PilotEvidenceError, match="invalid served_model"):
+        _validate_capability_v3(result)
+
+
+@pytest.mark.parametrize(
+    "provider_factory",
+    (
+        CapabilityFixtureProvider,
+        GeminiLengthProvider,
+        _InvalidFinishProvider,
+    ),
+    ids=("success", "truncation", "invalid-finish"),
+)
+def test_non_provider_failure_requires_served_model(provider_factory) -> None:
+    result = _run_gate(
+        provider_factory(),
+        budget_id=f"capability-v3-served-model-{provider_factory.__name__}",
+        contracts=_contracts(),
+    )
+    _row(result, "action-01")["served_model"] = None
+
+    with pytest.raises(PilotEvidenceError, match="lacks served_model"):
+        _validate_capability_v3(result)
+
+
+def test_provider_failure_requires_explicit_served_model_field() -> None:
+    result = _pre_response_failure_v3()
+    del _row(result, "action-01")["served_model"]
+
+    with pytest.raises(PilotEvidenceError, match="lacks served_model field"):
         _validate_capability_v3(result)
 
 

@@ -42,6 +42,14 @@ from .m0_utility import UtilityConfig
 from .m2_episodic import EvidenceLinkedEpisodicTrack
 from .m3_semantic import VerifiedSemanticRuleTrack
 from .pilot_analysis import summarize_run
+from .pilot_amendment import (
+    PILOT_V21_CONTRACT_ID,
+    amendment_control_path,
+    apply_inherited_capability_no_go,
+    assert_amended_capability_dispatch_scope,
+    parent_budget_debit_for_contract,
+    persist_operational_failure_receipt,
+)
 from .pilot_budget import (
     PilotBudgetCaps,
     PilotBudgetError,
@@ -3508,6 +3516,13 @@ def _v2_stage_control_paths(
         path = stage_root / "rule_sensitivity.json"
         if path.exists():
             paths.add(path)
+    amendment_path = amendment_control_path(
+        contract=contract,
+        raw_root=raw_root,
+        stage_id=stage_id,
+    )
+    if amendment_path is not None and amendment_path.exists():
+        paths.add(amendment_path)
     if _is_capability_stage(contract, stage_id):
         for spec in contract.expand(stage=stage_id):
             run_dir = stage_root / "runs" / spec.run_id
@@ -5487,11 +5502,27 @@ def _execute_stage_locked(
         raise PilotOrchestrationError(
             "stage already has terminal cells; use --resume for idempotent recovery"
         )
+    if contract.contract_id == PILOT_V21_CONTRACT_ID:
+        amendment_receipt, _ = persist_operational_failure_receipt(
+            repo_root=repository,
+            raw_root=root,
+            contract=contract,
+        )
+        apply_inherited_capability_no_go(
+            contract=contract,
+            run_ledger=run_ledger,
+            receipt=amendment_receipt,
+        )
+        assert_amended_capability_dispatch_scope(
+            contract=contract,
+            run_ledger=run_ledger,
+        )
     budget_ledger = PilotBudgetLedger(
         root / "budget_ledger.json",
         contract_hash=contract.canonical_hash,
         caps=_budget_caps(contract),
         tamper_evident=contract.schema_version.endswith("-v2"),
+        parent_debit=parent_budget_debit_for_contract(contract),
     )
     try:
         verified_prerequisite_go = _assert_prerequisites(
@@ -5543,6 +5574,14 @@ def _execute_stage_locked(
             continue
         catalog_path = root / stage_id / "provider_catalog" / f"{model_id}.json"
         try:
+            if (
+                contract.contract_id == PILOT_V21_CONTRACT_ID
+                and profile.transport in {"openai", "openrouter"}
+            ):
+                # This constructor performs local credential-shape and SDK
+                # validation.  It sends no request and deliberately runs
+                # before the live catalog read and before any reservation.
+                _provider_for_profile(profile)
             if catalog_path.exists():
                 if not resume:
                     raise PilotOrchestrationError(
@@ -6362,6 +6401,7 @@ def run_development_fake_matrix(
         contract_hash=contract.canonical_hash,
         caps=_budget_caps(contract),
         tamper_evident=contract.schema_version.endswith("-v2"),
+        parent_debit=parent_budget_debit_for_contract(contract),
     )
 
     d_specs = tuple(spec for spec in selected if spec.stage_id == "experiment-d")

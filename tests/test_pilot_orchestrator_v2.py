@@ -6,6 +6,11 @@ from types import SimpleNamespace
 
 import pytest
 
+from test_pilot_capability import (
+    ProviderFailureProvider,
+    _contracts,
+    _run_gate,
+)
 from verified_memory.budget import BudgetLimits, RunBudget
 from verified_memory.pilot_budget import RunProjection
 from verified_memory.pilot_contract import canonical_sha256, load_pilot_contract
@@ -624,6 +629,130 @@ def test_v2_capability_gate_is_recomputed_from_terminal_and_source_files(
             raw_root=tmp_path,
             paid=paid,
         )
+
+
+def test_v2_capability_stage_receipt_accepts_pre_response_failure_denominator(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(
+        stage="capability-gate",
+        model="gpt52_main",
+    )[0]
+    capability = _run_gate(
+        ProviderFailureProvider(),
+        budget_id="capability-v3-stage-receipt-provider-failure",
+        contracts=_contracts(),
+    )
+    failed = next(
+        row for row in capability["rows"] if row["task_id"] == "action-01"
+    )
+    failed["served_model"] = None
+    capability = {
+        **capability,
+        "contract_sha256": contract.canonical_hash,
+        "run_spec": spec.to_dict(),
+        "scientific_evidence": False,
+        "evidence_use": "capability gate denominator only",
+        "preflight_go": False,
+    }
+    gate = {
+        "capability_pass": False,
+        "capability_status": "not_evaluable",
+        "interface_pass": False,
+        "preflight_run": None,
+        "go": False,
+        "reason": "provider/interface failure; capability not evaluable",
+    }
+    run_dir = tmp_path / spec.stage_id / "runs" / spec.run_id
+    _write_json(run_dir / "capability.json", capability)
+    _write_json(run_dir / "gate_receipt.json", gate)
+    paid = _paid(contract)
+    terminal = write_terminal_summary(
+        tmp_path / spec.stage_id / "summaries" / f"{spec.run_id}.json",
+        contract=contract,
+        run_spec=spec,
+        resolved_git_commit=paid.head_commit,
+        git_tag=paid.git_tag,
+        payload={
+            "metrics": {},
+            "gate_evidence": gate,
+            "capability": capability,
+        },
+        scientific_evidence=False,
+        diagnostic_only=False,
+        evidence_scope="preregistered_task_capability_gate",
+    )
+    ledger = PilotRunLedger(
+        tmp_path / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+        tamper_evident=True,
+    )
+    ledger.register(contract.expand())
+    ledger.finalize(
+        spec.run_id,
+        status="capability-no-go",
+        artifact=str(terminal),
+        failure={
+            "error_type": "CapabilityOrInterfaceNoGo",
+            "message": gate["reason"],
+        },
+    )
+    local_spec = contract.expand(
+        stage="capability-gate",
+        model="llama33_local_controlled",
+    )[0]
+    ledger.finalize(
+        local_spec.run_id,
+        status="capability-no-go",
+        artifact=None,
+        failure={
+            "error_type": "CapabilityOrInterfaceNoGo",
+            "message": "fixture local capability no-go",
+        },
+    )
+
+    original_semantic_go = _v2_capability_semantic_go
+
+    def semantic_go(contract_arg, spec_arg, row_arg, **kwargs):
+        if spec_arg.run_id == local_spec.run_id:
+            return False
+        return original_semantic_go(
+            contract_arg,
+            spec_arg,
+            row_arg,
+            **kwargs,
+        )
+
+    monkeypatch.setattr(
+        "verified_memory.pilot_orchestrator._v2_capability_semantic_go",
+        semantic_go,
+    )
+    receipt_path = _write_stage_receipt(
+        contract,
+        "capability-gate",
+        raw_root=tmp_path,
+        ledger=ledger,
+        status="complete-with-no-go",
+        go_models=(),
+        paid=paid,
+    )
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+
+    assert receipt["terminal"] is True
+    assert receipt["registered_run_count"] == 2
+    assert receipt["status_counts"] == {"capability-no-go": 2}
+    assert receipt["go_models"] == []
+    assert receipt["execution_progression_go"] is False
+    _verify_v2_stage_receipt(
+        contract,
+        "capability-gate",
+        receipt,
+        raw_root=tmp_path,
+        ledger=ledger,
+        paid=paid,
+    )
 
 
 def test_v2_stage_receipt_recomputes_bound_artifact_hashes(

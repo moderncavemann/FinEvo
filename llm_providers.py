@@ -75,6 +75,21 @@ def _validated_seed(value: Optional[int]) -> Optional[int]:
     return value
 
 
+def _validated_api_key(value: object, provider_name: str) -> str:
+    """Reject malformed credentials locally without echoing secret material."""
+
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{provider_name} API key required")
+    if value != value.strip() or any(
+        character.isspace() or ord(character) < 0x20 or ord(character) == 0x7F
+        for character in value
+    ):
+        raise ValueError(
+            f"{provider_name} API key contains whitespace or control characters"
+        )
+    return value
+
+
 _SAFE_ERROR_CODE_RE = re.compile(r"^[A-Za-z0-9_.:_-]{1,80}$")
 _SAFE_ERROR_PARAM_RE = re.compile(r"^[A-Za-z0-9_.\[\]-]{1,160}$")
 _SAFE_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
@@ -1110,6 +1125,7 @@ class OpenAIProvider(LLMProvider):
         max_retries: Optional[int] = None,
         request_profile: Optional[ProviderRequestProfile] = None,
     ):
+        api_key = _validated_api_key(api_key, "OpenAI")
         self.api_key = api_key
         self.model = model
         if request_profile is not None and not isinstance(
@@ -1428,6 +1444,7 @@ class GeminiProvider(LLMProvider):
         model: str = "gemini-3-pro-preview",
         max_retries: int = 20,
     ):
+        api_key = _validated_api_key(api_key, "Gemini")
         self.api_key = api_key
         self.model = model
         self.costs = MODEL_COSTS.get(model, {"prompt": 0.002, "completion": 0.008})
@@ -1700,6 +1717,7 @@ class ThirdPartyProvider(LLMProvider):
         max_retries: Optional[int] = None,
         request_profile: Optional[ProviderRequestProfile] = None,
     ):
+        api_key = _validated_api_key(api_key, "Third-party")
         self.api_key = api_key
         self.model = model
         self.base_url = base_url

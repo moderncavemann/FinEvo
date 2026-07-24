@@ -458,6 +458,45 @@ def test_strict_openrouter_factory_ignores_endpoint_environment(
     assert clients[0]["base_url"] == "https://openrouter.ai/api/v1"
 
 
+@pytest.mark.parametrize(
+    ("provider_type", "profile_id", "malformed_key"),
+    [
+        ("openai", "gpt52_main", "test-key "),
+        ("openai", "gpt52_main", " test-key"),
+        ("openai", "gpt52_main", "test\nkey"),
+        ("thirdparty", "llama4_maverick_sentinel", "test-key\t"),
+    ],
+)
+def test_hosted_credential_shape_fails_before_sdk_construction(
+    profiles,
+    monkeypatch,
+    provider_type: str,
+    profile_id: str,
+    malformed_key: str,
+) -> None:
+    import openai
+
+    clients = []
+    monkeypatch.setattr(
+        openai,
+        "OpenAI",
+        lambda **kwargs: clients.append(kwargs) or SimpleNamespace(),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="API key contains whitespace or control characters",
+    ) as captured:
+        create_llm_provider(
+            provider_type,
+            api_key=malformed_key,
+            request_profile=profiles[profile_id],
+        )
+
+    assert clients == []
+    assert malformed_key not in str(captured.value)
+
+
 def test_strict_ollama_constructor_rejects_non_loopback_endpoint(
     profiles,
 ) -> None:

@@ -100,3 +100,15 @@ def test_parser_exposes_a_separate_evidence_root(tmp_path: Path) -> None:
     assert parsed.raw_root == tmp_path / "raw"
     assert parsed.evidence_root == tmp_path / "reviewer-evidence"
     assert parsed.resume is True
+
+
+def test_parser_defaults_to_the_single_v2_1_operational_amendment() -> None:
+    parsed = run_pilot.build_parser().parse_args(
+        ["--stage", "capability-gate"]
+    )
+
+    assert parsed.contract == (
+        Path(run_pilot.__file__).resolve().parent
+        / "experiments"
+        / "pilot_v2_1.yaml"
+    )
