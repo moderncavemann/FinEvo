@@ -11,6 +11,9 @@ Supports:
 import os
 import time
 import json
+import hashlib
+import importlib.metadata
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
@@ -70,6 +73,143 @@ def _validated_seed(value: Optional[int]) -> Optional[int]:
     if isinstance(value, bool) or not isinstance(value, int):
         raise TypeError("seed must be an int or None")
     return value
+
+
+_SAFE_ERROR_CODE_RE = re.compile(r"^[A-Za-z0-9_.:_-]{1,80}$")
+_SAFE_ERROR_PARAM_RE = re.compile(r"^[A-Za-z0-9_.\[\]-]{1,160}$")
+_SAFE_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+SAFE_PROVIDER_ERROR_TYPES = frozenset(
+    {
+        "APIConnectionError",
+        "APIError",
+        "APIStatusError",
+        "APITimeoutError",
+        "AssertionError",
+        "AuthenticationError",
+        "BadRequestError",
+        "BudgetExceeded",
+        "CandidateParseError",
+        "ConflictError",
+        "ConnectionError",
+        "HTTPError",
+        "ImportError",
+        "IncompleteCompletionError",
+        "InternalServerError",
+        "InvalidCompletionStateError",
+        "JSONDecodeError",
+        "KeyError",
+        "LegacyProviderError",
+        "ModuleNotFoundError",
+        "NotFoundError",
+        "PermissionDeniedError",
+        "PilotContractError",
+        "ProviderDiagnosticError",
+        "ProviderError",
+        "ProviderUnavailableError",
+        "RateLimitError",
+        "RequestException",
+        "RuntimeError",
+        "StubProviderError",
+        "SyntheticTransportError",
+        "Timeout",
+        "TimeoutError",
+        "TypeError",
+        "UnprocessableEntityError",
+        "ValueError",
+    }
+)
+_OPENAI_TEMPERATURE_OMITTED_PREFIXES = ("gpt-5", "o1", "o3")
+PINNED_PROVIDER_SDK_VERSIONS = {
+    "openai": "2.46.0",
+    "requests": "2.34.2",
+}
+STRICT_OPENAI_BASE_URL = "https://api.openai.com/v1"
+STRICT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+STRICT_OLLAMA_BASE_URL = "http://localhost:11434"
+
+
+def _safe_error_token(value: object, pattern: re.Pattern[str]) -> Optional[str]:
+    """Return an allowlisted provider token without truncating hostile values."""
+
+    if not isinstance(value, str) or pattern.fullmatch(value) is None:
+        return None
+    return value
+
+
+def _safe_exception_type(exc: BaseException) -> str:
+    """Return a finite allowlisted exception category for persisted receipts."""
+
+    candidate = type(exc).__name__
+    if candidate not in SAFE_PROVIDER_ERROR_TYPES:
+        return "ProviderError"
+    return candidate
+
+
+def _package_version(package: str) -> Optional[str]:
+    try:
+        return importlib.metadata.version(package)
+    except importlib.metadata.PackageNotFoundError:
+        return None
+
+
+def _require_pinned_package_version(package: str) -> str:
+    expected = PINNED_PROVIDER_SDK_VERSIONS[package]
+    observed = _package_version(package)
+    if observed != expected:
+        raise PilotContractError(
+            f"strict provider profile requires {package}=={expected}; "
+            f"observed {observed!r}"
+        )
+    return expected
+
+
+def _normalize_finish_reason(value: object) -> Optional[str]:
+    """Normalize provider finish metadata while retaining the native value."""
+
+    if value is None:
+        return None
+    native = str(value).strip()
+    if not native:
+        return None
+    lowered = native.lower()
+    if lowered == "stop":
+        return "stop"
+    if lowered in {"length", "max_tokens", "max_completion_tokens"}:
+        return "length"
+    if lowered in {"tool_calls", "tool_use"}:
+        return "tool_calls"
+    if lowered in {"content_filter", "safety"}:
+        return "content_filter"
+    if lowered == "error":
+        return "error"
+    return "unknown"
+
+
+def _completion_finish_state(
+    finish_reason: Optional[str],
+    *,
+    provider_done: Optional[bool] = None,
+    require_provider_done: bool = False,
+) -> tuple[bool, Optional[str], Optional[str]]:
+    """Classify a terminal response, failing closed unless it is an exact stop."""
+
+    if finish_reason == "stop" and (
+        not require_provider_done or provider_done is True
+    ):
+        return True, None, None
+    if finish_reason == "length":
+        return False, "IncompleteCompletionError", "completion_length"
+    if finish_reason == "stop":
+        code = "completion_provider_not_done"
+    elif finish_reason is None:
+        code = "completion_finish_missing"
+    else:
+        code = f"completion_{finish_reason}"
+    return False, "InvalidCompletionStateError", code
+
+
+def _openai_omits_temperature(model: str) -> bool:
+    return model.startswith(_OPENAI_TEMPERATURE_OMITTED_PREFIXES)
 
 
 def _usage_value(usage: object, *names: str) -> int:
@@ -156,6 +296,19 @@ def _metadata_text(value: object, *names: str) -> Optional[str]:
 _METADATA_MISSING = object()
 
 
+class OpenRouterRouteAttestationError(PilotContractError):
+    """Stable, redaction-safe OpenRouter route attestation failure."""
+
+    def __init__(self, code: str, path: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.path = path
+
+
+def _route_attestation_error(code: str, path: str, message: str) -> None:
+    raise OpenRouterRouteAttestationError(code, path, message)
+
+
 def _sdk_metadata_field(value: object, name: str) -> object:
     """Read a field from mappings, SDK attributes, or Pydantic ``model_extra``.
 
@@ -186,7 +339,32 @@ def _sdk_metadata_field(value: object, name: str) -> object:
     return _METADATA_MISSING
 
 
-def _required_metadata_text(value: object, name: str) -> str:
+def _openrouter_metadata_source(response: object) -> str:
+    if isinstance(response, Mapping):
+        if response.get("openrouter_metadata") is not None:
+            return "inline-mapping"
+        extra = response.get("model_extra")
+    else:
+        try:
+            if getattr(response, "openrouter_metadata", None) is not None:
+                return "inline-attribute"
+        except Exception:
+            pass
+        try:
+            extra = getattr(response, "model_extra", None)
+        except Exception:
+            extra = None
+    if isinstance(extra, Mapping) and extra.get("openrouter_metadata") is not None:
+        return "inline-model-extra"
+    return "none"
+
+
+def _required_metadata_text(
+    value: object,
+    name: str,
+    *,
+    path: str,
+) -> str:
     candidate = _sdk_metadata_field(value, name)
     if (
         candidate is _METADATA_MISSING
@@ -194,20 +372,29 @@ def _required_metadata_text(value: object, name: str) -> str:
         or not candidate
         or candidate.strip() != candidate
     ):
-        raise PilotContractError(
+        _route_attestation_error(
+            "OR_RA_002_METADATA_SCHEMA_INVALID",
+            path,
             f"OpenRouter route attestation field {name} is missing or invalid"
         )
     return candidate
 
 
-def _required_metadata_sequence(value: object, name: str) -> Sequence[object]:
+def _required_metadata_sequence(
+    value: object,
+    name: str,
+    *,
+    path: str,
+) -> Sequence[object]:
     candidate = _sdk_metadata_field(value, name)
     if (
         candidate is _METADATA_MISSING
         or not isinstance(candidate, Sequence)
         or isinstance(candidate, (str, bytes, bytearray))
     ):
-        raise PilotContractError(
+        _route_attestation_error(
+            "OR_RA_002_METADATA_SCHEMA_INVALID",
+            path,
             f"OpenRouter route attestation field {name} is missing or invalid"
         )
     return candidate
@@ -244,78 +431,147 @@ def _validate_openrouter_response_route(
 
     metadata = _sdk_metadata_field(response, "openrouter_metadata")
     if metadata is _METADATA_MISSING:
-        raise PilotContractError("OpenRouter route attestation metadata is absent")
+        _route_attestation_error(
+            "OR_RA_001_METADATA_UNAVAILABLE",
+            "openrouter_metadata",
+            "OpenRouter route attestation metadata is absent",
+        )
 
-    requested = _required_metadata_text(metadata, "requested")
+    requested = _required_metadata_text(
+        metadata,
+        "requested",
+        path="openrouter_metadata.requested",
+    )
     if requested != profile.requested_model:
-        raise PilotContractError(
+        _route_attestation_error(
+            "OR_RA_003_REQUEST_MODEL_MISMATCH",
+            "openrouter_metadata.requested",
             "OpenRouter route attestation requested-model mismatch"
         )
-    strategy = _required_metadata_text(metadata, "strategy")
+    strategy = _required_metadata_text(
+        metadata,
+        "strategy",
+        path="openrouter_metadata.strategy",
+    )
     if strategy != "direct":
-        raise PilotContractError(
+        _route_attestation_error(
+            "OR_RA_004_ROUTING_NOT_DIRECT",
+            "openrouter_metadata.strategy",
             "OpenRouter route attestation did not use direct routing"
         )
     router_attempt = _sdk_metadata_field(metadata, "attempt")
+    if router_attempt is _METADATA_MISSING:
+        _route_attestation_error(
+            "OR_RA_002_METADATA_SCHEMA_INVALID",
+            "openrouter_metadata.attempt",
+            "OpenRouter route attestation attempt is absent",
+        )
     if (
         isinstance(router_attempt, bool)
         or not isinstance(router_attempt, int)
         or router_attempt != 1
     ):
-        raise PilotContractError(
+        _route_attestation_error(
+            "OR_RA_005_ROUTER_ATTEMPT_INVALID",
+            "openrouter_metadata.attempt",
             "OpenRouter route attestation did not complete on router attempt 1"
         )
 
     endpoints = _sdk_metadata_field(metadata, "endpoints")
     if endpoints is _METADATA_MISSING:
-        raise PilotContractError(
+        _route_attestation_error(
+            "OR_RA_002_METADATA_SCHEMA_INVALID",
+            "openrouter_metadata.endpoints",
             "OpenRouter route attestation endpoints are absent"
         )
-    available = _required_metadata_sequence(endpoints, "available")
+    available = _required_metadata_sequence(
+        endpoints,
+        "available",
+        path="openrouter_metadata.endpoints.available",
+    )
     selected: list[object] = []
     for endpoint in available:
         selected_flag = _sdk_metadata_field(endpoint, "selected")
+        if selected_flag is _METADATA_MISSING:
+            _route_attestation_error(
+                "OR_RA_002_METADATA_SCHEMA_INVALID",
+                "openrouter_metadata.endpoints.available[].selected",
+                "OpenRouter route attestation endpoint selection is absent",
+            )
         if not isinstance(selected_flag, bool):
-            raise PilotContractError(
+            _route_attestation_error(
+                "OR_RA_006_ENDPOINT_SELECTION_INVALID",
+                "openrouter_metadata.endpoints.available[].selected",
                 "OpenRouter route attestation endpoint selection is invalid"
             )
         if selected_flag:
             selected.append(endpoint)
     if len(selected) != 1:
-        raise PilotContractError(
+        _route_attestation_error(
+            "OR_RA_006_ENDPOINT_SELECTION_INVALID",
+            "openrouter_metadata.endpoints.available",
             "OpenRouter route attestation must identify exactly one selected endpoint"
         )
 
-    selected_provider = _required_metadata_text(selected[0], "provider")
-    selected_model = _required_metadata_text(selected[0], "model")
+    selected_provider = _required_metadata_text(
+        selected[0],
+        "provider",
+        path="openrouter_metadata.endpoints.available[].provider",
+    )
+    selected_model = _required_metadata_text(
+        selected[0],
+        "model",
+        path="openrouter_metadata.endpoints.available[].model",
+    )
     if selected_provider not in profile.provider_pin:
-        raise PilotContractError(
+        _route_attestation_error(
+            "OR_RA_007_PROVIDER_PIN_MISMATCH",
+            "openrouter_metadata.endpoints.available[].provider",
             "OpenRouter route attestation selected-provider mismatch"
         )
     expected_model = dict(profile.artifact_identity).get("served_snapshot")
     if expected_model is None or selected_model != expected_model:
-        raise PilotContractError(
+        _route_attestation_error(
+            "OR_RA_008_SNAPSHOT_MISMATCH",
+            "openrouter_metadata.endpoints.available[].model",
             "OpenRouter route attestation selected-model mismatch"
         )
 
-    attempts = _required_metadata_sequence(metadata, "attempts")
-    if len(attempts) != 1:
-        raise PilotContractError(
-            "OpenRouter route attestation must contain exactly one upstream attempt"
+    attempts = _sdk_metadata_field(metadata, "attempts")
+    if attempts is not _METADATA_MISSING:
+        if (
+            not isinstance(attempts, Sequence)
+            or isinstance(attempts, (str, bytes, bytearray))
+            or len(attempts) != 1
+        ):
+            _route_attestation_error(
+                "OR_RA_009_UPSTREAM_ATTEMPT_INVALID",
+                "openrouter_metadata.attempts",
+                "OpenRouter route attestation upstream attempts are invalid",
+            )
+        attempt_provider = _required_metadata_text(
+            attempts[0],
+            "provider",
+            path="openrouter_metadata.attempts[].provider",
         )
-    attempt_provider = _required_metadata_text(attempts[0], "provider")
-    attempt_model = _required_metadata_text(attempts[0], "model")
-    attempt_status = _sdk_metadata_field(attempts[0], "status")
-    if (
-        attempt_provider != selected_provider
-        or attempt_model != selected_model
-        or isinstance(attempt_status, bool)
-        or not isinstance(attempt_status, int)
-        or attempt_status != 200
-    ):
-        raise PilotContractError(
-            "OpenRouter route attestation upstream-attempt mismatch"
+        attempt_model = _required_metadata_text(
+            attempts[0],
+            "model",
+            path="openrouter_metadata.attempts[].model",
         )
+        attempt_status = _sdk_metadata_field(attempts[0], "status")
+        if (
+            attempt_provider != selected_provider
+            or attempt_model != selected_model
+            or isinstance(attempt_status, bool)
+            or not isinstance(attempt_status, int)
+            or attempt_status != 200
+        ):
+            _route_attestation_error(
+                "OR_RA_009_UPSTREAM_ATTEMPT_INVALID",
+                "openrouter_metadata.attempts[]",
+                "OpenRouter route attestation upstream-attempt mismatch",
+            )
     return selected_provider, selected_model
 
 
@@ -362,6 +618,141 @@ def _usage_record(
 
 
 @dataclass(frozen=True)
+class ProviderErrorDetails:
+    """Strictly allowlisted provider failure metadata safe for raw receipts."""
+
+    error_type: str
+    stage: str
+    sdk_name: str
+    sdk_version: Optional[str]
+    http_status: Optional[int] = None
+    code: Optional[str] = None
+    param: Optional[str] = None
+    request_id: Optional[str] = None
+    schema_version: str = "finevo-provider-error-v1"
+    redaction_policy: str = "allowlist-v1"
+
+    def __post_init__(self) -> None:
+        for name in (
+            "error_type",
+            "stage",
+            "sdk_name",
+            "schema_version",
+            "redaction_policy",
+        ):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value:
+                raise TypeError(f"{name} must be a non-empty string")
+        if self.error_type not in SAFE_PROVIDER_ERROR_TYPES:
+            raise ValueError("error_type is not allowlisted")
+        if self.sdk_version is not None and (
+            not isinstance(self.sdk_version, str) or not self.sdk_version
+        ):
+            raise TypeError("sdk_version must be a non-empty string or None")
+        if self.http_status is not None and (
+            isinstance(self.http_status, bool)
+            or not isinstance(self.http_status, int)
+            or not 100 <= self.http_status <= 599
+        ):
+            raise ValueError("http_status must be an HTTP status integer or None")
+        validations = (
+            ("code", self.code, _SAFE_ERROR_CODE_RE),
+            ("param", self.param, _SAFE_ERROR_PARAM_RE),
+            ("request_id", self.request_id, _SAFE_REQUEST_ID_RE),
+        )
+        for name, value, pattern in validations:
+            if value is not None and (
+                not isinstance(value, str) or pattern.fullmatch(value) is None
+            ):
+                raise ValueError(f"{name} is not allowlisted")
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "schema_version": self.schema_version,
+            "error_type": self.error_type,
+            "http_status": self.http_status,
+            "code": self.code,
+            "param": self.param,
+            "request_id": self.request_id,
+            "stage": self.stage,
+            "sdk": {
+                "name": self.sdk_name,
+                "version": self.sdk_version,
+            },
+            "redaction_policy": self.redaction_policy,
+        }
+
+
+def _sanitized_openai_error(
+    exc: Exception,
+    *,
+    stage: str,
+    sdk_name: str = "openai-python",
+) -> ProviderErrorDetails:
+    """Extract only stable allowlisted fields from an OpenAI SDK exception."""
+
+    is_api_error = False
+    try:
+        from openai import APIError
+
+        is_api_error = isinstance(exc, APIError)
+    except (ImportError, AttributeError):
+        pass
+
+    status: Optional[int] = None
+    code: Optional[str] = None
+    param: Optional[str] = None
+    request_id: Optional[str] = None
+    if is_api_error:
+        raw_status = getattr(exc, "status_code", None)
+        if (
+            not isinstance(raw_status, bool)
+            and isinstance(raw_status, int)
+            and 100 <= raw_status <= 599
+        ):
+            status = raw_status
+        code = _safe_error_token(getattr(exc, "code", None), _SAFE_ERROR_CODE_RE)
+        param = _safe_error_token(getattr(exc, "param", None), _SAFE_ERROR_PARAM_RE)
+        request_id = _safe_error_token(
+            getattr(exc, "request_id", None),
+            _SAFE_REQUEST_ID_RE,
+        )
+    return ProviderErrorDetails(
+        error_type=_safe_exception_type(exc),
+        stage=stage,
+        sdk_name=sdk_name,
+        sdk_version=_package_version("openai"),
+        http_status=status,
+        code=code,
+        param=param,
+        request_id=request_id,
+    )
+
+
+def _sanitized_requests_error(
+    exc: Exception,
+    *,
+    stage: str,
+) -> ProviderErrorDetails:
+    status: Optional[int] = None
+    response = getattr(exc, "response", None)
+    raw_status = getattr(response, "status_code", None)
+    if (
+        not isinstance(raw_status, bool)
+        and isinstance(raw_status, int)
+        and 100 <= raw_status <= 599
+    ):
+        status = raw_status
+    return ProviderErrorDetails(
+        error_type=_safe_exception_type(exc),
+        stage=stage,
+        sdk_name="requests",
+        sdk_version=_package_version("requests"),
+        http_status=status,
+    )
+
+
+@dataclass(frozen=True)
 class StructuredCompletion:
     """Immutable provider response with auditable usage and failure metadata."""
 
@@ -385,6 +776,18 @@ class StructuredCompletion:
     request_artifact_identity: tuple[tuple[str, str], ...] = ()
     request_price_snapshot_source: Optional[str] = None
     request_price_snapshot_captured_at: Optional[str] = None
+    provider_error_details: Optional[ProviderErrorDetails] = None
+    finish_reason: Optional[str] = None
+    native_finish_reason: Optional[str] = None
+    response_completed: Optional[bool] = None
+    provider_sdk_name: Optional[str] = None
+    provider_sdk_version: Optional[str] = None
+    route_attestation_code: Optional[str] = None
+    route_attestation_path: Optional[str] = None
+    route_attestation_source: Optional[str] = None
+    request_parameters: tuple[str, ...] = ()
+    temperature_dispatch: Optional[str] = None
+    output_disposition: str = "accepted"
 
     def __post_init__(self) -> None:
         if not isinstance(self.text, str):
@@ -412,18 +815,53 @@ class StructuredCompletion:
                 raise ValueError(f"{name} must be non-negative")
         if self.cached_prompt_tokens > self.usage.prompt_tokens:
             raise ValueError("cached_prompt_tokens cannot exceed prompt_tokens")
-        if self.request_id is not None and not isinstance(self.request_id, str):
-            raise TypeError("request_id must be a string or None")
+        if self.request_id is not None and (
+            not isinstance(self.request_id, str)
+            or _SAFE_REQUEST_ID_RE.fullmatch(self.request_id) is None
+        ):
+            raise ValueError("request_id must be an allowlisted string or None")
+        if self.error_type is not None and (
+            not isinstance(self.error_type, str)
+            or self.error_type not in SAFE_PROVIDER_ERROR_TYPES
+        ):
+            raise ValueError("error_type must be an allowlisted string or None")
+        if self.provider_error_details is not None and not isinstance(
+            self.provider_error_details, ProviderErrorDetails
+        ):
+            raise TypeError(
+                "provider_error_details must be ProviderErrorDetails or None"
+            )
         for name in (
             "response_provider",
             "response_route",
             "request_profile_id",
             "request_price_snapshot_source",
             "request_price_snapshot_captured_at",
+            "finish_reason",
+            "native_finish_reason",
+            "provider_sdk_name",
+            "provider_sdk_version",
+            "route_attestation_code",
+            "route_attestation_path",
+            "route_attestation_source",
+            "temperature_dispatch",
         ):
             value = getattr(self, name)
             if value is not None and not isinstance(value, str):
                 raise TypeError(f"{name} must be a string or None")
+        if self.response_completed is not None and not isinstance(
+            self.response_completed, bool
+        ):
+            raise TypeError("response_completed must be a boolean or None")
+        if not isinstance(self.request_parameters, tuple) or any(
+            not isinstance(item, str) or not item
+            for item in self.request_parameters
+        ):
+            raise TypeError("request_parameters must be a tuple of non-empty strings")
+        if len(self.request_parameters) != len(set(self.request_parameters)):
+            raise ValueError("request_parameters must not contain duplicates")
+        if not isinstance(self.output_disposition, str) or not self.output_disposition:
+            raise TypeError("output_disposition must be a non-empty string")
         if not isinstance(self.request_provider_pin, tuple) or any(
             not isinstance(item, str) or not item
             for item in self.request_provider_pin
@@ -471,7 +909,67 @@ class StructuredCompletion:
             "request_price_snapshot_captured_at": (
                 self.request_price_snapshot_captured_at
             ),
+            "provider_error_details": (
+                self.provider_error_details.to_dict()
+                if self.provider_error_details is not None
+                else None
+            ),
+            "finish_reason": self.finish_reason,
+            "native_finish_reason": self.native_finish_reason,
+            "response_completed": self.response_completed,
+            "provider_sdk_name": self.provider_sdk_name,
+            "provider_sdk_version": self.provider_sdk_version,
+            "route_attestation_code": self.route_attestation_code,
+            "route_attestation_path": self.route_attestation_path,
+            "route_attestation_source": self.route_attestation_source,
+            "request_parameters": list(self.request_parameters),
+            "temperature_dispatch": self.temperature_dispatch,
+            "output_disposition": self.output_disposition,
         }
+
+    def safe_audit_dict(self) -> Dict[str, object]:
+        """Serialize diagnostics without retaining provider output text."""
+
+        payload = self.to_dict()
+        payload.pop("text")
+        payload["schema_version"] = "finevo-provider-completion-audit-v2"
+        payload["output_bytes"] = len(self.text.encode("utf-8"))
+        payload["output_sha256"] = hashlib.sha256(
+            self.text.encode("utf-8")
+        ).hexdigest()
+
+        # These values originate in provider responses. Even apparently
+        # identifier-shaped strings can contain echoed secrets, so diagnostic
+        # receipts retain only presence, byte count, and a one-way digest.
+        for field in (
+            "system_fingerprint",
+            "request_id",
+            "response_model",
+            "response_provider",
+            "response_route",
+            "native_finish_reason",
+        ):
+            value = payload.pop(field, None)
+            payload[f"{field}_present"] = value is not None
+            if value is not None:
+                encoded = str(value).encode("utf-8")
+                payload[f"{field}_bytes"] = len(encoded)
+                payload[f"{field}_sha256"] = hashlib.sha256(encoded).hexdigest()
+
+        details = payload.get("provider_error_details")
+        if isinstance(details, dict):
+            sanitized_details = dict(details)
+            for field in ("code", "param", "request_id"):
+                value = sanitized_details.pop(field, None)
+                sanitized_details[f"{field}_present"] = value is not None
+                if value is not None:
+                    encoded = str(value).encode("utf-8")
+                    sanitized_details[f"{field}_bytes"] = len(encoded)
+                    sanitized_details[f"{field}_sha256"] = hashlib.sha256(
+                        encoded
+                    ).hexdigest()
+            payload["provider_error_details"] = sanitized_details
+        return payload
 
 
 # Alternative descriptive name for downstream callers.
@@ -542,7 +1040,7 @@ class LLMProvider(ABC):
                 provider=provider or "unknown",
                 attempts=1,
                 latency_seconds=time.monotonic() - started,
-                error_type=type(exc).__name__,
+                error_type=_safe_exception_type(exc),
             )
 
     @abstractmethod
@@ -584,13 +1082,16 @@ class OpenAIProvider(LLMProvider):
                 model=model,
                 max_attempts=self.max_retries,
             )
+            _require_pinned_package_version("openai")
             self.costs = request_profile.price_snapshot.costs_per_1k()
         from openai import OpenAI
         client_options: Dict[str, object] = {"api_key": api_key}
         if request_profile is not None:
             # The SDK otherwise retries selected failures internally, outside
-            # this provider's auditable attempt counter.
+            # this provider's auditable attempt counter. Pin the official
+            # endpoint as well so OPENAI_BASE_URL cannot redirect a strict key.
             client_options["max_retries"] = 0
+            client_options["base_url"] = STRICT_OPENAI_BASE_URL
         self.client = OpenAI(**client_options)
 
     def get_completion(
@@ -629,13 +1130,24 @@ class OpenAIProvider(LLMProvider):
         profile_metadata = _profile_completion_metadata(request_profile)
         started = time.monotonic()
         for i in range(retry_count):
+            stage = "openai.request.build"
+            request_parameters: tuple[str, ...] = ()
+            temperature_dispatch = "explicit"
             try:
                 request: Dict[str, object] = {
                     "model": self.model,
                     "messages": messages,
-                    "temperature": temperature,
                     "top_p": top_p,
                 }
+                if _openai_omits_temperature(self.model):
+                    if float(temperature) != 0.0:
+                        raise PilotContractError(
+                            "this OpenAI reasoning model cannot apply a nonzero "
+                            "temperature through Chat Completions"
+                        )
+                    temperature_dispatch = "omitted_unsupported"
+                else:
+                    request["temperature"] = temperature
                 if seed is not None:
                     request["seed"] = seed
                 if request_profile is not None:
@@ -645,7 +1157,10 @@ class OpenAIProvider(LLMProvider):
                     request["max_completion_tokens"] = max_tokens
                 else:
                     request["max_tokens"] = max_tokens
+                request_parameters = tuple(sorted(request))
+                stage = "openai.chat.completions.create"
                 response = self.client.chat.completions.create(**request)
+                stage = "openai.response.decode"
                 prompt_tokens = _usage_value(response.usage, "prompt_tokens")
                 completion_tokens = _usage_value(response.usage, "completion_tokens")
                 cached_prompt_tokens = _nested_usage_value(
@@ -665,6 +1180,20 @@ class OpenAIProvider(LLMProvider):
                     str(response.model)
                     if getattr(response, "model", None) is not None
                     else None
+                )
+                choice = response.choices[0]
+                native_finish_reason = (
+                    str(choice.finish_reason)
+                    if getattr(choice, "finish_reason", None) is not None
+                    else None
+                )
+                finish_reason = _normalize_finish_reason(native_finish_reason)
+                (
+                    response_completed,
+                    completion_error_type,
+                    completion_error_code,
+                ) = _completion_finish_state(
+                    finish_reason
                 )
                 if request_profile is not None:
                     try:
@@ -689,10 +1218,67 @@ class OpenAIProvider(LLMProvider):
                             ),
                             response_provider="OpenAI-direct",
                             response_route="direct",
+                            provider_error_details=ProviderErrorDetails(
+                                error_type="PilotContractError",
+                                stage="openai.response.served_model",
+                                sdk_name="openai-python",
+                                sdk_version=_package_version("openai"),
+                                code="served_model_mismatch",
+                            ),
+                            finish_reason=finish_reason,
+                            native_finish_reason=native_finish_reason,
+                            response_completed=response_completed,
+                            provider_sdk_name="openai-python",
+                            provider_sdk_version=_package_version("openai"),
+                            request_parameters=request_parameters,
+                            temperature_dispatch=temperature_dispatch,
+                            output_disposition="discarded_due_to_contract_failure",
                             **profile_metadata,
                         )
+                if completion_error_type is not None:
+                    return StructuredCompletion(
+                        text=choice.message.content or "",
+                        usage=usage,
+                        model=self.model,
+                        provider="openai",
+                        attempts=i + 1,
+                        latency_seconds=time.monotonic() - started,
+                        error_type=completion_error_type,
+                        request_seed=seed,
+                        response_model=response_model,
+                        cached_prompt_tokens=cached_prompt_tokens,
+                        reasoning_tokens=reasoning_tokens,
+                        request_id=(
+                            str(response.id)
+                            if getattr(response, "id", None) is not None
+                            else None
+                        ),
+                        response_provider="OpenAI-direct",
+                        response_route="direct",
+                        provider_error_details=ProviderErrorDetails(
+                            error_type=completion_error_type,
+                            stage="openai.response.finish",
+                            sdk_name="openai-python",
+                            sdk_version=_package_version("openai"),
+                            code=completion_error_code,
+                        ),
+                        finish_reason=finish_reason,
+                        native_finish_reason=native_finish_reason,
+                        response_completed=response_completed,
+                        provider_sdk_name="openai-python",
+                        provider_sdk_version=_package_version("openai"),
+                        request_parameters=request_parameters,
+                        temperature_dispatch=temperature_dispatch,
+                        output_disposition=(
+                            "discarded_incomplete"
+                            if completion_error_type
+                            == "IncompleteCompletionError"
+                            else "discarded_invalid_finish"
+                        ),
+                        **profile_metadata,
+                    )
                 return StructuredCompletion(
-                    text=response.choices[0].message.content or "",
+                    text=choice.message.content or "",
                     usage=usage,
                     model=self.model,
                     provider="openai",
@@ -714,6 +1300,13 @@ class OpenAIProvider(LLMProvider):
                     ),
                     response_provider="OpenAI-direct",
                     response_route="direct",
+                    finish_reason=finish_reason,
+                    native_finish_reason=native_finish_reason,
+                    response_completed=response_completed,
+                    provider_sdk_name="openai-python",
+                    provider_sdk_version=_package_version("openai"),
+                    request_parameters=request_parameters,
+                    temperature_dispatch=temperature_dispatch,
                     **profile_metadata,
                 )
             except Exception as e:
@@ -727,9 +1320,19 @@ class OpenAIProvider(LLMProvider):
                         provider="openai",
                         attempts=i + 1,
                         latency_seconds=time.monotonic() - started,
-                        error_type=type(e).__name__,
+                        error_type=_safe_exception_type(e),
+                        request_seed=seed,
                         response_provider="OpenAI-direct",
                         response_route="direct",
+                        provider_error_details=_sanitized_openai_error(
+                            e,
+                            stage=stage,
+                        ),
+                        provider_sdk_name="openai-python",
+                        provider_sdk_version=_package_version("openai"),
+                        request_parameters=request_parameters,
+                        temperature_dispatch=temperature_dispatch,
+                        output_disposition="unavailable_due_to_provider_error",
                         **profile_metadata,
                     )
 
@@ -882,7 +1485,7 @@ class GeminiProvider(LLMProvider):
                         provider="gemini",
                         attempts=i + 1,
                         latency_seconds=time.monotonic() - started,
-                        error_type=type(e).__name__,
+                        error_type=_safe_exception_type(e),
                     )
 
     def get_model_name(self) -> str:
@@ -999,7 +1602,7 @@ class LocalAPIProvider(LLMProvider):
                         provider="local",
                         attempts=i + 1,
                         latency_seconds=time.monotonic() - started,
-                        error_type=type(e).__name__,
+                        error_type=_safe_exception_type(e),
                     )
 
     def get_model_name(self) -> str:
@@ -1013,7 +1616,7 @@ class ThirdPartyProvider(LLMProvider):
         self,
         api_key: str,
         model: str,
-        base_url: str = "https://openrouter.ai/api/v1",
+        base_url: str = STRICT_OPENROUTER_BASE_URL,
         app_name: str = "FinEvo",
         max_retries: Optional[int] = None,
         request_profile: Optional[ProviderRequestProfile] = None,
@@ -1037,7 +1640,7 @@ class ThirdPartyProvider(LLMProvider):
                 model, {"prompt": 0, "completion": 0}
             )
         else:
-            if base_url.rstrip("/") != "https://openrouter.ai/api/v1":
+            if base_url.rstrip("/") != STRICT_OPENROUTER_BASE_URL:
                 raise PilotContractError(
                     "OpenRouter pilot profiles require the frozen OpenRouter API URL"
                 )
@@ -1046,6 +1649,7 @@ class ThirdPartyProvider(LLMProvider):
                 model=model,
                 max_attempts=self.max_retries,
             )
+            _require_pinned_package_version("openai")
             self.costs = request_profile.price_snapshot.costs_per_1k()
 
         from openai import OpenAI
@@ -1101,6 +1705,8 @@ class ThirdPartyProvider(LLMProvider):
         profile_metadata = _profile_completion_metadata(request_profile)
         started = time.monotonic()
         for i in range(retry_count):
+            stage = "openrouter.request.build"
+            request_parameters: tuple[str, ...] = ()
             try:
                 request: Dict[str, object] = {
                     "model": self.model,
@@ -1113,7 +1719,10 @@ class ThirdPartyProvider(LLMProvider):
                     request["seed"] = seed
                 if request_profile is not None:
                     request.update(request_profile.openrouter_request_options())
+                request_parameters = tuple(sorted(request))
+                stage = "openrouter.chat.completions.create"
                 response = self.client.chat.completions.create(**request)
+                stage = "openrouter.response.decode"
                 prompt_tokens = _usage_value(response.usage, "prompt_tokens")
                 completion_tokens = _usage_value(response.usage, "completion_tokens")
                 cached_prompt_tokens = _nested_usage_value(
@@ -1134,18 +1743,87 @@ class ThirdPartyProvider(LLMProvider):
                     if getattr(response, "model", None) is not None
                     else None
                 )
+                choice = response.choices[0]
+                native_finish_value = _sdk_metadata_field(
+                    choice,
+                    "native_finish_reason",
+                )
+                native_finish_reason = (
+                    str(native_finish_value)
+                    if native_finish_value is not _METADATA_MISSING
+                    and native_finish_value is not None
+                    else (
+                        str(choice.finish_reason)
+                        if getattr(choice, "finish_reason", None) is not None
+                        else None
+                    )
+                )
+                finish_reason = _normalize_finish_reason(
+                    getattr(choice, "finish_reason", None)
+                )
+                (
+                    response_completed,
+                    completion_error_type,
+                    completion_error_code,
+                ) = _completion_finish_state(
+                    finish_reason
+                )
+                route_attestation_source = _openrouter_metadata_source(response)
                 if request_profile is not None:
                     response_provider: Optional[str] = None
                     response_route: Optional[str] = None
                     try:
                         request_profile.validate_served_model(response_model)
+                    except PilotContractError:
+                        return StructuredCompletion(
+                            text="Error",
+                            usage=usage,
+                            model=self.model,
+                            provider="thirdparty",
+                            attempts=i + 1,
+                            latency_seconds=time.monotonic() - started,
+                            error_type="PilotContractError",
+                            request_seed=seed,
+                            response_model=response_model,
+                            cached_prompt_tokens=cached_prompt_tokens,
+                            reasoning_tokens=reasoning_tokens,
+                            request_id=(
+                                str(response.id)
+                                if getattr(response, "id", None) is not None
+                                else None
+                            ),
+                            provider_error_details=ProviderErrorDetails(
+                                error_type="PilotContractError",
+                                stage="openrouter.response.served_model",
+                                sdk_name="openai-python",
+                                sdk_version=_package_version("openai"),
+                                code="served_model_mismatch",
+                            ),
+                            finish_reason=finish_reason,
+                            native_finish_reason=native_finish_reason,
+                            response_completed=response_completed,
+                            provider_sdk_name="openai-python",
+                            provider_sdk_version=_package_version("openai"),
+                            route_attestation_code=(
+                                "OR_RA_010_RESPONSE_MODEL_MISMATCH"
+                            ),
+                            route_attestation_path="response.model",
+                            route_attestation_source=route_attestation_source,
+                            request_parameters=request_parameters,
+                            temperature_dispatch="explicit",
+                            output_disposition=(
+                                "discarded_due_to_attestation_failure"
+                            ),
+                            **profile_metadata,
+                        )
+                    try:
                         response_provider, response_route = (
                             _validate_openrouter_response_route(
                                 request_profile,
                                 response,
                             )
                         )
-                    except PilotContractError:
+                    except OpenRouterRouteAttestationError as exc:
                         return StructuredCompletion(
                             text="Error",
                             usage=usage,
@@ -1165,14 +1843,80 @@ class ThirdPartyProvider(LLMProvider):
                             ),
                             response_provider=response_provider,
                             response_route=response_route,
+                            provider_error_details=ProviderErrorDetails(
+                                error_type="PilotContractError",
+                                stage="openrouter.response.route_attestation",
+                                sdk_name="openai-python",
+                                sdk_version=_package_version("openai"),
+                                code=exc.code,
+                            ),
+                            finish_reason=finish_reason,
+                            native_finish_reason=native_finish_reason,
+                            response_completed=response_completed,
+                            provider_sdk_name="openai-python",
+                            provider_sdk_version=_package_version("openai"),
+                            route_attestation_code=exc.code,
+                            route_attestation_path=exc.path,
+                            route_attestation_source=route_attestation_source,
+                            request_parameters=request_parameters,
+                            temperature_dispatch="explicit",
+                            output_disposition=(
+                                "discarded_due_to_attestation_failure"
+                            ),
                             **profile_metadata,
                         )
                 else:
                     response_provider, response_route = (
                         _legacy_openrouter_response_route(response)
                     )
+                if completion_error_type is not None:
+                    return StructuredCompletion(
+                        text=choice.message.content or "",
+                        usage=usage,
+                        model=self.model,
+                        provider="thirdparty",
+                        attempts=i + 1,
+                        latency_seconds=time.monotonic() - started,
+                        error_type=completion_error_type,
+                        request_seed=seed,
+                        response_model=response_model,
+                        cached_prompt_tokens=cached_prompt_tokens,
+                        reasoning_tokens=reasoning_tokens,
+                        request_id=(
+                            str(response.id)
+                            if getattr(response, "id", None) is not None
+                            else None
+                        ),
+                        response_provider=response_provider,
+                        response_route=response_route,
+                        provider_error_details=ProviderErrorDetails(
+                            error_type=completion_error_type,
+                            stage="openrouter.response.finish",
+                            sdk_name="openai-python",
+                            sdk_version=_package_version("openai"),
+                            code=completion_error_code,
+                        ),
+                        finish_reason=finish_reason,
+                        native_finish_reason=native_finish_reason,
+                        response_completed=response_completed,
+                        provider_sdk_name="openai-python",
+                        provider_sdk_version=_package_version("openai"),
+                        route_attestation_code=(
+                            "OR_RA_PASS" if request_profile is not None else None
+                        ),
+                        route_attestation_source=route_attestation_source,
+                        request_parameters=request_parameters,
+                        temperature_dispatch="explicit",
+                        output_disposition=(
+                            "discarded_incomplete"
+                            if completion_error_type
+                            == "IncompleteCompletionError"
+                            else "discarded_invalid_finish"
+                        ),
+                        **profile_metadata,
+                    )
                 return StructuredCompletion(
-                    text=response.choices[0].message.content or "",
+                    text=choice.message.content or "",
                     usage=usage,
                     model=self.model,
                     provider="thirdparty",
@@ -1194,6 +1938,17 @@ class ThirdPartyProvider(LLMProvider):
                     ),
                     response_provider=response_provider,
                     response_route=response_route,
+                    finish_reason=finish_reason,
+                    native_finish_reason=native_finish_reason,
+                    response_completed=response_completed,
+                    provider_sdk_name="openai-python",
+                    provider_sdk_version=_package_version("openai"),
+                    route_attestation_code=(
+                        "OR_RA_PASS" if request_profile is not None else None
+                    ),
+                    route_attestation_source=route_attestation_source,
+                    request_parameters=request_parameters,
+                    temperature_dispatch="explicit",
                     **profile_metadata,
                 )
             except Exception as e:
@@ -1207,7 +1962,17 @@ class ThirdPartyProvider(LLMProvider):
                         provider="thirdparty",
                         attempts=i + 1,
                         latency_seconds=time.monotonic() - started,
-                        error_type=type(e).__name__,
+                        error_type=_safe_exception_type(e),
+                        request_seed=seed,
+                        provider_error_details=_sanitized_openai_error(
+                            e,
+                            stage=stage,
+                        ),
+                        provider_sdk_name="openai-python",
+                        provider_sdk_version=_package_version("openai"),
+                        request_parameters=request_parameters,
+                        temperature_dispatch="explicit",
+                        output_disposition="unavailable_due_to_provider_error",
                         **profile_metadata,
                     )
 
@@ -1221,7 +1986,7 @@ class OllamaProvider(LLMProvider):
     def __init__(
         self,
         model: str = "llama3:8b",
-        host: str = "http://localhost:11434",
+        host: str = STRICT_OLLAMA_BASE_URL,
         max_retries: Optional[int] = None,
         request_profile: Optional[ProviderRequestProfile] = None,
     ):
@@ -1241,11 +2006,16 @@ class OllamaProvider(LLMProvider):
         if request_profile is None:
             self.costs = {"prompt": 0, "completion": 0}
         else:
+            if host.rstrip("/") != STRICT_OLLAMA_BASE_URL:
+                raise PilotContractError(
+                    "strict Ollama profiles require the frozen local endpoint"
+                )
             request_profile.validate_provider_configuration(
                 transport="ollama",
                 model=model,
                 max_attempts=self.max_retries,
             )
+            _require_pinned_package_version("requests")
             self.costs = request_profile.price_snapshot.costs_per_1k()
 
     def get_completion(
@@ -1282,6 +2052,8 @@ class OllamaProvider(LLMProvider):
         profile_metadata = _profile_completion_metadata(request_profile)
         started = time.monotonic()
         for i in range(retry_count):
+            stage = "ollama.request.build"
+            request_parameters: tuple[str, ...] = ()
             try:
                 options = {
                     "temperature": temperature,
@@ -1301,17 +2073,40 @@ class OllamaProvider(LLMProvider):
                     and request_profile.json_mode == "json_object"
                 ):
                     request_body["format"] = "json"
+                request_parameters = tuple(sorted(request_body))
+                stage = "ollama.chat.create"
                 response = requests.post(
                     f"{self.host}/api/chat",
                     json=request_body,
                     timeout=300
                 )
                 response.raise_for_status()
+                stage = "ollama.response.decode"
                 result = response.json()
                 prompt_tokens = _usage_value(result, "prompt_eval_count", "prompt_tokens")
                 completion_tokens = _usage_value(result, "eval_count", "completion_tokens")
                 usage = _usage_record(prompt_tokens, completion_tokens, self.costs)
                 response_model = str(result.get("model") or self.model)
+                provider_done = (
+                    result.get("done")
+                    if isinstance(result.get("done"), bool)
+                    else None
+                )
+                native_finish_reason = (
+                    str(result["done_reason"])
+                    if result.get("done_reason") is not None
+                    else None
+                )
+                finish_reason = _normalize_finish_reason(native_finish_reason)
+                (
+                    response_completed,
+                    completion_error_type,
+                    completion_error_code,
+                ) = _completion_finish_state(
+                    finish_reason,
+                    provider_done=provider_done,
+                    require_provider_done=True,
+                )
                 if request_profile is not None:
                     try:
                         request_profile.validate_served_model(response_model)
@@ -1328,8 +2123,58 @@ class OllamaProvider(LLMProvider):
                             response_model=response_model,
                             response_provider="local-ollama",
                             response_route="local",
+                            provider_error_details=ProviderErrorDetails(
+                                error_type="PilotContractError",
+                                stage="ollama.response.served_model",
+                                sdk_name="requests",
+                                sdk_version=_package_version("requests"),
+                                code="served_model_mismatch",
+                            ),
+                            finish_reason=finish_reason,
+                            native_finish_reason=native_finish_reason,
+                            response_completed=response_completed,
+                            provider_sdk_name="requests",
+                            provider_sdk_version=_package_version("requests"),
+                            request_parameters=request_parameters,
+                            temperature_dispatch="explicit",
+                            output_disposition="discarded_due_to_contract_failure",
                             **profile_metadata,
                         )
+                if completion_error_type is not None:
+                    return StructuredCompletion(
+                        text=result["message"]["content"] or "",
+                        usage=usage,
+                        model=self.model,
+                        provider="ollama",
+                        attempts=i + 1,
+                        latency_seconds=time.monotonic() - started,
+                        error_type=completion_error_type,
+                        request_seed=seed,
+                        response_model=response_model,
+                        response_provider="local-ollama",
+                        response_route="local",
+                        provider_error_details=ProviderErrorDetails(
+                            error_type=completion_error_type,
+                            stage="ollama.response.finish",
+                            sdk_name="requests",
+                            sdk_version=_package_version("requests"),
+                            code=completion_error_code,
+                        ),
+                        finish_reason=finish_reason,
+                        native_finish_reason=native_finish_reason,
+                        response_completed=response_completed,
+                        provider_sdk_name="requests",
+                        provider_sdk_version=_package_version("requests"),
+                        request_parameters=request_parameters,
+                        temperature_dispatch="explicit",
+                        output_disposition=(
+                            "discarded_incomplete"
+                            if completion_error_type
+                            == "IncompleteCompletionError"
+                            else "discarded_invalid_finish"
+                        ),
+                        **profile_metadata,
+                    )
                 return StructuredCompletion(
                     text=result["message"]["content"] or "",
                     usage=usage,
@@ -1341,6 +2186,13 @@ class OllamaProvider(LLMProvider):
                     response_model=response_model,
                     response_provider="local-ollama",
                     response_route="local",
+                    finish_reason=finish_reason,
+                    native_finish_reason=native_finish_reason,
+                    response_completed=response_completed,
+                    provider_sdk_name="requests",
+                    provider_sdk_version=_package_version("requests"),
+                    request_parameters=request_parameters,
+                    temperature_dispatch="explicit",
                     **profile_metadata,
                 )
 
@@ -1355,9 +2207,19 @@ class OllamaProvider(LLMProvider):
                         provider="ollama",
                         attempts=i + 1,
                         latency_seconds=time.monotonic() - started,
-                        error_type=type(e).__name__,
+                        error_type=_safe_exception_type(e),
+                        request_seed=seed,
                         response_provider="local-ollama",
                         response_route="local",
+                        provider_error_details=_sanitized_requests_error(
+                            e,
+                            stage=stage,
+                        ),
+                        provider_sdk_name="requests",
+                        provider_sdk_version=_package_version("requests"),
+                        request_parameters=request_parameters,
+                        temperature_dispatch="explicit",
+                        output_disposition="unavailable_due_to_provider_error",
                         **profile_metadata,
                     )
 
@@ -1423,7 +2285,7 @@ class MultiModelLLM:
                 provider=provider_name,
                 attempts=1,
                 latency_seconds=time.monotonic() - started,
-                error_type=type(exc).__name__,
+                error_type=_safe_exception_type(exc),
             )
 
         if budget is not None:
@@ -1795,7 +2657,13 @@ def create_llm_provider(
         if not api_key:
             raise ValueError("Third-party API key required")
         model = model or "google/gemini-3-flash-preview"
-        base_url = base_url or os.environ.get('OPENROUTER_BASE_URL', "https://openrouter.ai/api/v1")
+        if request_profile is not None:
+            base_url = STRICT_OPENROUTER_BASE_URL
+        else:
+            base_url = base_url or os.environ.get(
+                "OPENROUTER_BASE_URL",
+                STRICT_OPENROUTER_BASE_URL,
+            )
         return ThirdPartyProvider(
             api_key=api_key,
             model=model,

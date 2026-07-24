@@ -265,7 +265,10 @@ def _sdk_response(
             cost=0.01,
         ),
         "choices": [
-            SimpleNamespace(message=SimpleNamespace(content='{"ok":true}'))
+            SimpleNamespace(
+                message=SimpleNamespace(content='{"ok":true}'),
+                finish_reason="stop",
+            )
         ],
         "system_fingerprint": "fingerprint-route",
         "model": profile.served_model,
@@ -303,47 +306,106 @@ def _thirdparty(
 
 
 @pytest.mark.parametrize(
-    "mutate",
+    ("mutate", "expected_code"),
     [
-        None,
-        lambda _profile, metadata: metadata.pop("requested"),
-        lambda profile, metadata: metadata.update(
-            requested=f"{profile.requested_model}-other"
+        (
+            None,
+            "OR_RA_001_METADATA_UNAVAILABLE",
         ),
-        lambda _profile, metadata: metadata.pop("strategy"),
-        lambda _profile, metadata: metadata.update(strategy="fallback"),
-        lambda _profile, metadata: metadata.pop("attempt"),
-        lambda _profile, metadata: metadata.update(attempt=2),
-        lambda _profile, metadata: metadata.pop("endpoints"),
-        lambda _profile, metadata: metadata["endpoints"].pop("available"),
-        lambda _profile, metadata: metadata["endpoints"]["available"][0].pop(
-            "selected"
+        (
+            lambda _profile, metadata: metadata.pop("requested"),
+            "OR_RA_002_METADATA_SCHEMA_INVALID",
         ),
-        lambda _profile, metadata: metadata["endpoints"].update(available=[]),
-        lambda _profile, metadata: metadata["endpoints"]["available"].append(
-            dict(metadata["endpoints"]["available"][0])
+        (
+            lambda profile, metadata: metadata.update(
+                requested=f"{profile.requested_model}-other"
+            ),
+            "OR_RA_003_REQUEST_MODEL_MISMATCH",
         ),
-        lambda _profile, metadata: metadata["endpoints"]["available"][0].pop(
-            "provider"
+        (
+            lambda _profile, metadata: metadata.pop("strategy"),
+            "OR_RA_002_METADATA_SCHEMA_INVALID",
         ),
-        lambda _profile, metadata: metadata["endpoints"]["available"][0].update(
-            provider="Together"
+        (
+            lambda _profile, metadata: metadata.update(strategy="fallback"),
+            "OR_RA_004_ROUTING_NOT_DIRECT",
         ),
-        lambda _profile, metadata: metadata["endpoints"]["available"][0].pop(
-            "model"
+        (
+            lambda _profile, metadata: metadata.pop("attempt"),
+            "OR_RA_002_METADATA_SCHEMA_INVALID",
         ),
-        lambda _profile, metadata: metadata["endpoints"]["available"][0].update(
-            model="meta-llama/unfrozen"
+        (
+            lambda _profile, metadata: metadata.update(attempt=2),
+            "OR_RA_005_ROUTER_ATTEMPT_INVALID",
         ),
-        lambda _profile, metadata: metadata.pop("attempts"),
-        lambda _profile, metadata: metadata.update(attempts=[]),
-        lambda _profile, metadata: metadata["attempts"][0].update(
-            provider="Together"
+        (
+            lambda _profile, metadata: metadata.pop("endpoints"),
+            "OR_RA_002_METADATA_SCHEMA_INVALID",
         ),
-        lambda _profile, metadata: metadata["attempts"][0].update(
-            model="meta-llama/unfrozen"
+        (
+            lambda _profile, metadata: metadata["endpoints"].pop("available"),
+            "OR_RA_002_METADATA_SCHEMA_INVALID",
         ),
-        lambda _profile, metadata: metadata["attempts"][0].update(status=500),
+        (
+            lambda _profile, metadata: metadata["endpoints"]["available"][0].pop(
+                "selected"
+            ),
+            "OR_RA_002_METADATA_SCHEMA_INVALID",
+        ),
+        (
+            lambda _profile, metadata: metadata["endpoints"].update(available=[]),
+            "OR_RA_006_ENDPOINT_SELECTION_INVALID",
+        ),
+        (
+            lambda _profile, metadata: metadata["endpoints"]["available"].append(
+                dict(metadata["endpoints"]["available"][0])
+            ),
+            "OR_RA_006_ENDPOINT_SELECTION_INVALID",
+        ),
+        (
+            lambda _profile, metadata: metadata["endpoints"]["available"][0].pop(
+                "provider"
+            ),
+            "OR_RA_002_METADATA_SCHEMA_INVALID",
+        ),
+        (
+            lambda _profile, metadata: metadata["endpoints"]["available"][0].update(
+                provider="Together"
+            ),
+            "OR_RA_007_PROVIDER_PIN_MISMATCH",
+        ),
+        (
+            lambda _profile, metadata: metadata["endpoints"]["available"][0].pop(
+                "model"
+            ),
+            "OR_RA_002_METADATA_SCHEMA_INVALID",
+        ),
+        (
+            lambda _profile, metadata: metadata["endpoints"]["available"][0].update(
+                model="meta-llama/unfrozen"
+            ),
+            "OR_RA_008_SNAPSHOT_MISMATCH",
+        ),
+        (
+            lambda _profile, metadata: metadata.update(attempts=[]),
+            "OR_RA_009_UPSTREAM_ATTEMPT_INVALID",
+        ),
+        (
+            lambda _profile, metadata: metadata["attempts"][0].update(
+                provider="Together"
+            ),
+            "OR_RA_009_UPSTREAM_ATTEMPT_INVALID",
+        ),
+        (
+            lambda _profile, metadata: metadata["attempts"][0].update(
+                model="meta-llama/unfrozen"
+            ),
+            "OR_RA_009_UPSTREAM_ATTEMPT_INVALID",
+        ),
+        (
+            lambda _profile, metadata: metadata["attempts"][0].update(status=500),
+            "OR_RA_009_UPSTREAM_ATTEMPT_INVALID",
+        ),
     ],
     ids=[
         "metadata-missing",
@@ -362,7 +424,6 @@ def _thirdparty(
         "selected-provider-mismatch",
         "selected-model-missing",
         "selected-model-mismatch",
-        "attempts-missing",
         "attempts-empty",
         "attempt-provider-mismatch",
         "attempt-model-mismatch",
@@ -371,6 +432,7 @@ def _thirdparty(
 )
 def test_openrouter_invalid_route_attestation_is_accounted_contract_no_go(
     mutate,
+    expected_code: str,
 ) -> None:
     profile = load_pilot_contract(
         ROOT / "experiments" / "pilot_v1.yaml"
@@ -392,6 +454,7 @@ def test_openrouter_invalid_route_attestation_is_accounted_contract_no_go(
 
     assert result.ok is False
     assert result.error_type == "PilotContractError"
+    assert result.route_attestation_code == expected_code
     assert result.usage == UsageRecord(20, 5, 0.01)
     assert result.response_provider is None
     assert result.response_route is None
@@ -419,6 +482,7 @@ def test_openrouter_exact_pin_captures_route_and_request_artifact_identity(
     )
 
     assert result.ok is True
+    assert result.route_attestation_code == "OR_RA_PASS"
     assert result.response_provider == "DeepInfra"
     assert result.response_route == (
         "meta-llama/llama-4-maverick-17b-128e-instruct"
@@ -443,6 +507,32 @@ def test_openrouter_exact_pin_captures_route_and_request_artifact_identity(
     assert usage_row["request_artifact_identity"]["endpoint_tag"] == (
         "deepinfra/base"
     )
+
+
+def test_openrouter_upstream_attempts_metadata_is_optional() -> None:
+    profile = load_pilot_contract(
+        ROOT / "experiments" / "pilot_v1.yaml"
+    ).provider_profiles["llama4_maverick_sentinel"]
+    metadata = _route_metadata(profile)
+    metadata.pop("attempts")
+    provider, requests = _thirdparty(
+        profile,
+        _sdk_response(profile, metadata=metadata),
+    )
+
+    result = provider.get_structured_completion(
+        [{"role": "user", "content": "JSON"}],
+        seed=7,
+    )
+
+    assert result.ok is True
+    assert result.route_attestation_code == "OR_RA_PASS"
+    assert result.response_provider == "DeepInfra"
+    assert result.response_route == (
+        "meta-llama/llama-4-maverick-17b-128e-instruct"
+    )
+    assert result.usage == UsageRecord(20, 5, 0.01)
+    assert len(requests) == 1
 
 
 def test_openrouter_metadata_mapping_shape_is_supported() -> None:

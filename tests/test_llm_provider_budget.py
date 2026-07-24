@@ -1,8 +1,12 @@
+import hashlib
+import json
 import threading
 import time
 from dataclasses import FrozenInstanceError
 from types import SimpleNamespace
 
+import httpx
+import openai
 import pytest
 
 from llm_providers import (
@@ -10,6 +14,7 @@ from llm_providers import (
     MODEL_COSTS,
     MultiModelLLM,
     OpenAIProvider,
+    ProviderErrorDetails,
     StructuredCompletion,
 )
 from verified_memory.budget import BudgetExceeded, BudgetLimits, RunBudget, UsageRecord
@@ -17,6 +22,49 @@ from verified_memory.budget import BudgetExceeded, BudgetLimits, RunBudget, Usag
 
 def dialog(index: int):
     return [{"role": "user", "content": str(index)}]
+
+
+def _openai_provider_raising(exc: Exception) -> OpenAIProvider:
+    def fail(**_):
+        raise exc
+
+    provider = OpenAIProvider.__new__(OpenAIProvider)
+    provider.model = "gpt-5.2"
+    provider.costs = {"prompt": 0.003, "completion": 0.012}
+    provider.max_retries = 1
+    provider.client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=fail))
+    )
+    return provider
+
+
+def _openai_bad_request(
+    *,
+    message: str,
+    code: str,
+    param: str,
+    request_id: str,
+    body_message: str,
+) -> openai.BadRequestError:
+    request = httpx.Request(
+        "POST",
+        "https://api.openai.com/v1/chat/completions",
+    )
+    response = httpx.Response(
+        400,
+        request=request,
+        headers={"x-request-id": request_id},
+    )
+    return openai.BadRequestError(
+        message,
+        response=response,
+        body={
+            "code": code,
+            "param": param,
+            "type": "invalid_request_error",
+            "message": body_message,
+        },
+    )
 
 
 class LegacyTupleProvider(LLMProvider):
@@ -347,7 +395,260 @@ def test_builtin_exception_does_not_print_sensitive_text_and_keeps_reservation(
     assert "sensitive-provider-response" not in captured.err
     assert "sensitive-provider-response" not in str(result.to_dict())
     assert result.error_type == "RuntimeError"
+    assert result.provider_error_details is not None
+    assert result.provider_error_details.error_type == "RuntimeError"
+    assert (
+        result.provider_error_details.stage
+        == "openai.chat.completions.create"
+    )
+    assert result.provider_error_details.sdk_name == "openai-python"
+    assert result.provider_error_details.sdk_version == openai.__version__
+    assert result.provider_error_details.http_status is None
+    assert result.provider_error_details.code is None
+    assert result.provider_error_details.param is None
+    assert result.provider_error_details.request_id is None
     assert result.usage == estimate
+    assert budget.snapshot().accounted_usage == estimate
+
+
+def test_openai_bad_request_retains_only_allowlisted_error_details(capsys) -> None:
+    provider_message = "SECRET_PROVIDER_MESSAGE_sk-provider"
+    body_message = "SECRET_PROVIDER_BODY_sk-body"
+    error = _openai_bad_request(
+        message=provider_message,
+        code="unsupported_parameter",
+        param="temperature",
+        request_id="req_stub_123",
+        body_message=body_message,
+    )
+    provider = _openai_provider_raising(error)
+
+    result = provider.get_structured_completion(
+        [{"role": "user", "content": "SECRET_PROMPT_sk-prompt"}],
+        max_retries=1,
+    )
+
+    details = result.provider_error_details
+    assert result.error_type == "BadRequestError"
+    assert details is not None
+    assert details.error_type == "BadRequestError"
+    assert details.http_status == 400
+    assert details.code == "unsupported_parameter"
+    assert details.param == "temperature"
+    assert details.request_id == "req_stub_123"
+    assert details.stage == "openai.chat.completions.create"
+    assert details.sdk_name == "openai-python"
+    assert details.sdk_version == openai.__version__
+    assert details.schema_version == "finevo-provider-error-v1"
+    assert details.redaction_policy == "allowlist-v1"
+
+    serialized = json.dumps(result.to_dict(), sort_keys=True)
+    captured = capsys.readouterr()
+    for secret in (
+        provider_message,
+        body_message,
+        "sk-provider",
+        "sk-body",
+        "sk-prompt",
+    ):
+        assert secret not in captured.out
+        assert secret not in captured.err
+        assert secret not in serialized
+
+
+def test_openai_bad_request_rejects_hostile_error_tokens(capsys) -> None:
+    provider_message = "HOSTILE_PROVIDER_MESSAGE_sk-hostile-message"
+    body_message = "HOSTILE_PROVIDER_BODY_sk-hostile-body"
+    hostile_request_id = "sk-hostile-request-" + "x" * 180
+    error = _openai_bad_request(
+        message=provider_message,
+        code="sk-hostile-code with spaces",
+        param="temperature\nsk-hostile-param",
+        request_id=hostile_request_id,
+        body_message=body_message,
+    )
+    provider = _openai_provider_raising(error)
+
+    result = provider.get_structured_completion(
+        [{"role": "user", "content": "sk-hostile-prompt"}],
+        max_retries=1,
+    )
+
+    details = result.provider_error_details
+    assert details is not None
+    assert details.http_status == 400
+    assert details.code is None
+    assert details.param is None
+    assert details.request_id is None
+    assert details.stage == "openai.chat.completions.create"
+    assert details.sdk_name == "openai-python"
+    assert details.sdk_version == openai.__version__
+
+    serialized = json.dumps(result.to_dict(), sort_keys=True)
+    captured = capsys.readouterr()
+    for secret in (
+        "sk-hostile-message",
+        "sk-hostile-body",
+        "sk-hostile-code",
+        "sk-hostile-param",
+        "sk-hostile-request",
+        "sk-hostile-prompt",
+    ):
+        assert secret not in captured.out
+        assert secret not in captured.err
+        assert secret not in serialized
+
+
+def test_hostile_exception_class_name_is_replaced_before_serialization() -> None:
+    hostile_marker = "SecretExceptionTypeSkClass"
+    hostile_type = type(hostile_marker, (Exception,), {})
+    provider = _openai_provider_raising(hostile_type("provider body secret"))
+
+    result = provider.get_structured_completion(
+        [{"role": "user", "content": "prompt secret"}],
+        max_retries=1,
+    )
+
+    assert result.error_type == "ProviderError"
+    assert result.provider_error_details is not None
+    assert result.provider_error_details.error_type == "ProviderError"
+    assert hostile_marker not in json.dumps(result.safe_audit_dict())
+    with pytest.raises(ValueError, match="error_type is not allowlisted"):
+        ProviderErrorDetails(
+            error_type=hostile_marker,
+            stage="provider.dispatch",
+            sdk_name="test",
+            sdk_version="1",
+        )
+
+
+def test_safe_audit_dict_replaces_provider_text_with_hash_and_byte_count() -> None:
+    provider_text = "SECRET_OUTPUT_sk-output"
+    result = StructuredCompletion(
+        text=provider_text,
+        usage=UsageRecord(prompt_tokens=3, completion_tokens=4, cost_usd=0.01),
+        model="stub-model",
+        provider="stub",
+        attempts=1,
+        latency_seconds=0.0,
+    )
+
+    audit = result.safe_audit_dict()
+
+    assert "text" not in audit
+    assert audit["output_bytes"] == len(provider_text.encode("utf-8"))
+    assert audit["output_sha256"] == hashlib.sha256(
+        provider_text.encode("utf-8")
+    ).hexdigest()
+    assert provider_text not in json.dumps(audit, sort_keys=True)
+
+
+def test_safe_audit_dict_hashes_all_provider_controlled_metadata() -> None:
+    marker = "SensitiveMetadataMarker123"
+    result = StructuredCompletion(
+        text="Error",
+        usage=UsageRecord(prompt_tokens=3, completion_tokens=0, cost_usd=0.01),
+        model="requested-model",
+        provider="openai",
+        attempts=1,
+        latency_seconds=0.0,
+        error_type="BadRequestError",
+        system_fingerprint=marker,
+        request_id=marker,
+        response_model=marker,
+        response_provider=marker,
+        response_route=marker,
+        native_finish_reason=marker,
+        provider_error_details=ProviderErrorDetails(
+            error_type="BadRequestError",
+            stage="openai.chat.completions.create",
+            sdk_name="openai-python",
+            sdk_version="2.46.0",
+            code=marker,
+            param=marker,
+            request_id=marker,
+        ),
+    )
+
+    audit = result.safe_audit_dict()
+    serialized = json.dumps(audit, sort_keys=True)
+
+    assert audit["schema_version"] == "finevo-provider-completion-audit-v2"
+    assert marker not in serialized
+    for field in (
+        "system_fingerprint",
+        "request_id",
+        "response_model",
+        "response_provider",
+        "response_route",
+        "native_finish_reason",
+    ):
+        assert field not in audit
+        assert audit[f"{field}_present"] is True
+        assert audit[f"{field}_sha256"] == hashlib.sha256(
+            marker.encode("utf-8")
+        ).hexdigest()
+    details = audit["provider_error_details"]
+    for field in ("code", "param", "request_id"):
+        assert field not in details
+        assert details[f"{field}_present"] is True
+        assert details[f"{field}_sha256"] == hashlib.sha256(
+            marker.encode("utf-8")
+        ).hexdigest()
+
+
+def test_budget_usage_replace_preserves_sanitized_openai_error_details() -> None:
+    error = _openai_bad_request(
+        message="SECRET_REPLACE_MESSAGE",
+        code="unsupported_parameter",
+        param="temperature",
+        request_id="req_replace_123",
+        body_message="SECRET_REPLACE_BODY",
+    )
+    provider = _openai_provider_raising(error)
+    returned = {}
+    original_get_structured_completion = provider.get_structured_completion
+
+    def record_provider_result(*args, **kwargs):
+        result = original_get_structured_completion(*args, **kwargs)
+        returned["result"] = result
+        return result
+
+    provider.get_structured_completion = record_provider_result
+    estimate = UsageRecord(
+        prompt_tokens=13,
+        completion_tokens=7,
+        cost_usd=0.05,
+    )
+    budget = RunBudget(BudgetLimits(max_calls=1, max_cost_usd=0.10))
+
+    result = MultiModelLLM(provider).get_structured_completion(
+        dialog(0),
+        budget=budget,
+        estimated_usage=estimate,
+        max_retries=1,
+    )
+
+    pre_replace = returned["result"]
+    assert pre_replace.usage == UsageRecord()
+    assert result.usage == estimate
+    assert result is not pre_replace
+    assert result.provider_error_details is pre_replace.provider_error_details
+    assert result.provider_error_details is not None
+    assert result.provider_error_details.to_dict() == {
+        "schema_version": "finevo-provider-error-v1",
+        "error_type": "BadRequestError",
+        "http_status": 400,
+        "code": "unsupported_parameter",
+        "param": "temperature",
+        "request_id": "req_replace_123",
+        "stage": "openai.chat.completions.create",
+        "sdk": {
+            "name": "openai-python",
+            "version": openai.__version__,
+        },
+        "redaction_policy": "allowlist-v1",
+    }
     assert budget.snapshot().accounted_usage == estimate
 
 
@@ -376,7 +677,12 @@ def test_builtin_structured_provider_uses_exposed_usage_without_network() -> Non
 
     response = SimpleNamespace(
         usage=SimpleNamespace(prompt_tokens=11, completion_tokens=4, cost=0.123),
-        choices=[SimpleNamespace(message=SimpleNamespace(content="ok"))],
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(content="ok"),
+                finish_reason="stop",
+            )
+        ],
         system_fingerprint="fp-test",
         model="gpt-5.2-2025-12-11",
     )
@@ -416,7 +722,12 @@ def test_gpt52_cost_uses_cached_token_details() -> None:
             prompt_tokens_details=SimpleNamespace(cached_tokens=400),
             completion_tokens_details=SimpleNamespace(reasoning_tokens=250),
         ),
-        choices=[SimpleNamespace(message=SimpleNamespace(content="ok"))],
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(content="ok"),
+                finish_reason="stop",
+            )
+        ],
         system_fingerprint="fp-price",
         model="gpt-5.2-2025-12-11",
     )

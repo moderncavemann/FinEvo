@@ -936,6 +936,11 @@ def _provider_row(
         "attempts": result.attempts,
         "latency_seconds": result.latency_seconds,
         "error_type": result.error_type,
+        "provider_error_details": (
+            result.provider_error_details.to_dict()
+            if result.provider_error_details is not None
+            else None
+        ),
         "usage": result.usage.to_dict(),
         "request_seed": result.request_seed,
         "system_fingerprint": result.system_fingerprint,
@@ -952,6 +957,18 @@ def _provider_row(
         "request_price_snapshot_captured_at": (
             result.request_price_snapshot_captured_at
         ),
+        "finish_reason": result.finish_reason,
+        "native_finish_reason": result.native_finish_reason,
+        "response_completed": result.response_completed,
+        "provider_sdk_name": result.provider_sdk_name,
+        "provider_sdk_version": result.provider_sdk_version,
+        "route_attestation_code": result.route_attestation_code,
+        "route_attestation_path": result.route_attestation_path,
+        "route_attestation_source": result.route_attestation_source,
+        "request_parameters": list(result.request_parameters),
+        "temperature_dispatch": result.temperature_dispatch,
+        "output_disposition": result.output_disposition,
+        "raw_output_bytes": len(result.text.encode("utf-8")),
         "raw_output_hash": hashlib.sha256(result.text.encode("utf-8")).hexdigest(),
     }
 

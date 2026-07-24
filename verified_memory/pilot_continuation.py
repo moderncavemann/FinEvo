@@ -51,6 +51,7 @@ from .pilot_checkpoint import (
 from .prompts import build_base_decision_prompt, compose_decision_prompt
 from .runner import (
     FIXED_ERRONEOUS_RULE,
+    RUNNER_SCHEMA_VERSION,
     _context_observation,
     _m2_state,
     _monthly_inflation,
@@ -318,6 +319,7 @@ def _completion_usage_row(
     agent_id: int,
 ) -> dict[str, Any]:
     return {
+        "schema_version": RUNNER_SCHEMA_VERSION,
         "call_kind": "pilot_continuation_action",
         "treatment": treatment,
         "decision_t": decision_t,
@@ -330,9 +332,39 @@ def _completion_usage_row(
         "attempts": completion.attempts,
         "latency_seconds": completion.latency_seconds,
         "error_type": completion.error_type,
+        "provider_error_details": (
+            completion.provider_error_details.to_dict()
+            if completion.provider_error_details is not None
+            else None
+        ),
         "cached_prompt_tokens": completion.cached_prompt_tokens,
         "reasoning_tokens": completion.reasoning_tokens,
         "request_id": completion.request_id,
+        "response_provider": completion.response_provider,
+        "response_route": completion.response_route,
+        "request_profile_id": completion.request_profile_id,
+        "request_provider_pin": list(completion.request_provider_pin),
+        "request_artifact_identity": dict(
+            completion.request_artifact_identity
+        ),
+        "request_price_snapshot_source": (
+            completion.request_price_snapshot_source
+        ),
+        "request_price_snapshot_captured_at": (
+            completion.request_price_snapshot_captured_at
+        ),
+        "finish_reason": completion.finish_reason,
+        "native_finish_reason": completion.native_finish_reason,
+        "response_completed": completion.response_completed,
+        "provider_sdk_name": completion.provider_sdk_name,
+        "provider_sdk_version": completion.provider_sdk_version,
+        "route_attestation_code": completion.route_attestation_code,
+        "route_attestation_path": completion.route_attestation_path,
+        "route_attestation_source": completion.route_attestation_source,
+        "request_parameters": list(completion.request_parameters),
+        "temperature_dispatch": completion.temperature_dispatch,
+        "output_disposition": completion.output_disposition,
+        "raw_output_bytes": len(completion.text.encode("utf-8")),
         "raw_output_hash": hashlib.sha256(
             completion.text.encode("utf-8")
         ).hexdigest(),

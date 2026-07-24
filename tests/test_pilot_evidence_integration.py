@@ -4,7 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from llm_providers import MultiModelLLM, StructuredCompletion
+from llm_providers import (
+    PINNED_PROVIDER_SDK_VERSIONS,
+    MultiModelLLM,
+    StructuredCompletion,
+)
 from verified_memory.budget import BudgetLimits, RunBudget
 from verified_memory.pilot_contract import load_pilot_contract
 from verified_memory.pilot_evidence import (
@@ -41,6 +45,15 @@ class _ProfiledScriptedProvider(ScriptedDiagnosticProvider):
 
     def get_structured_completion(self, messages, **kwargs) -> StructuredCompletion:
         scripted = super().get_structured_completion(messages, **kwargs)
+        request_parameters = {
+            "model",
+            "messages",
+            "top_p",
+            *self.profile.openai_request_options().keys(),
+            "max_completion_tokens",
+        }
+        if scripted.request_seed is not None:
+            request_parameters.add("seed")
         return StructuredCompletion(
             text=scripted.text,
             usage=scripted.usage,
@@ -59,6 +72,15 @@ class _ProfiledScriptedProvider(ScriptedDiagnosticProvider):
             request_price_snapshot_captured_at=(
                 self.profile.price_snapshot.captured_at
             ),
+            finish_reason="stop",
+            native_finish_reason="stop",
+            response_completed=True,
+            provider_sdk_name="openai-python",
+            provider_sdk_version=PINNED_PROVIDER_SDK_VERSIONS["openai"],
+            route_attestation_code=None,
+            request_parameters=tuple(sorted(request_parameters)),
+            temperature_dispatch="omitted_unsupported",
+            output_disposition="accepted",
         )
 
 

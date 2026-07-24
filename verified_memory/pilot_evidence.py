@@ -45,7 +45,12 @@ from .pilot_contract import (
     canonical_sha256,
     load_pilot_contract,
 )
-from .runner_artifacts import load_verified_run_artifacts
+from .runner import RUNNER_SCHEMA_VERSION
+from .runner_artifacts import (
+    LEGACY_RUNNER_SCHEMA_VERSION,
+    PREVIOUS_RUNNER_SCHEMA_VERSION,
+    load_verified_run_artifacts,
+)
 
 
 PILOT_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-evidence-package-v1"
@@ -60,6 +65,14 @@ PILOT_RELEASE_ATTESTATION_SCHEMA_VERSION = (
 PILOT_STAGE_RECEIPT_SCHEMA_VERSION = "finevo-pilot-stage-receipt-v1"
 PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION = (
     "finevo-experiment-c-sensitivity-v1"
+)
+LEGACY_CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v1"
+CURRENT_CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v2"
+SUPPORTED_CAPABILITY_SCHEMA_VERSIONS = frozenset(
+    {
+        LEGACY_CAPABILITY_SCHEMA_VERSION,
+        CURRENT_CAPABILITY_SCHEMA_VERSION,
+    }
 )
 EVIDENCE_NAMESPACE = "current_v2/pilot-v1"
 CURRENT_SCIENTIFIC_SCOPE = "preregistered_mechanism_micro_pilot"
@@ -557,6 +570,253 @@ def _validate_causal_bindings(
     return bindings
 
 
+def _validate_capability_v2(capability: Mapping[str, Any]) -> None:
+    """Recompute the v2 ITT/interface split before admitting a gate receipt."""
+
+    rows = capability.get("rows")
+    if (
+        not isinstance(rows, Sequence)
+        or isinstance(rows, (str, bytes))
+        or len(rows) != 30
+        or not _is_sha256(capability.get("taskset_sha256"))
+    ):
+        raise PilotEvidenceError(
+            "capability v2 must bind one taskset and exactly 30 rows"
+        )
+    category_contract = {
+        "utility-ranking": (12, 10),
+        "rule-application": (12, 10),
+        "rule-proposal": (6, 5),
+    }
+    task_ids: set[str] = set()
+    expected_totals: dict[str, dict[str, Any]] = {}
+    for category, (registered_total, required) in category_contract.items():
+        category_rows = [
+            row
+            for row in rows
+            if isinstance(row, Mapping) and row.get("category") == category
+        ]
+        if len(category_rows) != registered_total:
+            raise PilotEvidenceError(
+                f"capability v2 category {category!r} has the wrong denominator"
+            )
+        for row in category_rows:
+            interface_status = row.get("interface_status")
+            expected_evaluable = interface_status in {"pass", "parse_error"}
+            if (
+                row.get("schema_version") != CURRENT_CAPABILITY_SCHEMA_VERSION
+                or row.get("taskset_sha256") != capability["taskset_sha256"]
+                or not isinstance(row.get("task_id"), str)
+                or not isinstance(row.get("correct"), bool)
+                or not isinstance(row.get("evaluable"), bool)
+                or interface_status
+                not in {
+                    "pass",
+                    "parse_error",
+                    "provider_error",
+                    "incomplete",
+                    "invalid_finish",
+                }
+                or row.get("evaluable") is not expected_evaluable
+            ):
+                raise PilotEvidenceError(
+                    "capability v2 row schema/status is inconsistent"
+                )
+            if interface_status != "pass" and row.get("correct") is not False:
+                raise PilotEvidenceError(
+                    "capability v2 non-pass row cannot be correct"
+                )
+            provider_error = row.get("provider_error")
+            provider_error_details = row.get("provider_error_details")
+            parse_error = row.get("parse_error")
+            parse_error_code = row.get("parse_error_code")
+            parse_error_offset = row.get("parse_error_offset")
+            if interface_status == "pass" and any(
+                value is not None
+                for value in (
+                    provider_error,
+                    provider_error_details,
+                    parse_error,
+                    parse_error_code,
+                    parse_error_offset,
+                )
+            ):
+                raise PilotEvidenceError(
+                    "capability v2 pass row contains failure metadata"
+                )
+            if interface_status == "parse_error" and (
+                not isinstance(parse_error, str)
+                or not parse_error
+                or not isinstance(parse_error_code, str)
+                or not parse_error_code
+                or (
+                    parse_error_offset is not None
+                    and (
+                        isinstance(parse_error_offset, bool)
+                        or not isinstance(parse_error_offset, int)
+                        or parse_error_offset < 0
+                    )
+                )
+                or provider_error is not None
+                or provider_error_details is not None
+            ):
+                raise PilotEvidenceError(
+                    "capability v2 parse-error row is inconsistent"
+                )
+            if interface_status in {"provider_error", "incomplete"} and (
+                not isinstance(provider_error, str)
+                or not provider_error
+                or not isinstance(provider_error_details, Mapping)
+                or any(
+                    value is not None
+                    for value in (
+                        parse_error,
+                        parse_error_code,
+                        parse_error_offset,
+                    )
+                )
+            ):
+                raise PilotEvidenceError(
+                    "capability v2 provider-error row is inconsistent"
+                )
+            if interface_status == "invalid_finish" and any(
+                value is not None
+                for value in (
+                    provider_error,
+                    provider_error_details,
+                    parse_error,
+                    parse_error_code,
+                    parse_error_offset,
+                )
+            ):
+                raise PilotEvidenceError(
+                    "capability v2 invalid-finish row contains failure metadata"
+                )
+            task_ids.add(str(row["task_id"]))
+        registered_correct = sum(bool(row["correct"]) for row in category_rows)
+        evaluable_count = sum(bool(row["evaluable"]) for row in category_rows)
+        conditional_correct = sum(
+            bool(row["correct"]) for row in category_rows if row["evaluable"]
+        )
+        conditional_accuracy = (
+            conditional_correct / evaluable_count if evaluable_count else None
+        )
+        expected_totals[category] = {
+            "correct": registered_correct,
+            "denominator": registered_total,
+            "required": required,
+            "registered_correct": registered_correct,
+            "registered_total": registered_total,
+            "evaluable_count": evaluable_count,
+            "conditional_correct": conditional_correct,
+            "conditional_accuracy": conditional_accuracy,
+            "interface_failure_count": registered_total - evaluable_count,
+        }
+    if len(task_ids) != 30:
+        raise PilotEvidenceError("capability v2 task IDs are not unique")
+
+    totals = _mapping(
+        capability.get("category_totals"),
+        "capability v2 category_totals",
+    )
+    if set(totals) != set(category_contract):
+        raise PilotEvidenceError("capability v2 category totals are incomplete")
+    for category, expected in expected_totals.items():
+        observed = _mapping(
+            totals.get(category),
+            f"capability v2 totals {category}",
+        )
+        if set(expected) - set(observed):
+            raise PilotEvidenceError(
+                f"capability v2 totals {category!r} lack required fields"
+            )
+        for field, value in expected.items():
+            actual = observed.get(field)
+            if isinstance(value, float):
+                if (
+                    not _is_finite_scalar(actual)
+                    or not math.isclose(
+                        float(actual), value, rel_tol=0.0, abs_tol=1e-12
+                    )
+                ):
+                    raise PilotEvidenceError(
+                        f"capability v2 totals {category!r} are inconsistent"
+                    )
+            elif actual != value:
+                raise PilotEvidenceError(
+                    f"capability v2 totals {category!r} are inconsistent"
+                )
+
+    registered_checks = {
+        category: expected_totals[category]["correct"]
+        >= expected_totals[category]["required"]
+        for category in category_contract
+    }
+    if capability.get("checks") != registered_checks:
+        raise PilotEvidenceError("capability v2 registered checks are inconsistent")
+    conditional_checks = {
+        category: (
+            None
+            if expected_totals[category]["conditional_accuracy"] is None
+            else expected_totals[category]["conditional_accuracy"]
+            >= (
+                expected_totals[category]["required"]
+                / expected_totals[category]["registered_total"]
+            )
+        )
+        for category in category_contract
+    }
+    interface_failure_count = sum(
+        not bool(row["evaluable"]) for row in rows if isinstance(row, Mapping)
+    )
+    expected_interface = {
+        "pass": interface_failure_count == 0,
+        "failure_count": interface_failure_count,
+    }
+    if capability.get("interface_gate") != expected_interface:
+        raise PilotEvidenceError("capability v2 interface gate is inconsistent")
+    expected_assessment = {
+        "status": (
+            "not_evaluable"
+            if interface_failure_count
+            else "pass"
+            if all(conditional_checks.values())
+            else "fail"
+        ),
+        "pass": (
+            None
+            if interface_failure_count
+            else all(conditional_checks.values())
+        ),
+        "checks": conditional_checks,
+    }
+    if capability.get("capability_assessment") != expected_assessment:
+        raise PilotEvidenceError(
+            "capability v2 conditional assessment is inconsistent"
+        )
+    expected_pass = (
+        expected_interface["pass"] and expected_assessment["pass"] is True
+    )
+    if capability.get("pass") is not expected_pass:
+        raise PilotEvidenceError("capability v2 overall pass is inconsistent")
+    if capability.get("provider_failure_count") != sum(
+        row.get("provider_error") is not None
+        for row in rows
+        if isinstance(row, Mapping)
+    ):
+        raise PilotEvidenceError(
+            "capability v2 provider-failure count is inconsistent"
+        )
+    if capability.get("parse_failure_count") != sum(
+        row.get("parse_error") is not None
+        for row in rows
+        if isinstance(row, Mapping)
+    ):
+        raise PilotEvidenceError(
+            "capability v2 parse-failure count is inconsistent"
+        )
+
+
 def _validate_terminal_payload_marker(
     contract: PilotContract,
     spec: Mapping[str, Any],
@@ -576,9 +836,16 @@ def _validate_terminal_payload_marker(
     gate = _mapping(payload.get("gate_evidence", {}), "terminal gate_evidence")
     if mode == "capability_probe":
         capability = _mapping(payload.get("capability"), "capability payload")
+        schema_version = capability.get("schema_version")
+        if schema_version not in SUPPORTED_CAPABILITY_SCHEMA_VERSIONS:
+            raise PilotEvidenceError(
+                f"unsupported capability schema version: {schema_version!r}"
+            )
         for field in ("pass", "preflight_go"):
             if not isinstance(capability.get(field), bool):
                 raise PilotEvidenceError(f"capability payload lacks boolean {field}")
+        if schema_version == CURRENT_CAPABILITY_SCHEMA_VERSION:
+            _validate_capability_v2(capability)
         if not isinstance(gate.get("go"), bool):
             raise PilotEvidenceError("capability gate_evidence lacks boolean go")
         if capability["preflight_go"] is not gate["go"]:
@@ -814,10 +1081,12 @@ def _validate_terminal_payload_marker(
         or not isinstance(api_usage, Sequence)
         or isinstance(api_usage, (str, bytes))
         or len(api_usage) != causal["branch_action_completions"]
+        or branch.get("api_usage_hash") != canonical_sha256(api_usage)
     ):
         raise PilotEvidenceError(
             "checkpoint branch binding differs from its shared source"
         )
+    _validate_provider_usage_rows(contract, spec, api_usage)
     if narrative:
         source_narrative = _mapping(
             branch.get("narrative"),
@@ -923,6 +1192,182 @@ def _load_terminal_summary(
         "capability": _json_copy(payload.get("capability", {})),
         "narrative": _json_copy(payload.get("narrative", {})),
     }
+
+
+def _validate_provider_usage_rows(
+    contract: PilotContract,
+    spec: Mapping[str, Any],
+    api_rows: Any,
+    *,
+    expected_runner_schema: str = RUNNER_SCHEMA_VERSION,
+    allow_legacy: bool = False,
+) -> None:
+    """Validate one scientific call ledger against its frozen provider profile."""
+
+    if (
+        not isinstance(api_rows, Sequence)
+        or isinstance(api_rows, (str, bytes))
+        or not api_rows
+    ):
+        raise PilotEvidenceError("scientific run has no provider usage denominator")
+    profile = contract.provider_profiles[str(spec["model_id"])]
+    expected_seed = spec.get("decoding_seed")
+    from llm_providers import (  # pylint: disable=import-outside-toplevel
+        PINNED_PROVIDER_SDK_VERSIONS,
+    )
+
+    expected_provider = {
+        "openai": "openai",
+        "openrouter": "thirdparty",
+        "ollama": "ollama",
+    }.get(profile.transport)
+    if expected_provider is None:
+        raise PilotEvidenceError(
+            "scientific run used a non-dispatchable provider transport"
+        )
+    expected_identity = dict(profile.artifact_identity)
+    if profile.transport == "openrouter":
+        expected_response_providers = set(profile.provider_pin)
+        expected_response_route = expected_identity.get("served_snapshot")
+        expected_sdk_name = "openai-python"
+        expected_sdk_version = PINNED_PROVIDER_SDK_VERSIONS["openai"]
+        expected_route_attestation = "OR_RA_PASS"
+        expected_temperature_dispatch = "explicit"
+        expected_request_parameters = {
+            "model",
+            "messages",
+            "temperature",
+            "max_tokens",
+            "top_p",
+            *profile.openrouter_request_options().keys(),
+        }
+        if not expected_response_route:
+            raise PilotEvidenceError(
+                "OpenRouter profile lacks a frozen served-snapshot route"
+            )
+    elif profile.transport == "openai":
+        expected_response_providers = {"OpenAI-direct"}
+        expected_response_route = "direct"
+        expected_sdk_name = "openai-python"
+        expected_sdk_version = PINNED_PROVIDER_SDK_VERSIONS["openai"]
+        expected_route_attestation = None
+        reasoning_model = profile.requested_model.startswith(("gpt-5", "o1", "o3"))
+        expected_temperature_dispatch = (
+            "omitted_unsupported" if reasoning_model else "explicit"
+        )
+        expected_request_parameters = {
+            "model",
+            "messages",
+            "top_p",
+            *profile.openai_request_options().keys(),
+            (
+                "max_completion_tokens"
+                if reasoning_model
+                else "max_tokens"
+            ),
+        }
+        if not reasoning_model:
+            expected_request_parameters.add("temperature")
+    else:
+        expected_response_providers = {"local-ollama"}
+        expected_response_route = "local"
+        expected_sdk_name = "requests"
+        expected_sdk_version = PINNED_PROVIDER_SDK_VERSIONS["requests"]
+        expected_route_attestation = None
+        expected_temperature_dispatch = "explicit"
+        expected_request_parameters = {
+            "model",
+            "messages",
+            "stream",
+            "options",
+        }
+        if profile.json_mode == "json_object":
+            expected_request_parameters.add("format")
+    if expected_seed is not None and profile.transport != "ollama":
+        expected_request_parameters.add("seed")
+
+    supported_schema_versions = {
+        LEGACY_RUNNER_SCHEMA_VERSION,
+        PREVIOUS_RUNNER_SCHEMA_VERSION,
+        RUNNER_SCHEMA_VERSION,
+    }
+    if expected_runner_schema not in supported_schema_versions:
+        raise PilotEvidenceError(
+            "provider usage validation requested an unsupported runner schema"
+        )
+    if (
+        expected_runner_schema != RUNNER_SCHEMA_VERSION
+        and allow_legacy is not True
+    ):
+        raise PilotEvidenceError(
+            "legacy provider usage requires explicit read-only validation"
+        )
+    for row in api_rows:
+        if not isinstance(row, Mapping):
+            raise PilotEvidenceError("provider usage row must be an object")
+        row_schema = row.get("schema_version")
+        if row_schema != expected_runner_schema:
+            raise PilotEvidenceError(
+                "provider usage row does not match its expected runner schema"
+            )
+        usage = row.get("usage")
+        if not isinstance(usage, Mapping):
+            raise PilotEvidenceError(
+                "provider usage row lacks an accounted usage object"
+            )
+        numeric_usage = (
+            usage.get("prompt_tokens"),
+            usage.get("completion_tokens"),
+            usage.get("cost_usd"),
+        )
+        if any(
+            not _is_finite_scalar(value) or float(value) < 0
+            for value in numeric_usage
+        ):
+            raise PilotEvidenceError(
+                "provider usage row contains invalid usage/cost"
+            )
+        if (
+            row.get("provider") != expected_provider
+            or row.get("model") != profile.requested_model
+            or row.get("response_model") != profile.served_model
+            or row.get("attempts") != 1
+            or row.get("error_type") is not None
+            or row.get("request_seed") != expected_seed
+            or row.get("request_profile_id") != profile.profile_id
+            or row.get("request_provider_pin") != list(profile.provider_pin)
+            or row.get("request_artifact_identity") != expected_identity
+            or row.get("request_price_snapshot_source")
+            != profile.price_snapshot.source
+            or row.get("request_price_snapshot_captured_at")
+            != profile.price_snapshot.captured_at
+            or row.get("response_provider") not in expected_response_providers
+            or row.get("response_route") != expected_response_route
+        ):
+            raise PilotEvidenceError(
+                "provider usage row differs from the frozen request/served-route "
+                "profile"
+            )
+        if expected_runner_schema == RUNNER_SCHEMA_VERSION and (
+            row.get("finish_reason") != "stop"
+            or row.get("response_completed") is not True
+            or "provider_error_details" not in row
+            or row.get("provider_error_details") is not None
+            or row.get("output_disposition") != "accepted"
+            or row.get("provider_sdk_name") != expected_sdk_name
+            or row.get("provider_sdk_version") != expected_sdk_version
+            or "route_attestation_code" not in row
+            or row.get("route_attestation_code")
+            != expected_route_attestation
+            or row.get("temperature_dispatch")
+            != expected_temperature_dispatch
+            or row.get("request_parameters")
+            != sorted(expected_request_parameters)
+        ):
+            raise PilotEvidenceError(
+                "current provider usage row lacks exact completion/SDK/request "
+                "attestation"
+            )
 
 
 def _validate_standard_run_contract(
@@ -1037,69 +1482,14 @@ def _validate_standard_run_contract(
             "sealed runner provider/model differs from its request profile"
         )
 
-    api_rows = records.get("api_usage")
-    if (
-        not isinstance(api_rows, Sequence)
-        or isinstance(api_rows, (str, bytes))
-        or not api_rows
-    ):
-        raise PilotEvidenceError("scientific runner has no provider usage denominator")
-    expected_seed = spec.get("decoding_seed")
-    expected_provider = {
-        "openai": "openai",
-        "openrouter": "thirdparty",
-        "ollama": "ollama",
-    }[profile.transport]
-    expected_identity = dict(profile.artifact_identity)
-    if profile.transport == "openrouter":
-        expected_response_providers = set(profile.provider_pin)
-        expected_response_route = expected_identity.get("served_snapshot")
-        if not expected_response_route:
-            raise PilotEvidenceError(
-                "OpenRouter profile lacks a frozen served-snapshot route"
-            )
-    elif profile.transport == "openai":
-        expected_response_providers = {"OpenAI-direct"}
-        expected_response_route = "direct"
-    else:
-        expected_response_providers = {"local-ollama"}
-        expected_response_route = "local"
-    for row in api_rows:
-        usage = row.get("usage")
-        if not isinstance(usage, Mapping):
-            raise PilotEvidenceError("provider usage row lacks an accounted usage object")
-        numeric_usage = (
-            usage.get("prompt_tokens"),
-            usage.get("completion_tokens"),
-            usage.get("cost_usd"),
-        )
-        if any(
-            not _is_finite_scalar(value) or float(value) < 0
-            for value in numeric_usage
-        ):
-            raise PilotEvidenceError("provider usage row contains invalid usage/cost")
-        if (
-            row.get("provider") != expected_provider
-            or row.get("model") != profile.requested_model
-            or row.get("response_model") != profile.served_model
-            or row.get("attempts") != 1
-            or row.get("error_type") is not None
-            or row.get("request_seed") != expected_seed
-            or row.get("request_profile_id") != profile.profile_id
-            or row.get("request_provider_pin") != list(profile.provider_pin)
-            or row.get("request_artifact_identity") != expected_identity
-            or row.get("request_price_snapshot_source")
-            != profile.price_snapshot.source
-            or row.get("request_price_snapshot_captured_at")
-            != profile.price_snapshot.captured_at
-            or row.get("response_provider")
-            not in expected_response_providers
-            or row.get("response_route") != expected_response_route
-        ):
-            raise PilotEvidenceError(
-                "provider usage row differs from the frozen request/served-route "
-                "profile"
-            )
+    _validate_provider_usage_rows(
+        contract,
+        spec,
+        records.get("api_usage"),
+        expected_runner_schema=str(
+            config.get("schema_version", RUNNER_SCHEMA_VERSION)
+        ),
+    )
 
 
 def _load_standard_run(

@@ -1,4 +1,5 @@
 import random
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -27,7 +28,11 @@ class _RecordingScriptedProvider(ScriptedDiagnosticProvider):
 
     def get_structured_completion(self, messages, **kwargs):
         self.prompts.append(self._prompt(messages))
-        return super().get_structured_completion(messages, **kwargs)
+        return replace(
+            super().get_structured_completion(messages, **kwargs),
+            request_price_snapshot_source="fixture-price-snapshot",
+            request_price_snapshot_captured_at="2026-07-24T00:00:00Z",
+        )
 
 
 class _RngMutatingScriptedProvider(ScriptedDiagnosticProvider):
@@ -154,6 +159,10 @@ def test_four_agent_experiment_d_runs_all_matched_branches_without_api() -> None
             row["treatment"] == treatment
             and row["call_kind"] == "pilot_continuation_action"
             and row["usage"]["completion_tokens"] > 0
+            and row["request_price_snapshot_source"]
+            == "fixture-price-snapshot"
+            and row["request_price_snapshot_captured_at"]
+            == "2026-07-24T00:00:00Z"
             for row in branch["api_usage"]
         )
         assert [row["decision_t"] for row in branch["trajectory"]] == list(

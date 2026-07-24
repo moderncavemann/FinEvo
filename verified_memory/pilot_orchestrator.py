@@ -29,7 +29,11 @@ import subprocess
 import sys
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
-from llm_providers import MultiModelLLM, create_llm_provider
+from llm_providers import (
+    PINNED_PROVIDER_SDK_VERSIONS,
+    MultiModelLLM,
+    create_llm_provider,
+)
 
 from .artifacts import verify_manifest
 from .budget import BudgetLimits, RunBudget, UsageRecord
@@ -1535,6 +1539,71 @@ def _preflight_checks(
     api_rows = result.stream("api_usage")
     provider_rows = [row for row in api_rows if row.get("error_type") is not None]
     expected_artifact_identity = dict(profile.artifact_identity)
+    if profile.transport == "openrouter":
+        expected_response_providers = set(profile.provider_pin)
+        expected_response_route = expected_artifact_identity.get("served_snapshot")
+        expected_route_attestation = "OR_RA_PASS"
+        expected_sdk_name = "openai-python"
+        expected_sdk_version = PINNED_PROVIDER_SDK_VERSIONS["openai"]
+        expected_temperature_dispatch = "explicit"
+        expected_request_parameters = {
+            "model",
+            "messages",
+            "temperature",
+            "max_tokens",
+            "top_p",
+            *profile.openrouter_request_options().keys(),
+        }
+        if profile.seed_capability != "unsupported":
+            expected_request_parameters.add("seed")
+    elif profile.transport == "openai":
+        expected_response_providers = {"OpenAI-direct"}
+        expected_response_route = "direct"
+        expected_route_attestation = None
+        expected_sdk_name = "openai-python"
+        expected_sdk_version = PINNED_PROVIDER_SDK_VERSIONS["openai"]
+        expected_temperature_dispatch = (
+            "omitted_unsupported"
+            if profile.requested_model.startswith(("gpt-5", "o1", "o3"))
+            else "explicit"
+        )
+        reasoning_model = profile.requested_model.startswith(
+            ("gpt-5", "o1", "o3")
+        )
+        expected_request_parameters = {
+            "model",
+            "messages",
+            "top_p",
+            *profile.openai_request_options().keys(),
+            "max_completion_tokens" if reasoning_model else "max_tokens",
+        }
+        if not reasoning_model:
+            expected_request_parameters.add("temperature")
+        if profile.seed_capability != "unsupported":
+            expected_request_parameters.add("seed")
+    elif profile.transport == "ollama":
+        expected_response_providers = {"local-ollama"}
+        expected_response_route = "local"
+        expected_route_attestation = None
+        expected_sdk_name = "requests"
+        expected_sdk_version = PINNED_PROVIDER_SDK_VERSIONS["requests"]
+        expected_temperature_dispatch = "explicit"
+        expected_request_parameters = {
+            "model",
+            "messages",
+            "stream",
+            "options",
+        }
+        if profile.json_mode == "json_object":
+            expected_request_parameters.add("format")
+    else:
+        expected_response_providers = set(profile.provider_pin)
+        expected_response_route = profile.routing_mode
+        expected_route_attestation = None
+        expected_sdk_name = None
+        expected_sdk_version = None
+        expected_temperature_dispatch = None
+        expected_request_parameters = set()
     return {
         "action_parse_success_12_of_12": len(actions) == 12,
         "proposal_outcomes_accounted": all(
@@ -1579,6 +1648,62 @@ def _preflight_checks(
             and bool(row["response_provider"])
             and isinstance(row.get("response_route"), str)
             and bool(row["response_route"])
+            for row in api_rows
+        ),
+        "response_provider_exact": bool(api_rows)
+        and all(
+            row.get("response_provider") in expected_response_providers
+            for row in api_rows
+        ),
+        "response_snapshot_exact": bool(api_rows)
+        and all(
+            row.get("response_route") == expected_response_route
+            for row in api_rows
+        ),
+        "route_attestation_exact": bool(api_rows)
+        and all(
+            row.get("route_attestation_code") == expected_route_attestation
+            for row in api_rows
+        ),
+        "finish_metadata_complete": bool(api_rows)
+        and all(
+            row.get("finish_reason") == "stop"
+            and row.get("response_completed") is True
+            for row in api_rows
+        ),
+        "provider_sdk_complete": bool(api_rows)
+        and all(
+            (
+                expected_sdk_name is None
+                or row.get("provider_sdk_name") == expected_sdk_name
+            )
+            and (
+                expected_sdk_version is None
+                or row.get("provider_sdk_version") == expected_sdk_version
+            )
+            for row in api_rows
+        ),
+        "successful_rows_have_no_error_details": all(
+            "provider_error_details" in row
+            and row.get("provider_error_details") is None
+            for row in api_rows
+            if row.get("error_type") is None
+        ),
+        "successful_rows_output_accepted": bool(api_rows)
+        and all(
+            row.get("output_disposition") == "accepted"
+            for row in api_rows
+            if row.get("error_type") is None
+        ),
+        "temperature_dispatch_exact": bool(api_rows)
+        and all(
+            row.get("temperature_dispatch") == expected_temperature_dispatch
+            for row in api_rows
+        ),
+        "request_parameters_exact": bool(api_rows)
+        and all(
+            row.get("request_parameters")
+            == sorted(expected_request_parameters)
             for row in api_rows
         ),
         "usage_complete": all(
@@ -1658,11 +1783,20 @@ def _execute_capability_preflight(
     }
     _atomic_json(run_dir / "capability.json", capability_payload)
     if not capability["pass"]:
+        interface_pass = capability["interface_gate"]["pass"] is True
+        capability_status = capability["capability_assessment"]["status"]
+        reason = (
+            "fixed capability threshold not met"
+            if interface_pass
+            else "provider/interface failure; capability not evaluable"
+        )
         receipt = {
             "capability_pass": False,
+            "capability_status": capability_status,
+            "interface_pass": interface_pass,
             "preflight_run": None,
             "go": False,
-            "reason": "fixed capability threshold not met",
+            "reason": reason,
         }
         _atomic_json(run_dir / "gate_receipt.json", receipt)
         terminal = write_terminal_summary(

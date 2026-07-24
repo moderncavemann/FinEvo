@@ -7,6 +7,8 @@ import shutil
 
 import pytest
 
+from llm_providers import StructuredCompletion
+from verified_memory.budget import UsageRecord
 from verified_memory.pilot_contract import (
     PilotContractError,
     canonical_sha256,
@@ -23,12 +25,15 @@ from verified_memory.pilot_evidence import (
     _experiment_d_gate,
     _narrative_gate,
     _scientific_completion_status,
+    _validate_provider_usage_rows,
     _validate_standard_run_contract,
+    _validate_terminal_payload_marker,
     _validated_experiment_c_sensitivity,
     _validated_release_controls,
     build_pilot_evidence_package,
     write_terminal_summary,
 )
+from verified_memory.pilot_continuation import _completion_usage_row
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -76,6 +81,100 @@ def _first_spec(contract, *, stage: str, arm: str):
 
 def _digest(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _provider_usage_rows(contract, spec, *, count: int = 1) -> list[dict]:
+    profile = contract.provider_profiles[spec.model_id]
+    provider = {
+        "openai": "openai",
+        "openrouter": "thirdparty",
+        "ollama": "ollama",
+    }[profile.transport]
+    response_provider = {
+        "openai": "OpenAI-direct",
+        "openrouter": profile.provider_pin[0],
+        "ollama": "local-ollama",
+    }[profile.transport]
+    response_route = {
+        "openai": "direct",
+        "openrouter": dict(profile.artifact_identity)["served_snapshot"],
+        "ollama": "local",
+    }[profile.transport]
+    if profile.transport == "openai":
+        reasoning_model = profile.requested_model.startswith(("gpt-5", "o1", "o3"))
+        request_parameters = {
+            "model",
+            "messages",
+            "top_p",
+            *profile.openai_request_options().keys(),
+            "max_completion_tokens" if reasoning_model else "max_tokens",
+        }
+        if not reasoning_model:
+            request_parameters.add("temperature")
+        sdk_name = "openai-python"
+        sdk_version = "2.46.0"
+        route_attestation_code = None
+        temperature_dispatch = (
+            "omitted_unsupported" if reasoning_model else "explicit"
+        )
+    elif profile.transport == "openrouter":
+        request_parameters = {
+            "model",
+            "messages",
+            "temperature",
+            "max_tokens",
+            "top_p",
+            *profile.openrouter_request_options().keys(),
+        }
+        sdk_name = "openai-python"
+        sdk_version = "2.46.0"
+        route_attestation_code = "OR_RA_PASS"
+        temperature_dispatch = "explicit"
+    else:
+        request_parameters = {"model", "messages", "stream", "options"}
+        if profile.json_mode == "json_object":
+            request_parameters.add("format")
+        sdk_name = "requests"
+        sdk_version = "2.34.2"
+        route_attestation_code = None
+        temperature_dispatch = "explicit"
+    if spec.decoding_seed is not None and profile.transport != "ollama":
+        request_parameters.add("seed")
+    return [
+        {
+            "schema_version": "verified-simulation-runner-v3",
+            "provider": provider,
+            "model": profile.requested_model,
+            "response_model": profile.served_model,
+            "attempts": 1,
+            "error_type": None,
+            "request_seed": spec.decoding_seed,
+            "request_profile_id": profile.profile_id,
+            "request_provider_pin": list(profile.provider_pin),
+            "request_artifact_identity": dict(profile.artifact_identity),
+            "request_price_snapshot_source": profile.price_snapshot.source,
+            "request_price_snapshot_captured_at": (
+                profile.price_snapshot.captured_at
+            ),
+            "response_provider": response_provider,
+            "response_route": response_route,
+            "finish_reason": "stop",
+            "response_completed": True,
+            "provider_error_details": None,
+            "output_disposition": "accepted",
+            "provider_sdk_name": sdk_name,
+            "provider_sdk_version": sdk_version,
+            "route_attestation_code": route_attestation_code,
+            "temperature_dispatch": temperature_dispatch,
+            "request_parameters": sorted(request_parameters),
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": 5,
+                "cost_usd": 0.01,
+            },
+        }
+        for _ in range(count)
+    ]
 
 
 def _rng_binding(seed: int) -> tuple[list[str], dict]:
@@ -399,32 +498,7 @@ def test_standard_run_contract_rebuilds_config_and_provider_profile(
         ),
         "release_attestation": None,
     }
-    records = {
-        "api_usage": [
-            {
-                "provider": "openai",
-                "model": profile.requested_model,
-                "response_model": profile.served_model,
-                "attempts": 1,
-                "error_type": None,
-                "request_seed": spec.decoding_seed,
-                "request_profile_id": profile.profile_id,
-                "request_provider_pin": list(profile.provider_pin),
-                "request_artifact_identity": dict(profile.artifact_identity),
-                "request_price_snapshot_source": profile.price_snapshot.source,
-                "request_price_snapshot_captured_at": (
-                    profile.price_snapshot.captured_at
-                ),
-                "response_provider": "OpenAI-direct",
-                "response_route": "direct",
-                "usage": {
-                    "prompt_tokens": 10,
-                    "completion_tokens": 5,
-                    "cost_usd": 0.01,
-                },
-            }
-        ]
-    }
+    records = {"api_usage": _provider_usage_rows(contract, spec)}
     _validate_standard_run_contract(
         contract,
         spec.to_dict(),
@@ -472,38 +546,7 @@ def test_standard_run_contract_rebuilds_config_and_provider_profile(
             "scientific_scope": "preregistered_mechanism_micro_pilot",
         }
     )
-    opus_records = {
-        "api_usage": [
-            {
-                "provider": "thirdparty",
-                "model": opus_profile.requested_model,
-                "response_model": opus_profile.served_model,
-                "attempts": 1,
-                "error_type": None,
-                "request_seed": None,
-                "request_profile_id": opus_profile.profile_id,
-                "request_provider_pin": list(opus_profile.provider_pin),
-                "request_artifact_identity": dict(
-                    opus_profile.artifact_identity
-                ),
-                "request_price_snapshot_source": (
-                    opus_profile.price_snapshot.source
-                ),
-                "request_price_snapshot_captured_at": (
-                    opus_profile.price_snapshot.captured_at
-                ),
-                "response_provider": opus_profile.provider_pin[0],
-                "response_route": dict(opus_profile.artifact_identity)[
-                    "served_snapshot"
-                ],
-                "usage": {
-                    "prompt_tokens": 10,
-                    "completion_tokens": 5,
-                    "cost_usd": 0.01,
-                },
-            }
-        ]
-    }
+    opus_records = {"api_usage": _provider_usage_rows(contract, opus_spec)}
     _validate_standard_run_contract(
         contract,
         opus_spec.to_dict(),
@@ -539,6 +582,147 @@ def test_standard_run_contract_rebuilds_config_and_provider_profile(
             summary={"provider_model": f"openai/{profile.requested_model}"},
             records=records,
             provenance_git=provenance_git,
+            raw_root=tmp_path,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("schema_version", "verified-simulation-runner-v2"),
+        ("request_price_snapshot_source", "forged-price-snapshot"),
+        ("finish_reason", "length"),
+        ("response_completed", False),
+        ("provider_error_details", {"error_type": "ForgedError"}),
+        ("output_disposition", "discarded_due_to_contract_failure"),
+        ("provider_sdk_version", "0.0.0"),
+        ("temperature_dispatch", "explicit"),
+        ("request_parameters", ["messages"]),
+    ],
+)
+def test_provider_usage_rows_reject_current_attestation_tampering(
+    field: str,
+    value: object,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = _first_spec(contract, stage="experiment-d", arm="matched-a")
+    rows = _provider_usage_rows(contract, spec, count=24)
+
+    _validate_provider_usage_rows(contract, spec.to_dict(), rows)
+
+    rows[0][field] = value
+    with pytest.raises(PilotEvidenceError):
+        _validate_provider_usage_rows(contract, spec.to_dict(), rows)
+
+
+def test_provider_usage_rows_require_openrouter_route_attestation() -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(
+        stage="cross-model-sentinels",
+        model="opus48_sentinel",
+        arm="full",
+    )[0]
+    rows = _provider_usage_rows(contract, spec)
+    _validate_provider_usage_rows(contract, spec.to_dict(), rows)
+
+    rows[0]["route_attestation_code"] = None
+    with pytest.raises(PilotEvidenceError, match="exact completion"):
+        _validate_provider_usage_rows(contract, spec.to_dict(), rows)
+
+
+def test_provider_usage_rows_keep_read_only_v1_v2_compatibility() -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = _first_spec(contract, stage="experiment-d", arm="matched-a")
+    strict_only = {
+        "finish_reason",
+        "response_completed",
+        "provider_error_details",
+        "output_disposition",
+        "provider_sdk_name",
+        "provider_sdk_version",
+        "route_attestation_code",
+        "temperature_dispatch",
+        "request_parameters",
+    }
+    for schema in (
+        "verified-simulation-runner-v1",
+        "verified-simulation-runner-v2",
+    ):
+        row = _provider_usage_rows(contract, spec)[0]
+        row["schema_version"] = schema
+        for field in strict_only:
+            row.pop(field)
+        _validate_provider_usage_rows(
+            contract,
+            spec.to_dict(),
+            [row],
+            expected_runner_schema=schema,
+            allow_legacy=True,
+        )
+
+
+def test_continuation_usage_row_is_current_and_evidence_valid() -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = _first_spec(contract, stage="experiment-d", arm="matched-a")
+    profile = contract.provider_profiles[spec.model_id]
+    expected = _provider_usage_rows(contract, spec)[0]
+    completion = StructuredCompletion(
+        text='{"work": 0.5, "consumption": 0.5}',
+        usage=UsageRecord(prompt_tokens=10, completion_tokens=5, cost_usd=0.01),
+        model=profile.requested_model,
+        provider="openai",
+        attempts=1,
+        latency_seconds=0.01,
+        request_seed=spec.decoding_seed,
+        response_model=profile.served_model,
+        response_provider="OpenAI-direct",
+        response_route="direct",
+        request_profile_id=profile.profile_id,
+        request_provider_pin=tuple(profile.provider_pin),
+        request_artifact_identity=tuple(profile.artifact_identity),
+        request_price_snapshot_source=profile.price_snapshot.source,
+        request_price_snapshot_captured_at=profile.price_snapshot.captured_at,
+        finish_reason="stop",
+        native_finish_reason="stop",
+        response_completed=True,
+        provider_sdk_name=expected["provider_sdk_name"],
+        provider_sdk_version=expected["provider_sdk_version"],
+        route_attestation_code=None,
+        request_parameters=tuple(expected["request_parameters"]),
+        temperature_dispatch=expected["temperature_dispatch"],
+        output_disposition="accepted",
+    )
+    row = _completion_usage_row(
+        completion,
+        treatment="matched-a",
+        decision_t=6,
+        agent_id=0,
+    )
+
+    assert row["schema_version"] == "verified-simulation-runner-v3"
+    _validate_provider_usage_rows(contract, spec.to_dict(), [row])
+
+
+def test_capability_terminal_rejects_unknown_schema_version(
+    tmp_path: Path,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(stage="capability-preflight")[0]
+    payload = {
+        "metrics": {},
+        "gate_evidence": {"go": True},
+        "capability": {
+            "schema_version": "finevo-capability-gate-v999",
+            "pass": True,
+            "preflight_go": True,
+        },
+    }
+
+    with pytest.raises(PilotEvidenceError, match="unsupported capability schema"):
+        _validate_terminal_payload_marker(
+            contract,
+            spec.to_dict(),
+            payload,
             raw_root=tmp_path,
         )
 
@@ -823,7 +1007,11 @@ def test_actor_terminal_is_rejected_and_capability_terminal_binds_provenance(
     capability_payload = {
         "metrics": {},
         "gate_evidence": {"go": True},
-        "capability": {"pass": True, "preflight_go": True},
+        "capability": {
+            "schema_version": "finevo-capability-gate-v1",
+            "pass": True,
+            "preflight_go": True,
+        },
     }
     with pytest.raises(PilotContractError, match="annotated tag"):
         write_terminal_summary(
@@ -902,6 +1090,11 @@ def test_each_non_runner_execution_mode_requires_its_terminal_marker(
         seed=continuation.environment_seed,
         arm="matched-a",
     )
+    continuation_api_usage = _provider_usage_rows(
+        contract,
+        continuation,
+        count=24,
+    )
     shared_source = {
         "schema_version": "finevo-pilot-continuation-v1",
         "checkpoint_hash": causal["checkpoint_hash"],
@@ -931,7 +1124,8 @@ def test_each_non_runner_execution_mode_requires_its_terminal_marker(
                     "proposal_counters_after"
                 ],
                 "freeze_proposals": True,
-                "api_usage": [{} for _ in range(24)],
+                "api_usage": continuation_api_usage,
+                "api_usage_hash": canonical_sha256(continuation_api_usage),
                 "intervention": {"forced_active_start_hash": None},
             }
         },
@@ -970,7 +1164,11 @@ def test_each_non_runner_execution_mode_requires_its_terminal_marker(
             {
                 "metrics": {},
                 "gate_evidence": {"go": True},
-                "capability": {"pass": True, "preflight_go": True},
+                "capability": {
+                    "schema_version": "finevo-capability-gate-v1",
+                    "pass": True,
+                    "preflight_go": True,
+                },
             },
             False,
             False,
@@ -1174,7 +1372,11 @@ def test_terminal_checksum_and_standard_manifest_are_reverified(
         payload={
             "metrics": {},
             "gate_evidence": {"go": True},
-            "capability": {"pass": True, "preflight_go": True},
+            "capability": {
+                "schema_version": "finevo-capability-gate-v1",
+                "pass": True,
+                "preflight_go": True,
+            },
         },
         scientific_evidence=False,
         diagnostic_only=False,

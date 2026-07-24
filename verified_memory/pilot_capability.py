@@ -15,7 +15,7 @@ from .m2_episodic import EvidenceLinkedEpisodicTrack
 from .m3_semantic import CandidateParseError, VerifiedSemanticRuleTrack
 
 
-CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v1"
+CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v2"
 CAPABILITY_THRESHOLDS = {
     "utility-ranking": 10,
     "rule-application": 10,
@@ -232,9 +232,28 @@ def _completion_row(
 ) -> dict[str, Any]:
     predicted = None
     parse_error = None
+    parse_error_code = None
+    parse_error_offset = None
     correct = False
     legal = False
-    if completion.ok and completion.text != "Error":
+    incomplete = (
+        completion.error_type == "IncompleteCompletionError"
+        or completion.finish_reason == "length"
+    )
+    if incomplete:
+        interface_status = "incomplete"
+    elif (
+        not completion.ok
+        or completion.text == "Error"
+    ):
+        interface_status = "provider_error"
+    elif (
+        completion.finish_reason != "stop"
+        or completion.response_completed is not True
+    ):
+        interface_status = "invalid_finish"
+    else:
+        interface_status = "pass"
         try:
             if task.category == "rule-proposal":
                 legal = _proposal_is_legal(
@@ -247,6 +266,22 @@ def _completion_row(
                 correct = predicted == task.expected_choice
         except (CandidateParseError, json.JSONDecodeError, TypeError, ValueError) as exc:
             parse_error = f"{type(exc).__name__}: {exc}"
+            parse_error_code = type(exc).__name__
+            offset = getattr(exc, "pos", None)
+            if isinstance(offset, int) and not isinstance(offset, bool) and offset >= 0:
+                parse_error_offset = offset
+            interface_status = "parse_error"
+    # A malformed model answer is still an evaluable registered task outcome:
+    # it is scored incorrect in the fixed ITT denominator.  Only transport/
+    # contract failures and incomplete completions make capability itself
+    # unevaluable.  This preserves the preregistered 10/12, 10/12, and 5/6
+    # thresholds instead of silently imposing a new 30/30 parseability gate.
+    evaluable = interface_status in {"pass", "parse_error"}
+    provider_error_details = (
+        completion.provider_error_details.to_dict()
+        if completion.provider_error_details is not None
+        else None
+    )
     return {
         "schema_version": CAPABILITY_SCHEMA_VERSION,
         "task_id": task.task_id,
@@ -258,12 +293,28 @@ def _completion_row(
         "correct": correct,
         "legal": legal,
         "parse_error": parse_error,
+        "parse_error_code": parse_error_code,
+        "parse_error_offset": parse_error_offset,
+        "interface_status": interface_status,
+        "evaluable": evaluable,
         "provider_error": completion.error_type,
+        "provider_error_details": provider_error_details,
         "provider": completion.provider,
         "requested_model": completion.model,
         "served_model": completion.response_model,
         "response_provider": completion.response_provider,
         "response_route": completion.response_route,
+        "finish_reason": completion.finish_reason,
+        "native_finish_reason": completion.native_finish_reason,
+        "response_completed": completion.response_completed,
+        "provider_sdk_name": completion.provider_sdk_name,
+        "provider_sdk_version": completion.provider_sdk_version,
+        "route_attestation_code": completion.route_attestation_code,
+        "route_attestation_path": completion.route_attestation_path,
+        "route_attestation_source": completion.route_attestation_source,
+        "request_parameters": list(completion.request_parameters),
+        "temperature_dispatch": completion.temperature_dispatch,
+        "output_disposition": completion.output_disposition,
         "request_profile_id": completion.request_profile_id,
         "request_provider_pin": list(completion.request_provider_pin),
         "request_artifact_identity": dict(
@@ -278,6 +329,7 @@ def _completion_row(
         "request_seed": completion.request_seed,
         "attempts": completion.attempts,
         "usage": completion.usage.to_dict(),
+        "output_bytes": len(completion.text.encode("utf-8")),
         "raw_output_sha256": hashlib.sha256(
             completion.text.encode("utf-8")
         ).hexdigest(),
@@ -327,30 +379,71 @@ def run_capability_gate(
         _completion_row(task, completion)
         for task, completion in zip(tasks, completions)
     ]
-    totals = {
-        category: {
-            "correct": sum(
-                row["correct"] for row in rows if row["category"] == category
-            ),
-            "denominator": sum(
-                row["category"] == category for row in rows
-            ),
+    totals = {}
+    for category, threshold in CAPABILITY_THRESHOLDS.items():
+        category_rows = [row for row in rows if row["category"] == category]
+        registered_correct = sum(row["correct"] for row in category_rows)
+        registered_total = len(category_rows)
+        evaluable_count = sum(row["evaluable"] for row in category_rows)
+        conditional_correct = sum(
+            row["correct"] for row in category_rows if row["evaluable"]
+        )
+        conditional_accuracy = (
+            conditional_correct / evaluable_count if evaluable_count else None
+        )
+        totals[category] = {
+            # Compatibility aliases retained for v1 readers.
+            "correct": registered_correct,
+            "denominator": registered_total,
             "required": threshold,
+            # V2 separates registered ITT accounting from evaluable answers.
+            "registered_correct": registered_correct,
+            "registered_total": registered_total,
+            "evaluable_count": evaluable_count,
+            "conditional_correct": conditional_correct,
+            "conditional_accuracy": conditional_accuracy,
+            "interface_failure_count": registered_total - evaluable_count,
         }
-        for category, threshold in CAPABILITY_THRESHOLDS.items()
-    }
     checks = {
         category: value["correct"] >= value["required"]
         for category, value in totals.items()
     }
+    conditional_checks = {
+        category: (
+            None
+            if value["conditional_accuracy"] is None
+            else value["conditional_accuracy"]
+            >= value["required"] / value["registered_total"]
+        )
+        for category, value in totals.items()
+    }
+    interface_failure_count = sum(not row["evaluable"] for row in rows)
+    if interface_failure_count > 0:
+        capability_status = "not_evaluable"
+        capability_pass = None
+    else:
+        capability_pass = all(conditional_checks.values())
+        capability_status = "pass" if capability_pass else "fail"
+    interface_gate = {
+        "pass": interface_failure_count == 0,
+        "failure_count": interface_failure_count,
+    }
+    capability_assessment = {
+        "status": capability_status,
+        "pass": capability_pass,
+        "checks": conditional_checks,
+    }
+    overall_pass = interface_gate["pass"] and capability_pass is True
     return {
         "schema_version": CAPABILITY_SCHEMA_VERSION,
         "taskset_sha256": CAPABILITY_TASKSET_SHA256,
         "provider_model": llm.get_model_name(),
         "seed": seed,
-        "pass": all(checks.values()),
+        "pass": overall_pass,
         "checks": checks,
         "category_totals": totals,
+        "interface_gate": interface_gate,
+        "capability_assessment": capability_assessment,
         "provider_failure_count": sum(
             row["provider_error"] is not None for row in rows
         ),
