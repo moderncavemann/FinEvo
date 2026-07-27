@@ -211,6 +211,10 @@ def _is_v29_contract(contract: PilotContract) -> bool:
     return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.9"
 
 
+def _is_v210_contract(contract: PilotContract) -> bool:
+    return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.10"
+
+
 def _is_lane_separated_contract(contract: PilotContract) -> bool:
     """Return whether the contract uses the fixed V2.4 211-cell lane matrix."""
 
@@ -221,6 +225,7 @@ def _is_lane_separated_contract(contract: PilotContract) -> bool:
         or _is_v27_contract(contract)
         or _is_v28_contract(contract)
         or _is_v29_contract(contract)
+        or _is_v210_contract(contract)
     )
 
 
@@ -241,6 +246,7 @@ def _is_imported_stage0_spec(
             _is_v27_contract(contract)
             or _is_v28_contract(contract)
             or _is_v29_contract(contract)
+            or _is_v210_contract(contract)
         )
         and spec.get("stage_id") == "stage0-calibration"
         and spec.get("execution_mode") == "actor_run"
@@ -2862,6 +2868,28 @@ def _validate_terminal_payload_marker(
                     )
 
                 parent_import_receipt_verifier = verify_v29_receipt
+        elif _is_v210_contract(contract):
+            version_label = "V2.10"
+            if parent_import_receipt_verifier is None:
+                from .pilot_v210_parent_import import (  # pylint: disable=import-outside-toplevel
+                    verify_v210_parent_import_receipt,
+                )
+
+                def verify_v210_receipt(
+                    receipt_path: str,
+                    *,
+                    repo_root: Path,
+                    contract: PilotContract,
+                    expected_git_commit: str,
+                ) -> Mapping[str, Any]:
+                    return verify_v210_parent_import_receipt(
+                        receipt_path=receipt_path,
+                        child_repo_root=repo_root,
+                        contract=contract,
+                        expected_git_commit=expected_git_commit,
+                    )
+
+                parent_import_receipt_verifier = verify_v210_receipt
         else:
             raise PilotEvidenceError(
                 "parent-authority import is unsupported for this contract"
@@ -2869,7 +2897,11 @@ def _validate_terminal_payload_marker(
         receipt_path = gate.get("receipt")
         gate_provider_calls = gate.get(
             "provider_calls_during_import"
-            if _is_v28_contract(contract) or _is_v29_contract(contract)
+            if (
+                _is_v28_contract(contract)
+                or _is_v29_contract(contract)
+                or _is_v210_contract(contract)
+            )
             else "provider_calls"
         )
         if (
@@ -3519,7 +3551,10 @@ def _load_terminal_summary(
                 {"authority_repo_root": source_repo_root}
                 if (
                     source_repo_root is not None
-                    and _is_v29_contract(contract)
+                    and (
+                        _is_v29_contract(contract)
+                        or _is_v210_contract(contract)
+                    )
                     and source_repo_root.resolve()
                     != Path(__file__).resolve().parents[1]
                 )
@@ -4712,8 +4747,11 @@ def _expected_parent_budget_debit(
     from .pilot_v27_stage0_import import parent_budget_debit_for_v27
     from .pilot_v28_stage0_import import parent_budget_debit_for_v28
     from .pilot_v29_stage0_import import parent_budget_debit_for_v29
+    from .pilot_v210_parent_import import parent_budget_debit_for_v210
 
-    debit = parent_budget_debit_for_v29(contract)
+    debit = parent_budget_debit_for_v210(contract)
+    if debit is None:
+        debit = parent_budget_debit_for_v29(contract)
     if debit is None:
         debit = parent_budget_debit_for_v28(contract)
     if debit is None:
@@ -4897,7 +4935,10 @@ def _validated_imported_stage0_source_row(
             {"authority_repo_root": source_repo_root}
             if (
                 source_repo_root is not None
-                and _is_v29_contract(contract)
+                and (
+                    _is_v29_contract(contract)
+                    or _is_v210_contract(contract)
+                )
                 and source_repo_root.resolve()
                 != Path(__file__).resolve().parents[1]
             )
@@ -5071,6 +5112,7 @@ def _validated_release_controls(
             _is_v27_contract(contract)
             or _is_v28_contract(contract)
             or _is_v29_contract(contract)
+            or _is_v210_contract(contract)
         )
         source_rows = bindings.get(
             "source_envelopes"
@@ -5166,7 +5208,10 @@ def _validated_release_controls(
                     {"authority_repo_root": source_repo_root}
                     if (
                         source_repo_root is not None
-                        and _is_v29_contract(contract)
+                        and (
+                            _is_v29_contract(contract)
+                            or _is_v210_contract(contract)
+                        )
                         and source_repo_root.resolve()
                         != Path(__file__).resolve().parents[1]
                     )
@@ -5288,6 +5333,7 @@ def _validated_release_controls(
                 _is_v27_contract(contract)
                 or _is_v28_contract(contract)
                 or _is_v29_contract(contract)
+                or _is_v210_contract(contract)
             )
             else set()
         )
@@ -5299,6 +5345,7 @@ def _validated_release_controls(
             _is_v27_contract(contract)
             or _is_v28_contract(contract)
             or _is_v29_contract(contract)
+            or _is_v210_contract(contract)
         ):
             required_import_budget_ids.update(expected_parent_ids)
             for stage_id in (
@@ -5415,6 +5462,7 @@ def _validated_release_controls(
                     _is_v27_contract(contract)
                     or _is_v28_contract(contract)
                     or _is_v29_contract(contract)
+                    or _is_v210_contract(contract)
                 )
                 and row["execution_mode"] == "parent_authority_import"
                 and row.get("artifact_kind") is not None

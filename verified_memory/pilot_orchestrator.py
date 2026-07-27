@@ -15,6 +15,7 @@ their own namespace, so they cannot be mistaken for provider results.
 
 from __future__ import annotations
 
+from collections import Counter
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
@@ -114,6 +115,7 @@ from .pilot_sensitivity import (
     replay_rule_sensitivity,
 )
 from .pilot_contract import (
+    PILOT_CONTRACT_ID_V2_10 as V210_CONTRACT_ID,
     PILOT_CONTRACT_ID_V2_9 as V29_CONTRACT_ID,
     PilotContract,
     PilotContractError,
@@ -239,6 +241,27 @@ from .pilot_v29_stage0_import import (
     verify_v29_imported_v28_observed_p95,
     verify_v29_parent_import_receipt,
 )
+from .pilot_v210_parent_import import (
+    V29_RAW_STORAGE_BYTES as V210_PARENT_RAW_STORAGE_BYTES,
+    V29_SCIENCE_COMMIT as V210_PARENT_COMMIT,
+    V29_SCIENCE_TAG as V210_PARENT_TAG,
+    V210_ALLOWED_P95_PROFILES,
+    V210_SOURCE_MANIFEST_PATH,
+    PilotV210ParentImportError,
+    imported_prerequisite_path_v210,
+    imported_v29_raw_root_v210,
+    load_v210_source_manifest,
+    parent_budget_debit_for_v210,
+    persist_v210_parent_import,
+    source_binding_for_target_v210,
+    v210_observed_p95_projection_path,
+    v210_observed_p95_receipt_path,
+    verified_v210_imported_prerequisite_binding,
+    verified_v210_observed_p95_authority_binding,
+    verified_v210_observed_p95_projection_binding,
+    verify_v210_parent_import_receipt,
+    verify_v210_resealed_observed_p95_projection,
+)
 from .runner import (
     OBSERVED_P95_AUTHORITY_ID,
     OBSERVED_P95_PROJECTION_SCHEMA_VERSION,
@@ -312,6 +335,21 @@ PILOT_V29_PARENT_FAILURE_INTENT_SCHEMA_VERSION = (
 PILOT_V29_QREF_EQUIVALENCE_SCHEMA_VERSION = (
     "finevo-pilot-v2.9-qref-audit-equivalence-v1"
 )
+PILOT_V210_IMPORTED_QREF_SCHEMA_VERSION = (
+    "finevo-pilot-v2.10-imported-qref-resolution-v1"
+)
+PILOT_V210_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION = (
+    "finevo-pilot-v2.10-imported-run-envelope-v1"
+)
+PILOT_V210_STAGE0_COMMIT_INTENT_SCHEMA_VERSION = (
+    "finevo-pilot-v2.10-stage0-commit-intent-v1"
+)
+PILOT_V210_PARENT_COMMIT_INTENT_SCHEMA_VERSION = (
+    "finevo-pilot-v2.10-parent-import-commit-intent-v1"
+)
+PILOT_V210_PARENT_FAILURE_INTENT_SCHEMA_VERSION = (
+    "finevo-pilot-v2.10-parent-import-failure-intent-v1"
+)
 PILOT_BOUND_ARTIFACT_CANONICALIZATION = "json-sort-keys-utf8-v1"
 
 CORE_STAGE_IDS = (
@@ -335,6 +373,7 @@ PARENT_IMPORT_CONTRACT_IDS = frozenset(
         V27_CONTRACT_ID,
         V28_CONTRACT_ID,
         V29_CONTRACT_ID,
+        V210_CONTRACT_ID,
     }
 )
 
@@ -1229,6 +1268,10 @@ def _budget_caps(contract: PilotContract) -> PilotBudgetCaps:
 
 
 def _parent_budget_debit(contract: PilotContract):
+    if contract.contract_id == V210_CONTRACT_ID:
+        v210_debit = parent_budget_debit_for_v210(contract)
+        if v210_debit is not None:
+            return v210_debit
     if contract.contract_id == V29_CONTRACT_ID:
         v29_debit = parent_budget_debit_for_v29(contract)
         if v29_debit is not None:
@@ -1481,6 +1524,94 @@ def _v29_import_authority(
     ):
         raise PilotOrchestrationError(
             "V2.9 parent receipt violates its import/q-ref boundary"
+        )
+    return manifest, receipt
+
+
+def _v210_import_authority(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+    authority_repo_root: str | Path | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Revalidate V2.10's exact sixteen-cell V2.9 prerequisite import."""
+
+    if contract.contract_id != V210_CONTRACT_ID:
+        raise PilotOrchestrationError(
+            "V2.10 import authority used by another contract"
+        )
+    repository = (
+        Path(__file__).resolve().parents[1]
+        if authority_repo_root is None
+        else Path(authority_repo_root).resolve(strict=True)
+    )
+    source_manifest_path = repository.joinpath(
+        *V210_SOURCE_MANIFEST_PATH.parts
+    )
+    try:
+        manifest = load_v210_source_manifest(source_manifest_path)
+        receipt = verify_v210_parent_import_receipt(
+            receipt_path=(
+                raw_root / "parent-import" / "parent_import_receipt.json"
+            ),
+            child_repo_root=repository,
+            contract=contract,
+            expected_git_commit=paid.head_commit,
+        )
+    except PilotV210ParentImportError as exc:
+        raise PilotOrchestrationError(
+            f"V2.10 immutable prerequisite authority failed validation: {exc}"
+        ) from exc
+
+    rows = manifest.get("imported_complete_cells")
+    stage_counts = Counter(
+        row.get("stage_id")
+        for row in rows
+        if isinstance(row, Mapping)
+    ) if isinstance(rows, list) else Counter()
+    source_parent = receipt.get("source_parent")
+    imported_cells = receipt.get("imported_cells")
+    p95_authorities = receipt.get("p95_current_release_authorities")
+    if (
+        not isinstance(rows, list)
+        or len(rows) != 16
+        or stage_counts
+        != {
+            "parent-import": 1,
+            "q-ref-resolution": 1,
+            "stage0-calibration": 14,
+        }
+        or len({row.get("target_run_id") for row in rows}) != 16
+        or not isinstance(source_parent, Mapping)
+        or source_parent.get("contract_id") != V29_CONTRACT_ID
+        or source_parent.get("science_tag") != V210_PARENT_TAG
+        or source_parent.get("science_commit") != V210_PARENT_COMMIT
+        or source_parent.get("terminal_status") != "complete-with-no-go"
+        or source_parent.get("scientific_complete") is not False
+        or not isinstance(imported_cells, Mapping)
+        or imported_cells.get("count") != 16
+        or imported_cells.get("breakdown")
+        != {
+            "parent-import": 1,
+            "q-ref-resolution": 1,
+            "stage0-calibration": 14,
+        }
+        or imported_cells.get("q_ref") != 63.50397933257746
+        or imported_cells.get("stage0_selected_profile_id") != "nu-0.5"
+        or imported_cells.get("offline_candidate_admission_cells_imported")
+        != 0
+        or imported_cells.get("failed_actor_cells_imported") != 0
+        or not isinstance(p95_authorities, Mapping)
+        or set(p95_authorities) != set(V210_ALLOWED_P95_PROFILES)
+        or receipt.get("provider_construction_during_import") is not False
+        or receipt.get("provider_calls_during_import") != 0
+        or receipt.get("hosted_provider_calls_during_import") != 0
+        or receipt.get("hosted_cost_usd_during_import") != 0.0
+        or receipt.get("scientific_evidence") is not False
+    ):
+        raise PilotOrchestrationError(
+            "V2.10 parent receipt violates its exact prerequisite/import boundary"
         )
     return manifest, receipt
 
@@ -2133,6 +2264,134 @@ def _expected_v27_q_ref_resolution(
         }
     )
     return _seal_bound_payload(recomputed)
+
+
+def _expected_v210_q_ref_resolution(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+    authority_repo_root: str | Path | None = None,
+) -> dict[str, Any]:
+    """Reseal the one exact V2.9 q-ref prerequisite without provider work."""
+
+    source_manifest, parent_receipt = _v210_import_authority(
+        contract,
+        raw_root=raw_root,
+        paid=paid,
+        authority_repo_root=authority_repo_root,
+    )
+    specs = tuple(contract.expand(stage="q-ref-resolution"))
+    if (
+        len(specs) != 1
+        or specs[0].execution_mode != "q_ref_resolution"
+    ):
+        raise PilotOrchestrationError(
+            "V2.10 q-ref import requires one exact zero-provider cell"
+        )
+    spec = specs[0]
+    try:
+        source = verified_v210_imported_prerequisite_binding(
+            raw_root,
+            source_manifest,
+            spec,
+        )
+    except PilotV210ParentImportError as exc:
+        raise PilotOrchestrationError(
+            f"V2.10 q-ref prerequisite failed validation: {exc}"
+        ) from exc
+    source_resolution = source.get("q_ref_resolution")
+    source_artifacts = source.get("source_artifacts")
+    source_release = source.get("source_release")
+    source_terminal = source.get("source_terminal")
+    if (
+        source.get("source_stage_id") != "q-ref-resolution"
+        or source.get("target_spec") != spec.to_dict()
+        or source.get("q_ref") != 63.50397933257746
+        or not isinstance(source_resolution, Mapping)
+        or source_resolution.get("status") != "pass"
+        or source_resolution.get("q_ref") != 63.50397933257746
+        or source_resolution.get("row_count") != 48
+        or not isinstance(source_artifacts, Mapping)
+        or not isinstance(source_artifacts.get("q_ref_resolution"), Mapping)
+        or not isinstance(source_release, Mapping)
+        or not isinstance(source_terminal, Mapping)
+        or source.get("provider_construction_during_verification") is not False
+        or source.get("provider_calls_during_verification") != 0
+        or source.get("treatment_effect_evidence") is not False
+    ):
+        raise PilotOrchestrationError(
+            "V2.10 imported q-ref binding is malformed"
+        )
+    repository = (
+        Path(__file__).resolve().parents[1]
+        if authority_repo_root is None
+        else Path(authority_repo_root).resolve(strict=True)
+    )
+    source_manifest_path = repository.joinpath(
+        *V210_SOURCE_MANIFEST_PATH.parts
+    )
+    parent_receipt_path = (
+        raw_root / "parent-import" / "parent_import_receipt.json"
+    )
+    return _seal_bound_payload(
+        {
+            "schema_version": PILOT_V210_IMPORTED_QREF_SCHEMA_VERSION,
+            "status": "pass",
+            "contract_id": contract.contract_id,
+            "contract_sha256": contract.canonical_hash,
+            "q_ref": 63.50397933257746,
+            "row_count": 48,
+            "provider_calls_current_attempt": 0,
+            "hosted_provider_calls_current_attempt": 0,
+            "local_model_calls_current_attempt": 0,
+            "provider_construction_current_attempt": False,
+            "scientific_evidence": False,
+            "evidence_scope": "preregistered_q_ref_resolution",
+            "claim_boundary": (
+                "Exact V2.9 q-ref prerequisite import and V2.10 reseal only; "
+                "no V2.10 A-D treatment-effect or model-performance evidence."
+            ),
+            "source_import": _json_copy(source),
+            "bindings": {
+                "contract_sha256": contract.canonical_hash,
+                "git_tag": paid.git_tag,
+                "git_commit": paid.head_commit,
+                "source_contract_id": source_release.get("contract_id"),
+                "source_contract_sha256": source_release.get(
+                    "contract_sha256"
+                ),
+                "source_run_id": source.get("source_run_id"),
+                "source_q_ref_file_sha256": source_artifacts[
+                    "q_ref_resolution"
+                ].get("file_sha256"),
+                "source_q_ref_content_sha256": source_artifacts[
+                    "q_ref_resolution"
+                ].get("content_sha256"),
+                "source_terminal_file_sha256": source_terminal.get(
+                    "file_sha256"
+                ),
+                "source_terminal_content_sha256": source_terminal.get(
+                    "content_sha256"
+                ),
+                "source_raw_inventory_sha256": source_release.get(
+                    "raw_inventory_sha256"
+                ),
+                "source_manifest_file_sha256": _file_sha256(
+                    source_manifest_path
+                ),
+                "source_manifest_content_sha256": source_manifest.get(
+                    "integrity", {}
+                ).get("content_sha256"),
+                "parent_import_receipt_file_sha256": _file_sha256(
+                    parent_receipt_path
+                ),
+                "parent_import_receipt_content_sha256": parent_receipt.get(
+                    "integrity", {}
+                ).get("content_sha256"),
+            },
+        }
+    )
 
 
 def _build_v28_qref_equivalence_receipt(
@@ -2814,6 +3073,36 @@ def _load_verified_q_ref(
 ) -> dict[str, Any]:
     path = raw_root / "q-ref-resolution" / "q_ref_resolution.json"
     value = _read_json(path)
+    if contract.contract_id == V210_CONTRACT_ID:
+        _verify_bound_payload(
+            value,
+            contract=contract,
+            schema_version=PILOT_V210_IMPORTED_QREF_SCHEMA_VERSION,
+            paid=paid,
+            artifact_name="V2.10 imported q_ref resolution",
+        )
+        effective_paid = paid
+        if effective_paid is None:
+            bindings = value["bindings"]
+            effective_paid = GitProvenance(
+                git_tag=str(bindings["git_tag"]),
+                head_commit=str(bindings["git_commit"]),
+                tag_commit=str(bindings["git_commit"]),
+                tag_object_type="tag",
+                worktree_clean=True,
+                contract_binding={},
+            )
+        expected = _expected_v210_q_ref_resolution(
+            contract,
+            raw_root=raw_root,
+            paid=effective_paid,
+            authority_repo_root=authority_repo_root,
+        )
+        if value != expected:
+            raise PilotOrchestrationError(
+                "V2.10 q_ref resolution differs from its exact V2.9 import"
+            )
+        return value
     if contract.contract_id == V27_CONTRACT_ID:
         _verify_bound_payload(
             value,
@@ -3180,12 +3469,13 @@ def _imported_stage0_label(contract: PilotContract) -> str:
         V27_CONTRACT_ID: "V2.7",
         V28_CONTRACT_ID: "V2.8",
         V29_CONTRACT_ID: "V2.9",
+        V210_CONTRACT_ID: "V2.10",
     }
     try:
         return labels[contract.contract_id]
     except KeyError as exc:
         raise PilotOrchestrationError(
-            "imported Stage-0 is available only to V2.7/V2.8/V2.9"
+            "imported Stage-0 is available only to V2.7/V2.8/V2.9/V2.10"
         ) from exc
 
 
@@ -3194,9 +3484,149 @@ def _imported_stage0_envelope_schema(contract: PilotContract) -> str:
         V27_CONTRACT_ID: PILOT_V27_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION,
         V28_CONTRACT_ID: PILOT_V28_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION,
         V29_CONTRACT_ID: PILOT_V29_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION,
+        V210_CONTRACT_ID: PILOT_V210_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION,
     }
     _imported_stage0_label(contract)
     return schemas[contract.contract_id]
+
+
+def _build_v210_stage0_envelope(
+    contract: PilotContract,
+    spec: PilotRunSpec,
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+    source_manifest: Mapping[str, Any],
+    authority_repo_root: str | Path | None = None,
+) -> tuple[dict[str, Any], Mapping[str, Any], dict[str, Any], Path]:
+    """Reseal one exact V2.9 Stage-0 prerequisite as a V2.10 wrapper."""
+
+    if (
+        contract.contract_id != V210_CONTRACT_ID
+        or spec.stage_id != "stage0-calibration"
+        or spec.execution_mode != "actor_run"
+    ):
+        raise PilotOrchestrationError(
+            "V2.10 Stage-0 wrapper requires one exact imported actor cell"
+        )
+    try:
+        source = verified_v210_imported_prerequisite_binding(
+            raw_root,
+            source_manifest,
+            spec,
+        )
+    except PilotV210ParentImportError as exc:
+        raise PilotOrchestrationError(
+            f"{spec.run_id} V2.10 Stage-0 source failed validation: {exc}"
+        ) from exc
+    metrics = source.get("metrics")
+    source_artifacts = source.get("source_artifacts")
+    source_release = source.get("source_release")
+    source_terminal = source.get("source_terminal")
+    run_root = (
+        source_artifacts.get("run_root")
+        if isinstance(source_artifacts, Mapping)
+        else None
+    )
+    if (
+        not isinstance(metrics, Mapping)
+        or not isinstance(source_artifacts, Mapping)
+        or not isinstance(source_release, Mapping)
+        or not isinstance(source_terminal, Mapping)
+        or not isinstance(run_root, str)
+        or source.get("source_stage_id") != "stage0-calibration"
+        or source.get("target_spec") != spec.to_dict()
+        or source.get("selected_profile_id") != "nu-0.5"
+        or source.get("provider_calls_during_verification") != 0
+        or source.get("provider_construction_during_verification") is not False
+        or source.get("treatment_effect_evidence") is not False
+    ):
+        raise PilotOrchestrationError(
+            f"{spec.run_id} V2.10 Stage-0 source binding is malformed"
+        )
+    parent_receipt_path = (
+        raw_root / "parent-import" / "parent_import_receipt.json"
+    )
+    parent_receipt = _read_json(parent_receipt_path)
+    repository = (
+        Path(__file__).resolve().parents[1]
+        if authority_repo_root is None
+        else Path(authority_repo_root).resolve(strict=True)
+    )
+    source_manifest_path = repository.joinpath(
+        *V210_SOURCE_MANIFEST_PATH.parts
+    )
+    envelope = _seal_bound_payload(
+        {
+            "schema_version": PILOT_V210_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION,
+            "contract_id": contract.contract_id,
+            "contract_sha256": contract.canonical_hash,
+            "run_spec": spec.to_dict(),
+            "execution_disposition": (
+                "immutable-v2.9-prerequisite-import-offline-reseal"
+            ),
+            "reader": {
+                "schema_version": "finevo-pilot-stage0-analysis-v1",
+                "function": "verified_v210_imported_prerequisite_binding",
+                "phase_agnostic": True,
+                "allowed_record_streams": [
+                    "imported_terminal_metrics"
+                ],
+                "allowed_input_sha256": canonical_sha256(metrics),
+                "source_row_counts": _json_copy(
+                    metrics.get("row_counts", {})
+                ),
+                "summary": _json_copy(metrics),
+            },
+            "source_import": _json_copy(source),
+            "provider_calls_current_attempt": 0,
+            "hosted_provider_calls_current_attempt": 0,
+            "local_model_calls_current_attempt": 0,
+            "source_provider_outputs_reused_only_for_imported_stage0": True,
+            "source_artifacts_rewritten": False,
+            "a_d_treatment_effect_outcomes_generated": False,
+            "a_d_treatment_effect_outcomes_observed": False,
+            "stage0_selection_observed_before_amendment": True,
+            "scientific_evidence": True,
+            "claim_boundary": (
+                "V2.10 imports and reseals this completed V2.9 Stage-0 "
+                "prerequisite without provider dispatch. It is calibration "
+                "evidence only and is not V2.10 A-D treatment-effect evidence."
+            ),
+            "bindings": {
+                "contract_sha256": contract.canonical_hash,
+                "git_tag": paid.git_tag,
+                "git_commit": paid.head_commit,
+                "source_contract_id": source_release.get("contract_id"),
+                "source_contract_sha256": source_release.get(
+                    "contract_sha256"
+                ),
+                "source_run_id": source.get("source_run_id"),
+                "source_terminal_file_sha256": source_terminal.get(
+                    "file_sha256"
+                ),
+                "source_terminal_content_sha256": source_terminal.get(
+                    "content_sha256"
+                ),
+                "source_raw_inventory_sha256": source_release.get(
+                    "raw_inventory_sha256"
+                ),
+                "source_manifest_file_sha256": _file_sha256(
+                    source_manifest_path
+                ),
+                "source_manifest_content_sha256": source_manifest.get(
+                    "integrity", {}
+                ).get("content_sha256"),
+                "parent_import_receipt_file_sha256": _file_sha256(
+                    parent_receipt_path
+                ),
+                "parent_import_receipt_content_sha256": parent_receipt.get(
+                    "integrity", {}
+                ).get("content_sha256"),
+            },
+        }
+    )
+    return envelope, source, dict(source), Path(run_root)
 
 
 def _build_v27_stage0_envelope(
@@ -3212,6 +3642,7 @@ def _build_v27_stage0_envelope(
         V27_CONTRACT_ID,
         V28_CONTRACT_ID,
         V29_CONTRACT_ID,
+        V210_CONTRACT_ID,
     }
     contract_label = _imported_stage0_label(contract)
     if (
@@ -3222,6 +3653,15 @@ def _build_v27_stage0_envelope(
         raise PilotOrchestrationError(
             f"{contract_label} imported-run envelope is reserved for "
             "Stage-0 actor cells"
+        )
+    if contract.contract_id == V210_CONTRACT_ID:
+        return _build_v210_stage0_envelope(
+            contract,
+            spec,
+            raw_root=raw_root,
+            paid=paid,
+            source_manifest=source_manifest,
+            authority_repo_root=authority_repo_root,
         )
     if contract.contract_id == V29_CONTRACT_ID:
         result, source_binding, source_run_dir = (
@@ -3449,9 +3889,11 @@ def verify_v27_imported_stage0_terminal(
         V27_CONTRACT_ID,
         V28_CONTRACT_ID,
         V29_CONTRACT_ID,
+        V210_CONTRACT_ID,
     }:
         raise PilotOrchestrationError(
-            "imported Stage-0 terminal verification requires V2.7/V2.8/V2.9"
+            "imported Stage-0 terminal verification requires "
+            "V2.7/V2.8/V2.9/V2.10"
         )
     contract_label = _imported_stage0_label(contract)
     spec_value = spec.to_dict() if isinstance(spec, PilotRunSpec) else dict(spec)
@@ -3482,7 +3924,14 @@ def verify_v27_imported_stage0_terminal(
         contract_binding={},
     )
     root = Path(raw_root).resolve()
-    if contract.contract_id == V29_CONTRACT_ID:
+    if contract.contract_id == V210_CONTRACT_ID:
+        source_manifest, _ = _v210_import_authority(
+            contract,
+            raw_root=root,
+            paid=paid,
+            authority_repo_root=authority_repo_root,
+        )
+    elif contract.contract_id == V29_CONTRACT_ID:
         source_manifest, _ = _v29_import_authority(
             contract,
             raw_root=root,
@@ -3550,6 +3999,243 @@ def verify_v27_imported_stage0_terminal(
     }
 
 
+def _expected_v210_stage0_selection(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+    materialize: bool,
+    authority_repo_root: str | Path | None = None,
+) -> tuple[
+    dict[str, Any],
+    tuple[tuple[PilotRunSpec, Path, Path, dict[str, Any]], ...],
+]:
+    """Recompute V2.10 selection from exactly fourteen imported V2.9 cells."""
+
+    source_manifest, parent_receipt = _v210_import_authority(
+        contract,
+        raw_root=raw_root,
+        paid=paid,
+        authority_repo_root=authority_repo_root,
+    )
+    q_ref = _load_verified_q_ref(
+        contract,
+        raw_root=raw_root,
+        paid=paid,
+        authority_repo_root=authority_repo_root,
+    )
+    q_ref_path = raw_root / "q-ref-resolution" / "q_ref_resolution.json"
+    ofat = expand_stage0_ofat(float(q_ref["q_ref"]))
+    by_profile: dict[str, list[Mapping[str, Any]]] = {
+        profile_id: [] for profile_id in ofat["profile_order"]
+    }
+    specs = tuple(contract.expand(stage="stage0-calibration"))
+    if (
+        len(specs) != 14
+        or any(
+            spec.execution_mode != "actor_run"
+            or spec.model_id != "llama33_local_controlled"
+            for spec in specs
+        )
+    ):
+        raise PilotOrchestrationError(
+            "V2.10 Stage-0 import requires the exact 7x2 local actor matrix"
+        )
+    source_envelopes: list[dict[str, Any]] = []
+    cells: list[tuple[PilotRunSpec, Path, Path, dict[str, Any]]] = []
+    source_selection: dict[str, Any] | None = None
+    source_selection_binding: dict[str, Any] | None = None
+    for spec in specs:
+        if materialize:
+            (
+                envelope_path,
+                terminal_path,
+                _,
+                source_binding,
+                envelope,
+            ) = _materialize_v27_stage0_cell(
+                contract,
+                spec,
+                raw_root=raw_root,
+                paid=paid,
+                source_manifest=source_manifest,
+            )
+        else:
+            envelope_path = _v27_stage0_envelope_path(raw_root, spec)
+            envelope = _read_json(envelope_path)
+            expected, _, source_binding, _ = _build_v27_stage0_envelope(
+                contract,
+                spec,
+                raw_root=raw_root,
+                paid=paid,
+                source_manifest=source_manifest,
+                authority_repo_root=authority_repo_root,
+            )
+            _verify_bound_payload(
+                envelope,
+                contract=contract,
+                schema_version=PILOT_V210_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION,
+                paid=paid,
+                artifact_name=(
+                    f"V2.10 {spec.run_id} imported Stage-0 envelope"
+                ),
+            )
+            if envelope != expected:
+                raise PilotOrchestrationError(
+                    f"{spec.run_id} V2.10 Stage-0 envelope differs from import"
+                )
+            terminal_path = _v27_stage0_terminal_path(raw_root, spec)
+            terminal = _load_v2_terminal_summary(
+                contract,
+                spec,
+                terminal_path,
+                raw_root=raw_root,
+                paid=paid,
+            )
+            if (
+                terminal.get("payload")
+                != _v27_stage0_terminal_payload(envelope, envelope_path)
+                or terminal.get("scientific_evidence") is not True
+                or terminal.get("diagnostic_only") is not False
+                or terminal.get("evidence_scope") != CURRENT_SCIENTIFIC_SCOPE
+            ):
+                raise PilotOrchestrationError(
+                    f"{spec.run_id} V2.10 Stage-0 terminal binding drifted"
+                )
+        summary = envelope["reader"]["summary"]
+        by_profile[spec.utility_profile_id].append(summary)
+        artifacts = source_binding.get("source_artifacts")
+        selection_artifact = (
+            artifacts.get("stage0_selection")
+            if isinstance(artifacts, Mapping)
+            else None
+        )
+        if (
+            not isinstance(selection_artifact, Mapping)
+            or not isinstance(selection_artifact.get("snapshot_path"), str)
+        ):
+            raise PilotOrchestrationError(
+                f"{spec.run_id} lacks its verified source Stage-0 selection"
+            )
+        selected_source = _read_json(
+            Path(selection_artifact["snapshot_path"])
+        )
+        binding_projection = {
+            key: selection_artifact.get(key)
+            for key in (
+                "file_sha256",
+                "content_sha256",
+                "snapshot_path",
+            )
+        }
+        if source_selection is None:
+            source_selection = selected_source
+            source_selection_binding = binding_projection
+        elif (
+            selected_source != source_selection
+            or binding_projection != source_selection_binding
+        ):
+            raise PilotOrchestrationError(
+                "V2.10 Stage-0 cells do not share one immutable source selection"
+            )
+        terminal_value = _read_json(terminal_path)
+        source_envelopes.append(
+            {
+                "run_id": spec.run_id,
+                "utility_profile_id": spec.utility_profile_id,
+                "environment_seed": spec.environment_seed,
+                "execution_disposition": envelope["execution_disposition"],
+                "envelope": str(envelope_path),
+                "envelope_file_sha256": _file_sha256(envelope_path),
+                "envelope_content_sha256": envelope["integrity"][
+                    "content_sha256"
+                ],
+                "terminal_summary": str(terminal_path),
+                "terminal_summary_file_sha256": _file_sha256(terminal_path),
+                "terminal_summary_content_sha256": terminal_value["integrity"][
+                    "content_sha256"
+                ],
+                "source_run_id": source_binding["source_run_id"],
+                "source_terminal_file_sha256": source_binding[
+                    "source_terminal"
+                ]["file_sha256"],
+                "provider_calls_current_attempt": 0,
+            }
+        )
+        cells.append(
+            (spec, envelope_path, terminal_path, dict(summary))
+        )
+    if source_selection is None or source_selection_binding is None:
+        raise PilotOrchestrationError(
+            "V2.10 Stage-0 source selection is unavailable"
+        )
+    selection = select_stage0_profile(ofat, by_profile)
+    comparison_fields = (
+        "schema_version",
+        "selected_profile_id",
+        "selected_utility",
+        "selection_basis",
+        "ranking",
+        "outcome_fields_used",
+        "evidence_boundary",
+        "selection_input_hash",
+    )
+    mismatched = [
+        field
+        for field in comparison_fields
+        if selection.get(field) != source_selection.get(field)
+    ]
+    threshold = source_selection.get("absolute_flow_utility_threshold")
+    if (
+        mismatched
+        or selection.get("selected_profile_id") != "nu-0.5"
+        or not isinstance(threshold, Mapping)
+        or threshold.get("selected_profile_id") != "nu-0.5"
+        or threshold.get("row_count") != 96
+        or threshold.get("treatment_outcomes_inspected") is not False
+        or not isinstance(threshold.get("value"), (int, float))
+    ):
+        raise PilotOrchestrationError(
+            "V2.10 Stage-0 recomputation differs from the frozen V2.9 "
+            f"selection: {mismatched}"
+        )
+    selection["absolute_flow_utility_threshold"] = _json_copy(threshold)
+    selection.update(
+        {
+            "contract_sha256": contract.canonical_hash,
+            "q_ref_artifact_hash": canonical_sha256(q_ref),
+            "evaluator_amendment": {
+                "amendment_id": contract.stage0_evaluator_retry_amendment[
+                    "amendment_id"
+                ],
+                "reader_schema": "finevo-pilot-stage0-analysis-v1",
+                "selection_observed_before_amendment": True,
+                "a_d_treatment_effect_outcomes_observed": False,
+                "provider_calls_current_attempt": 0,
+            },
+            "bindings": {
+                "contract_sha256": contract.canonical_hash,
+                "git_tag": paid.git_tag,
+                "git_commit": paid.head_commit,
+                "q_ref_content_sha256": q_ref["integrity"]["content_sha256"],
+                "q_ref_file_sha256": _file_sha256(q_ref_path),
+                "source_manifest_content_sha256": source_manifest[
+                    "integrity"
+                ]["content_sha256"],
+                "parent_import_receipt_content_sha256": parent_receipt[
+                    "integrity"
+                ]["content_sha256"],
+                "source_stage0_selection": source_selection_binding,
+                "source_envelopes": sorted(
+                    source_envelopes,
+                    key=lambda row: row["run_id"],
+                ),
+            },
+        }
+    )
+    return _seal_bound_payload(selection), tuple(cells)
+
+
 def _expected_v27_stage0_selection(
     contract: PilotContract,
     *,
@@ -3562,6 +4248,14 @@ def _expected_v27_stage0_selection(
     tuple[tuple[PilotRunSpec, Path, Path, dict[str, Any]], ...],
 ]:
     contract_label = _imported_stage0_label(contract)
+    if contract.contract_id == V210_CONTRACT_ID:
+        return _expected_v210_stage0_selection(
+            contract,
+            raw_root=raw_root,
+            paid=paid,
+            materialize=materialize,
+            authority_repo_root=authority_repo_root,
+        )
     if contract.contract_id == V29_CONTRACT_ID:
         source_manifest, _ = _v29_import_authority(
             contract,
@@ -3776,6 +4470,7 @@ def _load_verified_stage0_selection(
         V27_CONTRACT_ID,
         V28_CONTRACT_ID,
         V29_CONTRACT_ID,
+        V210_CONTRACT_ID,
     }:
         contract_label = _imported_stage0_label(contract)
         _verify_bound_payload(
@@ -3929,6 +4624,7 @@ def verify_v27_stage0_selection(
         V27_CONTRACT_ID,
         V28_CONTRACT_ID,
         V29_CONTRACT_ID,
+        V210_CONTRACT_ID,
     }:
         raise PilotOrchestrationError(
             "imported Stage-0 selection replay requires V2.7/V2.8/V2.9"
@@ -4218,6 +4914,12 @@ def _observed_p95_authority_receipt_path(
     *,
     raw_root: Path,
 ) -> Path:
+    if contract.contract_id == V210_CONTRACT_ID:
+        if model_id not in V210_ALLOWED_P95_PROFILES:
+            raise PilotOrchestrationError(
+                f"{model_id} has no V2.10 resealed dispatch authority"
+            )
+        return v210_observed_p95_receipt_path(raw_root, model_id)
     if contract.contract_id == V29_CONTRACT_ID:
         if model_id not in V29_ALLOWED_P95_PROFILES:
             raise PilotOrchestrationError(
@@ -4277,6 +4979,47 @@ def _verified_observed_p95_binding(
     paid: GitProvenance,
     authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
+    if contract.contract_id == V210_CONTRACT_ID:
+        if model_id not in V210_ALLOWED_P95_PROFILES:
+            raise PilotOrchestrationError(
+                f"{model_id} has no V2.10 resealed dispatch authority"
+            )
+        release_root = (
+            Path(__file__).resolve().parents[1]
+            if authority_repo_root is None
+            else Path(authority_repo_root).resolve(strict=True)
+        )
+        receipt_path = v210_observed_p95_receipt_path(raw_root, model_id)
+        relative = _repository_relative_path(
+            receipt_path,
+            required_top="experiment_results",
+            name=f"{model_id} V2.10 p95 receipt",
+            repo_root=release_root,
+        )
+        try:
+            binding = verified_v210_observed_p95_authority_binding(
+                relative,
+                repo_root=release_root,
+                raw_root=raw_root,
+                expected_git_commit=paid.head_commit,
+                contract=contract,
+            )
+        except PilotV210ParentImportError as exc:
+            raise PilotOrchestrationError(
+                f"V2.10 {model_id} p95 authority failed validation: {exc}"
+            ) from exc
+        profile = contract.provider_profiles[model_id]
+        runtime_model = _runtime_model_for_profile(profile)
+        if (
+            binding.get("receipt_path") != relative
+            or binding.get("git_commit") != paid.head_commit
+            or not isinstance(binding.get("reservations"), Mapping)
+            or set(binding["reservations"]) != {runtime_model}
+        ):
+            raise PilotOrchestrationError(
+                f"V2.10 {model_id} flat p95 authority identity drifted"
+            )
+        return binding
     if contract.contract_id == V29_CONTRACT_ID:
         _v29_import_authority(contract, raw_root=raw_root, paid=paid)
         try:
@@ -4598,6 +5341,103 @@ def _verify_v29_importer_p95_profiles(
     return verified
 
 
+def _verify_v210_importer_p95_profiles(
+    contract: PilotContract,
+    *,
+    importer_result: Mapping[str, Any],
+    raw_root: Path,
+    paid: GitProvenance,
+) -> dict[str, Any]:
+    """Reverify both current-release flat P95 authorities after V2.9 import."""
+
+    if contract.contract_id != V210_CONTRACT_ID:
+        raise PilotOrchestrationError(
+            "V2.10 importer p95 verification used by another contract"
+        )
+    _, receipt = _v210_import_authority(
+        contract,
+        raw_root=raw_root,
+        paid=paid,
+    )
+    if (
+        importer_result.get("imported_cell_count") != 16
+        or importer_result.get("imported_q_ref_cell_count") != 1
+        or importer_result.get("imported_stage0_cell_count") != 14
+        or importer_result.get("offline_candidate_admission_cells_imported")
+        != 0
+        or importer_result.get("provider_construction_during_import") is not False
+        or importer_result.get("provider_calls_during_import") != 0
+        or importer_result.get("hosted_provider_calls_during_import") != 0
+        or importer_result.get("scientific_evidence") is not False
+        or importer_result.get("v2_9_terminal_no_go_preserved") is not True
+    ):
+        raise PilotOrchestrationError(
+            "V2.10 importer result violates its exact zero-call boundary"
+        )
+    declared_profiles = receipt.get("p95_current_release_authorities")
+    if (
+        not isinstance(declared_profiles, Mapping)
+        or set(declared_profiles) != set(V210_ALLOWED_P95_PROFILES)
+    ):
+        raise PilotOrchestrationError(
+            "V2.10 parent receipt lacks both exact current-release P95 profiles"
+        )
+    repository = Path(__file__).resolve().parents[1]
+    verified: dict[str, Any] = {}
+    for model_id in sorted(V210_ALLOWED_P95_PROFILES):
+        receipt_path = v210_observed_p95_receipt_path(raw_root, model_id)
+        projection_path = v210_observed_p95_projection_path(raw_root, model_id)
+        try:
+            authority = verified_v210_observed_p95_authority_binding(
+                receipt_path,
+                repo_root=repository,
+                raw_root=raw_root,
+                expected_git_commit=paid.head_commit,
+                contract=contract,
+            )
+            projection = verified_v210_observed_p95_projection_binding(
+                projection_path,
+                receipt_path=receipt_path,
+                repo_root=repository,
+                raw_root=raw_root,
+                expected_git_commit=paid.head_commit,
+                contract=contract,
+            )
+        except PilotV210ParentImportError as exc:
+            raise PilotOrchestrationError(
+                f"V2.10 resealed {model_id} p95 failed validation: {exc}"
+            ) from exc
+        profile = contract.provider_profiles[model_id]
+        runtime_model = _runtime_model_for_profile(profile)
+        if (
+            set(authority)
+            != {
+                "receipt_path",
+                "receipt_file_sha256",
+                "receipt_content_sha256",
+                "git_commit",
+                "reservations",
+            }
+            or authority.get("git_commit") != paid.head_commit
+            or set(authority.get("reservations", {})) != {runtime_model}
+            or projection.get("profile_id") != model_id
+            or projection.get("served_model") != profile.served_model
+            or projection.get("runtime_model") != runtime_model
+            or projection.get("git_commit") != paid.head_commit
+            or projection.get("reservations") != authority["reservations"]
+            or declared_profiles.get(model_id)
+            != {"authority": authority, "projection": projection}
+        ):
+            raise PilotOrchestrationError(
+                f"V2.10 resealed {model_id} p95 identity/binding drifted"
+            )
+        verified[model_id] = {
+            "authority": _json_copy(authority),
+            "projection": _json_copy(projection),
+        }
+    return verified
+
+
 def _runner_p95_reservations(
     contract: PilotContract,
     model_id: str,
@@ -4620,6 +5460,44 @@ def _runner_p95_reservations(
         paid=paid,
         authority_repo_root=authority_repo_root,
     )
+    if contract.contract_id == V210_CONTRACT_ID:
+        required_flat_fields = {
+            "receipt_path",
+            "receipt_file_sha256",
+            "receipt_content_sha256",
+            "git_commit",
+            "reservations",
+        }
+        amendment = contract.p95_runner_binding_retry_amendment
+        declared_fields = (
+            amendment["p95_runner_binding_repair"][
+                "runner_binding_required_fields"
+            ]
+            if amendment is not None
+            else ()
+        )
+        sha_fields = (
+            receipt_binding.get("receipt_file_sha256"),
+            receipt_binding.get("receipt_content_sha256"),
+        )
+        if (
+            set(declared_fields) != required_flat_fields
+            or set(receipt_binding) != required_flat_fields
+            or not isinstance(receipt_binding.get("receipt_path"), str)
+            or not receipt_binding["receipt_path"]
+            or receipt_binding.get("git_commit") != paid.head_commit
+            or any(
+                not isinstance(value, str)
+                or len(value) != 64
+                or any(character not in "0123456789abcdef" for character in value)
+                for value in sha_fields
+            )
+            or not isinstance(receipt_binding.get("reservations"), Mapping)
+        ):
+            raise PilotOrchestrationError(
+                "V2.10 runner p95 binding is not the exact current-release "
+                "flat contract"
+            )
     profile = contract.provider_profiles[model_id]
     runtime_model = _runtime_model_for_profile(profile)
     receipt_reservations = receipt_binding.get("reservations")
@@ -7063,6 +7941,71 @@ def _load_v29_imported_projection(
     return payload, path
 
 
+def _load_v210_resealed_projection(
+    contract: PilotContract,
+    model_id: str,
+    *,
+    raw_root: Path,
+    paid: GitProvenance | None,
+    authority_repo_root: str | Path | None = None,
+) -> tuple[dict[str, Any], Path]:
+    """Load the current-release V2.10 projection paired to its flat authority."""
+
+    if paid is None:
+        raise PilotOrchestrationError(
+            "V2.10 resealed p95 projection requires release provenance"
+        )
+    if contract.contract_id != V210_CONTRACT_ID:
+        raise PilotOrchestrationError(
+            "V2.10 resealed p95 projection used by another contract"
+        )
+    if model_id not in V210_ALLOWED_P95_PROFILES:
+        raise PilotOrchestrationError(
+            f"{model_id} is not an allowed V2.10 p95 profile"
+        )
+    release_root = (
+        Path(__file__).resolve().parents[1]
+        if authority_repo_root is None
+        else Path(authority_repo_root).resolve(strict=True)
+    )
+    receipt_path = v210_observed_p95_receipt_path(raw_root, model_id)
+    projection_path = v210_observed_p95_projection_path(raw_root, model_id)
+    receipt = _read_json(receipt_path)
+    projection = _read_json(projection_path)
+    try:
+        verified = verify_v210_resealed_observed_p95_projection(
+            projection,
+            receipt=receipt,
+            repo_root=release_root,
+            raw_root=raw_root,
+            expected_git_commit=paid.head_commit,
+            contract=contract,
+        )
+    except PilotV210ParentImportError as exc:
+        raise PilotOrchestrationError(
+            f"V2.10 {model_id} p95 projection failed validation: {exc}"
+        ) from exc
+    profile = contract.provider_profiles[model_id]
+    bindings = verified.get("bindings")
+    expected_keys = {
+        f"{profile.served_model}::action",
+        f"{profile.served_model}::semantic",
+    }
+    if (
+        verified.get("model_id") != model_id
+        or verified.get("served_model") != profile.served_model
+        or set(verified.get("projection", {})) != expected_keys
+        or not isinstance(bindings, Mapping)
+        or bindings.get("contract_sha256") != contract.canonical_hash
+        or bindings.get("git_tag") != paid.git_tag
+        or bindings.get("git_commit") != paid.head_commit
+    ):
+        raise PilotOrchestrationError(
+            f"V2.10 {model_id} resealed p95 projection identity drifted"
+        )
+    return verified, projection_path
+
+
 def _load_verified_projection(
     contract: PilotContract,
     model_id: str,
@@ -7071,6 +8014,14 @@ def _load_verified_projection(
     paid: GitProvenance | None,
     authority_repo_root: str | Path | None = None,
 ) -> tuple[dict[str, Any], Path]:
+    if contract.contract_id == V210_CONTRACT_ID:
+        return _load_v210_resealed_projection(
+            contract,
+            model_id,
+            raw_root=raw_root,
+            paid=paid,
+            authority_repo_root=authority_repo_root,
+        )
     if contract.contract_id == V29_CONTRACT_ID:
         return _load_v29_imported_projection(
             contract,
@@ -8323,6 +9274,7 @@ def _v2_stage_control_paths(
             V27_CONTRACT_ID,
             V28_CONTRACT_ID,
             V29_CONTRACT_ID,
+            V210_CONTRACT_ID,
         }:
             paths.update(
                 path
@@ -8454,7 +9406,19 @@ def _v2_control_gate_ok(
         path = raw_root / stage_id / "parent_import_receipt.json"
         if not path.exists():
             return False
-        if contract.contract_id == V29_CONTRACT_ID:
+        if contract.contract_id == V210_CONTRACT_ID:
+            try:
+                verify_v210_parent_import_receipt(
+                    receipt_path=path,
+                    child_repo_root=Path(__file__).resolve().parents[1],
+                    contract=contract,
+                    expected_git_commit=paid.head_commit,
+                )
+            except PilotV210ParentImportError as exc:
+                raise PilotOrchestrationError(
+                    f"V2.10 parent import receipt failed validation: {exc}"
+                ) from exc
+        elif contract.contract_id == V29_CONTRACT_ID:
             try:
                 verify_v29_parent_import_receipt(
                     receipt_path=path,
@@ -9198,6 +10162,7 @@ def _build_experiment_c_sensitivity(
     git_commit: str,
     stage_id: str = "experiment-c",
     model_id: str | None = None,
+    authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Recompute descriptive C sensitivity from the frozen full-control arm."""
 
@@ -9214,6 +10179,7 @@ def _build_experiment_c_sensitivity(
         contract,
         raw_root=raw_root,
         paid=None,
+        authority_repo_root=authority_repo_root,
     )
     threshold = selection.get("absolute_flow_utility_threshold")
     if not isinstance(threshold, Mapping):
@@ -9282,7 +10248,14 @@ def _build_experiment_c_sensitivity(
             )
         provenance = _read_json(run_dir / "provenance.json")
         details = provenance.get("details")
-        result = load_verified_run_artifacts(run_dir)
+        result = load_verified_run_artifacts(
+            run_dir,
+            **(
+                {}
+                if authority_repo_root is None
+                else {"authority_repo_root": authority_repo_root}
+            ),
+        )
         if (
             result.config.get("run_id") != spec.run_id
             or result.config.get("seed") != spec.environment_seed
@@ -9433,6 +10406,7 @@ def _load_verified_experiment_c_sensitivity(
     paid: GitProvenance | None,
     stage_id: str = "experiment-c",
     model_id: str | None = None,
+    authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     path = _experiment_c_sensitivity_path(raw_root, stage_id)
     value = _read_json(path)
@@ -9451,6 +10425,7 @@ def _load_verified_experiment_c_sensitivity(
         git_commit=str(bindings["git_commit"]),
         stage_id=stage_id,
         model_id=model_id,
+        authority_repo_root=authority_repo_root,
     )
     actual_without_integrity = _json_copy(value)
     actual_without_integrity.pop("integrity", None)
@@ -11048,6 +12023,245 @@ def _execute_v27_q_ref_import_stage(
         ) from exc
 
 
+def _execute_v210_q_ref_import_stage(
+    contract: PilotContract,
+    specs: Sequence[PilotRunSpec],
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+    run_ledger: PilotRunLedger,
+    budget_ledger: PilotBudgetLedger,
+) -> dict[str, Any]:
+    """Import/reseal the one frozen V2.9 q-ref prerequisite with zero calls."""
+
+    if (
+        contract.contract_id != V210_CONTRACT_ID
+        or len(specs) != 1
+        or specs[0].stage_id != "q-ref-resolution"
+        or specs[0].execution_mode != "q_ref_resolution"
+    ):
+        raise PilotOrchestrationError(
+            "V2.10 q-ref import requires one exact zero-provider contract cell"
+        )
+    spec = specs[0]
+    projection = RunProjection(
+        run_id=spec.run_id,
+        stage_bucket=spec.budget_bucket,
+        cost_usd=0.0,
+        completions=0,
+        storage_bytes=5_000_000,
+        basis={
+            "method": "v2.10-exact-v2.9-qref-import-reseal",
+            "provider_calls": 0,
+            "hosted_completion_cap_counted": False,
+        },
+    )
+    existing_budget = budget_ledger.snapshot()["runs"].get(spec.run_id)
+    if run_ledger.is_terminal(spec.run_id):
+        if existing_budget is None:
+            raise PilotOrchestrationError(
+                "V2.10 q-ref is terminal without an own-stage budget "
+                "reservation; upstream no-go has no dispatch authority"
+            )
+        if existing_budget.get("reservation") != projection.to_dict():
+            raise PilotOrchestrationError(
+                "V2.10 q-ref budget reservation drifted"
+            )
+        if run_ledger.status(spec.run_id) != "complete":
+            return _reconcile_v27_qref_no_go_budget(
+                contract,
+                spec,
+                raw_root=raw_root,
+                paid=paid,
+                run_ledger=run_ledger,
+                budget_ledger=budget_ledger,
+                projection=projection,
+            )
+    elif existing_budget is None:
+        budget_ledger.reserve(projection)
+    elif existing_budget.get("reservation") != projection.to_dict():
+        raise PilotOrchestrationError("V2.10 q-ref budget reservation drifted")
+    try:
+        _assert_prerequisites(
+            contract,
+            "q-ref-resolution",
+            raw_root=raw_root,
+            paid=paid,
+            ledger=run_ledger,
+        )
+        resolution = _expected_v210_q_ref_resolution(
+            contract,
+            raw_root=raw_root,
+            paid=paid,
+        )
+        resolution_path = (
+            raw_root / "q-ref-resolution" / "q_ref_resolution.json"
+        )
+        _persist_exact_json(resolution_path, resolution)
+        terminal_path = (
+            raw_root
+            / "q-ref-resolution"
+            / "summaries"
+            / f"{spec.run_id}.json"
+        )
+        source_import = resolution["source_import"]
+        source_artifacts = source_import["source_artifacts"]
+        terminal_payload = {
+            "metrics": {"q_ref": resolution["q_ref"]},
+            "gate_evidence": {
+                "status": resolution["status"],
+                "execution_disposition": (
+                    "immutable-v2.9-prerequisite-import-offline-reseal"
+                ),
+                "q_ref_resolution": {
+                    "path": str(resolution_path),
+                    "file_sha256": _file_sha256(resolution_path),
+                    "content_sha256": resolution["integrity"][
+                        "content_sha256"
+                    ],
+                },
+                "provider_calls_current_attempt": 0,
+            },
+            "q_ref_resolution": {
+                "q_ref": resolution["q_ref"],
+                "row_count": resolution["row_count"],
+                "source_resolution": source_artifacts[
+                    "q_ref_resolution"
+                ]["snapshot_path"],
+                "source_resolution_sha256": source_artifacts[
+                    "q_ref_resolution"
+                ]["file_sha256"],
+                "resolution_artifact": str(resolution_path),
+            },
+            "provider_calls": 0,
+            "claim_boundary": resolution["claim_boundary"],
+        }
+        if terminal_path.exists():
+            terminal = _load_v2_terminal_summary(
+                contract,
+                spec,
+                terminal_path,
+                raw_root=raw_root,
+                paid=paid,
+            )
+            if (
+                terminal.get("payload") != terminal_payload
+                or terminal.get("scientific_evidence") is not False
+                or terminal.get("diagnostic_only") is not False
+                or terminal.get("evidence_scope")
+                != "preregistered_q_ref_resolution"
+            ):
+                raise PilotOrchestrationError(
+                    "V2.10 q-ref terminal differs on resume"
+                )
+        else:
+            write_terminal_summary(
+                terminal_path,
+                contract=contract,
+                run_spec=spec,
+                resolved_git_commit=paid.head_commit,
+                git_tag=paid.git_tag,
+                payload=terminal_payload,
+                scientific_evidence=False,
+                diagnostic_only=False,
+                evidence_scope="preregistered_q_ref_resolution",
+            )
+        if run_ledger.is_terminal(spec.run_id):
+            if run_ledger.status(spec.run_id) != "complete":
+                raise PilotOrchestrationError(
+                    "V2.10 q-ref cell is terminal without progression authority"
+                )
+            row = run_ledger.snapshot()["runs"][spec.run_id]
+            if row.get("artifact") != str(terminal_path):
+                raise PilotOrchestrationError(
+                    "V2.10 q-ref ledger artifact differs on resume"
+                )
+        else:
+            run_ledger.finalize(
+                spec.run_id,
+                status="complete",
+                artifact=str(terminal_path),
+                failure=None,
+            )
+        rows = run_ledger.snapshot()["runs"]
+        if Counter(row["status"] for row in rows.values()) != {
+            "complete": 2,
+            "scheduled": 209,
+        }:
+            raise PilotOrchestrationError(
+                "V2.10 q-ref success must leave exactly two imported "
+                "prerequisites complete and 209 fresh cells scheduled"
+            )
+        receipt = _write_stage_receipt(
+            contract,
+            "q-ref-resolution",
+            raw_root=raw_root,
+            ledger=run_ledger,
+            status="complete",
+            artifacts={
+                "q_ref_resolution": str(resolution_path),
+                "source_run_id": source_import["source_run_id"],
+                "provider_calls_current_attempt": 0,
+            },
+            paid=paid,
+        )
+        budget_ledger.finalize(
+            spec.run_id,
+            status="complete",
+            cost_usd=0.0,
+            completions=0,
+            storage_bytes=_directory_size(raw_root / "q-ref-resolution"),
+            failure=None,
+        )
+        return _read_json(receipt)
+    except Exception as exc:
+        if run_ledger.is_terminal(spec.run_id) and run_ledger.status(
+            spec.run_id
+        ) == "complete":
+            raise
+        failure = _exception_failure(exc)
+        if not run_ledger.is_terminal(spec.run_id):
+            run_ledger.finalize(
+                spec.run_id,
+                status="integrity-stopped",
+                artifact=None,
+                failure=failure,
+            )
+        _propagate_stage_no_go(
+            contract,
+            source_stage="q-ref-resolution",
+            ledger=run_ledger,
+            failure=failure,
+        )
+        receipt = _write_stage_receipt(
+            contract,
+            "q-ref-resolution",
+            raw_root=raw_root,
+            ledger=run_ledger,
+            status="integrity-stopped",
+            failure=failure,
+            paid=paid,
+        )
+        budget_row = budget_ledger.snapshot()["runs"].get(spec.run_id)
+        if (
+            isinstance(budget_row, Mapping)
+            and budget_row.get("status") != "complete"
+        ):
+            budget_ledger.finalize(
+                spec.run_id,
+                status="integrity-stopped",
+                cost_usd=0.0,
+                completions=0,
+                storage_bytes=_directory_size(
+                    raw_root / "q-ref-resolution"
+                ),
+                failure=failure,
+            )
+        raise PilotOrchestrationError(
+            f"V2.10 q-ref import failed; receipt={receipt}"
+        ) from exc
+
+
 def _persist_v27_stage0_commit_intent(
     contract: PilotContract,
     *,
@@ -11067,6 +12281,7 @@ def _persist_v27_stage0_commit_intent(
         V27_CONTRACT_ID: PILOT_V27_STAGE0_COMMIT_INTENT_SCHEMA_VERSION,
         V28_CONTRACT_ID: PILOT_V28_STAGE0_COMMIT_INTENT_SCHEMA_VERSION,
         V29_CONTRACT_ID: PILOT_V29_STAGE0_COMMIT_INTENT_SCHEMA_VERSION,
+        V210_CONTRACT_ID: PILOT_V210_STAGE0_COMMIT_INTENT_SCHEMA_VERSION,
     }[contract.contract_id]
     path = (
         raw_root
@@ -11257,7 +12472,12 @@ def _execute_imported_stage0_stage(
     expected = tuple(contract.expand(stage="stage0-calibration"))
     if (
         contract.contract_id
-        not in {V27_CONTRACT_ID, V28_CONTRACT_ID, V29_CONTRACT_ID}
+        not in {
+            V27_CONTRACT_ID,
+            V28_CONTRACT_ID,
+            V29_CONTRACT_ID,
+            V210_CONTRACT_ID,
+        }
         or len(specs) != 14
         or {spec.run_id for spec in specs}
         != {spec.run_id for spec in expected}
@@ -11612,13 +12832,14 @@ def _transactional_parent_label(contract: PilotContract) -> str:
         V27_CONTRACT_ID: "V2.7",
         V28_CONTRACT_ID: "V2.8",
         V29_CONTRACT_ID: "V2.9",
+        V210_CONTRACT_ID: "V2.10",
     }
     try:
         return labels[contract.contract_id]
     except KeyError as exc:
         raise PilotOrchestrationError(
             "transactional parent import is available only to "
-            "V2.7/V2.8/V2.9"
+            "V2.7/V2.8/V2.9/V2.10"
         ) from exc
 
 
@@ -11628,6 +12849,7 @@ def _transactional_parent_commit_schema(contract: PilotContract) -> str:
         V27_CONTRACT_ID: PILOT_V27_PARENT_COMMIT_INTENT_SCHEMA_VERSION,
         V28_CONTRACT_ID: PILOT_V28_PARENT_COMMIT_INTENT_SCHEMA_VERSION,
         V29_CONTRACT_ID: PILOT_V29_PARENT_COMMIT_INTENT_SCHEMA_VERSION,
+        V210_CONTRACT_ID: PILOT_V210_PARENT_COMMIT_INTENT_SCHEMA_VERSION,
     }[contract.contract_id]
 
 
@@ -11637,6 +12859,7 @@ def _transactional_parent_failure_schema(contract: PilotContract) -> str:
         V27_CONTRACT_ID: PILOT_V27_PARENT_FAILURE_INTENT_SCHEMA_VERSION,
         V28_CONTRACT_ID: PILOT_V28_PARENT_FAILURE_INTENT_SCHEMA_VERSION,
         V29_CONTRACT_ID: PILOT_V29_PARENT_FAILURE_INTENT_SCHEMA_VERSION,
+        V210_CONTRACT_ID: PILOT_V210_PARENT_FAILURE_INTENT_SCHEMA_VERSION,
     }[contract.contract_id]
 
 
@@ -11646,14 +12869,18 @@ def _transactional_parent_import_projection(
 ) -> RunProjection:
     _transactional_parent_label(contract)
     source_storage = (
-        V29_PARENT_RAW_STORAGE_BYTES
+        V210_PARENT_RAW_STORAGE_BYTES
+        if contract.contract_id == V210_CONTRACT_ID
+        else V29_PARENT_RAW_STORAGE_BYTES
         if contract.contract_id == V29_CONTRACT_ID
         else V28_PARENT_RAW_STORAGE_BYTES
         if contract.contract_id == V28_CONTRACT_ID
         else V26_RAW_STORAGE_BYTES
     )
     method = (
-        "v2.9-byte-exact-v2.8-parent-snapshot-read-only-p95"
+        "v2.10-byte-exact-v2.9-parent-snapshot-plus-current-flat-p95-reseal"
+        if contract.contract_id == V210_CONTRACT_ID
+        else "v2.9-byte-exact-v2.8-parent-snapshot-read-only-p95"
         if contract.contract_id == V29_CONTRACT_ID
         else (
             f"{_transactional_parent_label(contract).lower()}-"
@@ -11708,6 +12935,43 @@ def _persist_v29_parent_import_for_orchestrator(
     except PilotV29Stage0ImportError as exc:
         raise PilotOrchestrationError(
             f"V2.9 parent import failed validation: {exc}"
+        ) from exc
+
+
+def _persist_v210_parent_import_for_orchestrator(
+    *,
+    contract: PilotContract,
+    repo_root: Path,
+    raw_root: Path,
+    parent_repo_root: str | Path,
+    child_git_tag: str,
+    child_git_commit: str,
+) -> dict[str, Any]:
+    """Adapt the V2.10 source/evidence API to the parent-stage transaction."""
+
+    required_tag = str(contract.implementation["required_git_tag"])
+    if (
+        contract.contract_id != V210_CONTRACT_ID
+        or child_git_tag != required_tag
+    ):
+        raise PilotOrchestrationError(
+            "V2.10 parent importer release identity drifted"
+        )
+    source_manifest_path = repo_root.joinpath(*V210_SOURCE_MANIFEST_PATH.parts)
+    try:
+        source_manifest = load_v210_source_manifest(source_manifest_path)
+        return persist_v210_parent_import(
+            parent_repo_root=parent_repo_root,
+            evidence_repo_root=repo_root,
+            child_repo_root=repo_root,
+            child_raw_root=raw_root,
+            contract=contract,
+            child_git_commit=child_git_commit,
+            source_manifest=source_manifest,
+        )
+    except PilotV210ParentImportError as exc:
+        raise PilotOrchestrationError(
+            f"V2.10 parent import failed validation: {exc}"
         ) from exc
 
 
@@ -12263,7 +13527,11 @@ def _execute_v24_parent_import_stage(
     run_ledger: PilotRunLedger,
     budget_ledger: PilotBudgetLedger | None = None,
 ) -> dict[str, Any]:
-    if contract.contract_id == V29_CONTRACT_ID:
+    if contract.contract_id == V210_CONTRACT_ID:
+        contract_label = "V2.10"
+        persist_parent_import = _persist_v210_parent_import_for_orchestrator
+        failure_schema = PILOT_V210_PARENT_FAILURE_INTENT_SCHEMA_VERSION
+    elif contract.contract_id == V29_CONTRACT_ID:
         contract_label = "V2.9"
         persist_parent_import = _persist_v29_parent_import_for_orchestrator
         failure_schema = PILOT_V29_PARENT_FAILURE_INTENT_SCHEMA_VERSION
@@ -12290,12 +13558,13 @@ def _execute_v24_parent_import_stage(
     else:
         raise PilotOrchestrationError(
             "parent import is available only to the "
-            "V2.4/V2.5/V2.6/V2.7/V2.8/V2.9 contracts"
+            "V2.4/V2.5/V2.6/V2.7/V2.8/V2.9/V2.10 contracts"
         )
     transactional_parent = contract.contract_id in {
         V27_CONTRACT_ID,
         V28_CONTRACT_ID,
         V29_CONTRACT_ID,
+        V210_CONTRACT_ID,
     }
     if (
         len(specs) != 1
@@ -12398,7 +13667,9 @@ def _execute_v24_parent_import_stage(
         )
         if transactional_parent:
             verifier = (
-                _verify_v29_importer_p95_profiles
+                _verify_v210_importer_p95_profiles
+                if contract.contract_id == V210_CONTRACT_ID
+                else _verify_v29_importer_p95_profiles
                 if contract.contract_id == V29_CONTRACT_ID
                 else _verify_v28_importer_p95_profiles
                 if contract.contract_id == V28_CONTRACT_ID
@@ -12475,7 +13746,9 @@ def _execute_v24_parent_import_stage(
         )
         if transactional_parent:
             verifier = (
-                _verify_v29_importer_p95_profiles
+                _verify_v210_importer_p95_profiles
+                if contract.contract_id == V210_CONTRACT_ID
+                else _verify_v29_importer_p95_profiles
                 if contract.contract_id == V29_CONTRACT_ID
                 else _verify_v28_importer_p95_profiles
                 if contract.contract_id == V28_CONTRACT_ID
@@ -12802,6 +14075,7 @@ def _execute_stage_locked(
             V27_CONTRACT_ID,
             V28_CONTRACT_ID,
             V29_CONTRACT_ID,
+            V210_CONTRACT_ID,
         }:
             # Materialize the inherited cumulative debit before any source
             # verification so even a zero-call import no-go has a complete,
@@ -12824,7 +14098,7 @@ def _execute_stage_locked(
             budget_ledger=parent_budget_ledger,
         )
     if (
-        contract.contract_id == V27_CONTRACT_ID
+        contract.contract_id in {V27_CONTRACT_ID, V210_CONTRACT_ID}
         and stage_id == "q-ref-resolution"
     ):
         q_ref_budget_ledger = PilotBudgetLedger(
@@ -12834,7 +14108,12 @@ def _execute_stage_locked(
             tamper_evident=True,
             parent_debit=_parent_budget_debit(contract),
         )
-        return _execute_v27_q_ref_import_stage(
+        qref_executor = (
+            _execute_v210_q_ref_import_stage
+            if contract.contract_id == V210_CONTRACT_ID
+            else _execute_v27_q_ref_import_stage
+        )
+        return qref_executor(
             contract,
             specs,
             raw_root=root,
@@ -12851,12 +14130,18 @@ def _execute_stage_locked(
     )
     if (
         contract.contract_id
-        in {V27_CONTRACT_ID, V28_CONTRACT_ID, V29_CONTRACT_ID}
+        in {
+            V27_CONTRACT_ID,
+            V28_CONTRACT_ID,
+            V29_CONTRACT_ID,
+            V210_CONTRACT_ID,
+        }
         and stage_id == "stage0-calibration"
     ):
         stage0_executor = (
             _execute_imported_stage0_stage
-            if contract.contract_id in {V28_CONTRACT_ID, V29_CONTRACT_ID}
+            if contract.contract_id
+            in {V28_CONTRACT_ID, V29_CONTRACT_ID, V210_CONTRACT_ID}
             else _execute_v27_stage0_import_stage
         )
         return stage0_executor(
