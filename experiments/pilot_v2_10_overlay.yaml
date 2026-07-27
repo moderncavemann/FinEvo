@@ -1,0 +1,278 @@
+{
+  "base_contract": {
+    "canonical_sha256": "0b07881aaceeb020dc5943ede647a665f9e9bf786a1cac109ab720e05d81d361",
+    "contract_id": "finevo-pilot-v2.9",
+    "path": "pilot_v2_9.yaml",
+    "schema_version": "finevo-pilot-contract-v2"
+  },
+  "changes": {
+    "denominator_policy": {
+      "policy_id": "finevo-pilot-v2.10-itt"
+    },
+    "implementation": {
+      "required_git_tag": "pilot-v2.10-science"
+    },
+    "release_requirements": {
+      "expected_ci": {
+        "compiled_source_count": 193,
+        "compiled_source_inventory_sha256": "197e6de4cbdf6daa804b17607658aa70305916d2c8d79d350cc3c992ab5d28ef",
+        "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
+        "test_collection_sha256": "6ded757b4245647bfe269ee7318280f04f663de19bd56ce072f24830d9a2037a",
+        "test_count": 1103
+      },
+      "tag": "pilot-v2.10-science"
+    }
+  },
+  "contract_id": "finevo-pilot-v2.10",
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "declared_sha256": "a009dff74fcbabeba2202c46521f1c812a2d39366675ae8238f161d597ef6f06"
+  },
+  "p95_runner_binding_retry_amendment": {
+    "amendment_id": "finevo-pilot-v2.10-p95-runner-binding-retry-1",
+    "budget_carry_forward": {
+      "budget_reset": false,
+      "cumulative_prior": {
+        "cost_usd": 3.212770875,
+        "hosted_completions": 184,
+        "parent_budget_ledger_sha256": "7e75b9c58bccaa746bdc92b926352fc0d3e56adee8426d3962a80ae5ddd59e10",
+        "parent_contract_sha256": "0b07881aaceeb020dc5943ede647a665f9e9bf786a1cac109ab720e05d81d361",
+        "parent_run_ledger_sha256": "9cc948d75c37ffeb59a2d7ed569e140668a997fa314d523906a047375011e409",
+        "record_sha256": "408b25171d23c172abcc3e5545d736ef0fdb6251524995ab0bb39b34b0b6a5e1",
+        "stage_bucket": "parent_v23",
+        "storage_bytes": 50425235
+      },
+      "debit_before_new_dispatch": true,
+      "manual_reserve_automatic_use": false,
+      "max_provider_completions": 7500,
+      "max_storage_bytes": 5000000000,
+      "projection_reserve_multiplier": 1.25,
+      "total_cap_usd": 500.0,
+      "unknown_price_policy": "stop-before-dispatch",
+      "v2_9_incremental": {
+        "cost_usd": 0.0,
+        "hosted_completions": 0,
+        "offline_candidate_admission_cells": 10,
+        "scripted_diagnostic_calls": 48
+      },
+      "whole_remaining_matrix_projection_required": true
+    },
+    "evidence_lineage": {
+      "all_16_imported_cells_are_prerequisites_not_effect_evidence": true,
+      "parent_claim_reclassification": "forbidden",
+      "parent_evidence_commit": "51525614e138e5b7ac498d15b409048d5110b753",
+      "parent_evidence_merge_commit": "08fcbc0dd9319fcc86c3f4e812c3db504a0c5a17",
+      "parent_evidence_namespace": "evidence/current_v2/pilot-v2.9",
+      "parent_evidence_rewrite": "forbidden",
+      "parent_evidence_status": "complete-with-no-go",
+      "v2_10_effect_aggregation_uses_only_fresh_v2_10_a_d_cells": true,
+      "v2_9_offline_candidate_outcomes_are_not_v2_10_effect_evidence": true
+    },
+    "failure_classification": {
+      "actor_action_utility_rule_exposure_outcomes_generated": false,
+      "all_a_d_outcomes_unobserved": false,
+      "budget_ledger_internal_sha256": "7e75b9c58bccaa746bdc92b926352fc0d3e56adee8426d3962a80ae5ddd59e10",
+      "completed_cell_breakdown": {
+        "experiment-c-offline-candidate-admission": 5,
+        "local-experiment-c-offline-candidate-admission": 5,
+        "parent-import": 1,
+        "q-ref-resolution": 1,
+        "stage0-calibration": 14
+      },
+      "evidence_checksums_file_sha256": "b0de7185c710b69736ddfe1d331b7f6308165a9f03bb0c616f14ec1fd7a515db",
+      "evidence_package_manifest_file_sha256": "6d006ba59c5af6a1e0dd3931466b90d4599edc0ded47e2de3ea4f8ecd6c4831a",
+      "failed_actor_cell_count": 185,
+      "failed_actor_stage_counts": {
+        "experiment-a": 20,
+        "experiment-b": 15,
+        "experiment-c": 20,
+        "experiment-d": 30,
+        "local-experiment-a": 20,
+        "local-experiment-b": 25,
+        "local-experiment-c": 20,
+        "local-experiment-d": 35
+      },
+      "failure_error_type": "KeyError",
+      "failure_message": "'receipt_path'",
+      "failure_message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+      "failure_phase": "before-provider-construction-and-dispatch",
+      "incremental_cost_usd": 0.0,
+      "incremental_hosted_completions": 0,
+      "incremental_local_stage_cost_usd": 0.0,
+      "offline_candidate_admission_cells_generated": 10,
+      "parent_contract_id": "finevo-pilot-v2.9",
+      "parent_contract_sha256": "0b07881aaceeb020dc5943ede647a665f9e9bf786a1cac109ab720e05d81d361",
+      "parent_evidence_commit": "51525614e138e5b7ac498d15b409048d5110b753",
+      "parent_evidence_merge_commit": "08fcbc0dd9319fcc86c3f4e812c3db504a0c5a17",
+      "parent_release_commit": "2349ccd41560383965da8880744cf4df366c9ee5",
+      "parent_release_tag": "pilot-v2.9-science",
+      "parent_release_tag_object": "ca7871231769ab1d7eb811b71dff79f16de363e9",
+      "partial_actor_streams_persisted": false,
+      "registered_cells": 211,
+      "root_cause_code": "imported-p95-runner-binding-shape-mismatch",
+      "root_cause_message": "The imported authority producer returned nested receipt identity fields while the runner consumer dereferenced the legacy flat names.",
+      "run_ledger_internal_sha256": "9cc948d75c37ffeb59a2d7ed569e140668a997fa314d523906a047375011e409",
+      "scientific_cells": 209,
+      "status_counts": {
+        "complete": 26,
+        "failed": 185
+      },
+      "terminal_status": "complete-with-no-go"
+    },
+    "fresh_science_dispatch": {
+      "a_d_cells": 195,
+      "a_d_provider_dispatch": "fresh-only",
+      "decoded_completion_reuse": "forbidden",
+      "downstream_dispatch_requires_all_16_prerequisites": true,
+      "downstream_dispatch_requires_current_p95_reseal": true,
+      "imported_a_d_completions": 0,
+      "stage_counts": {
+        "experiment-a": 20,
+        "experiment-b": 15,
+        "experiment-c": 25,
+        "experiment-d": 30,
+        "local-experiment-a": 20,
+        "local-experiment-b": 25,
+        "local-experiment-c": 25,
+        "local-experiment-d": 35
+      },
+      "v2_9_offline_candidate_admission_reuse": "forbidden"
+    },
+    "observation_boundary": {
+      "a_d_actor_treatment_effect_outcomes_generated": false,
+      "a_d_actor_treatment_effect_outcomes_observed": false,
+      "all_a_d_outcomes_unobserved_claim_forbidden": true,
+      "amendment_is_globally_a_d_outcome_blind": false,
+      "amendment_is_outcome_blind_for_actor_treatment_effects": true,
+      "calibration_candidate_profiles_unchanged": true,
+      "calibration_model_and_actions_unchanged": true,
+      "calibration_seed_set_unchanged": true,
+      "calibration_thresholds_unchanged": true,
+      "calibration_tiebreak_order_unchanged": true,
+      "failed_seed_replacement": "forbidden",
+      "implementation_failure_observed_before_amendment": true,
+      "offline_candidate_admission_outcomes_generated": 10,
+      "offline_candidate_admission_outcomes_observed": true,
+      "q_ref_and_stage0_prerequisites_observed": true,
+      "stage0_selected_profile_observed": "nu-0.5"
+    },
+    "p95_runner_binding_repair": {
+      "current_release_contract_binding_required": true,
+      "current_release_projection_pair_required": true,
+      "current_release_tag_and_head_binding_required": true,
+      "current_release_wrapper_required": true,
+      "missing_or_malformed_binding_policy": "stop-before-dispatch",
+      "nested_to_flat_alias_without_current_reseal": "forbidden",
+      "parent_lineage_required_fields": [
+        "source_contract_id",
+        "source_contract_sha256",
+        "source_git_tag",
+        "source_git_commit",
+        "authority",
+        "projection"
+      ],
+      "policy_id": "finevo-pilot-v2.10-current-release-p95-reseal-v1",
+      "profiles": [
+        "gpt52_main",
+        "llama33_local_controlled"
+      ],
+      "receipt_and_projection_exact_pair_validation_required": true,
+      "receipt_and_projection_rebuilt_from_verified_source": true,
+      "runner_binding_required_fields": [
+        "receipt_path",
+        "receipt_file_sha256",
+        "receipt_content_sha256",
+        "git_commit",
+        "reservations"
+      ],
+      "runner_binding_schema_version": "finevo-pilot-v2.10-runner-p95-binding-v1",
+      "runner_binding_validation_before_provider_construction": true,
+      "source_contract_id": "finevo-pilot-v2.8",
+      "source_contract_sha256": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+      "source_reservation_values_unchanged": true,
+      "source_via_exact_v2_9_snapshot": true,
+      "v2_9_failed_binding_reuse": "forbidden"
+    },
+    "prerequisite_import": {
+      "child_artifacts_resealed_to_current_contract_tag_and_head": true,
+      "decoded_completion_reuse_beyond_imported_prerequisites": "forbidden",
+      "exact_file_and_content_hashes_required": true,
+      "imported_cell_breakdown": {
+        "parent-import": 1,
+        "q-ref-resolution": 1,
+        "stage0-calibration": 14
+      },
+      "imported_complete_cells": 16,
+      "missing_or_malformed_source_policy": "stop-before-dispatch",
+      "prerequisites_are_treatment_effect_evidence": false,
+      "provider_construction_during_import": false,
+      "provider_redispatch_for_imported_cells": "forbidden",
+      "q_ref_resolution_reverification_required": true,
+      "source_contract_id": "finevo-pilot-v2.9",
+      "source_contract_sha256": "0b07881aaceeb020dc5943ede647a665f9e9bf786a1cac109ab720e05d81d361",
+      "source_manifest_reverification_required": true,
+      "source_run_manifests_reverification_required": true,
+      "stage0_selected_profile_id": "nu-0.5",
+      "stage0_selection_reverification_required": true
+    },
+    "retry_policy": {
+      "a_d_provider_dispatch": "fresh-only",
+      "failed_seed_replacement": "forbidden",
+      "matrix_shrink": "forbidden",
+      "new_211_cell_denominator_required": true,
+      "new_contract_required": true,
+      "prerequisite_provider_redispatch": "forbidden",
+      "preserve_parent_denominator": true,
+      "v2_9_raw_resume": "forbidden",
+      "v2_9_status_counts_rewrite": "forbidden",
+      "v2_9_terminal_cell_reclassification": "forbidden"
+    },
+    "schema_version": "finevo-pilot-p95-runner-binding-retry-amendment-v1",
+    "science_design_invariance": {
+      "budget_envelope_unchanged": true,
+      "fresh_a_d_cells": 195,
+      "matrix_profile_id": "local-llama-full-ad-gpt52-fixed-confirmatory-cadb-v1",
+      "p95_reservation_values_unchanged": true,
+      "prerequisite_cells": 16,
+      "provider_profiles_unchanged": true,
+      "registered_cells": 211,
+      "scientific_cells": 209,
+      "seeds_arms_models_stage_order_unchanged": true,
+      "shock_utility_stop_go_unchanged": true,
+      "source_contract_id": "finevo-pilot-v2.9",
+      "source_science_design_sha256": "ac11b024435d6d6b03a68b59e5f59f28d92a822ddd3712b1b4c612b668a20586"
+    },
+    "source_lineage": {
+      "amendment_parent_contract_id": "finevo-pilot-v2.9",
+      "amendment_parent_contract_sha256": "0b07881aaceeb020dc5943ede647a665f9e9bf786a1cac109ab720e05d81d361",
+      "amendment_parent_raw_inventory": {
+        "canonicalization": "json-sort-keys-compact-utf8-v1",
+        "file_count": 623,
+        "inventory_sha256": "ae478634a83a98bd206bcafa03f87636fcc392f8dd1e8e234f84696f245ef22f",
+        "schema_version": "finevo-raw-tree-inventory-v1",
+        "storage_bytes": 19288343
+      },
+      "amendment_parent_raw_namespace": "experiment_results/pilot-v2.9/raw",
+      "child_raw_namespace": "experiment_results/pilot-v2.10/raw",
+      "child_snapshot_namespace": "experiment_results/pilot-v2.10/raw/parent-import/v2_9_raw_snapshot",
+      "exact_parent_inventory_required": true,
+      "parent_denominator_reclassified": false,
+      "parent_evidence_commit": "51525614e138e5b7ac498d15b409048d5110b753",
+      "parent_evidence_merge_commit": "08fcbc0dd9319fcc86c3f4e812c3db504a0c5a17",
+      "parent_evidence_namespace": "evidence/current_v2/pilot-v2.9",
+      "parent_evidence_package_required": true,
+      "parent_evidence_rewrite": "forbidden",
+      "parent_terminal_no_go_preserved": true,
+      "shared_namespace": false,
+      "source_artifacts_rewritten": false
+    },
+    "source_manifest": {
+      "content_sha256": "fc781697a9260fa63d0535eafa24b87a8386a76dca55f3ce95ba59e12ceb4224",
+      "file_sha256": "8540bde06f364aa9ccf2a6937b78dec1f0d3b2c66b9e4943f9a3d2e20e4b19a7",
+      "path": "experiments/pilot_v2_10_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.10-source-manifest-v1"
+    }
+  },
+  "schema_version": "finevo-pilot-contract-v2.10-p95-runner-binding-retry-overlay-v1",
+  "status": "frozen"
+}
