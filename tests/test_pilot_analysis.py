@@ -134,6 +134,38 @@ def test_baseline_schedule_requires_stage0_summary() -> None:
     }
 
 
+def test_stage0_summary_ignores_treatment_and_future_outcome_fields() -> None:
+    records = _records()
+    expected = summarize_stage0_run(records, max_labor_hours=168.0)
+
+    for row in records["utility_ledger"]:
+        row["flow_utility"] = -999999.0
+        row["discounted_flow_utility"] = 999999.0
+        row["wealth"] = 10**12
+        row["gini"] = 0.0
+        row["unemployment"] = 0.0
+    records["context_trace"] = [
+        {
+            "decision_t": 11,
+            "agent_id": 0,
+            "retrieved_episode_ids": ["future-treatment-winner"],
+            "treatment_effect": 10**9,
+        }
+    ]
+    records["semantic_rules"] = [
+        {
+            "rule_id": "future-treatment-rule",
+            "status": "active",
+            "treatment_effect": 10**9,
+        }
+    ]
+
+    assert summarize_stage0_run(
+        records,
+        max_labor_hours=168.0,
+    ) == expected
+
+
 def test_paired_effect_gate_retains_all_seed_deltas() -> None:
     treatment = {1: 11.0, 2: 10.0, 3: 12.0, 4: 10.5, 5: 9.0}
     control = {1: 10.0, 2: 9.0, 3: 10.0, 4: 10.0, 5: 10.0}
