@@ -1593,6 +1593,85 @@ def _build_v27_parent_import_receipt(
     )
 
 
+def _materialize_v27_resealed_p95(
+    *,
+    child_root: Path,
+    child_raw: Path,
+    contract: PilotContract,
+    child_git_commit: str,
+) -> dict[str, Any]:
+    """Build, atomically persist, and reverify both V2.7 p95 authorities."""
+
+    from .observed_p95_authority import (
+        ObservedP95AuthorityError,
+        build_v27_resealed_observed_p95_authority,
+        verify_v27_resealed_observed_p95_authority,
+        verify_v27_resealed_observed_p95_projection,
+    )
+
+    output: dict[str, Any] = {}
+    for profile_id in V27_ALLOWED_P95_PROFILES:
+        source = v2_6_p95_source_binding(
+            repo_root=child_root,
+            child_raw_root=child_raw,
+            profile_id=profile_id,
+        )
+        try:
+            built = build_v27_resealed_observed_p95_authority(
+                repo_root=child_root,
+                contract=contract,
+                contract_path=V27_EXPANDED_CONTRACT_PATH.as_posix(),
+                raw_root=V27_RAW_ROOT.as_posix(),
+                profile_id=profile_id,
+                expected_git_commit=child_git_commit,
+                verified_v2_6_source_binding=source,
+            )
+            receipt_path = Path(built["receipt_path"])
+            projection_path = Path(built["projection_path"])
+            _atomic_exact_json(receipt_path, built["receipt"])
+            _atomic_exact_json(projection_path, built["projection"])
+            reservations = verify_v27_resealed_observed_p95_authority(
+                receipt_path,
+                repo_root=child_root,
+                expected_git_commit=child_git_commit,
+            )
+            projection = verify_v27_resealed_observed_p95_projection(
+                projection_path,
+                receipt_or_path=receipt_path,
+                repo_root=child_root,
+                expected_git_commit=child_git_commit,
+            )
+        except (ObservedP95AuthorityError, PilotV24ParentImportError) as exc:
+            raise _translate(exc) from exc
+        receipt_raw = receipt_path.read_bytes()
+        projection_raw = projection_path.read_bytes()
+        output[profile_id] = {
+            "receipt": {
+                "path": _repo_relative(
+                    child_root,
+                    receipt_path,
+                    name=f"{profile_id} V2.7 p95 receipt",
+                ),
+                "file_sha256": _sha256(receipt_raw),
+                "content_sha256": built["receipt"]["integrity"][
+                    "content_sha256"
+                ],
+            },
+            "projection": {
+                "path": _repo_relative(
+                    child_root,
+                    projection_path,
+                    name=f"{profile_id} V2.7 p95 projection",
+                ),
+                "file_sha256": _sha256(projection_raw),
+                "content_sha256": projection["integrity"]["content_sha256"],
+            },
+            "runtime_models": sorted(reservations),
+            "source_kind": "v2.6-terminal-stage0-import-v2.7",
+        }
+    return output
+
+
 def persist_v27_parent_import(
     *,
     contract: PilotContract,
@@ -1656,12 +1735,20 @@ def persist_v27_parent_import(
         _atomic_exact_json(receipt_path, receipt)
     except PilotV24ParentImportError as exc:
         raise _translate(exc) from exc
+    resealed_p95 = _materialize_v27_resealed_p95(
+        child_root=child_root,
+        child_raw=child_raw,
+        contract=contract,
+        child_git_commit=child_git_commit,
+    )
     return {
         "receipt": str(receipt_path),
         "receipt_content_sha256": receipt["integrity"]["content_sha256"],
         "snapshot_root": str(snapshot),
         "snapshot_inventory_sha256": V26_RAW_INVENTORY_SHA256,
         "imported_cell_count": 16,
+        "imported_profiles": sorted(V27_ALLOWED_P95_PROFILES),
+        "resealed_p95_profiles": resealed_p95,
         "provider_calls": 0,
         "scientific_evidence": False,
         "v2_6_terminal_no_go_preserved": True,

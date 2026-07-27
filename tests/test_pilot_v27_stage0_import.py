@@ -280,6 +280,77 @@ def test_v27_cumulative_parent_debit_is_exact() -> None:
     )
 
 
+def test_materialize_v27_p95_writes_and_reverifies_both_profiles(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from verified_memory import observed_p95_authority as authority
+
+    root = tmp_path / "repo"
+    raw_root = root / "experiment_results/pilot-v2.7/raw"
+    raw_root.mkdir(parents=True)
+    contract = SimpleNamespace()
+    monkeypatch.setattr(
+        v27,
+        "v2_6_p95_source_binding",
+        lambda **kwargs: {
+            "model_id": kwargs["profile_id"],
+            "sentinel": "verified-v2.6",
+        },
+    )
+
+    def build(**kwargs):
+        profile = kwargs["profile_id"]
+        receipt = _seal(
+            {
+                "schema_version": "test-v27-p95",
+                "profile_id": profile,
+            }
+        )
+        projection = _seal(
+            {
+                "schema_version": "test-v27-projection",
+                "profile_id": profile,
+            }
+        )
+        base = raw_root / "parent-import/observed_p95" / profile
+        return {
+            "receipt_path": base / "observed_p95_authority_receipt.json",
+            "projection_path": base / "projection_p95.json",
+            "receipt": receipt,
+            "projection": projection,
+        }
+
+    monkeypatch.setattr(
+        authority, "build_v27_resealed_observed_p95_authority", build
+    )
+    monkeypatch.setattr(
+        authority,
+        "verify_v27_resealed_observed_p95_authority",
+        lambda path, **kwargs: {"runtime/test": {"action": {}, "semantic": {}}},
+    )
+    monkeypatch.setattr(
+        authority,
+        "verify_v27_resealed_observed_p95_projection",
+        lambda path, **kwargs: json.loads(Path(path).read_text()),
+    )
+
+    result = v27._materialize_v27_resealed_p95(
+        child_root=root,
+        child_raw=raw_root,
+        contract=contract,
+        child_git_commit=COMMIT,
+    )
+    assert sorted(result) == list(v27.V27_ALLOWED_P95_PROFILES)
+    assert {
+        row["source_kind"] for row in result.values()
+    } == {"v2.6-terminal-stage0-import-v2.7"}
+    for row in result.values():
+        assert (root / row["receipt"]["path"]).is_file()
+        assert (root / row["projection"]["path"]).is_file()
+        assert row["runtime_models"] == ["runtime/test"]
+
+
 def test_source_manifest_draft_write_is_exact_and_idempotent(
     tmp_path: Path,
 ) -> None:
