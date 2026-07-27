@@ -1,0 +1,64 @@
+{
+  "base_contract": {
+    "canonical_sha256": "1f9809062684a1a2afb96b7342b88a06810e0e87ac883aa63a858a65a81d188d",
+    "contract_id": "finevo-pilot-v2.5",
+    "package_path": "contract/pilot_v2_5.yaml",
+    "path": "pilot_v2_5.yaml",
+    "schema_version": "finevo-pilot-contract-v2"
+  },
+  "contract_id": "finevo-pilot-v2.6",
+  "contract_sha256": "bb6b12d71227c423e5a67452dc496f26843dec74e359b9b04bf096dc17d0c509",
+  "direction_counts_merged": false,
+  "evidence_namespace": "current_v2/pilot-v2.6",
+  "excluded_sources": [
+    "historical_pre_p0_v1",
+    "V2.3 scientific outcomes",
+    "pooled local/GPT direction counts",
+    "unregistered narrative intervention",
+    "raw prompts and raw provider outputs"
+  ],
+  "inherited_retry_source_manifest": {
+    "content_sha256": "4f21ee44514d29e5b7fcbd4ca48daad046dc674fd0dda5f4b2c502c87f346c91",
+    "file_sha256": "62b01d74d93ae249dab8711ab7748fdd3bcfaad1ee8c5fb39f71c4bd492b81a4",
+    "package_path": "contract/pilot_v2_5_source_manifest.json",
+    "path": "experiments/pilot_v2_5_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.5-source-manifest-v1"
+  },
+  "lane_separated": true,
+  "narrative_status": "deferred-unregistered",
+  "parent_source_manifest": {
+    "content_sha256": "7ae427fe6eac5aa6e04eddd3efa9e63405e128c782013ed3f67c35808be3cec5",
+    "file_sha256": "d6a867cd7add43818127af7778a447d579ac1ab31ed6d053bcd29d69b3cf0f33",
+    "package_path": "contract/pilot_v2_4_parent_source_manifest.json",
+    "path": "experiments/pilot_v2_4_parent_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.4-parent-source-manifest-v1"
+  },
+  "pilot_tag": "pilot-v2.6-science",
+  "publication_status": "complete-with-no-go",
+  "published_files": [
+    "aggregate.csv",
+    "aggregate.json",
+    "claim_metric_artifact.json",
+    "claim_narrowing.json",
+    "contract/pilot_v2_4_parent_source_manifest.json",
+    "contract/pilot_v2_5.yaml",
+    "contract/pilot_v2_5_source_manifest.json",
+    "contract/pilot_v2_6.yaml",
+    "contract/pilot_v2_6_source_manifest.json",
+    "failure_ledger.json",
+    "method_differences_scaffold.json",
+    "reviewer_report.md"
+  ],
+  "resolved_git_commit": "0f59a15bc2cc3cce68f64de1dc1be78f7d74e214",
+  "retry_source_manifest": {
+    "content_sha256": "78d42a49f16cbbee4fc5e76de17ff26c501a5dcb04a5eb1f79cbe080d2b1b669",
+    "file_sha256": "f84778ed279b8ca98b9b61e26619669fade54b95d0c3e4f17874733acbc84efe",
+    "package_path": "contract/pilot_v2_6_source_manifest.json",
+    "path": "experiments/pilot_v2_6_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.6-source-manifest-v1"
+  },
+  "schema_version": "finevo-pilot-v2.6-evidence-package-v1",
+  "scientific_claim_gates_supported": false,
+  "scientific_complete": false,
+  "scientific_matrix_complete": false
+}

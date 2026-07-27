@@ -8,6 +8,8 @@ an ex-post M0 utility ledger, and structured provider accounting.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import asdict, dataclass, field
 import hashlib
 import json
@@ -61,6 +63,32 @@ PROVIDER_CALL_JOURNAL_SCHEMA_VERSION = "finevo-provider-call-journal-v1"
 _UNSET_JOURNAL_BINDING = object()
 SEMANTIC_PARSE_FAILURE_POLICIES = frozenset({"record-and-skip", "fail-run"})
 SEMANTIC_POLICIES = frozenset({"evidence-grounded", "unverified-immediate"})
+_OBSERVED_P95_AUTHORITY_REPO_ROOT: ContextVar[Path | None] = ContextVar(
+    "finevo_observed_p95_authority_repo_root",
+    default=None,
+)
+
+
+@contextmanager
+def observed_p95_authority_repo_context(
+    repo_root: str | Path | None,
+):
+    """Temporarily verify historical authority against an explicit checkout."""
+
+    if repo_root is None:
+        yield
+        return
+    root = Path(repo_root)
+    if root.is_symlink():
+        raise ValueError("observed p95 authority repo root cannot be a symlink")
+    root = root.resolve(strict=True)
+    if not root.is_dir():
+        raise ValueError("observed p95 authority repo root must be a directory")
+    token = _OBSERVED_P95_AUTHORITY_REPO_ROOT.set(root)
+    try:
+        yield
+    finally:
+        _OBSERVED_P95_AUTHORITY_REPO_ROOT.reset(token)
 ERROR_RULE_MODES = frozenset({"none", "candidate-admission", "forced-active"})
 SCIENTIFIC_SCOPES = frozenset(
     {"bounded_method_smoke", "preregistered_mechanism_micro_pilot"}
@@ -672,6 +700,8 @@ def _verify_local_release_identity(
 
 def _verify_source_backed_observed_p95_rows(
     rows: Sequence[ObservedPreflightP95Reservation],
+    *,
+    repo_root: str | Path | None = None,
 ) -> None:
     """Rebuild each unique receipt and compare every serialized authority row.
 
@@ -724,14 +754,21 @@ def _verify_source_backed_observed_p95_rows(
         verified_observed_p95_authority_binding,
     )
 
-    repo_root = Path(__file__).resolve().parents[1]
+    authority_root = (
+        Path(repo_root).resolve(strict=True)
+        if repo_root is not None
+        else (
+            _OBSERVED_P95_AUTHORITY_REPO_ROOT.get()
+            or Path(__file__).resolve().parents[1]
+        )
+    )
     release_bindings = {
         (item.pilot_tag, item.source_release_commit)
         for item in rows
     }
     for pilot_tag, source_release_commit in release_bindings:
         _verify_local_release_identity(
-            repo_root=repo_root,
+            repo_root=authority_root,
             pilot_tag=pilot_tag,
             source_release_commit=source_release_commit,
         )
@@ -739,7 +776,7 @@ def _verify_source_backed_observed_p95_rows(
         try:
             verified_binding = verified_observed_p95_authority_binding(
                 receipt_path,
-                repo_root=repo_root,
+                repo_root=authority_root,
                 expected_git_commit=declared_binding[2],
             )
         except ObservedP95AuthorityError as exc:
@@ -1720,6 +1757,8 @@ def has_sealed_observed_p95_authority(config: VerifiedRunConfig) -> bool:
 
 def serialized_has_sealed_observed_p95_authority(
     config: Mapping[str, Any],
+    *,
+    authority_repo_root: str | Path | None = None,
 ) -> bool:
     """Revalidate the same authority from a serialized runner config."""
 
@@ -1751,7 +1790,10 @@ def serialized_has_sealed_observed_p95_authority(
     if not structurally_bound:
         return False
     try:
-        _verify_source_backed_observed_p95_rows(tuple(rows))
+        _verify_source_backed_observed_p95_rows(
+            tuple(rows),
+            repo_root=authority_repo_root,
+        )
     except Exception:
         # Artifact load/write checks are intentionally boolean and fail closed.
         return False
@@ -3840,6 +3882,7 @@ __all__ = [
     "preflight_p95_reservation_for_call",
     "required_preflight_p95_call_kinds",
     "serialized_has_sealed_observed_p95_authority",
+    "observed_p95_authority_repo_context",
     "run_verified_experiment",
     "validate_preflight_p95_reservations",
     "verify_provider_call_journal",

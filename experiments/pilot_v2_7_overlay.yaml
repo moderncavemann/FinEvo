@@ -1,0 +1,206 @@
+{
+  "base_contract": {
+    "canonical_sha256": "bb6b12d71227c423e5a67452dc496f26843dec74e359b9b04bf096dc17d0c509",
+    "contract_id": "finevo-pilot-v2.6",
+    "path": "pilot_v2_6.yaml",
+    "schema_version": "finevo-pilot-contract-v2"
+  },
+  "changes": {
+    "denominator_policy": {
+      "policy_id": "finevo-pilot-v2.7-itt"
+    },
+    "implementation": {
+      "required_git_tag": "pilot-v2.7-science"
+    },
+    "release_requirements": {
+      "expected_ci": {
+        "compiled_source_count": 174,
+        "compiled_source_inventory_sha256": "130d6e719dda9e30610d1d8f1a4a4ae6036bbdd932d5cad6d80a66357a06426a",
+        "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
+        "test_collection_sha256": "a01ae5867f8e4aa26392597ffd5e44971396d53fb89d8a00570f7e5e6917008a",
+        "test_count": 954
+      },
+      "tag": "pilot-v2.7-science"
+    }
+  },
+  "contract_id": "finevo-pilot-v2.7",
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "declared_sha256": "bec6e6816a1d68aa932592796ff5aac8a693e9659dd64ba4eea6c740e25e799e"
+  },
+  "schema_version": "finevo-pilot-contract-v2.7-stage0-evaluator-retry-overlay-v1",
+  "stage0_evaluator_retry_amendment": {
+    "amendment_id": "finevo-pilot-v2.7-stage0-baseline-evaluator-retry-1",
+    "artifact_import": {
+      "child_artifacts_resealed_to_current_contract_tag_and_head": true,
+      "child_raw_namespace": "experiment_results/pilot-v2.7/raw",
+      "decoded_completion_reuse_beyond_imported_stage0": "forbidden",
+      "exact_file_and_content_hashes_required": true,
+      "exact_source_file_inventory_required": true,
+      "imported_cell_breakdown": {
+        "parent-import": 1,
+        "q-ref-resolution": 1,
+        "stage0-calibration": 14
+      },
+      "imported_complete_cells": 16,
+      "missing_or_malformed_source_policy": "stop-before-dispatch",
+      "parent_authority_reverification_required": true,
+      "provider_construction_during_import": false,
+      "provider_redispatch_for_imported_cells": "forbidden",
+      "q_ref_reverification_required": true,
+      "shared_namespace": false,
+      "source_contract_id": "finevo-pilot-v2.6",
+      "source_contract_sha256": "bb6b12d71227c423e5a67452dc496f26843dec74e359b9b04bf096dc17d0c509",
+      "source_raw_namespace": "experiment_results/pilot-v2.6/raw",
+      "source_release_tag": "pilot-v2.6-science",
+      "stage0_manifest_reverification_required": true
+    },
+    "budget_carry_forward": {
+      "budget_reset": false,
+      "cumulative_prior": {
+        "cost_usd": 3.212770875,
+        "hosted_completions": 184,
+      "parent_budget_ledger_sha256": "73f218feb368c5770908a4107d78037e11871e1c68e1fdd8461b94953549cdba",
+      "parent_contract_sha256": "bb6b12d71227c423e5a67452dc496f26843dec74e359b9b04bf096dc17d0c509",
+      "parent_run_ledger_sha256": "cca42a01c6685994fa8b22e0fc7c7fb2067e4b1973fd37acf7c47be4591337d4",
+      "record_sha256": "6d5a9461485122a3770e9855229dfc120728ab6da1f4f9074c5150515a62285e",
+      "storage_bytes": 19181432,
+      "stage_bucket": "parent_v23"
+      },
+      "debit_before_new_dispatch": true,
+      "manual_reserve_automatic_use": false,
+      "max_provider_completions": 7500,
+      "max_storage_bytes": 5000000000,
+      "total_cap_usd": 500.0,
+      "v2_6_incremental": {
+        "cost_usd": 0.0,
+        "hosted_completions": 0,
+        "local_model_calls": 672
+      }
+    },
+    "failure_classification": {
+      "a_d_treatment_effect_outcomes_available": false,
+      "a_d_treatment_effect_outcomes_generated": false,
+      "a_d_treatment_effect_outcomes_inspected": false,
+      "budget_ledger_internal_sha256": "73f218feb368c5770908a4107d78037e11871e1c68e1fdd8461b94953549cdba",
+      "completed_cell_breakdown": {
+        "parent-import": 1,
+        "q-ref-resolution": 1,
+        "stage0-calibration": 14
+      },
+      "failed_stage_id": "stage0-calibration",
+      "hosted_provider_calls": 0,
+      "incremental_cost_usd": 0.0,
+      "incremental_hosted_completions": 0,
+      "local_model_calls": 672,
+      "parent_contract_id": "finevo-pilot-v2.6",
+      "parent_contract_sha256": "bb6b12d71227c423e5a67452dc496f26843dec74e359b9b04bf096dc17d0c509",
+      "parent_release_commit": "0f59a15bc2cc3cce68f64de1dc1be78f7d74e214",
+      "parent_release_tag": "pilot-v2.6-science",
+      "registered_cells": 211,
+      "root_cause_code": "baseline-only-stage0-routed-through-shock-recovery-summary",
+      "root_cause_message": "run has no pre-shock utility observations",
+      "run_ledger_internal_sha256": "cca42a01c6685994fa8b22e0fc7c7fb2067e4b1973fd37acf7c47be4591337d4",
+      "scientific_cells": 209,
+      "stage0_calibration_artifacts_available": true,
+      "stage0_calibration_selection_observed_before_amendment": true,
+      "status_counts": {
+        "complete": 16,
+        "integrity-stopped": 195
+      },
+      "terminal_status": "complete-with-no-go"
+    },
+    "observation_boundary": {
+      "a_d_treatment_effect_outcomes_generated": false,
+      "a_d_treatment_effect_outcomes_observed": false,
+      "amendment_is_outcome_blind_with_respect_to_a_d_effects": true,
+      "calibration_candidate_profiles_unchanged": true,
+      "calibration_model_and_actions_unchanged": true,
+      "calibration_seed_set_unchanged": true,
+      "calibration_thresholds_unchanged": true,
+      "calibration_tiebreak_order_unchanged": true,
+      "failed_seed_replacement": "forbidden",
+      "stage0_calibration_selection_observed_before_amendment": true,
+      "stage0_candidate_winner_may_have_been_observed": true,
+      "stage0_guardrail_outputs_may_have_been_inspected": true
+    },
+    "retry_policy": {
+      "a_d_outcome_blind": true,
+      "downstream_dispatch_requires_import_and_selection_success": true,
+      "failed_seed_replacement": "forbidden",
+      "matrix_shrink": "forbidden",
+      "new_211_cell_denominator_required": true,
+      "new_contract_required": true,
+      "preserve_parent_denominator": true,
+      "provider_redispatch_for_imported_cells": "forbidden",
+      "retry_is_evaluator_and_import_amendment": true,
+      "v2_6_raw_resume": "forbidden",
+      "v2_6_status_counts_rewrite": "forbidden",
+      "v2_6_terminal_cell_reclassification": "forbidden"
+    },
+    "schema_version": "finevo-pilot-stage0-evaluator-retry-amendment-v1",
+    "science_design_invariance": {
+      "budget_envelope_unchanged": true,
+      "matrix_profile_id": "local-llama-full-ad-gpt52-fixed-confirmatory-cadb-v1",
+      "provider_profiles_unchanged": true,
+      "registered_cells": 211,
+      "scientific_cells": 209,
+      "seeds_arms_models_stage_order_unchanged": true,
+      "shock_utility_stop_go_unchanged": true,
+      "source_contract_id": "finevo-pilot-v2.6",
+      "source_science_design_sha256": "ac11b024435d6d6b03a68b59e5f59f28d92a822ddd3712b1b4c612b668a20586"
+    },
+    "source_manifest": {
+      "content_sha256": "f195661d01d0aa6742d9e2f2658b6b1acb38715ddbd43e4e5fd375309d78dbe4",
+      "file_sha256": "ee0ef62f5dcde9fc820aef6d23d1ce5a8c5bca7b9f20486bf42233f18763a1c8",
+      "path": "experiments/pilot_v2_7_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.7-source-manifest-v1"
+    },
+    "stage0_reader_correction": {
+      "allowed_record_streams": [
+        "actions",
+        "utility_ledger",
+        "errors"
+      ],
+      "allowed_selector_inputs": [
+        "max_abs_budget_residual",
+        "clipping_count",
+        "ceiling_labor_rate",
+        "zero_labor_rate",
+        "interior_labor_rate",
+        "interior_consumption_rate",
+        "median_labor_disutility_to_consumption_utility"
+      ],
+      "baseline_only_schedule": true,
+      "future_treatment_information_allowed": false,
+      "inherited_calibration_seeds": [
+        1942013315,
+        760687867
+      ],
+      "inherited_candidate_profiles": [
+        "center",
+        "psi-1",
+        "psi-4",
+        "nu-0.5",
+        "nu-2",
+        "q0-0.5x",
+        "q0-2x"
+      ],
+      "inherited_selector_method": "guardrail-then-registered-tiebreak-v1",
+      "inherited_tiebreak_order": [
+        "maximize mean interior action coverage",
+        "minimize component-balance log distance from one",
+        "minimize normalized center distance",
+        "declaration order only for an exact remaining tie"
+      ],
+      "phase_agnostic": true,
+      "pre_shock_phase_required": false,
+      "reader_schema": "finevo-pilot-stage0-analysis-v1",
+      "reader_scope": "stage0-baseline-calibration",
+      "recovery_phase_required": false,
+      "shock_phase_required": false,
+      "shock_recovery_effect_metrics_computed": false
+    }
+  },
+  "status": "frozen"
+}

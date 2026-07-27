@@ -19,6 +19,7 @@ presented as scientific evidence fail closed.
 from __future__ import annotations
 
 from collections import Counter
+from contextlib import contextmanager
 import csv
 from dataclasses import dataclass
 import hashlib
@@ -40,6 +41,7 @@ from .pilot_analysis import (
     paired_delta_summary,
     retrieval_effect_gate,
     summarize_run,
+    summarize_stage0_run,
 )
 from .pilot_contract import (
     PilotContract,
@@ -50,6 +52,7 @@ from .pilot_contract import (
 from .runner import (
     RUNNER_SCHEMA_VERSION,
     VerifiedRunError,
+    observed_p95_authority_repo_context,
     verify_provider_call_journal,
 )
 from .runner_artifacts import (
@@ -211,6 +214,13 @@ def _is_v26_contract(contract: PilotContract) -> bool:
     )
 
 
+def _is_v27_contract(contract: PilotContract) -> bool:
+    return (
+        _is_v2_contract(contract)
+        and contract.contract_id == "finevo-pilot-v2.7"
+    )
+
+
 def _is_lane_separated_contract(contract: PilotContract) -> bool:
     """Return whether the contract uses the fixed V2.4 211-cell lane matrix."""
 
@@ -218,6 +228,26 @@ def _is_lane_separated_contract(contract: PilotContract) -> bool:
         _is_v24_contract(contract)
         or _is_v25_contract(contract)
         or _is_v26_contract(contract)
+        or _is_v27_contract(contract)
+    )
+
+
+def _is_v27_imported_stage0_spec(
+    contract: PilotContract,
+    spec: Mapping[str, Any],
+) -> bool:
+    """Recognize only the amended V2.7 Stage-0 actor cells.
+
+    These cells retain ``actor_run`` in the immutable matrix, but V2.7
+    materializes a dedicated import envelope instead of redispatching the
+    provider.  No other actor-run JSON artifact is admitted through this
+    compatibility boundary.
+    """
+
+    return (
+        _is_v27_contract(contract)
+        and spec.get("stage_id") == "stage0-calibration"
+        and spec.get("execution_mode") == "actor_run"
     )
 
 
@@ -2381,6 +2411,7 @@ def _validate_terminal_payload_marker(
     raw_root: Path,
     resolved_git_commit: str | None = None,
     parent_import_receipt_verifier: Any | None = None,
+    source_repo_root: Path | None = None,
 ) -> None:
     """Enforce the execution-mode-specific terminal-summary contract."""
 
@@ -2418,6 +2449,14 @@ def _validate_terminal_payload_marker(
                 )
 
                 parent_import_receipt_verifier = verify_v26_parent_import_receipt
+        elif _is_v27_contract(contract):
+            version_label = "V2.7"
+            if parent_import_receipt_verifier is None:
+                from .pilot_v27_stage0_import import (  # pylint: disable=import-outside-toplevel
+                    verify_v27_parent_import_receipt,
+                )
+
+                parent_import_receipt_verifier = verify_v27_parent_import_receipt
         else:
             raise PilotEvidenceError(
                 "parent-authority import is unsupported for this contract"
@@ -2441,7 +2480,11 @@ def _validate_terminal_payload_marker(
         try:
             receipt = parent_import_receipt_verifier(
                 receipt_path,
-                repo_root=Path(__file__).resolve().parents[1],
+                repo_root=(
+                    Path(__file__).resolve().parents[1]
+                    if source_repo_root is None
+                    else source_repo_root
+                ),
                 contract=contract,
                 expected_git_commit=resolved_git_commit,
             )
@@ -3049,6 +3092,7 @@ def _load_terminal_summary(
     path: Path,
     *,
     raw_root: Path,
+    source_repo_root: Path | None = None,
 ) -> dict[str, Any]:
     value = _strict_json_load(path)
     if value.get("schema_version") != PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION:
@@ -3102,19 +3146,56 @@ def _load_terminal_summary(
         source=path,
     )
     payload = _mapping(value.get("payload"), "terminal payload")
-    _validate_terminal_payload_marker(
-        contract,
-        spec,
-        payload,
-        raw_root=raw_root,
-        resolved_git_commit=str(binding["resolved_git_commit"]),
-    )
+    imported_stage0: Mapping[str, Any] | None = None
+    if _is_v27_imported_stage0_spec(contract, spec):
+        from .pilot_orchestrator import (  # pylint: disable=import-outside-toplevel
+            PilotOrchestrationError,
+            verify_v27_imported_stage0_terminal,
+        )
+
+        try:
+            imported_stage0 = verify_v27_imported_stage0_terminal(
+                contract,
+                spec,
+                path,
+                raw_root,
+                str(binding["resolved_git_commit"]),
+                str(binding["git_tag"]),
+            )
+        except (OSError, TypeError, ValueError, PilotOrchestrationError) as exc:
+            raise PilotEvidenceError(
+                "V2.7 imported Stage-0 envelope failed exact replay "
+                f"verification: {exc}"
+            ) from exc
+    else:
+        _validate_terminal_payload_marker(
+            contract,
+            spec,
+            payload,
+            raw_root=raw_root,
+            resolved_git_commit=str(binding["resolved_git_commit"]),
+            source_repo_root=source_repo_root,
+        )
     metrics = payload.get("metrics", {})
     gate_evidence = payload.get("gate_evidence", {})
     if not isinstance(metrics, Mapping) or not isinstance(gate_evidence, Mapping):
         raise PilotEvidenceError("terminal metrics and gate_evidence must be objects")
+    if imported_stage0 is not None:
+        if (
+            imported_stage0.get("metrics") != metrics
+            or imported_stage0.get("scientific_evidence") is not True
+            or imported_stage0.get("provider_calls_current_attempt") != 0
+        ):
+            raise PilotEvidenceError(
+                "V2.7 imported Stage-0 terminal differs from its verified "
+                "envelope metrics"
+            )
     return {
-        "artifact_kind": "terminal-summary",
+        "artifact_kind": (
+            "imported-stage0-run-envelope"
+            if imported_stage0 is not None
+            else "terminal-summary"
+        ),
         "artifact_sha256": _sha256_file(path),
         "binding": binding,
         "scientific_eligible": eligible,
@@ -3332,6 +3413,7 @@ def _validate_standard_run_contract(
     records: Mapping[str, Sequence[Mapping[str, Any]]],
     provenance_git: Mapping[str, Any],
     raw_root: Path,
+    source_repo_root: Path | None = None,
 ) -> None:
     """Rebuild and compare the exact registered runner/provider configuration.
 
@@ -3384,15 +3466,17 @@ def _validate_standard_run_contract(
             str(spec["model_id"]),
             raw_root=raw_root,
             paid=paid,
+            authority_repo_root=source_repo_root,
         )
-        expected_base_config = config_for_spec(
-            contract,
-            expected_spec,
-            raw_root=raw_root,
-            paid_provenance=paid,
-            verify_bound_inputs=True,
-            preflight_p95_reservations=reservations,
-        )
+        with observed_p95_authority_repo_context(source_repo_root):
+            expected_base_config = config_for_spec(
+                contract,
+                expected_spec,
+                raw_root=raw_root,
+                paid_provenance=paid,
+                verify_bound_inputs=True,
+                preflight_p95_reservations=reservations,
+            )
         expected_config = build_sealed_run_config(
             expected_base_config,
             env_config_source=DEFAULT_ENV_CONFIG,
@@ -3451,6 +3535,7 @@ def _load_standard_run(
     run_dir: Path,
     *,
     raw_root: Path,
+    source_repo_root: Path | None = None,
 ) -> dict[str, Any]:
     mode = str(spec.get("execution_mode", ""))
     if mode not in RUNNER_EXECUTION_MODES:
@@ -3460,7 +3545,10 @@ def _load_standard_run(
         )
     try:
         verification = verify_manifest(run_dir)
-        result = load_verified_run_artifacts(run_dir)
+        result = load_verified_run_artifacts(
+            run_dir,
+            authority_repo_root=source_repo_root,
+        )
     except (ManifestVerificationError, ValueError, TypeError) as exc:
         raise PilotEvidenceError(f"sealed run validation failed for {run_dir}: {exc}") from exc
     manifest = _strict_json_load(run_dir / "manifest.json")
@@ -3504,6 +3592,7 @@ def _load_standard_run(
         records=result.records,
         provenance_git=paid,
         raw_root=raw_root,
+        source_repo_root=source_repo_root,
     )
     evidence = {
         "diagnostic_only": summary.get("diagnostic_only"),
@@ -3529,10 +3618,17 @@ def _load_standard_run(
             raise PilotEvidenceError("scientific runner config contract hash mismatch")
         if config.get("pilot_tag") != contract.implementation["required_git_tag"]:
             raise PilotEvidenceError("scientific runner config tag mismatch")
-    analysis = summarize_run(
-        result.records,
-        max_labor_hours=float(config["max_labor_hours"]),
-        schedule=contract.shocks[str(spec["shock_id"])]["schedule"],
+    analysis = (
+        summarize_stage0_run(
+            result.records,
+            max_labor_hours=float(config["max_labor_hours"]),
+        )
+        if spec["stage_id"] == "stage0-calibration"
+        else summarize_run(
+            result.records,
+            max_labor_hours=float(config["max_labor_hours"]),
+            schedule=contract.shocks[str(spec["shock_id"])]["schedule"],
+        )
     )
     total_discounted = sum(
         float(row["discounted_flow_utility"])
@@ -3566,6 +3662,7 @@ def _load_completed_artifact(
     *,
     raw_root: Path,
     artifact: Any,
+    source_repo_root: Path | None = None,
 ) -> dict[str, Any]:
     path = _resolve_artifact(raw_root, artifact)
     mode = str(spec.get("execution_mode", ""))
@@ -3583,6 +3680,7 @@ def _load_completed_artifact(
             spec,
             path,
             raw_root=raw_root,
+            source_repo_root=source_repo_root,
         )
     if path.name == "manifest.json":
         if mode not in RUNNER_EXECUTION_MODES:
@@ -3594,10 +3692,14 @@ def _load_completed_artifact(
             spec,
             path.parent,
             raw_root=raw_root,
+            source_repo_root=source_repo_root,
         )
     if path.suffix.lower() != ".json":
         raise PilotEvidenceError(f"unsupported completed artifact type: {path}")
-    if mode not in TERMINAL_EXECUTION_MODES:
+    if (
+        mode not in TERMINAL_EXECUTION_MODES
+        and not _is_v27_imported_stage0_spec(contract, spec)
+    ):
         raise PilotEvidenceError(
             f"execution mode {mode!r} requires a verified-run manifest"
         )
@@ -3606,6 +3708,7 @@ def _load_completed_artifact(
         spec,
         path,
         raw_root=raw_root,
+        source_repo_root=source_repo_root,
     )
 
 
@@ -3702,6 +3805,7 @@ def _normalize_ledger(
     ledger: Mapping[str, Any],
     *,
     raw_root: Path,
+    source_repo_root: Path | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any], str | None]:
     expected_schema = (
         PILOT_RUN_LEDGER_SCHEMA_VERSION_V2
@@ -3771,6 +3875,7 @@ def _normalize_ledger(
                 spec,
                 raw_root=raw_root,
                 artifact=source.get("artifact"),
+                source_repo_root=source_repo_root,
             )
             row.update(evidence)
             bindings.add(str(evidence["binding"]["resolved_git_commit"]))
@@ -3786,6 +3891,7 @@ def _normalize_ledger(
                         spec,
                         artifact_path,
                         raw_root=raw_root,
+                        source_repo_root=source_repo_root,
                     )
                     row["artifact_kind"] = evidence["artifact_kind"]
                     row["artifact_sha256"] = evidence["artifact_sha256"]
@@ -4276,8 +4382,11 @@ def _expected_parent_budget_debit(
     from .pilot_v24_parent_import import parent_budget_debit_for_v24
     from .pilot_v25_parent_import import parent_budget_debit_for_v25
     from .pilot_v26_parent_import import parent_budget_debit_for_v26
+    from .pilot_v27_stage0_import import parent_budget_debit_for_v27
 
-    debit = parent_budget_debit_for_v26(contract)
+    debit = parent_budget_debit_for_v27(contract)
+    if debit is None:
+        debit = parent_budget_debit_for_v26(contract)
     if debit is None:
         debit = parent_budget_debit_for_v25(contract)
     if debit is None:
@@ -4353,6 +4462,168 @@ def _validate_v2_budget_hash_chain(
         and payload.get("parent_debit_sha256") == parent_hash
         and parent_valid
         and parent_event_valid
+    )
+
+
+def _validated_v27_stage0_source_row(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    source: Mapping[str, Any],
+    row: Mapping[str, Any],
+    spec: PilotRunSpec,
+    common_commit: str | None,
+) -> bool:
+    """Validate one V2.7 imported Stage-0 selection source end to end.
+
+    V2.7 does not claim that its Stage-0 actor cells were executed again.
+    Their aggregate artifact is a current terminal summary bound to a current
+    import envelope, and the envelope is itself recomputed from immutable V2.6
+    source streams.  Keep this admission path separate from the legacy
+    ``verified-run-manifest`` path so older contracts are not relaxed.
+    """
+
+    expected_source_keys = {
+        "run_id",
+        "utility_profile_id",
+        "environment_seed",
+        "execution_disposition",
+        "envelope",
+        "envelope_file_sha256",
+        "envelope_content_sha256",
+        "terminal_summary",
+        "terminal_summary_file_sha256",
+        "terminal_summary_content_sha256",
+        "source_run_id",
+        "source_manifest_sha256",
+        "provider_calls_current_attempt",
+    }
+    if (
+        common_commit is None
+        or set(source) != expected_source_keys
+        or source.get("run_id") != spec.run_id
+        or source.get("utility_profile_id") != spec.utility_profile_id
+        or source.get("environment_seed") != spec.environment_seed
+        or source.get("execution_disposition")
+        != "immutable-parent-import-offline-resummary"
+        or source.get("provider_calls_current_attempt") != 0
+        or row.get("status") != "complete"
+        or row.get("artifact_kind") != "imported-stage0-run-envelope"
+    ):
+        return False
+
+    try:
+        envelope_path = _resolve_artifact(raw_root, source.get("envelope"))
+        terminal_path = _resolve_artifact(
+            raw_root,
+            source.get("terminal_summary"),
+        )
+        envelope = _strict_json_load(envelope_path)
+        terminal = _strict_json_load(terminal_path)
+        envelope_integrity = _mapping(
+            envelope.get("integrity"),
+            "V2.7 Stage-0 envelope integrity",
+        )
+        terminal_integrity = _mapping(
+            terminal.get("integrity"),
+            "V2.7 Stage-0 terminal integrity",
+        )
+        source_import = _mapping(
+            envelope.get("source_import"),
+            "V2.7 Stage-0 envelope source import",
+        )
+        source_artifacts = _mapping(
+            source_import.get("source_artifacts"),
+            "V2.7 Stage-0 envelope source artifacts",
+        )
+        source_manifest = _mapping(
+            source_artifacts.get("manifest"),
+            "V2.7 Stage-0 source manifest",
+        )
+        terminal_payload = _mapping(
+            terminal.get("payload"),
+            "V2.7 Stage-0 terminal payload",
+        )
+        terminal_metrics = _mapping(
+            terminal_payload.get("metrics"),
+            "V2.7 Stage-0 terminal metrics",
+        )
+        terminal_gate = _mapping(
+            terminal_payload.get("gate_evidence"),
+            "V2.7 Stage-0 terminal gate evidence",
+        )
+        terminal_envelope_binding = _mapping(
+            terminal_gate.get("imported_run_envelope"),
+            "V2.7 Stage-0 terminal envelope binding",
+        )
+
+        from .pilot_orchestrator import (  # pylint: disable=import-outside-toplevel
+            PilotOrchestrationError,
+            verify_v27_imported_stage0_terminal,
+        )
+
+        verified = verify_v27_imported_stage0_terminal(
+            contract,
+            spec,
+            terminal_path,
+            raw_root,
+            common_commit,
+            str(contract.implementation["required_git_tag"]),
+        )
+        verified_binding = _mapping(
+            verified.get("envelope_binding"),
+            "verified V2.7 Stage-0 envelope binding",
+        )
+        verified_envelope_path = _resolve_artifact(
+            raw_root,
+            verified_binding.get("path"),
+        )
+    except (
+        PilotEvidenceError,
+        PilotOrchestrationError,
+        OSError,
+        TypeError,
+        ValueError,
+        KeyError,
+    ):
+        return False
+
+    return bool(
+        _is_sha256(source.get("envelope_file_sha256"))
+        and _is_sha256(source.get("envelope_content_sha256"))
+        and _is_sha256(source.get("terminal_summary_file_sha256"))
+        and _is_sha256(source.get("terminal_summary_content_sha256"))
+        and _is_sha256(source.get("source_manifest_sha256"))
+        and _sha256_file(envelope_path)
+        == source.get("envelope_file_sha256")
+        and envelope_integrity.get("content_sha256")
+        == source.get("envelope_content_sha256")
+        and _sha256_file(terminal_path)
+        == source.get("terminal_summary_file_sha256")
+        and terminal_integrity.get("content_sha256")
+        == source.get("terminal_summary_content_sha256")
+        and row.get("artifact_sha256")
+        == source.get("terminal_summary_file_sha256")
+        and source_import.get("source_run_id") == source.get("source_run_id")
+        and source_manifest.get("file_sha256")
+        == source.get("source_manifest_sha256")
+        and verified.get("execution_disposition")
+        == source.get("execution_disposition")
+        and verified.get("provider_calls_current_attempt") == 0
+        and verified.get("scientific_evidence") is True
+        and verified_envelope_path == envelope_path
+        and verified_binding == terminal_envelope_binding
+        and verified_binding.get("file_sha256")
+        == source.get("envelope_file_sha256")
+        and verified_binding.get("content_sha256")
+        == source.get("envelope_content_sha256")
+        and terminal_metrics == verified.get("metrics")
+        and row.get("metrics") == verified.get("metrics")
+        and row.get("gate_evidence") == terminal_gate
+        and terminal_gate.get("status") == "pass"
+        and terminal_gate.get("execution_disposition")
+        == source.get("execution_disposition")
+        and terminal_gate.get("provider_calls_current_attempt") == 0
     )
 
 
@@ -4464,7 +4735,11 @@ def _validated_release_controls(
             selection.get("bindings"),
             "Stage-0 selection bindings",
         )
-        source_rows = bindings.get("source_manifests")
+        source_rows = bindings.get(
+            "source_envelopes"
+            if _is_v27_contract(contract)
+            else "source_manifests"
+        )
         expected_specs = {
             spec.run_id: spec
             for spec in contract.expand(stage="stage0-calibration")
@@ -4522,22 +4797,60 @@ def _validated_release_controls(
                 run_id = str(source.get("run_id", ""))
                 row = aggregate_rows.get(run_id)
                 spec = expected_specs.get(run_id)
-                if (
-                    run_id in observed_ids
-                    or row is None
-                    or spec is None
-                    or row.get("status") != "complete"
-                    or row.get("artifact_kind") != "verified-run-manifest"
-                    or row.get("artifact_sha256")
-                    != source.get("manifest_sha256")
-                    or source.get("utility_profile_id")
-                    != spec.utility_profile_id
-                    or source.get("environment_seed")
-                    != spec.environment_seed
-                ):
+                if run_id in observed_ids or row is None or spec is None:
                     source_valid = False
                     break
+                if _is_v27_contract(contract):
+                    source_valid = _validated_v27_stage0_source_row(
+                        contract,
+                        raw_root=raw_root,
+                        source=source,
+                        row=row,
+                        spec=spec,
+                        common_commit=common_commit,
+                    )
+                else:
+                    source_valid = bool(
+                        row.get("status") == "complete"
+                        and row.get("artifact_kind")
+                        == "verified-run-manifest"
+                        and row.get("artifact_sha256")
+                        == source.get("manifest_sha256")
+                        and source.get("utility_profile_id")
+                        == spec.utility_profile_id
+                        and source.get("environment_seed")
+                        == spec.environment_seed
+                    )
+                if not source_valid:
+                    break
                 observed_ids.add(run_id)
+        selection_semantic_replay_valid = True
+        if _is_v27_contract(contract):
+            try:
+                from .pilot_orchestrator import (  # pylint: disable=import-outside-toplevel
+                    PilotOrchestrationError,
+                    verify_v27_stage0_selection,
+                )
+
+                replayed_selection = verify_v27_stage0_selection(
+                    contract,
+                    stage0_path,
+                    raw_root,
+                    str(common_commit),
+                    str(contract.implementation["required_git_tag"]),
+                )
+                selection_semantic_replay_valid = (
+                    replayed_selection == selection
+                )
+            except (
+                PilotEvidenceError,
+                PilotOrchestrationError,
+                OSError,
+                TypeError,
+                ValueError,
+                KeyError,
+            ):
+                selection_semantic_replay_valid = False
         stage0_checks = {
             "sealed_selection": (
                 selection.get("schema_version")
@@ -4557,11 +4870,6 @@ def _validated_release_controls(
             "complete_source_matrix": (
                 source_valid and observed_ids == set(expected_specs)
             ),
-            "selection_is_outcome_blind": (
-                isinstance(selection.get("selected_profile_id"), str)
-                and isinstance(selection.get("selected_utility"), Mapping)
-                and selection.get("outcome_fields_used") == []
-            ),
             "stage_receipt_go": (
                 receipt_integrity_valid
                 and receipt.get("contract_sha256")
@@ -4576,6 +4884,23 @@ def _validated_release_controls(
                 == len(expected_specs)
             ),
         }
+        if _is_v27_contract(contract):
+            stage0_checks["selection_semantic_replay"] = (
+                selection_semantic_replay_valid
+            )
+            stage0_checks[
+                "selection_uses_no_a_d_treatment_outcome_fields"
+            ] = bool(
+                isinstance(selection.get("selected_profile_id"), str)
+                and isinstance(selection.get("selected_utility"), Mapping)
+                and selection.get("outcome_fields_used") == []
+            )
+        else:
+            stage0_checks["selection_is_outcome_blind"] = bool(
+                isinstance(selection.get("selected_profile_id"), str)
+                and isinstance(selection.get("selected_utility"), Mapping)
+                and selection.get("outcome_fields_used") == []
+            )
         stage0_pass = all(stage0_checks.values())
         stage0_reasons.extend(
             name for name, passed in stage0_checks.items() if not passed
@@ -4632,7 +4957,30 @@ def _validated_release_controls(
             for spec in contract.expand()
             if spec.execution_mode == "checkpoint_continuation"
         }
-        expected_budget_ids = expected_standard_ids | expected_d_ids
+        expected_parent_ids = (
+            {
+                spec.run_id
+                for spec in contract.expand(stage="parent-import")
+                if spec.execution_mode == "parent_authority_import"
+            }
+            if _is_v27_contract(contract)
+            else set()
+        )
+        expected_budget_ids = (
+            expected_standard_ids | expected_d_ids | expected_parent_ids
+        )
+        required_v27_import_budget_ids: set[str] = set()
+        if _is_v27_contract(contract):
+            required_v27_import_budget_ids.update(expected_parent_ids)
+            for stage_id in (
+                "q-ref-resolution",
+                "stage0-calibration",
+            ):
+                if (raw_root / stage_id / "stage_receipt.json").is_file():
+                    required_v27_import_budget_ids.update(
+                        spec.run_id
+                        for spec in contract.expand(stage=stage_id)
+                    )
         expected_parent_debit = _expected_parent_budget_debit(contract)
         totals = {
             "cost_usd": (
@@ -4662,7 +5010,10 @@ def _validated_release_controls(
         # registered ITT cells before a provider reservation exists.  The
         # durable budget ledger must therefore be an exact, finalized account
         # of dispatched units, not a fabricated row for every no-dispatch cell.
-        rows_valid = set(budget_runs).issubset(expected_budget_ids)
+        rows_valid = bool(
+            set(budget_runs).issubset(expected_budget_ids)
+            and required_v27_import_budget_ids.issubset(set(budget_runs))
+        )
         if rows_valid:
             for run_id, row in budget_runs.items():
                 if not isinstance(row, Mapping):
@@ -4732,8 +5083,19 @@ def _validated_release_controls(
                 and row.get("artifact_kind") is not None
             )
         }
+        artifact_backed_parent_ids = {
+            str(row["run_id"])
+            for row in rows
+            if (
+                _is_v27_contract(contract)
+                and row["execution_mode"] == "parent_authority_import"
+                and row.get("artifact_kind") is not None
+            )
+        }
         dispatched_artifacts_accounted = (
-            artifact_backed_standard_ids | artifact_backed_d_ids
+            artifact_backed_standard_ids
+            | artifact_backed_d_ids
+            | artifact_backed_parent_ids
         ).issubset(set(budget_runs))
         within_caps = bool(
             totals["cost_usd"] <= expected_caps["dispatchable_usd"] + 1e-12
@@ -7824,6 +8186,7 @@ def build_pilot_evidence_package(
     run_ledger_path: str | Path,
     raw_root: str | Path,
     build_root: str | Path,
+    source_repo_root: str | Path | None = None,
 ) -> PilotEvidencePackage:
     """Validate raw pilot evidence and atomically build the reviewer package.
 
@@ -7839,11 +8202,16 @@ def build_pilot_evidence_package(
     if not raw.is_dir():
         raise PilotEvidenceError(f"pilot raw root does not exist: {raw}")
     ledger = _strict_json_load(Path(run_ledger_path).resolve())
-    rows, denominator, common_commit = _normalize_ledger(
-        contract,
-        ledger,
+    with source_repository_context(
+        source_repo_root,
         raw_root=raw,
-    )
+    ) as source_root:
+        rows, denominator, common_commit = _normalize_ledger(
+            contract,
+            ledger,
+            raw_root=raw,
+            source_repo_root=source_root,
+        )
     gates = {
         "experiment_a": _experiment_a_gate(contract, rows),
         "experiment_c": _experiment_c_gate(contract, rows),
@@ -7926,3 +8294,28 @@ __all__ = [
     "build_pilot_evidence_package",
     "write_terminal_summary",
 ]
+@contextmanager
+def source_repository_context(
+    source_repo_root: str | Path | None,
+    *,
+    raw_root: Path,
+) -> Iterable[Path | None]:
+    """Resolve historical relative bindings from one explicit source root."""
+
+    if source_repo_root is None:
+        yield None
+        return
+    source = Path(source_repo_root)
+    if source.is_symlink():
+        raise PilotEvidenceError("source repository root cannot be a symlink")
+    source = source.resolve(strict=True)
+    if not source.is_dir() or not raw_root.resolve().is_relative_to(source):
+        raise PilotEvidenceError(
+            "external pilot raw root must be contained by source repository root"
+        )
+    previous = Path.cwd()
+    try:
+        os.chdir(source)
+        yield source
+    finally:
+        os.chdir(previous)
