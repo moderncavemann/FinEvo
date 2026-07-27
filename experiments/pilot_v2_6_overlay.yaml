@@ -1,0 +1,134 @@
+{
+  "base_contract": {
+    "canonical_sha256": "1f9809062684a1a2afb96b7342b88a06810e0e87ac883aa63a858a65a81d188d",
+    "contract_id": "finevo-pilot-v2.5",
+    "path": "pilot_v2_5.yaml",
+    "schema_version": "finevo-pilot-contract-v2"
+  },
+  "changes": {
+    "denominator_policy": {
+      "policy_id": "finevo-pilot-v2.6-itt"
+    },
+    "implementation": {
+      "required_git_tag": "pilot-v2.6-science"
+    },
+    "release_requirements": {
+      "expected_ci": {
+        "compiled_source_count": null,
+        "compiled_source_inventory_sha256": null,
+        "sealed_manifest_inventory_sha256": null,
+        "test_collection_sha256": null,
+        "test_count": null
+      },
+      "tag": "pilot-v2.6-science"
+    }
+  },
+  "contract_id": "finevo-pilot-v2.6",
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "declared_sha256": "7ca75fc1b6491f7a970fcafb7510911ba25832f3d6156a2e1d69fcf67288d3b8"
+  },
+  "p95_authority_retry_amendment": {
+    "amendment_id": "finevo-pilot-v2.6-p95-authority-interface-retry-1",
+    "budget_carry_forward": {
+      "budget_reset": false,
+      "cumulative_prior": {
+        "cost_usd": 3.212770875,
+        "hosted_completions": 184,
+        "parent_budget_ledger_sha256": "7b448a0ebc002b932150c68f2c4e552e940ce186ea5e58afed8673af627d9162",
+        "parent_contract_sha256": "1f9809062684a1a2afb96b7342b88a06810e0e87ac883aa63a858a65a81d188d",
+        "parent_run_ledger_sha256": "7d223ddc2cc46b022f051217b9f6767bf9264fb66212b1a63a3498fb6447220f",
+        "record_sha256": "4f445491738ea756280fca0b8c5c82823f4cefe7574cd368ed0c2c51c6a48802",
+        "stage_bucket": "parent_v23",
+        "storage_bytes": 6303635
+      },
+      "debit_before_new_dispatch": true,
+      "manual_reserve_automatic_use": false,
+      "max_provider_completions": 7500,
+      "max_storage_bytes": 5000000000,
+      "total_cap_usd": 500.0,
+      "v2_5_incremental": {
+        "cost_usd": 0.0,
+        "hosted_completions": 0,
+        "raw_file_count": 61,
+        "storage_bytes": 1589313
+      }
+    },
+    "correction_policy": {
+      "child_receipt_resealed_to_current_contract_tag_and_head": true,
+      "child_receipt_schema": "finevo-pilot-v2.6-inherited-observed-p95-authority-v1",
+      "current_head_equals_annotated_tag_commit_required": true,
+      "generic_reader_exact_schema_dispatch_required": true,
+      "parent_authority_commit": "a3ec8d96162b50e41e7d4700e0534ce33c1958c3",
+      "parent_authority_contract_id": "finevo-pilot-v2.5",
+      "parent_authority_resigning_forbidden": true,
+      "parent_authority_tag": "pilot-v2.5-science",
+      "parent_receipt_and_projection_bytes_immutable": true,
+      "parent_receipt_is_source_only": true,
+      "parent_receipt_reverified_before_child_reseal": true,
+      "parent_receipt_schema": "finevo-pilot-v2.5-inherited-observed-p95-authority-v1",
+      "provider_construction_during_import": false,
+      "unknown_inherited_schema_fails_closed": true
+    },
+    "failure_classification": {
+      "budget_ledger_internal_sha256": "7b448a0ebc002b932150c68f2c4e552e940ce186ea5e58afed8673af627d9162",
+      "failed_stage_id": "stage0-calibration",
+      "failure_message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+      "incremental_cost_usd": 0.0,
+      "incremental_hosted_completions": 0,
+      "parent_contract_id": "finevo-pilot-v2.5",
+      "parent_contract_sha256": "1f9809062684a1a2afb96b7342b88a06810e0e87ac883aa63a858a65a81d188d",
+      "provider_calls": 0,
+      "registered_cells": 211,
+      "root_cause_code": "v2.5-inherited-p95-schema-not-dispatched-by-runner-verifier",
+      "run_ledger_internal_sha256": "7d223ddc2cc46b022f051217b9f6767bf9264fb66212b1a63a3498fb6447220f",
+      "scientific_cells": 209,
+      "scientific_effect_outcomes_available": false,
+      "scientific_effect_outcomes_inspected": false,
+      "status_counts": {
+        "complete": 2,
+        "failed": 14,
+        "integrity-stopped": 195
+      },
+      "terminal_status": "complete-with-no-go"
+    },
+    "raw_namespace": {
+      "child": "experiment_results/pilot-v2.6/raw",
+      "parent": "experiment_results/pilot-v2.5/raw",
+      "shared": false
+    },
+    "retry_policy": {
+      "downstream_dispatch_requires_import_success": true,
+      "failed_seed_replacement": "forbidden",
+      "matrix_shrink": "forbidden",
+      "new_211_cell_denominator_required": true,
+      "new_contract_required": true,
+      "outcome_blind": true,
+      "preserve_parent_denominator": true,
+      "provider_redispatch_before_import_success": "forbidden",
+      "retry_is_operational_amendment": true,
+      "v2_5_failed_cell_reclassification": "forbidden",
+      "v2_5_raw_resume": "forbidden"
+    },
+    "schema_version": "finevo-pilot-p95-authority-retry-amendment-v1",
+    "science_design_invariance": {
+      "budget_envelope_unchanged": true,
+      "matrix_profile_id": "local-llama-full-ad-gpt52-fixed-confirmatory-cadb-v1",
+      "provider_profiles_unchanged": true,
+      "registered_cells": 211,
+      "scientific_cells": 209,
+      "seeds_arms_models_stage_order_unchanged": true,
+      "shock_utility_stop_go_unchanged": true,
+      "source_contract_id": "finevo-pilot-v2.5",
+      "source_science_design_sha256": "ac11b024435d6d6b03a68b59e5f59f28d92a822ddd3712b1b4c612b668a20586"
+    },
+    "source_manifest": {
+      "content_sha256": null,
+      "file_sha256": null,
+      "path": "experiments/pilot_v2_6_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.6-source-manifest-v1"
+    }
+  },
+  "schema_version": "finevo-pilot-contract-v2.6-p95-authority-retry-overlay-v1",
+  "status": "draft"
+}

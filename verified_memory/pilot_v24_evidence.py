@@ -1,4 +1,4 @@
-"""Lane-separated evidence publication for the FinEvo V2.4/V2.5 pilot.
+"""Lane-separated evidence publication for the FinEvo V2.4/V2.5/V2.6 pilot.
 
 V2.4 is deliberately not a continuation of the terminal V2.3 denominator.
 Its scientific matrix contains two independently interpreted lanes:
@@ -55,6 +55,8 @@ PILOT_V24_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-v2.4-evidence-package-v1"
 PILOT_V24_CONTRACT_ID = "finevo-pilot-v2.4"
 PILOT_V25_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-v2.5-evidence-package-v1"
 PILOT_V25_CONTRACT_ID = "finevo-pilot-v2.5"
+PILOT_V26_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-v2.6-evidence-package-v1"
+PILOT_V26_CONTRACT_ID = "finevo-pilot-v2.6"
 PILOT_V24_STAGE_ORDER = (
     "experiment-c",
     "experiment-a",
@@ -163,6 +165,8 @@ def _contract_id_version_label(contract_id: Any) -> str:
         return "V2.4"
     if contract_id == PILOT_V25_CONTRACT_ID:
         return "V2.5"
+    if contract_id == PILOT_V26_CONTRACT_ID:
+        return "V2.6"
     raise PilotEvidenceError(
         "lane-separated evidence adapter received another contract"
     )
@@ -177,6 +181,8 @@ def _evidence_schema_version(contract: PilotContract) -> str:
         return PILOT_V24_EVIDENCE_SCHEMA_VERSION
     if contract.contract_id == PILOT_V25_CONTRACT_ID:
         return PILOT_V25_EVIDENCE_SCHEMA_VERSION
+    if contract.contract_id == PILOT_V26_CONTRACT_ID:
+        return PILOT_V26_EVIDENCE_SCHEMA_VERSION
     raise PilotEvidenceError(
         "lane-separated evidence adapter received another contract"
     )
@@ -1117,6 +1123,8 @@ def _write_v24_package(
 
     retry_binding: dict[str, Any] | None = None
     retry_manifest_name: str | None = None
+    inherited_retry_binding: dict[str, Any] | None = None
+    inherited_retry_manifest_name: str | None = None
     base_binding: dict[str, Any] | None = None
     base_contract_name: str | None = None
     if contract.contract_id == PILOT_V25_CONTRACT_ID:
@@ -1179,6 +1187,126 @@ def _write_v24_package(
             shutil.copyfile(
                 base_contract_source,
                 contract_target.with_name(base_contract_name),
+            )
+    elif contract.contract_id == PILOT_V26_CONTRACT_ID:
+        retry_amendment = getattr(
+            contract,
+            "p95_authority_retry_amendment",
+            None,
+        )
+        if not isinstance(retry_amendment, Mapping):
+            raise PilotEvidenceError(
+                "V2.6 contract lacks its p95-authority retry amendment"
+            )
+        retry_binding_raw = retry_amendment.get("source_manifest")
+        if not isinstance(retry_binding_raw, Mapping):
+            raise PilotEvidenceError(
+                "V2.6 contract lacks its retry source manifest binding"
+            )
+        retry_binding = dict(retry_binding_raw)
+        retry_manifest_name = "pilot_v2_6_source_manifest.json"
+        retry_manifest_path = str(retry_binding.get("path", ""))
+        if (
+            retry_manifest_path != f"experiments/{retry_manifest_name}"
+            or Path(retry_manifest_path).name != retry_manifest_name
+        ):
+            raise PilotEvidenceError(
+                "V2.6 retry source manifest package path drifted"
+            )
+        retry_manifest_source = contract_path.with_name(retry_manifest_name)
+        if not retry_manifest_source.is_file():
+            raise PilotEvidenceError(
+                "V2.6 retry source manifest sibling is missing"
+            )
+        retry_manifest_target = contract_target.with_name(retry_manifest_name)
+        shutil.copyfile(retry_manifest_source, retry_manifest_target)
+        if _sha256_file(retry_manifest_target) != retry_binding.get(
+            "file_sha256"
+        ):
+            raise PilotEvidenceError(
+                "copied V2.6 retry source manifest failed hash revalidation"
+            )
+
+        inherited_retry = contract.parent_import_retry_amendment
+        if not isinstance(inherited_retry, Mapping):
+            raise PilotEvidenceError(
+                "V2.6 contract lacks the inherited V2.5 retry amendment"
+            )
+        inherited_retry_binding_raw = inherited_retry.get("source_manifest")
+        if not isinstance(inherited_retry_binding_raw, Mapping):
+            raise PilotEvidenceError(
+                "V2.6 contract lacks the inherited V2.5 source binding"
+            )
+        inherited_retry_binding = dict(inherited_retry_binding_raw)
+        inherited_retry_manifest_name = "pilot_v2_5_source_manifest.json"
+        if (
+            inherited_retry_binding.get("path")
+            != f"experiments/{inherited_retry_manifest_name}"
+        ):
+            raise PilotEvidenceError(
+                "V2.6 inherited V2.5 source-manifest path drifted"
+            )
+        inherited_retry_source = contract_path.with_name(
+            inherited_retry_manifest_name
+        )
+        inherited_retry_target = contract_target.with_name(
+            inherited_retry_manifest_name
+        )
+        if not inherited_retry_source.is_file():
+            raise PilotEvidenceError(
+                "V2.6 inherited V2.5 source manifest is missing"
+            )
+        shutil.copyfile(inherited_retry_source, inherited_retry_target)
+        if _sha256_file(inherited_retry_target) != inherited_retry_binding.get(
+            "file_sha256"
+        ):
+            raise PilotEvidenceError(
+                "copied V2.5 source manifest failed hash revalidation"
+            )
+
+        contract_document = _strict_json_load(contract_path)
+        base_binding_raw = contract_document.get("base_contract")
+        base_contract_name = "pilot_v2_5.yaml"
+        if base_binding_raw is None:
+            base_binding = {
+                "path": base_contract_name,
+                "schema_version": "finevo-pilot-contract-v2",
+                "contract_id": PILOT_V25_CONTRACT_ID,
+                "canonical_sha256": (
+                    contract.p95_authority_retry_amendment[
+                        "failure_classification"
+                    ]["parent_contract_sha256"]
+                ),
+            }
+        elif isinstance(base_binding_raw, Mapping):
+            base_binding = dict(base_binding_raw)
+        else:
+            raise PilotEvidenceError(
+                "V2.6 overlay base contract binding is malformed"
+            )
+        if base_binding.get("path") != base_contract_name:
+            raise PilotEvidenceError(
+                "V2.6 base contract package path drifted"
+            )
+        base_contract_source = contract_path.with_name(base_contract_name)
+        if not base_contract_source.is_file():
+            raise PilotEvidenceError(
+                "V2.6 base contract sibling is missing"
+            )
+        shutil.copyfile(
+            base_contract_source,
+            contract_target.with_name(base_contract_name),
+        )
+        copied_base = load_pilot_contract(
+            contract_target.with_name(base_contract_name)
+        )
+        if (
+            copied_base.contract_id != PILOT_V25_CONTRACT_ID
+            or copied_base.canonical_hash
+            != base_binding.get("canonical_sha256")
+        ):
+            raise PilotEvidenceError(
+                "copied V2.5 base contract failed identity revalidation"
             )
 
     copied = load_pilot_contract(contract_target)
@@ -1265,6 +1393,11 @@ def _write_v24_package(
             else []
         )
         + (
+            [f"contract/{inherited_retry_manifest_name}"]
+            if inherited_retry_manifest_name is not None
+            else []
+        )
+        + (
             [f"contract/{base_contract_name}"]
             if base_contract_name is not None
             else []
@@ -1303,6 +1436,14 @@ def _write_v24_package(
         manifest["retry_source_manifest"] = {
             **retry_binding,
             "package_path": f"contract/{retry_manifest_name}",
+        }
+    if (
+        inherited_retry_binding is not None
+        and inherited_retry_manifest_name is not None
+    ):
+        manifest["inherited_retry_source_manifest"] = {
+            **inherited_retry_binding,
+            "package_path": f"contract/{inherited_retry_manifest_name}",
         }
     if base_binding is not None and base_contract_name is not None:
         manifest["base_contract"] = {
@@ -1450,6 +1591,8 @@ __all__ = [
     "PILOT_V24_TOTAL_PAIRED_SEEDS",
     "PILOT_V25_CONTRACT_ID",
     "PILOT_V25_EVIDENCE_SCHEMA_VERSION",
+    "PILOT_V26_CONTRACT_ID",
+    "PILOT_V26_EVIDENCE_SCHEMA_VERSION",
     "aggregate_lane_separated_evidence",
     "aggregate_v24_evidence",
     "build_lane_separated_evidence_package",

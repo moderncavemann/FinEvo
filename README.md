@@ -103,6 +103,24 @@ See
 and
 [`experiments/pilot_v2_4_cost_projection.json`](experiments/pilot_v2_4_cost_projection.json).
 
+V2.4 subsequently stopped at its zero-provider parent import. V2.5 preserved
+that complete terminal denominator and corrected only the historical
+checkpoint code binding. Its parent import and deterministic q-ref resolution
+completed, but all fourteen Stage-0 calibration cells then stopped before
+provider construction because the central runner reader did not dispatch the
+V2.5 inherited observed-p95 receipt schema. The remaining 195 cells were
+integrity-stopped. The frozen V2.5 package is therefore an operational
+interface `complete-with-no-go`, not a model-capability, calibration, or
+treatment-effect result.
+
+V2.6 is a new outcome-blind operational amendment with another fresh 211-cell
+denominator. It verifies the immutable V2.5 raw tree and evidence package,
+reseals the two verified p95 authorities to the V2.6 contract/tag/HEAD, and
+requires both the version-specific and central runner readers to accept those
+receipts before any provider can be constructed. It carries forward
+`$3.212770875`, 184 hosted completions, and the full parent storage debit under
+the unchanged `$500`/7,500/5 GB caps. V2.5 is never resumed or reclassified.
+
 Real V2.3 stages require a clean checkout at the peeled annotated
 `pilot-v2.3-science` tag,
 the same commit on `origin/main`, the remote annotated tag, and successful
@@ -145,6 +163,17 @@ python run_pilot.py \
 The publisher refuses to overwrite an existing package and reports
 `complete-with-no-go` when the denominator is complete but a preregistered
 scientific claim gate is not supported.
+
+After V2.6 is independently frozen, merged, tagged, and attested, its
+zero-provider import must pass before q-ref or Stage 0:
+
+```bash
+python run_pilot.py \
+  --contract experiments/pilot_v2_6.yaml \
+  --stage parent-import \
+  --parent-repo-root ../finevo-pilot-v2-5-science \
+  --resume
+```
 
 Budgeted calls use one HTTP attempt per reserved call; post-setup execution
 failures write a content-addressed error/config/budget receipt. Preflight
