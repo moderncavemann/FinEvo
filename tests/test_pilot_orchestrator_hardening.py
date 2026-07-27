@@ -2407,7 +2407,7 @@ def test_stage0_consumer_recomputes_and_rejects_resealed_threshold_tamper(
         lambda *args, **kwargs: qref,
     )
     monkeypatch.setattr(
-        "verified_memory.pilot_orchestrator.summarize_run",
+        "verified_memory.pilot_orchestrator.summarize_stage0_run",
         lambda *args, **kwargs: {},
     )
     base_selection = {

@@ -2092,6 +2092,7 @@ def _validate_current_utility_and_result_contract(
     num_agents: int,
     macro_count: int,
     episode_length: int,
+    authority_repo_root: str | Path | None = None,
 ) -> None:
     """Recompute accounting, headline metrics, and every validation gate."""
 
@@ -2479,7 +2480,10 @@ def _validate_current_utility_and_result_contract(
         and config.get("pilot_contract_hash")
         and config.get("pilot_tag")
         and config.get("preflight_measurement_role") is None
-        and serialized_has_sealed_observed_p95_authority(config)
+        and serialized_has_sealed_observed_p95_authority(
+            config,
+            authority_repo_root=authority_repo_root,
+        )
     )
     expected_validation = {
         "status": "pass" if all(expected_checks.values()) else "fail",
@@ -2577,6 +2581,7 @@ def _validate_cross_stream_contract(
     records: Mapping[str, tuple[Mapping[str, Any], ...]],
     manifest: Mapping[str, Any] | None,
     for_write: bool,
+    authority_repo_root: str | Path | None = None,
 ) -> None:
     """Fail closed when sealed summaries disagree with their source streams."""
 
@@ -3065,6 +3070,7 @@ def _validate_cross_stream_contract(
             num_agents=num_agents,
             macro_count=macro_count,
             episode_length=episode_length,
+            authority_repo_root=authority_repo_root,
         )
 
     action_diagnostics = _mapping(
@@ -3210,7 +3216,11 @@ def write_verified_run_artifacts(
     return manifest_path
 
 
-def load_verified_run_artifacts(run_dir: str | Path) -> VerifiedRunResult:
+def load_verified_run_artifacts(
+    run_dir: str | Path,
+    *,
+    authority_repo_root: str | Path | None = None,
+) -> VerifiedRunResult:
     """Load a sealed run only after its manifest and every file hash verify."""
 
     root = Path(run_dir)
@@ -3254,6 +3264,7 @@ def load_verified_run_artifacts(run_dir: str | Path) -> VerifiedRunResult:
         records=result.records,
         manifest=manifest,
         for_write=False,
+        authority_repo_root=authority_repo_root,
     )
     return result
 

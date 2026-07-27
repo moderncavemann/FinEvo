@@ -16,6 +16,7 @@ from typing import Any, Iterable, Mapping, Sequence
 
 
 PILOT_ANALYSIS_SCHEMA_VERSION = "finevo-pilot-analysis-v1"
+PILOT_STAGE0_ANALYSIS_SCHEMA_VERSION = "finevo-pilot-stage0-analysis-v1"
 DEFAULT_SHOCK_SCHEDULE = (
     {"start": 0, "end": 4, "interest_rate": 0.03, "phase": "pre-shock"},
     {"start": 5, "end": 7, "interest_rate": 0.08, "phase": "shock"},
@@ -864,6 +865,108 @@ def summarize_run(
     }
 
 
+def summarize_stage0_run(
+    records: Mapping[str, Sequence[Mapping[str, Any]]],
+    *,
+    max_labor_hours: float,
+) -> dict[str, Any]:
+    """Compute only the preregistered, phase-agnostic Stage-0 projection.
+
+    Stage-0 utility calibration deliberately uses a constant baseline schedule,
+    so it has neither ``pre-shock`` nor ``recovery`` phases.  Its selector reads
+    only action coverage, clipping, budget residual, and utility-component
+    balance.  Keeping this projection separate prevents baseline observations
+    from being relabelled with the treatment-analysis shock schedule.
+    """
+
+    max_labor_hours = _finite(max_labor_hours, "max_labor_hours")
+    if max_labor_hours <= 0:
+        raise ValueError("max_labor_hours must be positive")
+    utility_rows = _rows(records, "utility_ledger")
+    action_rows = _rows(records, "actions")
+    if not utility_rows or not action_rows:
+        raise ValueError(
+            "a completed Stage-0 run requires utility and action rows"
+        )
+
+    labor = [
+        _action_row_value(row, "executed_labor_hours") for row in action_rows
+    ]
+    consumption = [
+        _action_row_value(row, "executed_consumption_rate")
+        for row in action_rows
+    ]
+    clipped = [
+        bool(
+            row.get("decision", {}).get("clipped")
+            if isinstance(row.get("decision"), Mapping)
+            else False
+        )
+        for row in action_rows
+    ]
+    component_ratios = [
+        ratio
+        for row in utility_rows
+        if (
+            ratio := _safe_ratio(
+                _finite(row.get("labor_disutility"), "labor_disutility"),
+                _finite(row.get("consumption_utility"), "consumption_utility"),
+            )
+        )
+        is not None
+    ]
+    residuals = [
+        abs(_finite(row.get("budget_residual"), "budget_residual"))
+        for row in utility_rows
+    ]
+    errors = _rows(records, "errors")
+    provider_failures = sum(
+        row.get("error_type") not in {None, "CandidateParseError"}
+        for row in errors
+    )
+
+    return {
+        "schema_version": PILOT_STAGE0_ANALYSIS_SCHEMA_VERSION,
+        "analysis_scope": "stage0-baseline-calibration",
+        "row_counts": {
+            "actions": len(action_rows),
+            "utility": len(utility_rows),
+            "errors": len(errors),
+        },
+        "actions": {
+            "labor_hours_counts": dict(
+                sorted(Counter(f"{value:g}" for value in labor).items())
+            ),
+            "consumption_rate_counts": dict(
+                sorted(Counter(f"{value:g}" for value in consumption).items())
+            ),
+            "zero_labor_rate": sum(value == 0 for value in labor) / len(labor),
+            "ceiling_labor_rate": sum(
+                math.isclose(value, max_labor_hours, abs_tol=1e-12)
+                for value in labor
+            )
+            / len(labor),
+            "interior_labor_rate": sum(
+                0 < value < max_labor_hours for value in labor
+            )
+            / len(labor),
+            "interior_consumption_rate": sum(
+                0 < value < 1 for value in consumption
+            )
+            / len(consumption),
+            "clipping_count": sum(clipped),
+            "clipping_rate": sum(clipped) / len(clipped),
+        },
+        "guardrails": {
+            "max_abs_budget_residual": max(residuals),
+            "median_labor_disutility_to_consumption_utility": (
+                median(component_ratios) if component_ratios else None
+            ),
+            "provider_failure_count": provider_failures,
+        },
+    }
+
+
 def stage0_gate(summary: Mapping[str, Any]) -> dict[str, Any]:
     """Apply the preregistered utility-calibration guardrails without outcome tuning."""
 
@@ -1161,6 +1264,7 @@ def validate_itt_denominator(
 __all__ = [
     "DEFAULT_SHOCK_SCHEDULE",
     "PILOT_ANALYSIS_SCHEMA_VERSION",
+    "PILOT_STAGE0_ANALYSIS_SCHEMA_VERSION",
     "continuation_effect_gate",
     "normalize_shock_schedule",
     "paired_delta_summary",
@@ -1169,6 +1273,7 @@ __all__ = [
     "route_relevance_at_k",
     "stage0_gate",
     "summarize_run",
+    "summarize_stage0_run",
     "topk_overlap",
     "validate_itt_denominator",
 ]

@@ -8,6 +8,7 @@ from verified_memory.pilot_analysis import (
     retrieval_effect_gate,
     stage0_gate,
     summarize_run,
+    summarize_stage0_run,
     topk_overlap,
     validate_itt_denominator,
 )
@@ -86,6 +87,51 @@ def test_run_summary_and_stage0_gate_are_frozen() -> None:
     assert summary["actions"]["interior_labor_rate"] == 1.0
     assert summary["actions"]["interior_consumption_rate"] == 1.0
     assert stage0_gate(summary)["pass"] is True
+
+
+def test_stage0_summary_is_phase_agnostic_and_projection_exact() -> None:
+    records = _records()
+    treatment_summary = summarize_run(records, max_labor_hours=168.0)
+    calibration_summary = summarize_stage0_run(
+        records,
+        max_labor_hours=168.0,
+    )
+
+    assert calibration_summary["analysis_scope"] == (
+        "stage0-baseline-calibration"
+    )
+    assert "utility" not in calibration_summary
+    assert "memory" not in calibration_summary
+    assert calibration_summary["actions"] == treatment_summary["actions"]
+    assert calibration_summary["guardrails"] == treatment_summary["guardrails"]
+    assert stage0_gate(calibration_summary)["pass"] is True
+
+
+def test_baseline_schedule_requires_stage0_summary() -> None:
+    records = _records()
+    baseline_schedule = [
+        {
+            "start": 0,
+            "end": 11,
+            "interest_rate": 0.03,
+            "phase": "baseline",
+        }
+    ]
+
+    with pytest.raises(ValueError, match="no pre-shock"):
+        summarize_run(
+            records,
+            max_labor_hours=168.0,
+            schedule=baseline_schedule,
+        )
+    assert summarize_stage0_run(
+        records,
+        max_labor_hours=168.0,
+    )["row_counts"] == {
+        "actions": 24,
+        "utility": 24,
+        "errors": 0,
+    }
 
 
 def test_paired_effect_gate_retains_all_seed_deltas() -> None:

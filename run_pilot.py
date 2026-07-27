@@ -103,6 +103,16 @@ def build_parser() -> argparse.ArgumentParser:
             "V2.4/V2.5/V2.6 zero-provider parent-import stage"
         ),
     )
+    parser.add_argument(
+        "--source-repo-root",
+        type=Path,
+        default=None,
+        help=(
+            "read-only repository containing an immutable raw tree; accepted "
+            "only by publish-evidence when publication code is newer than the "
+            "source science tag"
+        ),
+    )
     return parser
 
 
@@ -123,6 +133,11 @@ def execute(args: argparse.Namespace) -> dict:
     if parent_repo_root is not None and args.stage != "parent-import":
         raise PilotOrchestrationError(
             "--parent-repo-root is accepted only for a parent-import stage"
+        )
+    source_repo_root = getattr(args, "source_repo_root", None)
+    if source_repo_root is not None and args.stage != "publish-evidence":
+        raise PilotOrchestrationError(
+            "--source-repo-root is accepted only for publish-evidence"
         )
     raw_root = (
         args.raw_root
@@ -156,6 +171,7 @@ def execute(args: argparse.Namespace) -> dict:
             run_ledger_path=raw_root / "run_ledger.json",
             raw_root=raw_root,
             build_root=args.evidence_root,
+            source_repo_root=source_repo_root,
         )
         return {
             "status": (

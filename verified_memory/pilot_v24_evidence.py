@@ -48,6 +48,7 @@ from .pilot_evidence import (
     _sha256_file,
     _strict_json_load,
     _validated_release_controls,
+    source_repository_context,
 )
 
 
@@ -1504,6 +1505,7 @@ def build_pilot_v24_evidence_package(
     run_ledger_path: str | Path,
     raw_root: str | Path,
     build_root: str | Path,
+    source_repo_root: str | Path | None = None,
 ) -> PilotEvidencePackage:
     """Validate and publish a lane-separated package without provider calls."""
 
@@ -1522,11 +1524,16 @@ def build_pilot_v24_evidence_package(
             f"{version_label} pilot raw root does not exist: {raw}"
         )
     ledger = _strict_json_load(Path(run_ledger_path).resolve())
-    rows, denominator, common_commit = _normalize_ledger(
-        contract,
-        ledger,
+    with source_repository_context(
+        source_repo_root,
         raw_root=raw,
-    )
+    ) as source_root:
+        rows, denominator, common_commit = _normalize_ledger(
+            contract,
+            ledger,
+            raw_root=raw,
+            source_repo_root=source_root,
+        )
     release_controls = _validated_release_controls(
         contract,
         raw_root=raw,

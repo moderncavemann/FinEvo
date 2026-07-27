@@ -19,6 +19,7 @@ presented as scientific evidence fail closed.
 from __future__ import annotations
 
 from collections import Counter
+from contextlib import contextmanager
 import csv
 from dataclasses import dataclass
 import hashlib
@@ -40,6 +41,7 @@ from .pilot_analysis import (
     paired_delta_summary,
     retrieval_effect_gate,
     summarize_run,
+    summarize_stage0_run,
 )
 from .pilot_contract import (
     PilotContract,
@@ -50,6 +52,7 @@ from .pilot_contract import (
 from .runner import (
     RUNNER_SCHEMA_VERSION,
     VerifiedRunError,
+    observed_p95_authority_repo_context,
     verify_provider_call_journal,
 )
 from .runner_artifacts import (
@@ -2381,6 +2384,7 @@ def _validate_terminal_payload_marker(
     raw_root: Path,
     resolved_git_commit: str | None = None,
     parent_import_receipt_verifier: Any | None = None,
+    source_repo_root: Path | None = None,
 ) -> None:
     """Enforce the execution-mode-specific terminal-summary contract."""
 
@@ -2441,7 +2445,11 @@ def _validate_terminal_payload_marker(
         try:
             receipt = parent_import_receipt_verifier(
                 receipt_path,
-                repo_root=Path(__file__).resolve().parents[1],
+                repo_root=(
+                    Path(__file__).resolve().parents[1]
+                    if source_repo_root is None
+                    else source_repo_root
+                ),
                 contract=contract,
                 expected_git_commit=resolved_git_commit,
             )
@@ -3049,6 +3057,7 @@ def _load_terminal_summary(
     path: Path,
     *,
     raw_root: Path,
+    source_repo_root: Path | None = None,
 ) -> dict[str, Any]:
     value = _strict_json_load(path)
     if value.get("schema_version") != PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION:
@@ -3108,6 +3117,7 @@ def _load_terminal_summary(
         payload,
         raw_root=raw_root,
         resolved_git_commit=str(binding["resolved_git_commit"]),
+        source_repo_root=source_repo_root,
     )
     metrics = payload.get("metrics", {})
     gate_evidence = payload.get("gate_evidence", {})
@@ -3332,6 +3342,7 @@ def _validate_standard_run_contract(
     records: Mapping[str, Sequence[Mapping[str, Any]]],
     provenance_git: Mapping[str, Any],
     raw_root: Path,
+    source_repo_root: Path | None = None,
 ) -> None:
     """Rebuild and compare the exact registered runner/provider configuration.
 
@@ -3384,15 +3395,17 @@ def _validate_standard_run_contract(
             str(spec["model_id"]),
             raw_root=raw_root,
             paid=paid,
+            authority_repo_root=source_repo_root,
         )
-        expected_base_config = config_for_spec(
-            contract,
-            expected_spec,
-            raw_root=raw_root,
-            paid_provenance=paid,
-            verify_bound_inputs=True,
-            preflight_p95_reservations=reservations,
-        )
+        with observed_p95_authority_repo_context(source_repo_root):
+            expected_base_config = config_for_spec(
+                contract,
+                expected_spec,
+                raw_root=raw_root,
+                paid_provenance=paid,
+                verify_bound_inputs=True,
+                preflight_p95_reservations=reservations,
+            )
         expected_config = build_sealed_run_config(
             expected_base_config,
             env_config_source=DEFAULT_ENV_CONFIG,
@@ -3451,6 +3464,7 @@ def _load_standard_run(
     run_dir: Path,
     *,
     raw_root: Path,
+    source_repo_root: Path | None = None,
 ) -> dict[str, Any]:
     mode = str(spec.get("execution_mode", ""))
     if mode not in RUNNER_EXECUTION_MODES:
@@ -3460,7 +3474,10 @@ def _load_standard_run(
         )
     try:
         verification = verify_manifest(run_dir)
-        result = load_verified_run_artifacts(run_dir)
+        result = load_verified_run_artifacts(
+            run_dir,
+            authority_repo_root=source_repo_root,
+        )
     except (ManifestVerificationError, ValueError, TypeError) as exc:
         raise PilotEvidenceError(f"sealed run validation failed for {run_dir}: {exc}") from exc
     manifest = _strict_json_load(run_dir / "manifest.json")
@@ -3504,6 +3521,7 @@ def _load_standard_run(
         records=result.records,
         provenance_git=paid,
         raw_root=raw_root,
+        source_repo_root=source_repo_root,
     )
     evidence = {
         "diagnostic_only": summary.get("diagnostic_only"),
@@ -3529,10 +3547,17 @@ def _load_standard_run(
             raise PilotEvidenceError("scientific runner config contract hash mismatch")
         if config.get("pilot_tag") != contract.implementation["required_git_tag"]:
             raise PilotEvidenceError("scientific runner config tag mismatch")
-    analysis = summarize_run(
-        result.records,
-        max_labor_hours=float(config["max_labor_hours"]),
-        schedule=contract.shocks[str(spec["shock_id"])]["schedule"],
+    analysis = (
+        summarize_stage0_run(
+            result.records,
+            max_labor_hours=float(config["max_labor_hours"]),
+        )
+        if spec["stage_id"] == "stage0-calibration"
+        else summarize_run(
+            result.records,
+            max_labor_hours=float(config["max_labor_hours"]),
+            schedule=contract.shocks[str(spec["shock_id"])]["schedule"],
+        )
     )
     total_discounted = sum(
         float(row["discounted_flow_utility"])
@@ -3566,6 +3591,7 @@ def _load_completed_artifact(
     *,
     raw_root: Path,
     artifact: Any,
+    source_repo_root: Path | None = None,
 ) -> dict[str, Any]:
     path = _resolve_artifact(raw_root, artifact)
     mode = str(spec.get("execution_mode", ""))
@@ -3583,6 +3609,7 @@ def _load_completed_artifact(
             spec,
             path,
             raw_root=raw_root,
+            source_repo_root=source_repo_root,
         )
     if path.name == "manifest.json":
         if mode not in RUNNER_EXECUTION_MODES:
@@ -3594,6 +3621,7 @@ def _load_completed_artifact(
             spec,
             path.parent,
             raw_root=raw_root,
+            source_repo_root=source_repo_root,
         )
     if path.suffix.lower() != ".json":
         raise PilotEvidenceError(f"unsupported completed artifact type: {path}")
@@ -3606,6 +3634,7 @@ def _load_completed_artifact(
         spec,
         path,
         raw_root=raw_root,
+        source_repo_root=source_repo_root,
     )
 
 
@@ -3702,6 +3731,7 @@ def _normalize_ledger(
     ledger: Mapping[str, Any],
     *,
     raw_root: Path,
+    source_repo_root: Path | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any], str | None]:
     expected_schema = (
         PILOT_RUN_LEDGER_SCHEMA_VERSION_V2
@@ -3771,6 +3801,7 @@ def _normalize_ledger(
                 spec,
                 raw_root=raw_root,
                 artifact=source.get("artifact"),
+                source_repo_root=source_repo_root,
             )
             row.update(evidence)
             bindings.add(str(evidence["binding"]["resolved_git_commit"]))
@@ -3786,6 +3817,7 @@ def _normalize_ledger(
                         spec,
                         artifact_path,
                         raw_root=raw_root,
+                        source_repo_root=source_repo_root,
                     )
                     row["artifact_kind"] = evidence["artifact_kind"]
                     row["artifact_sha256"] = evidence["artifact_sha256"]
@@ -7824,6 +7856,7 @@ def build_pilot_evidence_package(
     run_ledger_path: str | Path,
     raw_root: str | Path,
     build_root: str | Path,
+    source_repo_root: str | Path | None = None,
 ) -> PilotEvidencePackage:
     """Validate raw pilot evidence and atomically build the reviewer package.
 
@@ -7839,11 +7872,16 @@ def build_pilot_evidence_package(
     if not raw.is_dir():
         raise PilotEvidenceError(f"pilot raw root does not exist: {raw}")
     ledger = _strict_json_load(Path(run_ledger_path).resolve())
-    rows, denominator, common_commit = _normalize_ledger(
-        contract,
-        ledger,
+    with source_repository_context(
+        source_repo_root,
         raw_root=raw,
-    )
+    ) as source_root:
+        rows, denominator, common_commit = _normalize_ledger(
+            contract,
+            ledger,
+            raw_root=raw,
+            source_repo_root=source_root,
+        )
     gates = {
         "experiment_a": _experiment_a_gate(contract, rows),
         "experiment_c": _experiment_c_gate(contract, rows),
@@ -7926,3 +7964,28 @@ __all__ = [
     "build_pilot_evidence_package",
     "write_terminal_summary",
 ]
+@contextmanager
+def source_repository_context(
+    source_repo_root: str | Path | None,
+    *,
+    raw_root: Path,
+) -> Iterable[Path | None]:
+    """Resolve historical relative bindings from one explicit source root."""
+
+    if source_repo_root is None:
+        yield None
+        return
+    source = Path(source_repo_root)
+    if source.is_symlink():
+        raise PilotEvidenceError("source repository root cannot be a symlink")
+    source = source.resolve(strict=True)
+    if not source.is_dir() or not raw_root.resolve().is_relative_to(source):
+        raise PilotEvidenceError(
+            "external pilot raw root must be contained by source repository root"
+        )
+    previous = Path.cwd()
+    try:
+        os.chdir(source)
+        yield source
+    finally:
+        os.chdir(previous)

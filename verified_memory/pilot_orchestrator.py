@@ -51,7 +51,7 @@ from .observed_p95_authority import (
     build_observed_p95_authority_receipt,
     verified_observed_p95_authority_binding,
 )
-from .pilot_analysis import summarize_run
+from .pilot_analysis import summarize_run, summarize_stage0_run
 from .pilot_amendment import (
     PILOT_V21_CONTRACT_ID,
     amendment_control_path,
@@ -1470,10 +1470,9 @@ def _load_verified_stage0_selection(
         ):
             raise PilotOrchestrationError("Stage-0 source run identity mismatch")
         by_profile[expected_spec.utility_profile_id].append(
-            summarize_run(
+            summarize_stage0_run(
                 result.records,
                 max_labor_hours=float(result.config["max_labor_hours"]),
-                schedule=contract.shocks[expected_spec.shock_id]["schedule"],
             )
         )
         calibration_sources.append((expected_spec, result, row))
@@ -1719,10 +1718,15 @@ def _repository_relative_path(
     *,
     required_top: str,
     name: str,
+    repo_root: str | Path | None = None,
 ) -> str:
-    repo_root = Path(__file__).resolve().parents[1]
+    release_root = (
+        Path(__file__).resolve().parents[1]
+        if repo_root is None
+        else Path(repo_root).resolve(strict=True)
+    )
     try:
-        relative = value.absolute().relative_to(repo_root)
+        relative = value.absolute().relative_to(release_root)
     except ValueError as exc:
         raise PilotOrchestrationError(
             f"{name} must be inside the release repository"
@@ -1783,6 +1787,7 @@ def _verified_observed_p95_binding(
     *,
     raw_root: Path,
     paid: GitProvenance,
+    authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     receipt_path = _observed_p95_authority_receipt_path(
         contract,
@@ -1793,12 +1798,18 @@ def _verified_observed_p95_binding(
         receipt_path,
         required_top="experiment_results",
         name="observed p95 authority receipt",
+        repo_root=authority_repo_root,
+    )
+    release_root = (
+        Path(__file__).resolve().parents[1]
+        if authority_repo_root is None
+        else Path(authority_repo_root).resolve(strict=True)
     )
     if contract.contract_id == V26_CONTRACT_ID:
         try:
             binding = verified_v26_inherited_p95_binding(
                 relative,
-                repo_root=Path(__file__).resolve().parents[1],
+                repo_root=release_root,
                 expected_git_commit=paid.head_commit,
             )
         except PilotV26ParentImportError as exc:
@@ -1809,7 +1820,7 @@ def _verified_observed_p95_binding(
         try:
             binding = verified_v25_inherited_p95_binding(
                 relative,
-                repo_root=Path(__file__).resolve().parents[1],
+                repo_root=release_root,
                 expected_git_commit=paid.head_commit,
             )
         except PilotV25ParentImportError as exc:
@@ -1820,7 +1831,7 @@ def _verified_observed_p95_binding(
         try:
             binding = verified_observed_p95_authority_binding(
                 relative,
-                repo_root=Path(__file__).resolve().parents[1],
+                repo_root=release_root,
                 expected_git_commit=paid.head_commit,
             )
         except ObservedP95AuthorityError as exc:
@@ -1890,18 +1901,21 @@ def _runner_p95_reservations(
     *,
     raw_root: Path,
     paid: GitProvenance,
+    authority_repo_root: str | Path | None = None,
 ) -> dict[str, dict[str, Any]]:
     payload, _ = _load_verified_projection(
         contract,
         model_id,
         raw_root=raw_root,
         paid=paid,
+        authority_repo_root=authority_repo_root,
     )
     receipt_binding = _verified_observed_p95_binding(
         contract,
         model_id,
         raw_root=raw_root,
         paid=paid,
+        authority_repo_root=authority_repo_root,
     )
     profile = contract.provider_profiles[model_id]
     runtime_model = _runtime_model_for_profile(profile)
@@ -2369,9 +2383,16 @@ def _execute_actor_run(
         git_commit=git_commit,
         git_dirty=False if paid is not None else True,
     )
-    summary = summarize_run(
-        result.records,
-        max_labor_hours=config.max_labor_hours,
+    summary = (
+        summarize_stage0_run(
+            result.records,
+            max_labor_hours=config.max_labor_hours,
+        )
+        if spec.stage_id == "stage0-calibration"
+        else summarize_run(
+            result.records,
+            max_labor_hours=config.max_labor_hours,
+        )
     )
     if paid is None or diagnostic:
         _atomic_json(
@@ -4011,6 +4032,7 @@ def _load_v26_inherited_projection(
     *,
     raw_root: Path,
     paid: GitProvenance | None,
+    authority_repo_root: str | Path | None = None,
 ) -> tuple[dict[str, Any], Path]:
     if paid is None:
         raise PilotOrchestrationError(
@@ -4021,10 +4043,15 @@ def _load_v26_inherited_projection(
             f"{model_id} is not an allowed V2.6 inherited p95 profile"
         )
     import_path = raw_root / "parent-import" / "parent_import_receipt.json"
+    release_root = (
+        Path(__file__).resolve().parents[1]
+        if authority_repo_root is None
+        else Path(authority_repo_root).resolve(strict=True)
+    )
     try:
         verify_v26_parent_import_receipt(
             import_path,
-            repo_root=Path(__file__).resolve().parents[1],
+            repo_root=release_root,
             contract=contract,
             expected_git_commit=paid.head_commit,
         )
@@ -4065,6 +4092,7 @@ def _load_v26_inherited_projection(
         model_id,
         raw_root=raw_root,
         paid=paid,
+        authority_repo_root=authority_repo_root,
     )
     runtime_model = _runtime_model_for_profile(profile)
     reservations = receipt_binding.get("reservations")
@@ -4092,6 +4120,7 @@ def _load_verified_projection(
     *,
     raw_root: Path,
     paid: GitProvenance | None,
+    authority_repo_root: str | Path | None = None,
 ) -> tuple[dict[str, Any], Path]:
     if contract.contract_id == V24_CONTRACT_ID:
         return _load_v24_inherited_projection(
@@ -4113,6 +4142,7 @@ def _load_verified_projection(
             model_id,
             raw_root=raw_root,
             paid=paid,
+            authority_repo_root=authority_repo_root,
         )
     preflight_stage = _preflight_stage_for_model(contract, model_id)
     capability_stage = _capability_source_stage(
@@ -6030,10 +6060,9 @@ def _select_stage0(
         }
         source_manifests.append(manifest_binding)
         calibration_sources.append((spec, result, manifest_binding))
-        summary = summarize_run(
+        summary = summarize_stage0_run(
             result.records,
             max_labor_hours=float(result.config["max_labor_hours"]),
-            schedule=contract.shocks[spec.shock_id]["schedule"],
         )
         by_profile[spec.utility_profile_id].append(summary)
     selection = select_stage0_profile(ofat, by_profile)
