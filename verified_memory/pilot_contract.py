@@ -87,12 +87,18 @@ PILOT_CONTRACT_V2_4_CANONICAL_SHA256: Optional[str] = (
 PILOT_CONTRACT_V2_5_CANONICAL_SHA256: Optional[str] = (
     "1f9809062684a1a2afb96b7342b88a06810e0e87ac883aa63a858a65a81d188d"
 )
-# V2.6 remains a draft until its terminal V2.5 source package, implementation
-# inventory, and independent Linux/macOS release identity are frozen.  A null
-# constant is an intentional paid-provenance fail-closed gate.
-PILOT_CONTRACT_V2_6_CANONICAL_SHA256: Optional[str] = None
-PILOT_V2_6_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = None
-PILOT_V2_6_SOURCE_MANIFEST_CONTENT_SHA256: Optional[str] = None
+# V2.6 is frozen only after its terminal V2.5 source package and independent
+# implementation inventory were recorded.  It may not reuse the V2.5 release
+# receipt.
+PILOT_CONTRACT_V2_6_CANONICAL_SHA256: Optional[str] = (
+    "bb6b12d71227c423e5a67452dc496f26843dec74e359b9b04bf096dc17d0c509"
+)
+PILOT_V2_6_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = (
+    "f84778ed279b8ca98b9b61e26619669fade54b95d0c3e4f17874733acbc84efe"
+)
+PILOT_V2_6_SOURCE_MANIFEST_CONTENT_SHA256: Optional[str] = (
+    "78d42a49f16cbbee4fc5e76de17ff26c501a5dcb04a5eb1f79cbe080d2b1b669"
+)
 PILOT_CONTRACT_V2_4_SCIENCE_DESIGN_SHA256 = (
     "ac11b024435d6d6b03a68b59e5f59f28d92a822ddd3712b1b4c612b668a20586"
 )

@@ -14,11 +14,11 @@
     },
     "release_requirements": {
       "expected_ci": {
-        "compiled_source_count": null,
-        "compiled_source_inventory_sha256": null,
-        "sealed_manifest_inventory_sha256": null,
-        "test_collection_sha256": null,
-        "test_count": null
+        "compiled_source_count": 168,
+        "compiled_source_inventory_sha256": "d4d233d3f50fc9bf0ed3238b36e05d9933cbed5369a13fb83159f067f4b5b5ce",
+        "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
+        "test_collection_sha256": "72a639cefda0226dd3ae6493fe4e6bc6bf597e6cc6b9c067c55e8dde376c44c5",
+        "test_count": 883
       },
       "tag": "pilot-v2.6-science"
     }
@@ -26,7 +26,7 @@
   "contract_id": "finevo-pilot-v2.6",
   "integrity": {
     "canonicalization": "json-sort-keys-utf8-v1",
-    "declared_sha256": "7ca75fc1b6491f7a970fcafb7510911ba25832f3d6156a2e1d69fcf67288d3b8"
+    "declared_sha256": "ed7622c74cc121f379420957f4c0e8d69cd4a93b9a667b69eae863a02d75b938"
   },
   "p95_authority_retry_amendment": {
     "amendment_id": "finevo-pilot-v2.6-p95-authority-interface-retry-1",
@@ -123,12 +123,12 @@
       "source_science_design_sha256": "ac11b024435d6d6b03a68b59e5f59f28d92a822ddd3712b1b4c612b668a20586"
     },
     "source_manifest": {
-      "content_sha256": null,
-      "file_sha256": null,
+      "content_sha256": "78d42a49f16cbbee4fc5e76de17ff26c501a5dcb04a5eb1f79cbe080d2b1b669",
+      "file_sha256": "f84778ed279b8ca98b9b61e26619669fade54b95d0c3e4f17874733acbc84efe",
       "path": "experiments/pilot_v2_6_source_manifest.json",
       "schema_version": "finevo-pilot-v2.6-source-manifest-v1"
     }
   },
   "schema_version": "finevo-pilot-contract-v2.6-p95-authority-retry-overlay-v1",
-  "status": "draft"
+  "status": "frozen"
 }

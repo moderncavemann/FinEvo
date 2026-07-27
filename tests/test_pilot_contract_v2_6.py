@@ -51,7 +51,12 @@ def _write_resealed_overlay(
     value: dict[str, Any],
 ) -> Path:
     value["integrity"]["declared_sha256"] = canonical_contract_sha256(value)
-    for source in (V25_PATH, V24_SOURCE_PATH, V25_SOURCE_PATH):
+    for source in (
+        V25_PATH,
+        V24_SOURCE_PATH,
+        V25_SOURCE_PATH,
+        V26_SOURCE_PATH,
+    ):
         (tmp_path / source.name).write_bytes(source.read_bytes())
     path = tmp_path / "pilot_v2_6_overlay.yaml"
     path.write_text(
@@ -61,7 +66,7 @@ def _write_resealed_overlay(
     return path
 
 
-def test_v2_6_draft_overlay_and_expanded_contract_are_identical() -> None:
+def test_v2_6_frozen_overlay_and_expanded_contract_are_identical() -> None:
     source = _overlay_document()
     parent = load_pilot_contract(V25_PATH)
     overlay = load_pilot_contract(OVERLAY_PATH)
@@ -72,18 +77,30 @@ def test_v2_6_draft_overlay_and_expanded_contract_are_identical() -> None:
     assert parent.contract_id == PILOT_CONTRACT_ID_V2_5
     assert parent.canonical_hash == PILOT_CONTRACT_V2_5_CANONICAL_SHA256
     assert overlay.contract_id == full.contract_id == PILOT_CONTRACT_ID_V2_6
-    assert overlay.status == full.status == "draft"
+    assert overlay.status == full.status == "frozen"
     assert overlay.to_dict() == full.to_dict()
     assert overlay.canonical_hash == full.canonical_hash
     assert overlay.declared_sha256 == overlay.canonical_hash
     assert overlay.canonical_hash == (
-        "3695071d069ea68892c53f59a226cab784e506b8e5de99d42a6929d09e40a951"
+        "bb6b12d71227c423e5a67452dc496f26843dec74e359b9b04bf096dc17d0c509"
     )
-    assert PILOT_CONTRACT_V2_6_CANONICAL_SHA256 is None
+    assert overlay.canonical_hash == PILOT_CONTRACT_V2_6_CANONICAL_SHA256
     assert overlay.implementation["required_git_tag"] == PILOT_CONTRACT_TAG_V2_6
     assert overlay.release_requirements is not None
     assert overlay.release_requirements.tag == PILOT_CONTRACT_TAG_V2_6
-    assert set(overlay.release_requirements.expected_ci.values()) == {None}
+    assert dict(overlay.release_requirements.expected_ci) == {
+        "test_count": 883,
+        "test_collection_sha256": (
+            "72a639cefda0226dd3ae6493fe4e6bc6bf597e6cc6b9c067c55e8dde376c44c5"
+        ),
+        "compiled_source_count": 168,
+        "compiled_source_inventory_sha256": (
+            "d4d233d3f50fc9bf0ed3238b36e05d9933cbed5369a13fb83159f067f4b5b5ce"
+        ),
+        "sealed_manifest_inventory_sha256": (
+            "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952"
+        ),
+    }
 
 
 def test_v2_6_preserves_exact_v2_5_211_209_science_design() -> None:
@@ -191,7 +208,7 @@ def test_v2_6_binds_terminal_v2_5_and_cumulative_budget() -> None:
     }
 
 
-def test_v2_6_draft_source_hashes_and_paid_provenance_fail_closed() -> None:
+def test_v2_6_frozen_source_hashes_and_paid_provenance_are_bound() -> None:
     contract = load_pilot_contract(OVERLAY_PATH)
     amendment = contract.p95_authority_retry_amendment
 
@@ -199,15 +216,19 @@ def test_v2_6_draft_source_hashes_and_paid_provenance_fail_closed() -> None:
     assert amendment["source_manifest"] == {
         "path": "experiments/pilot_v2_6_source_manifest.json",
         "schema_version": "finevo-pilot-v2.6-source-manifest-v1",
-        "file_sha256": None,
-        "content_sha256": None,
+        "file_sha256": (
+            "f84778ed279b8ca98b9b61e26619669fade54b95d0c3e4f17874733acbc84efe"
+        ),
+        "content_sha256": (
+            "78d42a49f16cbbee4fc5e76de17ff26c501a5dcb04a5eb1f79cbe080d2b1b669"
+        ),
     }
     assert V26_SOURCE_PATH.is_file()
-    with pytest.raises(
-        PilotContractError,
-        match="paid provenance cannot be validated from a draft contract",
-    ):
-        contract.validate_provenance("1" * 40, PILOT_CONTRACT_TAG_V2_6)
+    provenance = contract.validate_provenance(
+        "1" * 40,
+        PILOT_CONTRACT_TAG_V2_6,
+    )
+    assert provenance["resolved_git_commit"] == "1" * 40
 
 
 @pytest.mark.parametrize(
@@ -267,22 +288,18 @@ def test_v2_6_resealed_operational_or_provenance_drift_fails(
         load_pilot_contract(path)
 
 
-def test_v2_6_cannot_be_marked_frozen_while_canonical_gate_is_null(
+def test_v2_6_frozen_contract_rejects_a_draft_ci_inventory(
     tmp_path: Path,
 ) -> None:
     value = _overlay_document()
-    value["status"] = "frozen"
     value["changes"]["release_requirements"]["expected_ci"] = {
-        "test_count": 1,
-        "test_collection_sha256": "1" * 64,
-        "compiled_source_count": 1,
-        "compiled_source_inventory_sha256": "2" * 64,
-        "sealed_manifest_inventory_sha256": "3" * 64,
+        field: None
+        for field in value["changes"]["release_requirements"]["expected_ci"]
     }
     path = _write_resealed_overlay(tmp_path, value)
     with pytest.raises(
         PilotContractError,
-        match="cannot be frozen before its canonical hash and CI inventory",
+        match="frozen expected_ci must be exactly all-concrete",
     ):
         load_pilot_contract(path)
 

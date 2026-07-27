@@ -30,10 +30,12 @@ Consequently, those receipts fell through to the legacy V2.3 shape check.
 This is an interface-integrity no-go, not model-capability, calibration, or
 treatment-effect evidence.
 
-The complete terminal package is retained under
-`evidence/current_v2/pilot-v2.5/`. The V2.6 source manifest binds its contract,
-annotated tag, ledgers, failure signature, complete raw-tree inventory,
-published evidence, parent-import receipt, and both p95 receipts/projections.
+V2.6 publishes and binds the complete V2.5 terminal-data package under
+`evidence/current_v2/pilot-v2.5/`; that new publication path is not claimed to
+exist inside the earlier V2.5 tag. The V2.6 source manifest binds the V2.5
+contract, annotated tag, ledgers, failure signature, complete raw-tree
+inventory, published evidence, parent-import receipt, and both p95
+receipts/projections.
 
 ## Correction
 
@@ -55,7 +57,10 @@ identity requirement is not relaxed.
 
 ## Release and execution gates
 
-V2.6 remains non-dispatchable while its contract is draft. Before any provider
+V2.6 is frozen under canonical SHA-256
+`bb6b12d71227c423e5a67452dc496f26843dec74e359b9b04bf096dc17d0c509`.
+Its release inventory contains 883 test node IDs, 168 tracked Python source
+paths, and the unchanged six-manifest sealed inventory. Before any provider
 call, the exact merged tree must pass the full local suite, source compilation,
 sealed-manifest rehash, secret scan, and Linux/macOS CI; then it must receive
 an annotated `pilot-v2.6-science` tag and a clean-tag launch attestation.

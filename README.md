@@ -114,12 +114,13 @@ interface `complete-with-no-go`, not a model-capability, calibration, or
 treatment-effect result.
 
 V2.6 is a new outcome-blind operational amendment with another fresh 211-cell
-denominator. It verifies the immutable V2.5 raw tree and evidence package,
-reseals the two verified p95 authorities to the V2.6 contract/tag/HEAD, and
-requires both the version-specific and central runner readers to accept those
-receipts before any provider can be constructed. It carries forward
-`$3.212770875`, 184 hosted completions, and the full parent storage debit under
-the unchanged `$500`/7,500/5 GB caps. V2.5 is never resumed or reclassified.
+denominator. It verifies the immutable V2.5 raw tree and the V2.5 terminal-data
+package newly published and bound by V2.6, reseals the two verified p95
+authorities to the V2.6 contract/tag/HEAD, and requires both the
+version-specific and central runner readers to accept those receipts before
+any provider can be constructed. It carries forward `$3.212770875`, 184 hosted
+completions, and the full parent storage debit under the unchanged
+`$500`/7,500/5 GB caps. V2.5 is never resumed or reclassified.
 
 Real V2.3 stages require a clean checkout at the peeled annotated
 `pilot-v2.3-science` tag,
