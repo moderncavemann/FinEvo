@@ -13,6 +13,7 @@ from verified_memory.pilot_contract import (
     PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_4,
     PILOT_CONTRACT_TAG_V2_4,
     PILOT_CONTRACT_V2_3_CANONICAL_SHA256,
+    PILOT_CONTRACT_V2_4_CANONICAL_SHA256,
     PilotContractError,
     canonical_contract_sha256,
     load_pilot_contract,
@@ -53,7 +54,7 @@ def _write_resealed_overlay(
     return path
 
 
-def test_v2_4_draft_overlay_and_expanded_contract_match() -> None:
+def test_v2_4_frozen_overlay_and_expanded_contract_match() -> None:
     source = _overlay_document()
     overlay = load_pilot_contract(OVERLAY_PATH)
     full = load_pilot_contract(FULL_PATH)
@@ -65,19 +66,32 @@ def test_v2_4_draft_overlay_and_expanded_contract_match() -> None:
         canonical_contract_sha256(source)
     )
     assert overlay.contract_id == full.contract_id == PILOT_CONTRACT_ID_V2_4
-    assert overlay.status == full.status == "draft"
+    assert overlay.status == full.status == "frozen"
     assert overlay.to_dict() == full.to_dict()
     assert overlay.canonical_hash == full.canonical_hash
     assert overlay.declared_sha256 == overlay.canonical_hash
     assert overlay.implementation["required_git_tag"] == PILOT_CONTRACT_TAG_V2_4
     assert overlay.release_requirements is not None
     assert overlay.release_requirements.tag == PILOT_CONTRACT_TAG_V2_4
-    assert all(
-        value is None
-        for value in overlay.release_requirements.expected_ci.values()
+    assert dict(overlay.release_requirements.expected_ci) == {
+        "test_count": 815,
+        "test_collection_sha256": (
+            "b01c2598b95d42ecba90602f1a5e27ad9d217371f6f7609cffebc5cb65882155"
+        ),
+        "compiled_source_count": 156,
+        "compiled_source_inventory_sha256": (
+            "6e8e6826b7a16158e21c6bfc6de743badab9955a5e88ebb4fdd45163f760c347"
+        ),
+        "sealed_manifest_inventory_sha256": (
+            "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952"
+        ),
+    }
+    assert overlay.canonical_hash == PILOT_CONTRACT_V2_4_CANONICAL_SHA256
+    provenance = overlay.validate_provenance(
+        "1" * 40,
+        PILOT_CONTRACT_TAG_V2_4,
     )
-    with pytest.raises(PilotContractError, match="draft contract"):
-        overlay.validate_provenance("1" * 40, PILOT_CONTRACT_TAG_V2_4)
+    assert provenance["resolved_git_commit"] == "1" * 40
 
 
 def test_v2_4_has_exact_local_first_211_cell_denominator() -> None:
@@ -198,16 +212,16 @@ def test_v2_4_parent_authority_and_budget_are_exactly_bound() -> None:
         "gpt52_main",
         "llama33_local_controlled",
     }
-    assert contract.budgets["total_usd"] == 150.0
+    assert contract.budgets["total_usd"] == 500.0
     assert dict(contract.budgets["stage_usd_caps"]) == {
         "parent_v23": 3.212770875,
         "local": 0.0,
-        "hosted_confirmatory": 145.787229125,
+        "hosted_confirmatory": 495.787229125,
         "manual_reserve": 1.0,
     }
     assert (
         amendment["budget_projection"]["hard_cap_status"]
-        == "proposed-pending-explicit-authorization"
+        == "authorized-explicit-user-2026-07-27"
     )
     assert (
         amendment["budget_projection"]["paid_dispatch_allowed_while_draft"]
@@ -258,13 +272,16 @@ def test_v2_4_resealed_science_or_parent_drift_fails(
         load_pilot_contract(path)
 
 
-def test_v2_4_cannot_be_relabelled_frozen_before_ci_freeze(
+def test_v2_4_frozen_overlay_rejects_missing_ci_inventory(
     tmp_path: Path,
 ) -> None:
     value = _overlay_document()
-    value["status"] = "frozen"
+    value["changes"]["release_requirements"]["expected_ci"] = {
+        field: None
+        for field in value["changes"]["release_requirements"]["expected_ci"]
+    }
     path = _write_resealed_overlay(tmp_path, value)
-    with pytest.raises(PilotContractError, match="cannot be frozen"):
+    with pytest.raises(PilotContractError, match="must be exactly all-concrete"):
         load_pilot_contract(path)
 
 

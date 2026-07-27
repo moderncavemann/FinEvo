@@ -8,11 +8,13 @@ review material, not a scientific result.
 - Parent V2.3 remains an immutable 174-cell `complete-with-no-go` receipt.
 - V2.3's 151 `budget-stopped` cells are not reopened, relabeled, or resumed.
 - No Stage 0 or A–D outcome existed when this amendment was drafted.
-- The V2.4 contract remains `draft`; no paid or scientific dispatch is
-  authorized.
-- The proposed `$150` hard cap is a feasibility value, not user authorization.
+- The V2.4 contract is frozen with the cross-platform CI inventory; dispatch
+  still requires the merged clean release commit, passing main-branch CI, and
+  the annotated science tag.
+- The user explicitly authorized a `$500` hosted-API hard cap on 2026-07-27.
+  This authorization does not expand the preregistered matrix.
 
-The expanded draft contract is
+The expanded frozen contract is
 [`experiments/pilot_v2_4.yaml`](../experiments/pilot_v2_4.yaml), its source
 overlay is
 [`experiments/pilot_v2_4_overlay.yaml`](../experiments/pilot_v2_4_overlay.yaml),
@@ -74,10 +76,13 @@ The V2.3 observed p95 plus 25% reservation yields:
 - `$147.817070875` for the parent debit, hosted matrix, and `$1` manual
   reserve.
 
-The draft therefore proposes a `$150` total hard cap with
-`$2.182929125` hosted headroom. The full preregistered matrix must fit before
-Stage 0. A projection failure causes a no-go receipt; it cannot silently reduce
-seeds, arms, reasoning, or models.
+The frozen envelope therefore sets a `$500` total hard cap with
+`$352.182929125` unallocated hosted headroom. The registered matrix remains
+fixed at 4,240 hosted completions and its `$143.6043` reservation; the added
+headroom cannot register new seeds, arms, models, narratives, retries, or
+experiments. The full preregistered matrix must fit before Stage 0. A projection
+failure causes a no-go receipt; it cannot silently reduce seeds, arms,
+reasoning, or models.
 
 ## Claim-to-evidence contract
 

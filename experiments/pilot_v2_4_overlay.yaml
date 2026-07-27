@@ -1,7 +1,7 @@
 {
   "schema_version": "finevo-pilot-contract-v2.4-matrix-amendment-overlay-v1",
   "contract_id": "finevo-pilot-v2.4",
-  "status": "draft",
+  "status": "frozen",
   "base_contract": {
     "path": "pilot_v2_3.yaml",
     "schema_version": "finevo-pilot-contract-v2",
@@ -15,11 +15,11 @@
     "release_requirements": {
       "tag": "pilot-v2.4-science",
       "expected_ci": {
-        "test_count": null,
-        "test_collection_sha256": null,
-        "compiled_source_count": null,
-        "compiled_source_inventory_sha256": null,
-        "sealed_manifest_inventory_sha256": null
+        "test_count": 815,
+        "test_collection_sha256": "b01c2598b95d42ecba90602f1a5e27ad9d217371f6f7609cffebc5cb65882155",
+        "compiled_source_count": 156,
+        "compiled_source_inventory_sha256": "6e8e6826b7a16158e21c6bfc6de743badab9955a5e88ebb4fdd45163f760c347",
+        "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952"
       }
     },
     "denominator_policy": {
@@ -31,14 +31,14 @@
       "qref_scripted"
     ],
     "budgets": {
-      "total_usd": 150.0,
+      "total_usd": 500.0,
       "automatic_reserve_usd": 1.0,
       "max_provider_completions": 7500,
       "max_storage_bytes": 5000000000,
       "stage_usd_caps": {
         "parent_v23": 3.212770875,
         "local": 0.0,
-        "hosted_confirmatory": 145.787229125,
+        "hosted_confirmatory": 495.787229125,
         "manual_reserve": 1.0
       }
     },
@@ -230,8 +230,8 @@
       }
     },
     "budget_projection": {
-      "hard_cap_usd": 150.0,
-      "hard_cap_status": "proposed-pending-explicit-authorization",
+      "hard_cap_usd": 500.0,
+      "hard_cap_status": "authorized-explicit-user-2026-07-27",
       "automatic_reserve_usd": 1.0,
       "max_provider_completions": 7500,
       "max_storage_bytes": 5000000000,
@@ -250,6 +250,6 @@
   },
   "integrity": {
     "canonicalization": "json-sort-keys-utf8-v1",
-    "declared_sha256": "3478c05ec00b365773ea745f91ba8d4b1ccb165ea9dbd2f934ec27ac9a8edf57"
+    "declared_sha256": "3e2f60e2b3c95f99ff3f6685e66bd8f1d93e0b3d566ba307792f3cce21b77fed"
   }
 }

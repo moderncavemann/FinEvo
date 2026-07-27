@@ -235,12 +235,12 @@
       "unknown_price_policy": "stop-before-dispatch"
     },
     "stage_usd_caps": {
-      "hosted_confirmatory": 145.787229125,
+      "hosted_confirmatory": 495.787229125,
       "local": 0.0,
       "manual_reserve": 1.0,
       "parent_v23": 3.212770875
     },
-    "total_usd": 150.0
+    "total_usd": 500.0
   },
   "contract_id": "finevo-pilot-v2.4",
   "denominator_policy": {
@@ -427,7 +427,7 @@
   },
   "integrity": {
     "canonicalization": "json-sort-keys-utf8-v1",
-    "declared_sha256": "5d5c6376bb74ac224827e259f8d651cab62be18c0ecd3886fe3653e4437f9f99"
+    "declared_sha256": "12d27b165a36fd0645ddedbf06e8d10a1f178b895272da6f4ea929b73d8506c3"
   },
   "matrix_amendment": {
     "amendment_id": "finevo-pilot-v2.4-local-first-confirmatory-1",
@@ -444,8 +444,8 @@
     },
     "budget_projection": {
       "automatic_reserve_usd": 1.0,
-      "hard_cap_status": "proposed-pending-explicit-authorization",
-      "hard_cap_usd": 150.0,
+      "hard_cap_status": "authorized-explicit-user-2026-07-27",
+      "hard_cap_usd": 500.0,
       "matrix_shrink_on_projection_failure": false,
       "max_provider_completions": 7500,
       "max_storage_bytes": 5000000000,
@@ -1150,11 +1150,11 @@
   "release_requirements": {
     "branch": "main",
     "expected_ci": {
-      "compiled_source_count": null,
-      "compiled_source_inventory_sha256": null,
-      "sealed_manifest_inventory_sha256": null,
-      "test_collection_sha256": null,
-      "test_count": null
+      "compiled_source_count": 156,
+      "compiled_source_inventory_sha256": "6e8e6826b7a16158e21c6bfc6de743badab9955a5e88ebb4fdd45163f760c347",
+      "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
+      "test_collection_sha256": "b01c2598b95d42ecba90602f1a5e27ad9d217371f6f7609cffebc5cb65882155",
+      "test_count": 815
     },
     "remote": "origin",
     "required_job_names": [
@@ -1665,7 +1665,7 @@
       ]
     }
   ],
-  "status": "draft",
+  "status": "frozen",
   "stop_go": {
     "calibration": {
       "ceiling_labor_rate_max": 0.5,

@@ -49,6 +49,9 @@ PILOT_CONTRACT_TAG_V2_1 = "pilot-v2.1-science"
 PILOT_CONTRACT_TAG_V2_2 = "pilot-v2.2-science"
 PILOT_CONTRACT_TAG_V2_3 = "pilot-v2.3-science"
 PILOT_CONTRACT_TAG_V2_4 = "pilot-v2.4-science"
+_PILOT_V2_4_AUTHORIZED_HARD_CAP_USD = 500.0
+_PILOT_V2_4_HOSTED_STAGE_CAP_USD = 495.787229125
+_PILOT_V2_4_HARD_CAP_STATUS = "authorized-explicit-user-2026-07-27"
 PILOT_CONTRACT_V2_CANONICAL_SHA256 = (
     "980deddf2f82a762db7d73baa6ee0428c5e653298f4f275c5b3a5b23a95865c5"
 )
@@ -64,10 +67,11 @@ PILOT_CONTRACT_V2_2_CANONICAL_SHA256 = (
 PILOT_CONTRACT_V2_3_CANONICAL_SHA256 = (
     "10a76561ec59810e664d8415bff3a6aa89346a4cfd67b6e7f8aa1257d015c424"
 )
-# V2.4 remains a prospective draft until its implementation inventory and
-# Linux/macOS CI receipts are frozen.  Keeping this sentinel null makes a
-# prematurely relabelled ``status=frozen`` overlay fail closed.
-PILOT_CONTRACT_V2_4_CANONICAL_SHA256: Optional[str] = None
+# Frozen only after the implementation inventory, explicit $500 hard-cap
+# authorization, and Linux/macOS CI identities were recorded.
+PILOT_CONTRACT_V2_4_CANONICAL_SHA256: Optional[str] = (
+    "12d27b165a36fd0645ddedbf06e8d10a1f178b895272da6f4ea929b73d8506c3"
+)
 
 # Immutable terminal V2.3 identities used by the prospective V2.4 parent
 # import.  V2.4 does not resume or rewrite the 174-cell V2.3 denominator.
@@ -2969,8 +2973,8 @@ def _v2_4_expected_matrix_amendment() -> dict[str, Any]:
             },
         },
         "budget_projection": {
-            "hard_cap_usd": 150.0,
-            "hard_cap_status": "proposed-pending-explicit-authorization",
+            "hard_cap_usd": _PILOT_V2_4_AUTHORIZED_HARD_CAP_USD,
+            "hard_cap_status": _PILOT_V2_4_HARD_CAP_STATUS,
             "automatic_reserve_usd": 1.0,
             "max_provider_completions": 7500,
             "max_storage_bytes": 5_000_000_000,
@@ -3614,7 +3618,11 @@ class PilotContract:
                 raise PilotContractError("V2 shock hook semantics drifted")
 
             expected_budget = {
-                "total_usd": 150.0 if is_v2_4 else 25.0,
+                "total_usd": (
+                    _PILOT_V2_4_AUTHORIZED_HARD_CAP_USD
+                    if is_v2_4
+                    else 25.0
+                ),
                 "max_provider_completions": 7500,
                 "completion_scope": "hosted-api-only",
                 "max_storage_bytes": 5_000_000_000,
@@ -3627,7 +3635,7 @@ class PilotContract:
                 {
                     "parent_v23": 3.212770875,
                     "local": 0.0,
-                    "hosted_confirmatory": 145.787229125,
+                    "hosted_confirmatory": _PILOT_V2_4_HOSTED_STAGE_CAP_USD,
                     "manual_reserve": 1.0,
                 }
                 if is_v2_4
@@ -5523,20 +5531,20 @@ def _assert_v2_4_base_equivalence(
     expected_budgets = _json_copy(base["budgets"])
     expected_budgets.update(
         {
-            "total_usd": 150.0,
+            "total_usd": _PILOT_V2_4_AUTHORIZED_HARD_CAP_USD,
             "automatic_reserve_usd": 1.0,
             "max_provider_completions": 7500,
             "max_storage_bytes": 5_000_000_000,
             "stage_usd_caps": {
                 "parent_v23": 3.212770875,
                 "local": 0.0,
-                "hosted_confirmatory": 145.787229125,
+                "hosted_confirmatory": _PILOT_V2_4_HOSTED_STAGE_CAP_USD,
                 "manual_reserve": 1.0,
             },
         }
     )
     if _json_copy(expanded["budgets"]) != expected_budgets:
-        raise PilotContractError("V2.4 proposed budget envelope drifted")
+        raise PilotContractError("V2.4 authorized budget envelope drifted")
 
     base_denominator = _json_copy(base["denominator_policy"])
     expanded_denominator = _json_copy(expanded["denominator_policy"])
@@ -5730,19 +5738,19 @@ def _expand_v2_4_overlay(
     ]:
         raise PilotContractError("V2.4 active provider profile list drifted")
     expected_budget_change = {
-        "total_usd": 150.0,
+        "total_usd": _PILOT_V2_4_AUTHORIZED_HARD_CAP_USD,
         "automatic_reserve_usd": 1.0,
         "max_provider_completions": 7500,
         "max_storage_bytes": 5_000_000_000,
         "stage_usd_caps": {
             "parent_v23": 3.212770875,
             "local": 0.0,
-            "hosted_confirmatory": 145.787229125,
+            "hosted_confirmatory": _PILOT_V2_4_HOSTED_STAGE_CAP_USD,
             "manual_reserve": 1.0,
         },
     }
     if _json_copy(changes["budgets"]) != expected_budget_change:
-        raise PilotContractError("V2.4 proposed budget change drifted")
+        raise PilotContractError("V2.4 authorized budget change drifted")
     if changes["matrix_profile_id"] != (
         "local-llama-full-ad-gpt52-fixed-confirmatory-cadb-v1"
     ):

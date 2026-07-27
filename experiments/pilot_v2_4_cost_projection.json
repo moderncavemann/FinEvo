@@ -1,9 +1,9 @@
 {
   "schema_version": "finevo-pilot-v2.4-cost-projection-v1",
-  "status": "draft-preauthorization",
+  "status": "frozen-authorized",
   "contract": {
     "contract_id": "finevo-pilot-v2.4",
-    "draft_canonical_sha256": "5d5c6376bb74ac224827e259f8d651cab62be18c0ecd3886fe3653e4437f9f99",
+    "frozen_canonical_sha256": "12d27b165a36fd0645ddedbf06e8d10a1f178b895272da6f4ea929b73d8506c3",
     "scientific_outcomes_observed_before_amendment": false
   },
   "authority": {
@@ -243,14 +243,18 @@
     "new_hosted_reserved_cost_usd": 143.6043,
     "new_reserved_storage_bytes": 3520000000,
     "parent_plus_matrix_plus_manual_reserve_usd": 147.817070875,
-    "proposed_total_hard_cap_usd": 150.0,
-    "unallocated_hosted_headroom_usd": 2.182929125,
+    "authorized_total_hard_cap_usd": 500.0,
+    "unallocated_hosted_headroom_usd": 352.182929125,
     "manual_reserve_usd": 1.0
   },
   "authorization": {
-    "hard_cap_authorized": false,
-    "paid_dispatch_authorized": false,
-    "freeze_or_tag_authorized": false,
-    "rule": "No paid or scientific dispatch while the V2.4 contract remains draft."
+    "hard_cap_authorized": true,
+    "authorized_hard_cap_usd": 500.0,
+    "authorized_on": "2026-07-27",
+    "authorization_source": "explicit-user-instruction-in-codex-thread",
+    "paid_dispatch_authorized": true,
+    "freeze_or_tag_authorized": true,
+    "matrix_expansion_authorized": false,
+    "rule": "Dispatch remains gated by the frozen clean commit, passing release CI, annotated science tag, parent import, and preregistered denominator."
   }
 }

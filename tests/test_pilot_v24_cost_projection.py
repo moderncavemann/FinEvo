@@ -63,10 +63,10 @@ def _expected_calls(contract, stage_id: str) -> tuple[int, int, int]:
 def test_v24_cost_projection_matches_contract_and_frozen_p95() -> None:
     contract = load_pilot_contract(CONTRACT_PATH)
     payload = _load_projection()
-    assert payload["status"] == "draft-preauthorization"
+    assert payload["status"] == "frozen-authorized"
     assert payload["contract"] == {
         "contract_id": contract.contract_id,
-        "draft_canonical_sha256": contract.canonical_hash,
+        "frozen_canonical_sha256": contract.canonical_hash,
         "scientific_outcomes_observed_before_amendment": False,
     }
 
@@ -154,7 +154,7 @@ def test_v24_cost_projection_matches_contract_and_frozen_p95() -> None:
     assert storage == totals["new_reserved_storage_bytes"] == 3_520_000_000
 
 
-def test_v24_cost_projection_preserves_parent_and_requires_authorization() -> None:
+def test_v24_cost_projection_preserves_parent_and_records_authorization() -> None:
     contract = load_pilot_contract(CONTRACT_PATH)
     payload = _load_projection()
     totals = payload["totals"]
@@ -162,20 +162,30 @@ def test_v24_cost_projection_preserves_parent_and_requires_authorization() -> No
     hosted = Decimal(str(totals["new_hosted_reserved_cost_usd"]))
     reserve = Decimal(str(totals["manual_reserve_usd"]))
     required = parent + hosted + reserve
-    hard_cap = Decimal(str(totals["proposed_total_hard_cap_usd"]))
+    hard_cap = Decimal(str(totals["authorized_total_hard_cap_usd"]))
 
     assert required == Decimal(str(totals["parent_plus_matrix_plus_manual_reserve_usd"]))
+    assert hard_cap == Decimal("500.0")
     assert hard_cap - required == Decimal(
         str(totals["unallocated_hosted_headroom_usd"])
     )
-    assert contract.status == "draft"
+    assert contract.status == "frozen"
     assert contract.budgets["total_usd"] == float(hard_cap)
+    assert sum(
+        Decimal(str(value))
+        for value in contract.budgets["stage_usd_caps"].values()
+    ) == hard_cap
     assert payload["authorization"] == {
-        "hard_cap_authorized": False,
-        "paid_dispatch_authorized": False,
-        "freeze_or_tag_authorized": False,
+        "hard_cap_authorized": True,
+        "authorized_hard_cap_usd": 500.0,
+        "authorized_on": "2026-07-27",
+        "authorization_source": "explicit-user-instruction-in-codex-thread",
+        "paid_dispatch_authorized": True,
+        "freeze_or_tag_authorized": True,
+        "matrix_expansion_authorized": False,
         "rule": (
-            "No paid or scientific dispatch while the V2.4 contract "
-            "remains draft."
+            "Dispatch remains gated by the frozen clean commit, passing "
+            "release CI, annotated science tag, parent import, and "
+            "preregistered denominator."
         ),
     }
