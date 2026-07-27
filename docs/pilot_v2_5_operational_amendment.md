@@ -2,10 +2,10 @@
 
 ## Status and scope
 
-V2.5 is a **draft, outcome-blind operational amendment**. It does not
+V2.5 is a **frozen, outcome-blind operational amendment**. It does not
 reinterpret or resume V2.4, and it does not change the registered scientific
-design. No V2.5 provider call or scientific run is authorized while the
-contract remains draft.
+design. Its 211-cell denominator and `$500` hard cap are fixed before any
+V2.5 provider call or treatment outcome.
 
 The V2.4 launch terminated in `parent-import` before provider construction.
 Its immutable denominator contains 211 terminal `integrity-stopped` cells,
@@ -58,6 +58,12 @@ resuming a V2.4 cell is forbidden.
 The exact V2.4 terminal receipts, V2.4 evidence package, and original V2.3
 authority sources are bound by
 `experiments/pilot_v2_5_source_manifest.json`.
+
+The frozen contract is
+`experiments/pilot_v2_5.yaml`, with canonical SHA-256
+`1f9809062684a1a2afb96b7342b88a06810e0e87ac883aa63a858a65a81d188d`.
+Its release inventory contains 853 test node IDs, 163 tracked Python source
+paths, and the unchanged six-manifest sealed inventory.
 
 The V2.4 GitHub Actions run may be cited only as parent provenance. V2.5
 requires a new PR, a new Linux/macOS CI run on the merged V2.5 tree, a new

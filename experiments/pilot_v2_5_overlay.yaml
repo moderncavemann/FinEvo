@@ -1,7 +1,7 @@
 {
   "schema_version": "finevo-pilot-contract-v2.5-parent-import-retry-overlay-v1",
   "contract_id": "finevo-pilot-v2.5",
-  "status": "draft",
+  "status": "frozen",
   "base_contract": {
     "path": "pilot_v2_4.yaml",
     "schema_version": "finevo-pilot-contract-v2",
@@ -15,11 +15,11 @@
     "release_requirements": {
       "tag": "pilot-v2.5-science",
       "expected_ci": {
-        "test_count": null,
-        "test_collection_sha256": null,
-        "compiled_source_count": null,
-        "compiled_source_inventory_sha256": null,
-        "sealed_manifest_inventory_sha256": null
+        "test_count": 853,
+        "test_collection_sha256": "cec761b62017d3c66152ea85a026068dcc21b4f43aee1e49b46c16792adb24fd",
+        "compiled_source_count": 163,
+        "compiled_source_inventory_sha256": "4a50a3a6d1cb6c6fd69ba36e2b4c7befd42ec6d99301912688d093ee67f15eca",
+        "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952"
       }
     },
     "denominator_policy": {
@@ -114,6 +114,6 @@
   },
   "integrity": {
     "canonicalization": "json-sort-keys-utf8-v1",
-    "declared_sha256": "6e7dbe33f53b27f9c30398b5f910bfac045380151f5c7abc9ff04ecb4a3aed5e"
+    "declared_sha256": "896b0ab342730977f60c11a70140328c7cca35f7cdc89ed5e6b8a1204f0a0a51"
   }
 }

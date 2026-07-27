@@ -77,9 +77,11 @@ PILOT_CONTRACT_V2_3_CANONICAL_SHA256 = (
 PILOT_CONTRACT_V2_4_CANONICAL_SHA256: Optional[str] = (
     "12d27b165a36fd0645ddedbf06e8d10a1f178b895272da6f4ea929b73d8506c3"
 )
-# V2.5 remains a prospective draft until its new implementation/CI identity
-# is frozen.  The amendment may not reuse the V2.4 release receipt.
-PILOT_CONTRACT_V2_5_CANONICAL_SHA256: Optional[str] = None
+# V2.5 is frozen only after its independent implementation inventory and
+# release identity were recorded.  It may not reuse the V2.4 release receipt.
+PILOT_CONTRACT_V2_5_CANONICAL_SHA256: Optional[str] = (
+    "1f9809062684a1a2afb96b7342b88a06810e0e87ac883aa63a858a65a81d188d"
+)
 PILOT_CONTRACT_V2_4_SCIENCE_DESIGN_SHA256 = (
     "ac11b024435d6d6b03a68b59e5f59f28d92a822ddd3712b1b4c612b668a20586"
 )

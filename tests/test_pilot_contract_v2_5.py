@@ -14,6 +14,7 @@ from verified_memory.pilot_contract import (
     PILOT_CONTRACT_TAG_V2_5,
     PILOT_CONTRACT_V2_4_CANONICAL_SHA256,
     PILOT_CONTRACT_V2_4_SCIENCE_DESIGN_SHA256,
+    PILOT_CONTRACT_V2_5_CANONICAL_SHA256,
     PilotContractError,
     canonical_contract_sha256,
     load_pilot_contract,
@@ -26,6 +27,7 @@ EXPERIMENTS = ROOT / "experiments"
 V24_PATH = EXPERIMENTS / "pilot_v2_4.yaml"
 V24_SOURCE_PATH = EXPERIMENTS / "pilot_v2_4_parent_source_manifest.json"
 OVERLAY_PATH = EXPERIMENTS / "pilot_v2_5_overlay.yaml"
+FULL_PATH = EXPERIMENTS / "pilot_v2_5.yaml"
 SOURCE_PATH = EXPERIMENTS / "pilot_v2_5_source_manifest.json"
 
 
@@ -61,7 +63,8 @@ def _write_resealed_overlay(
 def test_v2_5_draft_is_a_new_release_identity_only() -> None:
     source = _overlay_document()
     v24 = load_pilot_contract(V24_PATH)
-    v25 = load_pilot_contract(OVERLAY_PATH)
+    overlay = load_pilot_contract(OVERLAY_PATH)
+    full = load_pilot_contract(FULL_PATH)
 
     assert source["schema_version"] == (
         PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_5
@@ -71,14 +74,33 @@ def test_v2_5_draft_is_a_new_release_identity_only() -> None:
     )
     assert v24.contract_id == PILOT_CONTRACT_ID_V2_4
     assert v24.canonical_hash == PILOT_CONTRACT_V2_4_CANONICAL_SHA256
-    assert v25.contract_id == PILOT_CONTRACT_ID_V2_5
-    assert v25.status == "draft"
-    assert v25.implementation["required_git_tag"] == PILOT_CONTRACT_TAG_V2_5
-    assert v25.release_requirements is not None
-    assert v25.release_requirements.tag == PILOT_CONTRACT_TAG_V2_5
-    assert set(v25.release_requirements.expected_ci.values()) == {None}
-    with pytest.raises(PilotContractError, match="draft contract"):
-        v25.validate_provenance("1" * 40, PILOT_CONTRACT_TAG_V2_5)
+    assert overlay.contract_id == full.contract_id == PILOT_CONTRACT_ID_V2_5
+    assert overlay.status == full.status == "frozen"
+    assert overlay.to_dict() == full.to_dict()
+    assert overlay.canonical_hash == full.canonical_hash
+    assert overlay.declared_sha256 == overlay.canonical_hash
+    assert overlay.canonical_hash == PILOT_CONTRACT_V2_5_CANONICAL_SHA256
+    assert overlay.implementation["required_git_tag"] == PILOT_CONTRACT_TAG_V2_5
+    assert overlay.release_requirements is not None
+    assert overlay.release_requirements.tag == PILOT_CONTRACT_TAG_V2_5
+    assert dict(overlay.release_requirements.expected_ci) == {
+        "test_count": 853,
+        "test_collection_sha256": (
+            "cec761b62017d3c66152ea85a026068dcc21b4f43aee1e49b46c16792adb24fd"
+        ),
+        "compiled_source_count": 163,
+        "compiled_source_inventory_sha256": (
+            "4a50a3a6d1cb6c6fd69ba36e2b4c7befd42ec6d99301912688d093ee67f15eca"
+        ),
+        "sealed_manifest_inventory_sha256": (
+            "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952"
+        ),
+    }
+    provenance = overlay.validate_provenance(
+        "1" * 40,
+        PILOT_CONTRACT_TAG_V2_5,
+    )
+    assert provenance["resolved_git_commit"] == "1" * 40
 
 
 def test_v2_5_preserves_the_exact_v2_4_211_cell_science_design() -> None:
