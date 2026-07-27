@@ -88,6 +88,7 @@ def v27_authority_fixture(
         "pilot_v2_4_parent_source_manifest.json",
         "pilot_v2_5_source_manifest.json",
         "pilot_v2_6_source_manifest.json",
+        "pilot_v2_7_source_manifest.json",
     ):
         shutil.copyfile(
             ROOT / "experiments" / source_name,

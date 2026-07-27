@@ -98,12 +98,18 @@ PILOT_CONTRACT_V2_5_CANONICAL_SHA256: Optional[str] = (
 PILOT_CONTRACT_V2_6_CANONICAL_SHA256: Optional[str] = (
     "bb6b12d71227c423e5a67452dc496f26843dec74e359b9b04bf096dc17d0c509"
 )
-# V2.7 remains draft until the immutable V2.6 terminal source package,
-# implementation inventory, and independent Linux/macOS release identity are
-# recorded.
-PILOT_CONTRACT_V2_7_CANONICAL_SHA256: Optional[str] = None
-PILOT_V2_7_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = None
-PILOT_V2_7_SOURCE_MANIFEST_CONTENT_SHA256: Optional[str] = None
+# V2.7 is frozen against the immutable V2.6 terminal source package and its
+# independent implementation inventory.  Paid provenance still requires the
+# matching merged commit, independent Linux/macOS CI, and annotated tag.
+PILOT_CONTRACT_V2_7_CANONICAL_SHA256: Optional[str] = (
+    "938627d42ec8ec78e8424793797593736b79936b00813b81259af54e6df6779f"
+)
+PILOT_V2_7_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = (
+    "ee0ef62f5dcde9fc820aef6d23d1ce5a8c5bca7b9f20486bf42233f18763a1c8"
+)
+PILOT_V2_7_SOURCE_MANIFEST_CONTENT_SHA256: Optional[str] = (
+    "f195661d01d0aa6742d9e2f2658b6b1acb38715ddbd43e4e5fd375309d78dbe4"
+)
 PILOT_V2_6_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = (
     "f84778ed279b8ca98b9b61e26619669fade54b95d0c3e4f17874733acbc84efe"
 )

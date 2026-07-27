@@ -202,16 +202,6 @@ def test_v27_import_failure_is_terminal_complete_with_no_go(
     assert imported["stages"]["stage0-calibration"]["scientific_eligible_cells"] == 0
     assert aggregate["publication_status"] == "complete-with-no-go"
     assert aggregate["scientific_complete"] is False
-    real_sha256_file = evidence._sha256_file
-    monkeypatch.setattr(
-        evidence,
-        "_sha256_file",
-        lambda path: (
-            None
-            if Path(path).name == "pilot_v2_7_source_manifest.json"
-            else real_sha256_file(path)
-        ),
-    )
     manifest_path, _ = evidence._write_v24_package(
         tmp_path / "no-go-package",
         contract_path=CONTRACT_PATH,
@@ -287,14 +277,6 @@ def test_v27_package_copies_complete_contract_lineage(
         denominator=_denominator(rows),
         release_controls=_release_controls(),
     )
-    real_sha256_file = evidence._sha256_file
-
-    def draft_hash(path: Path) -> str | None:
-        if Path(path).name == "pilot_v2_7_source_manifest.json":
-            return None
-        return real_sha256_file(path)
-
-    monkeypatch.setattr(evidence, "_sha256_file", draft_hash)
     manifest_path, checksums_path = evidence._write_v24_package(
         tmp_path / "package",
         contract_path=CONTRACT_PATH,

@@ -2,13 +2,19 @@
 
 ## Status and scope
 
-V2.7 is a **draft evaluator/import amendment**, not a frozen release and not a
-scientific result. The draft expanded contract is
+V2.7 is a **frozen evaluator/import contract and implementation candidate**,
+not a completed release and not a scientific result. The expanded contract is
 [`experiments/pilot_v2_7.yaml`](../experiments/pilot_v2_7.yaml), and its compact
 source overlay is
 [`experiments/pilot_v2_7_overlay.yaml`](../experiments/pilot_v2_7_overlay.yaml).
-Their draft CI and V2.6 source-manifest bindings remain intentionally unset
-until the release inventory and exact immutable source package are complete.
+The frozen expanded-contract hash is
+`938627d42ec8ec78e8424793797593736b79936b00813b81259af54e6df6779f`;
+the compact overlay self-hash is
+`bec6e6816a1d68aa932592796ff5aac8a693e9659dd64ba4eea6c740e25e799e`.
+The release inventory is fixed at 954 collected tests, 174 tracked Python
+sources, and six sealed manifests. Independent Linux/macOS CI on the eventual
+merged release commit, the annotated tag, and the clean-tag launch attestation
+remain separate gates.
 
 V2.7 creates a fresh 211-cell ITT denominator, including 209 scientific cells,
 under `experiment_results/pilot-v2.7/raw/`. It does not reopen, resume,
@@ -73,9 +79,11 @@ the parent-import artifact, q-ref artifact, and 14 Stage-0 run artifacts. Before
 admission, the importer must verify the frozen V2.6 contract and annotated tag,
 peeled release commit, release attestation, run and budget ledgers, exact raw
 file inventory, q-ref receipt, parent-authority chain, every Stage-0 manifest,
-and all declared file/content hashes. The future frozen V2.7 source manifest
-must bind that complete source package; the current draft does not claim that
-this binding is finished.
+and all declared file/content hashes. The frozen V2.7 source manifest binds that
+complete package with file hash
+`ee0ef62f5dcde9fc820aef6d23d1ce5a8c5bca7b9f20486bf42233f18763a1c8`
+and content hash
+`f195661d01d0aa6742d9e2f2658b6b1acb38715ddbd43e4e5fd375309d78dbe4`.
 
 Verified V2.6 bytes remain immutable parent sources. A child wrapper may
 reseal verified identities to the eventual V2.7 contract, annotated tag, and
@@ -165,8 +173,8 @@ reasoning, a substitute model, or silent use of the manual reserve.
 
 V2.7 may progress only in this order:
 
-1. Finish and bind the exact immutable V2.6 terminal source package, draft
-   implementation inventory, and release inventory.
+1. Bind the exact immutable V2.6 terminal source package, implementation
+   inventory, and release inventory.
 2. Pass the full local tests, compile checks, contract expansion checks,
    manifest rehash, and secret scan; replace every draft placeholder with its
    concrete binding and freeze the contract without provider dispatch.
@@ -182,6 +190,9 @@ V2.7 may progress only in this order:
    deltas, aggregate evidence, and negative results without seed replacement
    or post-hoc reruns.
 
+Steps 1–2 are satisfied by the frozen contract candidate. Steps 3–8 remain
+pending; freezing alone does not authorize provider dispatch.
+
 Failure at any import, integrity, selection, or budget gate terminalizes the
 fresh denominator and yields another auditable no-go. It does not permit
 falling through to hosted dispatch.
@@ -195,9 +206,9 @@ falling through to hosted dispatch.
 - Stage-0 selection establishes only that one preregistered utility profile
   passes the fixed calibration procedure. It cannot support a FinEvo
   performance claim.
-- The current V2.7 artifacts are draft implementation material. They do not
-  support wording such as “V2.7 passed,” “V2.7 is frozen,” or “the pilot
-  confirms the paper.”
+- The current V2.7 artifacts freeze the preregistration and implementation
+  inventory only. They do not support wording such as “V2.7 passed,” “the
+  pilot confirms the paper,” or any A–D effectiveness conclusion.
 - A–D claims require the corresponding fresh, complete paired V2.7 evidence
   and their preregistered direction/effect gates. A failed gate must narrow the
   associated paper claim.
@@ -205,6 +216,5 @@ falling through to hosted dispatch.
   full-scale validity, real-news understanding, or equivalence to the original
   100-agent × 240-month experiments.
 
-Until the source package, release inventory, frozen hash, merged CI, annotated
-tag, and launch attestation all exist, no V2.7 scientific dispatch is
-authorized.
+Until merged-commit Linux/macOS CI, the annotated tag, and the clean-tag launch
+attestation exist, no V2.7 scientific dispatch is authorized.
