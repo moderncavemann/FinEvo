@@ -22,6 +22,9 @@ Examples:
     python run_pilot.py --contract experiments/pilot_v2_10.yaml \
         --stage parent-import \
         --parent-repo-root ../finevo-pilot-v2-9-science --resume
+    python run_pilot.py --contract experiments/pilot_v2_10_1.yaml \
+        --stage parent-import \
+        --parent-repo-root ../finevo-pilot-v2-10-science --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
         --stage capability-gate --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
@@ -55,6 +58,9 @@ Pilot-v2.10 preserves the terminal V2.9 implementation-interface no-go,
 imports exactly its sixteen completed prerequisites without provider
 construction, reseals the observed-p95 authority to the current release, and
 dispatches every one of its 195 A--D cells under a new denominator.
+Pilot-v2.10.1 preserves V2.10's terminal q-ref interface no-go, verifies its
+published lineage, then imports the exact nested V2.9 prerequisites and
+reseals them under a fresh current-release authority before any provider work.
 """
 
 from __future__ import annotations
@@ -70,6 +76,7 @@ from verified_memory.pilot_v24_evidence import (
     PILOT_V24_CONTRACT_ID,
     PILOT_V29_CONTRACT_ID,
     PILOT_V210_CONTRACT_ID,
+    PILOT_V2101_CONTRACT_ID,
     build_pilot_v24_evidence_package,
 )
 from verified_memory.pilot_v25_parent_import import V25_CONTRACT_ID
@@ -128,7 +135,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "read-only parent source/raw checkout required only by the "
-            "V2.4/V2.5/V2.6/V2.7/V2.8/V2.9/V2.10 zero-provider "
+            "V2.4/V2.5/V2.6/V2.7/V2.8/V2.9/V2.10/V2.10.1 zero-provider "
             "parent-import stage"
         ),
     )
@@ -200,6 +207,7 @@ def execute(args: argparse.Namespace) -> dict:
                 V28_CONTRACT_ID,
                 PILOT_V29_CONTRACT_ID,
                 PILOT_V210_CONTRACT_ID,
+                PILOT_V2101_CONTRACT_ID,
             }
             else build_pilot_evidence_package
         )

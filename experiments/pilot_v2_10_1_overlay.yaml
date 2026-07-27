@@ -1,0 +1,244 @@
+{
+  "base_contract": {
+    "canonical_sha256": "d1b54c14d016c2b157db9e334d054ab9c7e86371d3fb9662a95fb94e50ce964b",
+    "contract_id": "finevo-pilot-v2.10",
+    "path": "pilot_v2_10.yaml",
+    "schema_version": "finevo-pilot-contract-v2"
+  },
+  "changes": {
+    "denominator_policy": {
+      "policy_id": "finevo-pilot-v2.10.1-itt"
+    },
+    "implementation": {
+      "required_git_tag": "pilot-v2.10.1-science"
+    },
+    "release_requirements": {
+      "expected_ci": {
+        "compiled_source_count": 200,
+        "compiled_source_inventory_sha256": "73973909831a8f62e1bbba531cd5bee154a9bfb9d70d2f06174db383e8c8d565",
+        "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
+        "test_collection_sha256": "8f5a0853b3f29d42b08f1809fcf88796df5f27e33f771786b977d667e3bdf306",
+        "test_count": 1149
+      },
+      "tag": "pilot-v2.10.1-science"
+    }
+  },
+  "contract_id": "finevo-pilot-v2.10.1",
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "declared_sha256": "daf32e78f0375a83c69ac653191da04d89eee8b062a361876fabd4d255876c58"
+  },
+  "qref_receipt_verifier_retry_amendment": {
+    "amendment_id": "finevo-pilot-v2.10.1-qref-receipt-verifier-retry-1",
+    "budget_carry_forward": {
+      "budget_reset": false,
+      "cumulative_prior": {
+        "cost_usd": 3.212770875,
+        "hosted_completions": 184,
+        "parent_budget_ledger_sha256": "a03b87a18aae4ddcbcc2f546bf142745969a6225922d7b2da327c7f9730d3f6a",
+        "parent_contract_sha256": "d1b54c14d016c2b157db9e334d054ab9c7e86371d3fb9662a95fb94e50ce964b",
+        "parent_run_ledger_sha256": "ef2a7a1d003e4b876749cf87e7a49bd5080e1096b7d6beedb797d6adde149db6",
+        "record_sha256": "4837821a5f059714ef8fa6f8b22522bc693c8adb0edc7603367823a870e94510",
+        "stage_bucket": "parent_v23",
+        "storage_bytes": 70035938
+      },
+      "debit_before_new_dispatch": true,
+      "hosted_confirmatory_cap_usd": 495.787229125,
+      "manual_reserve_automatic_use": false,
+      "max_provider_completions": 7500,
+      "max_storage_bytes": 5000000000,
+      "projection_reserve_multiplier": 1.25,
+      "total_cap_usd": 500.0,
+      "unknown_price_policy": "stop-before-dispatch",
+      "v2_10_incremental": {
+        "cost_usd": 0.0,
+        "hosted_completions": 0
+      },
+      "whole_remaining_matrix_projection_required": true
+    },
+    "evidence_lineage": {
+      "parent_claim_reclassification": "forbidden",
+      "parent_evidence_commit": "1e96373fa847b44e3418a777c1ed74165ecf2bac",
+      "parent_evidence_merge_commit": "2c4f4750d02c9c6b90051cfaa4f16b8ab16aa637",
+      "parent_evidence_namespace": "evidence/current_v2/pilot-v2.10",
+      "parent_evidence_rewrite": "forbidden",
+      "parent_evidence_status": "complete-with-no-go",
+      "q_ref_and_stage0_are_prerequisites_not_effect_evidence": true,
+      "v2_10_1_effect_aggregation_uses_only_fresh_v2_10_1_a_d_cells": true
+    },
+    "failure_classification": {
+      "a_d_treatment_effect_outcomes_generated": false,
+      "actor_action_utility_rule_exposure_outcomes_generated": false,
+      "budget_ledger_file_sha256": "60c7244c22d397884784f6a06b540e9291bfc0bb105a2f83c88bad96c3b925cb",
+      "budget_ledger_internal_sha256": "a03b87a18aae4ddcbcc2f546bf142745969a6225922d7b2da327c7f9730d3f6a",
+      "completed_cell_breakdown": {
+        "a-d": 0,
+        "parent-import": 1,
+        "q-ref-resolution": 0,
+        "stage0-calibration": 0
+      },
+      "evidence_checksums_file_sha256": "b117c3e9d2555af9582c22de08b6e39f1366876d9bc0c6a84b37728533748695",
+      "evidence_package_manifest_file_sha256": "9aa7d07d1d813a5acdea39401e017d5cefe9d85f9127917b119d2453ff972806",
+      "failed_stage_id": "q-ref-resolution",
+      "failure_error_type": "PilotOrchestrationError",
+      "failure_message": "V2.10 q-ref prerequisite failed validation: imported prerequisite stage_receipt schema or content hash mismatch",
+      "failure_message_sha256": "0d30e7fcfc850e1934d87a3c23b64221bdac6fb1dc96ff7126fa58ed094d5ce4",
+      "failure_phase": "before-provider-construction-and-dispatch",
+      "incremental_cost_usd": 0.0,
+      "incremental_hosted_completions": 0,
+      "parent_contract_id": "finevo-pilot-v2.10",
+      "parent_contract_sha256": "d1b54c14d016c2b157db9e334d054ab9c7e86371d3fb9662a95fb94e50ce964b",
+      "parent_evidence_commit": "1e96373fa847b44e3418a777c1ed74165ecf2bac",
+      "parent_evidence_merge_commit": "2c4f4750d02c9c6b90051cfaa4f16b8ab16aa637",
+      "parent_release_commit": "1584629a5f8fd60f42bba878d2a0fcb0eca4bdcf",
+      "parent_release_tag": "pilot-v2.10-science",
+      "parent_release_tag_object": "7ef3cfa37e1dc2a1c9f49cafe77988624b9f23a9",
+      "partial_actor_streams_persisted": false,
+      "q_ref_failure_stage_receipt_content_sha256": "48ae5807da2c3175b3fd427cc023796e7bd81c5b77695789a900474e023da098",
+      "q_ref_failure_stage_receipt_file_sha256": "66dac19579be01cb617fda51c6636a7a27cb3dff5f65d82e66cafb7a3da60823",
+      "registered_cells": 211,
+      "root_cause_code": "qref-stage-receipt-schema-hash-domain-mismatch",
+      "root_cause_message": "The finevo-pilot-stage-receipt-v2 producer hashes the artifact after removing the complete integrity object, while the imported-prerequisite verifier applied the generic self-hash convention.",
+      "run_ledger_file_sha256": "04baa9aef59481d330e7ffe88f174156df32d4ee600eea365b9ceb2bf1b623d9",
+      "run_ledger_internal_sha256": "ef2a7a1d003e4b876749cf87e7a49bd5080e1096b7d6beedb797d6adde149db6",
+      "scientific_cells": 209,
+      "status_counts": {
+        "complete": 1,
+        "integrity-stopped": 210
+      },
+      "terminal_status": "complete-with-no-go"
+    },
+    "fresh_science_dispatch": {
+      "a_d_cells": 195,
+      "a_d_provider_dispatch": "fresh-only",
+      "decoded_completion_reuse": "forbidden",
+      "downstream_dispatch_requires_all_16_prerequisites": true,
+      "imported_a_d_completions": 0,
+      "stage_counts": {
+        "experiment-a": 20,
+        "experiment-b": 15,
+        "experiment-c": 25,
+        "experiment-d": 30,
+        "local-experiment-a": 20,
+        "local-experiment-b": 25,
+        "local-experiment-c": 25,
+        "local-experiment-d": 35
+      },
+      "whole_remaining_matrix_projection_required": true
+    },
+    "observation_boundary": {
+      "a_d_actor_treatment_effect_outcomes_generated": false,
+      "a_d_actor_treatment_effect_outcomes_observed": false,
+      "amendment_is_outcome_blind_for_actor_treatment_effects": true,
+      "calibration_candidate_profiles_unchanged": true,
+      "calibration_model_and_actions_unchanged": true,
+      "calibration_seed_set_unchanged": true,
+      "calibration_thresholds_unchanged": true,
+      "calibration_tiebreak_order_unchanged": true,
+      "failed_seed_replacement": "forbidden",
+      "implementation_failure_observed_before_amendment": true,
+      "q_ref_is_prerequisite_not_treatment_effect_evidence": true,
+      "q_ref_receipt_hash_failure_observed": true
+    },
+    "prerequisite_retry": {
+      "child_artifacts_resealed_to_current_contract_tag_and_head": true,
+      "decoded_completion_reuse_beyond_prerequisites": "forbidden",
+      "exact_file_and_content_hashes_required": true,
+      "expected_cell_breakdown": {
+        "parent-import": 1,
+        "q-ref-resolution": 1,
+        "stage0-calibration": 14
+      },
+      "expected_complete_cells_before_a_d_dispatch": 16,
+      "missing_or_malformed_source_policy": "stop-before-dispatch",
+      "prerequisites_are_treatment_effect_evidence": false,
+      "provider_construction_during_import": false,
+      "provider_redispatch_for_imported_cells": "forbidden",
+      "q_ref_and_stage0_source_contract_id": "finevo-pilot-v2.9",
+      "q_ref_and_stage0_source_contract_sha256": "0b07881aaceeb020dc5943ede647a665f9e9bf786a1cac109ab720e05d81d361",
+      "q_ref_resolution_reverification_required": true,
+      "source_run_manifests_reverification_required": true,
+      "stage0_selected_profile_id": "nu-0.5",
+      "stage0_selection_reverification_required": true,
+      "v2_10_complete_parent_import_reverification_required": true
+    },
+    "qref_receipt_verifier_repair": {
+      "artifact_schema_version": "finevo-pilot-stage-receipt-v2",
+      "canonicalization": "json-sort-keys-utf8-v1",
+      "content_hash_projection": "canonical-json-of-artifact-after-removing-entire-integrity-object",
+      "declared_content_hash_exact_match_required": true,
+      "external_file_and_content_binding_exact_match_required": true,
+      "generic_self_hash_convention_for_stage_receipt_v2": "forbidden",
+      "integrity_required_fields": [
+        "canonicalization",
+        "content_sha256"
+      ],
+      "policy_id": "finevo-pilot-v2.10.1-schema-dispatched-receipt-hash-v1",
+      "q_ref_receipt_content_sha256": "e9865c91ec078043489592813f62e72ca4f1d19239cf935a31699637e9f37d57",
+      "schema_dispatched_hash_verification_required": true,
+      "source_artifact_reseal_or_rewrite": "forbidden",
+      "stage0_receipt_content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+      "tamper_policy": "stop-before-dispatch",
+      "unknown_schema_policy": "stop-before-dispatch",
+      "validation_before_provider_construction": true
+    },
+    "retry_policy": {
+      "a_d_provider_dispatch": "fresh-only",
+      "failed_seed_replacement": "forbidden",
+      "matrix_shrink": "forbidden",
+      "new_211_cell_denominator_required": true,
+      "new_contract_required": true,
+      "prerequisite_provider_redispatch": "forbidden",
+      "preserve_parent_denominator": true,
+      "v2_10_raw_resume": "forbidden",
+      "v2_10_status_counts_rewrite": "forbidden",
+      "v2_10_terminal_cell_reclassification": "forbidden"
+    },
+    "schema_version": "finevo-pilot-qref-receipt-verifier-retry-amendment-v1",
+    "science_design_invariance": {
+      "budget_envelope_unchanged": true,
+      "fresh_a_d_cells": 195,
+      "matrix_profile_id": "local-llama-full-ad-gpt52-fixed-confirmatory-cadb-v1",
+      "p95_reservation_values_unchanged": true,
+      "provider_profiles_unchanged": true,
+      "registered_cells": 211,
+      "scientific_cells": 209,
+      "seeds_arms_models_stage_order_unchanged": true,
+      "shock_utility_stop_go_unchanged": true,
+      "source_contract_id": "finevo-pilot-v2.10",
+      "source_contract_sha256": "d1b54c14d016c2b157db9e334d054ab9c7e86371d3fb9662a95fb94e50ce964b",
+      "source_science_design_sha256": "ac11b024435d6d6b03a68b59e5f59f28d92a822ddd3712b1b4c612b668a20586"
+    },
+    "source_lineage": {
+      "amendment_parent_contract_id": "finevo-pilot-v2.10",
+      "amendment_parent_contract_sha256": "d1b54c14d016c2b157db9e334d054ab9c7e86371d3fb9662a95fb94e50ce964b",
+      "amendment_parent_raw_inventory": {
+        "canonicalization": "json-sort-keys-compact-utf8-v1",
+        "file_count": 637,
+        "inventory_sha256": "d8964a15abed0d77598d2c2cf80136e438b67559796cc93f8566dca17e584baa",
+        "schema_version": "finevo-raw-tree-inventory-v1",
+        "storage_bytes": 20126496
+      },
+      "amendment_parent_raw_namespace": "experiment_results/pilot-v2.10/raw",
+      "child_raw_namespace": "experiment_results/pilot-v2.10.1/raw",
+      "exact_parent_inventory_required": true,
+      "parent_denominator_reclassified": false,
+      "parent_evidence_commit": "1e96373fa847b44e3418a777c1ed74165ecf2bac",
+      "parent_evidence_merge_commit": "2c4f4750d02c9c6b90051cfaa4f16b8ab16aa637",
+      "parent_evidence_namespace": "evidence/current_v2/pilot-v2.10",
+      "parent_evidence_package_required": true,
+      "parent_evidence_rewrite": "forbidden",
+      "parent_terminal_no_go_preserved": true,
+      "shared_namespace": false,
+      "source_artifacts_rewritten": false
+    },
+    "source_manifest": {
+      "content_sha256": "11447dd0c231140102411eb231b8716c8f1581d0fa1533e98ccc51c3afb31426",
+      "file_sha256": "e9360d9754cd054386ff03264c331091404555379457a59a7b01344f4a8f2d8f",
+      "path": "experiments/pilot_v2_10_1_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.10.1-source-manifest-v1"
+    }
+  },
+  "schema_version": "finevo-pilot-contract-v2.10.1-qref-receipt-verifier-retry-overlay-v1",
+  "status": "frozen"
+}
