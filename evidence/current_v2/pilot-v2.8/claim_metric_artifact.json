@@ -1,0 +1,142 @@
+{
+  "claims": [
+    {
+      "artifact": "aggregate.json#/lanes/local/gates/experiment-c",
+      "boundary": "withdraw or narrow the rule-reliability claim",
+      "claim": "Evidence grounding improves erroneous-rule reliability",
+      "lane": "local",
+      "metric": "false activation, harmful exposure, and cumulative utility-loss directions",
+      "status": "no-go"
+    },
+    {
+      "artifact": "aggregate.json#/lanes/local/gates/experiment-a",
+      "boundary": "retain route traceability only",
+      "claim": "M1 retrieval contributes beyond regime prompting",
+      "lane": "local",
+      "metric": "full minus prompt-only shock+recovery discounted utility",
+      "status": "no-go"
+    },
+    {
+      "artifact": "aggregate.json#/lanes/local/gates/experiment-d",
+      "boundary": "do not claim a closed-loop continuation effect",
+      "claim": "A focal memory/error pulse changes the matched six-step continuation",
+      "lane": "local",
+      "metric": "matched-null- and action-bin-qualified continuation deltas",
+      "status": "no-go"
+    },
+    {
+      "artifact": "aggregate.json#/lanes/local/gates/experiment-b",
+      "boundary": "report the incomplete architecture denominator without a winner",
+      "claim": "Registered memory architectures can be compared descriptively",
+      "lane": "local",
+      "metric": "seed-level utility, action, retrieval, proposal, and lifecycle summaries",
+      "status": "no-go"
+    },
+    {
+      "artifact": "aggregate.json#/lanes/gpt52/gates/experiment-c",
+      "boundary": "withdraw or narrow the rule-reliability claim",
+      "claim": "Evidence grounding improves erroneous-rule reliability",
+      "lane": "gpt52",
+      "metric": "false activation, harmful exposure, and cumulative utility-loss directions",
+      "status": "no-go"
+    },
+    {
+      "artifact": "aggregate.json#/lanes/gpt52/gates/experiment-a",
+      "boundary": "retain route traceability only",
+      "claim": "M1 retrieval contributes beyond regime prompting",
+      "lane": "gpt52",
+      "metric": "full minus prompt-only shock+recovery discounted utility",
+      "status": "no-go"
+    },
+    {
+      "artifact": "aggregate.json#/lanes/gpt52/gates/experiment-d",
+      "boundary": "do not claim a closed-loop continuation effect",
+      "claim": "A focal memory/error pulse changes the matched six-step continuation",
+      "lane": "gpt52",
+      "metric": "matched-null- and action-bin-qualified continuation deltas",
+      "status": "no-go"
+    },
+    {
+      "artifact": "aggregate.json#/lanes/gpt52/gates/experiment-b",
+      "boundary": "report the incomplete architecture denominator without a winner",
+      "claim": "Registered memory architectures can be compared descriptively",
+      "lane": "gpt52",
+      "metric": "seed-level utility, action, retrieval, proposal, and lifecycle summaries",
+      "status": "no-go"
+    },
+    {
+      "artifact": "aggregate.json#/cross_lane_mechanism_comparison/experiment-c",
+      "boundary": "cross-backbone mechanism direction is inconclusive; do not pool seed directions",
+      "claim": "experiment-c direction appears in two backbone micro-pilots",
+      "lane": "cross-lane",
+      "metric": "separate lane-level 4/5 gate, mechanism status, and primary-direction agreement",
+      "status": "inconclusive"
+    },
+    {
+      "artifact": "aggregate.json#/cross_lane_mechanism_comparison/experiment-a",
+      "boundary": "cross-backbone mechanism direction is inconclusive; do not pool seed directions",
+      "claim": "experiment-a direction appears in two backbone micro-pilots",
+      "lane": "cross-lane",
+      "metric": "separate lane-level 4/5 gate, mechanism status, and primary-direction agreement",
+      "status": "inconclusive"
+    },
+    {
+      "artifact": "aggregate.json#/cross_lane_mechanism_comparison/experiment-d",
+      "boundary": "cross-backbone mechanism direction is inconclusive; do not pool seed directions",
+      "claim": "experiment-d direction appears in two backbone micro-pilots",
+      "lane": "cross-lane",
+      "metric": "separate lane-level 4/5 gate, mechanism status, and primary-direction agreement",
+      "status": "inconclusive"
+    },
+    {
+      "artifact": "aggregate.json#/cross_lane_mechanism_comparison/experiment-b",
+      "boundary": "cross-backbone mechanism direction is inconclusive; do not pool seed directions",
+      "claim": "experiment-b direction appears in two backbone micro-pilots",
+      "lane": "cross-lane",
+      "metric": "separate lane-level 4/5 gate, mechanism status, and primary-direction agreement",
+      "status": "inconclusive"
+    },
+    {
+      "artifact": "aggregate.json#/narrative",
+      "boundary": "make no V2.8 narrative or real-news-understanding claim",
+      "claim": "Narrative channel shows controlled semantic response",
+      "lane": "not-applicable",
+      "metric": "not registered in the V2.8 core matrix",
+      "status": "deferred-unregistered"
+    },
+    {
+      "artifact": "aggregate.json#/cross_lane_policy",
+      "boundary": "report local and GPT-5.2 directions separately; never pool direction counts or use backbone-independent wording",
+      "claim": "Backbone-independent improvement",
+      "lane": "cross-lane",
+      "metric": "prohibited pooled inference",
+      "status": "prohibited"
+    },
+    {
+      "artifact": "failure_ledger.json",
+      "boundary": "retain every failed, stopped, nonterminal, and missing cell",
+      "claim": "Complete V2.8 preregistered ITT denominator",
+      "lane": "all",
+      "metric": "one terminal ledger row for every expanded contract cell",
+      "status": "supported"
+    },
+    {
+      "artifact": "aggregate.json#/prerequisites",
+      "boundary": "parent authority, the fresh scripted q-ref, and the 14 imported Stage-0 cells are prerequisites/non-effect evidence; only fresh V2.8 A-D cells may support treatment-effect claims",
+      "claim": "V2.8 parent authority, fresh scripted q-ref, and imported Stage-0 inputs are complete prerequisites",
+      "lane": "prerequisite-non-effect",
+      "metric": "16 registered prerequisite cells; q-ref 0 hosted / 48 scripted diagnostic calls; 14 imported Stage-0 cells",
+      "status": "no-go"
+    },
+    {
+      "artifact": "parent_evidence_reference.json",
+      "boundary": "reference only; do not rewrite, reclassify, or import V2.7 rows into V2.8 effects",
+      "claim": "V2.7 remains an immutable complete-with-no-go package",
+      "lane": "parent-lineage",
+      "metric": "exact parent manifest hash, terminal denominator, evidence commit, and merge commit",
+      "status": "preserved"
+    }
+  ],
+  "contract_sha256": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+  "schema_version": "finevo-pilot-v2.8-evidence-package-v1"
+}

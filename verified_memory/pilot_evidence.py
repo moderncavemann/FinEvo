@@ -221,6 +221,13 @@ def _is_v27_contract(contract: PilotContract) -> bool:
     )
 
 
+def _is_v28_contract(contract: PilotContract) -> bool:
+    return (
+        _is_v2_contract(contract)
+        and contract.contract_id == "finevo-pilot-v2.8"
+    )
+
+
 def _is_lane_separated_contract(contract: PilotContract) -> bool:
     """Return whether the contract uses the fixed V2.4 211-cell lane matrix."""
 
@@ -229,6 +236,7 @@ def _is_lane_separated_contract(contract: PilotContract) -> bool:
         or _is_v25_contract(contract)
         or _is_v26_contract(contract)
         or _is_v27_contract(contract)
+        or _is_v28_contract(contract)
     )
 
 
@@ -2457,15 +2465,28 @@ def _validate_terminal_payload_marker(
                 )
 
                 parent_import_receipt_verifier = verify_v27_parent_import_receipt
+        elif _is_v28_contract(contract):
+            version_label = "V2.8"
+            if parent_import_receipt_verifier is None:
+                from .pilot_v28_stage0_import import (  # pylint: disable=import-outside-toplevel
+                    verify_v28_parent_import_receipt,
+                )
+
+                parent_import_receipt_verifier = verify_v28_parent_import_receipt
         else:
             raise PilotEvidenceError(
                 "parent-authority import is unsupported for this contract"
             )
         receipt_path = gate.get("receipt")
+        gate_provider_calls = gate.get(
+            "provider_calls_during_import"
+            if _is_v28_contract(contract)
+            else "provider_calls"
+        )
         if (
             metrics
             or payload.get("provider_calls") != 0
-            or gate.get("provider_calls") != 0
+            or gate_provider_calls != 0
             or gate.get("scientific_evidence") is not False
             or not isinstance(receipt_path, str)
             or not receipt_path
@@ -4383,8 +4404,11 @@ def _expected_parent_budget_debit(
     from .pilot_v25_parent_import import parent_budget_debit_for_v25
     from .pilot_v26_parent_import import parent_budget_debit_for_v26
     from .pilot_v27_stage0_import import parent_budget_debit_for_v27
+    from .pilot_v28_stage0_import import parent_budget_debit_for_v28
 
-    debit = parent_budget_debit_for_v27(contract)
+    debit = parent_budget_debit_for_v28(contract)
+    if debit is None:
+        debit = parent_budget_debit_for_v27(contract)
     if debit is None:
         debit = parent_budget_debit_for_v26(contract)
     if debit is None:
@@ -4963,21 +4987,21 @@ def _validated_release_controls(
                 for spec in contract.expand(stage="parent-import")
                 if spec.execution_mode == "parent_authority_import"
             }
-            if _is_v27_contract(contract)
+            if _is_v27_contract(contract) or _is_v28_contract(contract)
             else set()
         )
         expected_budget_ids = (
             expected_standard_ids | expected_d_ids | expected_parent_ids
         )
-        required_v27_import_budget_ids: set[str] = set()
-        if _is_v27_contract(contract):
-            required_v27_import_budget_ids.update(expected_parent_ids)
+        required_import_budget_ids: set[str] = set()
+        if _is_v27_contract(contract) or _is_v28_contract(contract):
+            required_import_budget_ids.update(expected_parent_ids)
             for stage_id in (
                 "q-ref-resolution",
                 "stage0-calibration",
             ):
                 if (raw_root / stage_id / "stage_receipt.json").is_file():
-                    required_v27_import_budget_ids.update(
+                    required_import_budget_ids.update(
                         spec.run_id
                         for spec in contract.expand(stage=stage_id)
                     )
@@ -5012,7 +5036,7 @@ def _validated_release_controls(
         # of dispatched units, not a fabricated row for every no-dispatch cell.
         rows_valid = bool(
             set(budget_runs).issubset(expected_budget_ids)
-            and required_v27_import_budget_ids.issubset(set(budget_runs))
+            and required_import_budget_ids.issubset(set(budget_runs))
         )
         if rows_valid:
             for run_id, row in budget_runs.items():
@@ -5087,7 +5111,7 @@ def _validated_release_controls(
             str(row["run_id"])
             for row in rows
             if (
-                _is_v27_contract(contract)
+                (_is_v27_contract(contract) or _is_v28_contract(contract))
                 and row["execution_mode"] == "parent_authority_import"
                 and row.get("artifact_kind") is not None
             )
