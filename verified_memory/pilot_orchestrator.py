@@ -236,6 +236,9 @@ PILOT_V27_STAGE0_COMMIT_INTENT_SCHEMA_VERSION = (
 PILOT_V27_PARENT_COMMIT_INTENT_SCHEMA_VERSION = (
     "finevo-pilot-v2.7-parent-import-commit-intent-v1"
 )
+PILOT_V27_PARENT_FAILURE_INTENT_SCHEMA_VERSION = (
+    "finevo-pilot-v2.7-parent-import-failure-intent-v1"
+)
 PILOT_BOUND_ARTIFACT_CANONICALIZATION = "json-sort-keys-utf8-v1"
 
 CORE_STAGE_IDS = (
@@ -9787,6 +9790,291 @@ def _materialize_or_verify_v27_parent_terminal(
     )
 
 
+def _v27_parent_commit_intent_path(*, raw_root: Path) -> Path:
+    return (
+        raw_root
+        / "parent-import"
+        / "parent_import_commit_intent.json"
+    )
+
+
+def _verify_v27_parent_commit_intent(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+) -> dict[str, Any]:
+    path = _v27_parent_commit_intent_path(raw_root=raw_root)
+    if path.is_symlink():
+        raise PilotOrchestrationError(
+            "V2.7 parent commit intent must not be a symlink"
+        )
+    if not path.is_file():
+        raise PilotOrchestrationError(
+            "V2.7 complete parent run requires its pre-existing sealed "
+            "commit intent"
+        )
+    existing = _read_json(path)
+    _verify_bound_payload(
+        existing,
+        contract=contract,
+        schema_version=PILOT_V27_PARENT_COMMIT_INTENT_SCHEMA_VERSION,
+        paid=paid,
+        artifact_name="V2.7 parent-import commit intent",
+    )
+    if existing.get("entry_run_status") != "scheduled":
+        raise PilotOrchestrationError(
+            "V2.7 parent commit intent must record the original scheduled "
+            "entry state"
+        )
+    return existing
+
+
+def _v27_parent_failure_receipt_path(*, raw_root: Path) -> Path:
+    return raw_root / "parent-import" / "failure_receipt.json"
+
+
+def _verify_v27_parent_failure_receipt(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+) -> tuple[Path, dict[str, Any]]:
+    path = _v27_parent_failure_receipt_path(raw_root=raw_root)
+    if path.is_symlink():
+        raise PilotOrchestrationError(
+            "V2.7 parent failure intent must not be a symlink"
+        )
+    receipt = _read_json(path)
+    _verify_bound_payload(
+        receipt,
+        contract=contract,
+        schema_version=PILOT_V27_PARENT_FAILURE_INTENT_SCHEMA_VERSION,
+        paid=paid,
+        artifact_name="V2.7 parent failure intent",
+    )
+    failure = receipt.get("failure")
+    if (
+        set(receipt)
+        != {
+            "schema_version",
+            "contract_id",
+            "contract_sha256",
+            "stage_id",
+            "provider_calls",
+            "scientific_evidence",
+            "failure",
+            "bindings",
+            "integrity",
+        }
+        or receipt.get("contract_id") != contract.contract_id
+        or receipt.get("contract_sha256") != contract.canonical_hash
+        or receipt.get("stage_id") != "parent-import"
+        or type(receipt.get("provider_calls")) is not int
+        or receipt.get("provider_calls") != 0
+        or receipt.get("scientific_evidence") is not False
+        or not isinstance(failure, Mapping)
+        or not failure
+    ):
+        raise PilotOrchestrationError(
+            "V2.7 parent no-go failure receipt is malformed"
+        )
+    return path, dict(failure)
+
+
+def _classify_v27_parent_entry_state(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+    entry_run_status: str,
+) -> tuple[str, dict[str, Any] | None]:
+    """Resolve the mutually exclusive durable parent success/no-go intents."""
+
+    success_path = _v27_parent_commit_intent_path(raw_root=raw_root)
+    failure_path = _v27_parent_failure_receipt_path(raw_root=raw_root)
+    for label, path in (
+        ("success", success_path),
+        ("failure", failure_path),
+    ):
+        if path.is_symlink():
+            raise PilotOrchestrationError(
+                f"V2.7 parent {label} intent must not be a symlink"
+            )
+        if path.exists() and not path.is_file():
+            raise PilotOrchestrationError(
+                f"V2.7 parent {label} intent is not a regular file"
+            )
+    success_exists = success_path.is_file()
+    failure_exists = failure_path.is_file()
+    if success_exists and failure_exists:
+        raise PilotOrchestrationError(
+            "V2.7 parent success and failure intents cannot coexist"
+        )
+    if entry_run_status == "scheduled":
+        if success_exists:
+            _verify_v27_parent_commit_intent(
+                contract,
+                raw_root=raw_root,
+                paid=paid,
+            )
+            return "scheduled-success-resume", None
+        if failure_exists:
+            _, failure = _verify_v27_parent_failure_receipt(
+                contract,
+                raw_root=raw_root,
+                paid=paid,
+            )
+            return "scheduled-failure-resume", failure
+        return "scheduled-deterministic-import", None
+    if entry_run_status == "complete":
+        if not success_exists or failure_exists:
+            raise PilotOrchestrationError(
+                "V2.7 complete parent run lacks its exclusive pre-commit "
+                "success intent; manual integrity audit is required"
+            )
+        _verify_v27_parent_commit_intent(
+            contract,
+            raw_root=raw_root,
+            paid=paid,
+        )
+        return "complete-success-resume", None
+    if entry_run_status == "integrity-stopped":
+        if not failure_exists or success_exists:
+            raise PilotOrchestrationError(
+                "V2.7 stopped parent run lacks its exclusive sealed failure "
+                "intent; manual integrity audit is required"
+            )
+        _, failure = _verify_v27_parent_failure_receipt(
+            contract,
+            raw_root=raw_root,
+            paid=paid,
+        )
+        return "integrity-stopped-failure-resume", failure
+    raise PilotOrchestrationError(
+        "V2.7 parent ledger has an unsupported entry state; manual "
+        "integrity audit is required"
+    )
+
+
+def _assert_v27_parent_success_ledger_boundary(
+    contract: PilotContract,
+    spec: PilotRunSpec,
+    *,
+    raw_root: Path,
+    run_ledger: PilotRunLedger,
+) -> None:
+    """Require the exact pre-descendant parent-success publication state."""
+
+    failure_path = _v27_parent_failure_receipt_path(raw_root=raw_root)
+    if failure_path.exists():
+        raise PilotOrchestrationError(
+            "V2.7 parent success conflicts with a durable failure receipt"
+        )
+    expected_specs = contract.expand()
+    rows = run_ledger.snapshot().get("runs")
+    if not isinstance(rows, Mapping) or set(rows) != {
+        candidate.run_id for candidate in expected_specs
+    }:
+        raise PilotOrchestrationError(
+            "V2.7 parent success ledger boundary has a registration mismatch"
+        )
+    expected_terminal = str(
+        raw_root
+        / "parent-import"
+        / "summaries"
+        / f"{spec.run_id}.json"
+    )
+    invalid: dict[str, dict[str, Any]] = {}
+    for candidate in expected_specs:
+        row = rows[candidate.run_id]
+        expected = (
+            {
+                "status": "complete",
+                "artifact": expected_terminal,
+                "failure": None,
+            }
+            if candidate.run_id == spec.run_id
+            else {
+                "status": "scheduled",
+                "artifact": None,
+                "failure": None,
+            }
+        )
+        observed = {
+            "status": row.get("status"),
+            "artifact": row.get("artifact"),
+            "failure": row.get("failure"),
+        }
+        if observed != expected:
+            invalid[candidate.run_id] = observed
+    if invalid:
+        raise PilotOrchestrationError(
+            "V2.7 parent success ledger boundary requires exactly one "
+            "complete parent artifact and only pristine scheduled descendants"
+        )
+
+
+def _assert_v27_parent_no_go_ledger_boundary(
+    contract: PilotContract,
+    spec: PilotRunSpec,
+    *,
+    raw_root: Path,
+    run_ledger: PilotRunLedger,
+    failure: Mapping[str, Any],
+) -> None:
+    """Verify every descendant has the exact parent no-go terminal state."""
+
+    expected_specs = contract.expand()
+    rows = run_ledger.snapshot().get("runs")
+    if not isinstance(rows, Mapping) or set(rows) != {
+        candidate.run_id for candidate in expected_specs
+    }:
+        raise PilotOrchestrationError(
+            "V2.7 parent no-go ledger boundary has a registration mismatch"
+        )
+    parent_row = rows.get(spec.run_id)
+    if (
+        not isinstance(parent_row, Mapping)
+        or parent_row.get("status") != "integrity-stopped"
+        or parent_row.get("artifact")
+        != str(_v27_parent_failure_receipt_path(raw_root=raw_root))
+        or parent_row.get("failure") != dict(failure)
+    ):
+        raise PilotOrchestrationError(
+            "V2.7 parent no-go ledger boundary has a conflicting parent row"
+        )
+    descendants = _descendant_stage_ids(contract, "parent-import")
+    descendant_ids: set[str] = set()
+    for stage_id in descendants:
+        expected_failure = {
+            **dict(failure),
+            "source_stage": "parent-import",
+            "blocked_stage": stage_id,
+        }
+        for candidate in contract.expand(stage=stage_id):
+            descendant_ids.add(candidate.run_id)
+            row = rows.get(candidate.run_id)
+            if (
+                not isinstance(row, Mapping)
+                or row.get("status") != "integrity-stopped"
+                or row.get("artifact") is not None
+                or row.get("failure") != expected_failure
+            ):
+                raise PilotOrchestrationError(
+                    "V2.7 parent no-go descendant terminal state conflicts "
+                    f"with its sealed failure: {candidate.run_id}"
+                )
+    if descendant_ids != {
+        candidate.run_id
+        for candidate in expected_specs
+        if candidate.run_id != spec.run_id
+    }:
+        raise PilotOrchestrationError(
+            "V2.7 parent no-go descendants do not cover the contract matrix"
+        )
+
+
 def _persist_v27_parent_commit_intent(
     contract: PilotContract,
     spec: PilotRunSpec,
@@ -9800,26 +10088,25 @@ def _persist_v27_parent_commit_intent(
 ) -> Path:
     """Seal the successful parent publication plan before the run commit."""
 
-    path = (
-        raw_root
-        / "parent-import"
-        / "parent_import_commit_intent.json"
-    )
-    origin_status = entry_run_status
-    if path.exists():
-        existing = _read_json(path)
-        _verify_bound_payload(
-            existing,
-            contract=contract,
-            schema_version=PILOT_V27_PARENT_COMMIT_INTENT_SCHEMA_VERSION,
-            paid=paid,
-            artifact_name="V2.7 parent-import commit intent",
+    path = _v27_parent_commit_intent_path(raw_root=raw_root)
+    if entry_run_status not in {"scheduled", "complete"}:
+        raise PilotOrchestrationError(
+            "V2.7 parent commit intent entry state is malformed"
         )
-        origin_status = str(existing.get("entry_run_status", ""))
-        if origin_status not in {"scheduled", "complete"}:
-            raise PilotOrchestrationError(
-                "V2.7 parent commit intent entry state is malformed"
-            )
+    if path.is_symlink():
+        raise PilotOrchestrationError(
+            "V2.7 parent commit intent must not be a symlink"
+        )
+    if path.exists():
+        _verify_v27_parent_commit_intent(
+            contract,
+            raw_root=raw_root,
+            paid=paid,
+        )
+    elif entry_run_status != "scheduled":
+        raise PilotOrchestrationError(
+            "V2.7 complete parent run cannot create a post-commit intent"
+        )
     value = _seal_bound_payload(
         {
             "schema_version": (
@@ -9828,7 +10115,7 @@ def _persist_v27_parent_commit_intent(
             "contract_id": contract.contract_id,
             "contract_sha256": contract.canonical_hash,
             "stage_id": "parent-import",
-            "entry_run_status": origin_status,
+            "entry_run_status": "scheduled",
             "planned_run_finalization": {
                 "run_id": spec.run_id,
                 "status": "complete",
@@ -9865,10 +10152,10 @@ def _reconcile_v27_parent_import_no_go_budget(
     budget_ledger: PilotBudgetLedger,
     projection: RunProjection,
 ) -> dict[str, Any]:
-    """Finish only the missing budget write for a sealed parent no-go."""
+    """Idempotently finish a sealed parent no-go and its descendants."""
 
     row = run_ledger.snapshot()["runs"].get(spec.run_id)
-    failure_path = raw_root / "parent-import" / "failure_receipt.json"
+    failure_path = _v27_parent_failure_receipt_path(raw_root=raw_root)
     if (
         not isinstance(row, Mapping)
         or row.get("status") != "integrity-stopped"
@@ -9879,42 +10166,27 @@ def _reconcile_v27_parent_import_no_go_budget(
             "V2.7 parent no-go resume lacks its exact terminal receipt chain"
         )
     failure = dict(row["failure"])
-    failure_receipt = _read_json(failure_path)
-    if (
-        set(failure_receipt)
-        != {
-            "schema_version",
-            "contract_sha256",
-            "provider_calls",
-            "scientific_evidence",
-            "failure",
-        }
-        or failure_receipt.get("schema_version")
-        != "finevo-pilot-v2.7-parent-import-failure-v1"
-        or failure_receipt.get("contract_sha256") != contract.canonical_hash
-        or failure_receipt.get("provider_calls") != 0
-        or failure_receipt.get("scientific_evidence") is not False
-        or failure_receipt.get("failure") != failure
-    ):
+    _, receipt_failure = _verify_v27_parent_failure_receipt(
+        contract,
+        raw_root=raw_root,
+        paid=paid,
+    )
+    if receipt_failure != failure:
         raise PilotOrchestrationError(
             "V2.7 parent no-go failure receipt differs from its ledger row"
         )
-    if any(
-        not run_ledger.is_terminal(candidate.run_id)
-        for candidate in contract.expand()
-    ):
-        raise PilotOrchestrationError(
-            "V2.7 parent no-go resume has an unterminated descendant"
-        )
-    receipt = _write_stage_receipt(
+    _propagate_stage_no_go(
         contract,
-        "parent-import",
-        raw_root=raw_root,
+        source_stage="parent-import",
         ledger=run_ledger,
-        status="integrity-stopped",
-        artifacts={"failure_receipt": str(failure_path)},
         failure=failure,
-        paid=paid,
+    )
+    _assert_v27_parent_no_go_ledger_boundary(
+        contract,
+        spec,
+        raw_root=raw_root,
+        run_ledger=run_ledger,
+        failure=failure,
     )
     budget_row = budget_ledger.snapshot()["runs"].get(spec.run_id)
     if (
@@ -9926,6 +10198,16 @@ def _reconcile_v27_parent_import_no_go_budget(
         raise PilotOrchestrationError(
             "V2.7 parent no-go budget row is not safely reconcilable"
         )
+    receipt = _write_stage_receipt(
+        contract,
+        "parent-import",
+        raw_root=raw_root,
+        ledger=run_ledger,
+        status="integrity-stopped",
+        artifacts={"failure_receipt": str(failure_path)},
+        failure=failure,
+        paid=paid,
+    )
     _finalize_v27_parent_import_budget(
         budget_ledger,
         projection,
@@ -9950,7 +10232,7 @@ def _execute_v24_parent_import_stage(
     if contract.contract_id == V27_CONTRACT_ID:
         contract_label = "V2.7"
         persist_parent_import = persist_v27_parent_import
-        failure_schema = "finevo-pilot-v2.7-parent-import-failure-v1"
+        failure_schema = PILOT_V27_PARENT_FAILURE_INTENT_SCHEMA_VERSION
     elif contract.contract_id == V26_CONTRACT_ID:
         contract_label = "V2.6"
         persist_parent_import = persist_v26_parent_import
@@ -9986,6 +10268,8 @@ def _execute_v24_parent_import_stage(
         )
     )
     v27_projection: RunProjection | None = None
+    v27_entry_disposition: str | None = None
+    v27_entry_failure: dict[str, Any] | None = None
     if parent_repo_root is None:
         raise PilotOrchestrationError(
             f"{contract_label} parent-import requires --parent-repo-root "
@@ -9996,6 +10280,15 @@ def _execute_v24_parent_import_stage(
             raise PilotOrchestrationError(
                 "V2.7 parent import requires its inherited-debit budget ledger"
             )
+        (
+            v27_entry_disposition,
+            v27_entry_failure,
+        ) = _classify_v27_parent_entry_state(
+            contract,
+            raw_root=raw_root,
+            paid=paid,
+            entry_run_status=entry_run_status,
+        )
         v27_projection = _v27_parent_import_projection(spec)
         existing_budget = budget_ledger.snapshot()["runs"].get(spec.run_id)
         if existing_budget is None:
@@ -10003,6 +10296,26 @@ def _execute_v24_parent_import_stage(
         elif existing_budget.get("reservation") != v27_projection.to_dict():
             raise PilotOrchestrationError(
                 "V2.7 parent-import budget reservation drifted"
+            )
+        if v27_entry_disposition == "scheduled-failure-resume":
+            assert v27_entry_failure is not None
+            failure_path = _v27_parent_failure_receipt_path(
+                raw_root=raw_root
+            )
+            run_ledger.finalize(
+                spec.run_id,
+                status="integrity-stopped",
+                artifact=str(failure_path),
+                failure=v27_entry_failure,
+            )
+            return _reconcile_v27_parent_import_no_go_budget(
+                contract,
+                spec,
+                raw_root=raw_root,
+                paid=paid,
+                run_ledger=run_ledger,
+                budget_ledger=budget_ledger,
+                projection=v27_projection,
             )
     if run_ledger.is_terminal(spec.run_id):
         if run_ledger.status(spec.run_id) != "complete":
@@ -10062,6 +10375,12 @@ def _execute_v24_parent_import_stage(
                 result=result,
                 projection=v27_projection,
                 entry_run_status=entry_run_status,
+            )
+            _assert_v27_parent_success_ledger_boundary(
+                contract,
+                spec,
+                raw_root=raw_root,
+                run_ledger=run_ledger,
             )
         receipt = _write_stage_receipt(
             contract,
@@ -10146,6 +10465,13 @@ def _execute_v24_parent_import_stage(
             artifact=str(terminal),
             failure=None,
         )
+        if contract.contract_id == V27_CONTRACT_ID:
+            _assert_v27_parent_success_ledger_boundary(
+                contract,
+                spec,
+                raw_root=raw_root,
+                run_ledger=run_ledger,
+            )
         receipt = _write_stage_receipt(
             contract,
             "parent-import",
@@ -10165,21 +10491,49 @@ def _execute_v24_parent_import_stage(
             )
         return _read_json(receipt)
     except Exception as exc:
+        if contract.contract_id == V27_CONTRACT_ID:
+            intent_path = _v27_parent_commit_intent_path(
+                raw_root=raw_root
+            )
+            if intent_path.exists() or intent_path.is_symlink():
+                _verify_v27_parent_commit_intent(
+                    contract,
+                    raw_root=raw_root,
+                    paid=paid,
+                )
+                status = run_ledger.status(spec.run_id)
+                if status not in {"scheduled", "complete"}:
+                    raise PilotOrchestrationError(
+                        "V2.7 parent success intent conflicts with its ledger "
+                        "state; manual integrity audit is required"
+                    ) from exc
+                budget_status = (
+                    None
+                    if budget_ledger is None
+                    else budget_ledger.snapshot()["runs"]
+                    .get(spec.run_id, {})
+                    .get("status")
+                )
+                raise PilotOrchestrationError(
+                    "V2.7 parent publication requires audited --resume; "
+                    "disposition=current-attempt-partial-publication; "
+                    f"entry_status={entry_run_status}; "
+                    f"ledger_status={status}; "
+                    f"commit_intent={intent_path}; "
+                    f"budget_status={budget_status}"
+                ) from exc
+            failure_path = _v27_parent_failure_receipt_path(
+                raw_root=raw_root
+            )
+            if failure_path.exists() or failure_path.is_symlink():
+                raise PilotOrchestrationError(
+                    "V2.7 parent failure intent appeared during a success "
+                    "attempt; manual integrity audit is required"
+                ) from exc
         if (
             contract.contract_id == V27_CONTRACT_ID
             and run_ledger.is_terminal(spec.run_id)
-            and run_ledger.status(spec.run_id) == "complete"
         ):
-            intent_path = (
-                raw_root
-                / "parent-import"
-                / "parent_import_commit_intent.json"
-            )
-            if not intent_path.is_file():
-                raise PilotOrchestrationError(
-                    "V2.7 parent run committed without its sealed commit "
-                    "intent; manual integrity audit is required"
-                ) from exc
             budget_status = (
                 None
                 if budget_ledger is None
@@ -10188,24 +10542,35 @@ def _execute_v24_parent_import_stage(
                 .get("status")
             )
             raise PilotOrchestrationError(
-                "V2.7 parent publication requires audited --resume; "
-                "disposition=current-attempt-partial-publication; "
-                f"entry_status={entry_run_status}; "
-                f"commit_intent={intent_path}; "
-                f"budget_status={budget_status}"
+                "V2.7 parent terminal state lacks a sealed intent; manual "
+                "integrity audit is required; "
+                f"entry_status={entry_run_status}; budget_status={budget_status}"
             ) from exc
         failure = _exception_failure(exc)
         failure_path = raw_root / "parent-import" / "failure_receipt.json"
-        _atomic_json(
-            failure_path,
-            {
-                "schema_version": failure_schema,
+        failure_payload: dict[str, Any] = {
+            "schema_version": failure_schema,
+            "contract_sha256": contract.canonical_hash,
+            "provider_calls": 0,
+            "scientific_evidence": False,
+            "failure": failure,
+        }
+        if contract.contract_id == V27_CONTRACT_ID:
+            if failure_path.is_symlink():
+                raise PilotOrchestrationError(
+                    "V2.7 parent failure intent must not be a symlink"
+                ) from exc
+            failure_payload["contract_id"] = contract.contract_id
+            failure_payload["stage_id"] = "parent-import"
+            failure_payload["bindings"] = {
                 "contract_sha256": contract.canonical_hash,
-                "provider_calls": 0,
-                "scientific_evidence": False,
-                "failure": failure,
-            },
-        )
+                "git_tag": paid.git_tag,
+                "git_commit": paid.head_commit,
+            }
+            failure_payload = _seal_bound_payload(failure_payload)
+            _persist_exact_json(failure_path, failure_payload)
+        else:
+            _atomic_json(failure_path, failure_payload)
         if not run_ledger.is_terminal(spec.run_id):
             run_ledger.finalize(
                 spec.run_id,
@@ -10213,30 +10578,35 @@ def _execute_v24_parent_import_stage(
                 artifact=str(failure_path),
                 failure=failure,
             )
-        _propagate_stage_no_go(
-            contract,
-            source_stage="parent-import",
-            ledger=run_ledger,
-            failure=failure,
-        )
-        receipt = _write_stage_receipt(
-            contract,
-            "parent-import",
-            raw_root=raw_root,
-            ledger=run_ledger,
-            status="integrity-stopped",
-            artifacts={"failure_receipt": str(failure_path)},
-            failure=failure,
-            paid=paid,
-        )
         if v27_projection is not None:
             assert budget_ledger is not None
-            _finalize_v27_parent_import_budget(
-                budget_ledger,
-                v27_projection,
+            receipt_value = _reconcile_v27_parent_import_no_go_budget(
+                contract,
+                spec,
                 raw_root=raw_root,
-                status="integrity-stopped",
+                paid=paid,
+                run_ledger=run_ledger,
+                budget_ledger=budget_ledger,
+                projection=v27_projection,
+            )
+            receipt = _stage_receipt_path(raw_root, "parent-import")
+            assert receipt_value == _read_json(receipt)
+        else:
+            _propagate_stage_no_go(
+                contract,
+                source_stage="parent-import",
+                ledger=run_ledger,
                 failure=failure,
+            )
+            receipt = _write_stage_receipt(
+                contract,
+                "parent-import",
+                raw_root=raw_root,
+                ledger=run_ledger,
+                status="integrity-stopped",
+                artifacts={"failure_receipt": str(failure_path)},
+                failure=failure,
+                paid=paid,
             )
         raise PilotOrchestrationError(
             f"{contract_label} parent import failed; receipt={receipt}"

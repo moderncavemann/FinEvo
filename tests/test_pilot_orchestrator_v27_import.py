@@ -25,6 +25,187 @@ def _paid() -> SimpleNamespace:
     )
 
 
+class _ParentBudget:
+    def __init__(self) -> None:
+        self.rows: dict[str, dict[str, Any]] = {}
+        self.finalize_calls = 0
+
+    def snapshot(self) -> dict[str, Any]:
+        return {"runs": self.rows}
+
+    def reserve(self, projection: Any) -> None:
+        self.rows[projection.run_id] = {
+            "reservation": projection.to_dict(),
+            "status": "reserved",
+            "actual": None,
+            "failure": None,
+        }
+
+    def finalize(self, run_id: str, **kwargs: Any) -> None:
+        self.finalize_calls += 1
+        self.rows[run_id].update(
+            {
+                "status": kwargs["status"],
+                "actual": {
+                    "cost_usd": kwargs["cost_usd"],
+                    "completions": kwargs["completions"],
+                    "storage_bytes": kwargs["storage_bytes"],
+                },
+                "failure": kwargs["failure"],
+            }
+        )
+
+
+def _install_stable_parent_success(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    raw_root: Path,
+    spec: Any,
+    calls: list[str],
+) -> None:
+    def persist(**_kwargs: Any) -> dict[str, Any]:
+        calls.append("importer")
+        return {
+            "receipt": str(
+                raw_root / "parent-import" / "parent_import_receipt.json"
+            ),
+            "snapshot_inventory_sha256": "a" * 64,
+            "resealed_p95_profiles": {"sentinel": "stable"},
+            "provider_calls": 0,
+            "scientific_evidence": False,
+        }
+
+    def terminal(
+        _contract: Any,
+        _spec: Any,
+        *,
+        result: dict[str, Any],
+        **_kwargs: Any,
+    ) -> Path:
+        path = (
+            raw_root
+            / "parent-import"
+            / "summaries"
+            / f"{spec.run_id}.json"
+        )
+        expected = {
+            "schema_version": "test-parent-terminal-v1",
+            "result_sha256": canonical_sha256(result),
+        }
+        if path.exists():
+            assert json.loads(path.read_text(encoding="utf-8")) == expected
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps(expected, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+        return path
+
+    monkeypatch.setattr(orchestrator, "persist_v27_parent_import", persist)
+    monkeypatch.setattr(
+        orchestrator,
+        "_verify_v27_importer_p95_profiles",
+        lambda _contract, *, importer_result, **_kwargs: importer_result[
+            "resealed_p95_profiles"
+        ],
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_materialize_or_verify_v27_parent_terminal",
+        terminal,
+    )
+
+
+def _write_v27_failure_intent(
+    contract: Any,
+    raw_root: Path,
+    failure: dict[str, Any],
+    *,
+    provider_calls: int = 0,
+) -> Path:
+    path = orchestrator._v27_parent_failure_receipt_path(
+        raw_root=raw_root
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    value = orchestrator._seal_bound_payload(
+        {
+            "schema_version": (
+                orchestrator.PILOT_V27_PARENT_FAILURE_INTENT_SCHEMA_VERSION
+            ),
+            "contract_id": contract.contract_id,
+            "contract_sha256": contract.canonical_hash,
+            "stage_id": "parent-import",
+            "provider_calls": provider_calls,
+            "scientific_evidence": False,
+            "failure": failure,
+            "bindings": {
+                "contract_sha256": contract.canonical_hash,
+                "git_tag": _paid().git_tag,
+                "git_commit": _paid().head_commit,
+            },
+        }
+    )
+    path.write_text(
+        json.dumps(value, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def _assert_exact_parent_no_go(
+    contract: Any,
+    spec: Any,
+    *,
+    raw_root: Path,
+    ledger: Any,
+) -> None:
+    rows = ledger.snapshot()["runs"]
+    assert len(rows) == 211
+    assert {row["status"] for row in rows.values()} == {
+        "integrity-stopped"
+    }
+    failure = rows[spec.run_id]["failure"]
+    orchestrator._assert_v27_parent_no_go_ledger_boundary(
+        contract,
+        spec,
+        raw_root=raw_root,
+        run_ledger=ledger,
+        failure=failure,
+    )
+
+
+def _new_parent_ledger(contract: Any, raw_root: Path) -> Any:
+    ledger = orchestrator.PilotRunLedger(
+        raw_root / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+        tamper_evident=True,
+    )
+    ledger.register(contract.expand())
+    return ledger
+
+
+def _execute_parent(
+    contract: Any,
+    spec: Any,
+    *,
+    raw_root: Path,
+    repo_root: Path,
+    ledger: Any,
+    budget: Any,
+) -> dict[str, Any]:
+    return orchestrator._execute_v24_parent_import_stage(
+        contract,
+        (spec,),
+        raw_root=raw_root,
+        repo_root=repo_root,
+        parent_repo_root=repo_root,
+        paid=_paid(),
+        run_ledger=ledger,
+        budget_ledger=budget,
+    )
+
+
 def test_v27_runtime_uses_parent_import_controls_and_debit() -> None:
     contract = load_pilot_contract(CONTRACT_PATH)
 
@@ -743,16 +924,31 @@ def test_v27_parent_import_accounts_incremental_snapshot_storage(
     raw_root.mkdir()
 
     class RunLedger:
-        terminal = False
+        def __init__(self) -> None:
+            self.rows = {
+                candidate.run_id: {
+                    "status": "scheduled",
+                    "artifact": None,
+                    "failure": None,
+                }
+                for candidate in contract.expand()
+            }
 
-        def is_terminal(self, _run_id: str) -> bool:
-            return self.terminal
+        def is_terminal(self, run_id: str) -> bool:
+            return self.rows[run_id]["status"] != "scheduled"
 
-        def status(self, _run_id: str) -> str:
-            return "complete" if self.terminal else "scheduled"
+        def status(self, run_id: str) -> str:
+            return self.rows[run_id]["status"]
 
-        def finalize(self, *_args: Any, **_kwargs: Any) -> None:
-            self.terminal = True
+        def finalize(self, run_id: str, **kwargs: Any) -> None:
+            self.rows[run_id] = {
+                "status": kwargs["status"],
+                "artifact": kwargs["artifact"],
+                "failure": kwargs["failure"],
+            }
+
+        def snapshot(self) -> dict[str, Any]:
+            return {"runs": self.rows}
 
     class BudgetLedger:
         def __init__(self) -> None:
@@ -861,6 +1057,7 @@ def test_v27_parent_post_commit_failure_resumes_without_no_go(
         tamper_evident=True,
     )
     run_ledger.register(contract.expand())
+    fault_observations: list[tuple[str, str]] = []
 
     class Budget:
         def __init__(self) -> None:
@@ -881,6 +1078,10 @@ def test_v27_parent_post_commit_failure_resumes_without_no_go(
         def finalize(self, run_id: str, **kwargs: Any) -> None:
             if self.fail_once:
                 self.fail_once = False
+                fault_observations.append(
+                    ("budget", run_ledger.status(spec.run_id))
+                )
+                assert run_ledger.status(spec.run_id) == "complete"
                 raise OSError(
                     "injected parent success budget finalization failure"
                 )
@@ -925,6 +1126,60 @@ def test_v27_parent_post_commit_failure_resumes_without_no_go(
             "resealed_p95_profiles"
         ],
     )
+    terminal_observations: list[str] = []
+
+    def terminal(
+        _contract: Any,
+        _spec: Any,
+        *,
+        result: dict[str, Any],
+        **_kwargs: Any,
+    ) -> Path:
+        path = (
+            raw_root
+            / "parent-import"
+            / "summaries"
+            / f"{spec.run_id}.json"
+        )
+        expected = {
+            "schema_version": "test-parent-terminal-v1",
+            "result_sha256": canonical_sha256(result),
+        }
+        if path.exists():
+            assert json.loads(path.read_text(encoding="utf-8")) == expected
+            terminal_observations.append("verified")
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps(expected, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            terminal_observations.append("created")
+        return path
+
+    monkeypatch.setattr(
+        orchestrator,
+        "_materialize_or_verify_v27_parent_terminal",
+        terminal,
+    )
+    boundary_observations: list[dict[str, int]] = []
+    original_boundary = (
+        orchestrator._assert_v27_parent_success_ledger_boundary
+    )
+
+    def assert_boundary(*args: Any, **kwargs: Any) -> None:
+        statuses: dict[str, int] = {}
+        for row in run_ledger.snapshot()["runs"].values():
+            status = row["status"]
+            statuses[status] = statuses.get(status, 0) + 1
+        boundary_observations.append(statuses)
+        original_boundary(*args, **kwargs)
+
+    monkeypatch.setattr(
+        orchestrator,
+        "_assert_v27_parent_success_ledger_boundary",
+        assert_boundary,
+    )
     receipt_failed = False
 
     def write_receipt(*args: Any, **kwargs: Any) -> Path:
@@ -936,6 +1191,10 @@ def test_v27_parent_post_commit_failure_resumes_without_no_go(
             and args[1] == "parent-import"
         ):
             receipt_failed = True
+            fault_observations.append(
+                ("receipt", run_ledger.status(spec.run_id))
+            )
+            assert run_ledger.status(spec.run_id) == "complete"
             raise OSError(
                 "injected parent success receipt publication failure"
             )
@@ -978,6 +1237,7 @@ def test_v27_parent_post_commit_failure_resumes_without_no_go(
         / "parent-import"
         / "parent_import_commit_intent.json"
     ).is_file()
+    assert fault_observations == [(failure_mode, "complete")]
 
     monkeypatch.setattr(
         orchestrator,
@@ -1030,6 +1290,615 @@ def test_v27_parent_post_commit_failure_resumes_without_no_go(
     assert budget.rows[spec.run_id]["status"] == "complete"
     assert budget.rows[spec.run_id]["failure"] is None
     assert importer_calls == ["materialized", "materialized"]
+    assert terminal_observations == ["created", "verified"]
+    assert boundary_observations == [
+        {"complete": 1, "scheduled": 210},
+        {"complete": 1, "scheduled": 210},
+    ]
+
+
+def test_v27_complete_parent_missing_intent_fails_before_any_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(stage="parent-import")[0]
+    raw_root = tmp_path / "raw"
+    raw_root.mkdir()
+    ledger = orchestrator.PilotRunLedger(
+        raw_root / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+        tamper_evident=True,
+    )
+    ledger.register(contract.expand())
+    terminal = (
+        raw_root
+        / "parent-import"
+        / "summaries"
+        / f"{spec.run_id}.json"
+    )
+    terminal.parent.mkdir(parents=True)
+    terminal.write_text("{}\n", encoding="utf-8")
+    ledger.finalize(
+        spec.run_id,
+        status="complete",
+        artifact=str(terminal),
+        failure=None,
+    )
+    side_effects: list[str] = []
+
+    class UntouchedBudget:
+        def snapshot(self) -> dict[str, Any]:
+            side_effects.append("budget-snapshot")
+            return {"runs": {}}
+
+        def reserve(self, _projection: Any) -> None:
+            side_effects.append("budget-reserve")
+
+        def finalize(self, _run_id: str, **_kwargs: Any) -> None:
+            side_effects.append("budget-finalize")
+
+    def forbidden(*_args: Any, **_kwargs: Any) -> None:
+        side_effects.append("publication")
+        raise AssertionError("publication must not start")
+
+    monkeypatch.setattr(orchestrator, "persist_v27_parent_import", forbidden)
+    monkeypatch.setattr(orchestrator, "_write_stage_receipt", forbidden)
+    monkeypatch.setattr(orchestrator, "_propagate_stage_no_go", forbidden)
+
+    with pytest.raises(
+        orchestrator.PilotOrchestrationError,
+        match="lacks its exclusive pre-commit success intent",
+    ):
+        _execute_parent(
+            contract,
+            spec,
+            raw_root=raw_root,
+            repo_root=tmp_path,
+            ledger=ledger,
+            budget=UntouchedBudget(),
+        )
+
+    assert side_effects == []
+    assert not orchestrator._v27_parent_commit_intent_path(
+        raw_root=raw_root
+    ).exists()
+    assert not (raw_root / "parent-import" / "stage_receipt.json").exists()
+    assert not orchestrator._v27_parent_failure_receipt_path(
+        raw_root=raw_root
+    ).exists()
+    assert ledger.status(spec.run_id) == "complete"
+    assert {
+        row["status"]
+        for run_id, row in ledger.snapshot()["runs"].items()
+        if run_id != spec.run_id
+    } == {"scheduled"}
+
+
+def test_v27_resealed_post_commit_entry_state_is_rejected(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(stage="parent-import")[0]
+    raw_root = tmp_path / "raw"
+    raw_root.mkdir()
+    terminal = (
+        raw_root
+        / "parent-import"
+        / "summaries"
+        / f"{spec.run_id}.json"
+    )
+    terminal.parent.mkdir(parents=True)
+    terminal.write_text("{}\n", encoding="utf-8")
+    result = {"provider_calls": 0, "scientific_evidence": False}
+    intent_path = orchestrator._persist_v27_parent_commit_intent(
+        contract,
+        spec,
+        raw_root=raw_root,
+        paid=_paid(),
+        terminal_path=terminal,
+        result=result,
+        projection=orchestrator._v27_parent_import_projection(spec),
+        entry_run_status="scheduled",
+    )
+    resealed = json.loads(intent_path.read_text(encoding="utf-8"))
+    resealed["entry_run_status"] = "complete"
+    resealed = orchestrator._seal_bound_payload(resealed)
+    intent_path.chmod(0o644)
+    intent_path.write_text(
+        json.dumps(resealed, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    ledger = _new_parent_ledger(contract, raw_root)
+    ledger.finalize(
+        spec.run_id,
+        status="complete",
+        artifact=str(terminal),
+        failure=None,
+    )
+    side_effects: list[str] = []
+
+    class UntouchedBudget:
+        def snapshot(self) -> dict[str, Any]:
+            side_effects.append("budget")
+            return {"runs": {}}
+
+    monkeypatch.setattr(
+        orchestrator,
+        "persist_v27_parent_import",
+        lambda **_kwargs: side_effects.append("importer"),
+    )
+    with pytest.raises(
+        orchestrator.PilotOrchestrationError,
+        match="must record the original scheduled entry state",
+    ):
+        _execute_parent(
+            contract,
+            spec,
+            raw_root=raw_root,
+            repo_root=tmp_path,
+            ledger=ledger,
+            budget=UntouchedBudget(),
+        )
+    assert side_effects == []
+    assert not (raw_root / "parent-import" / "stage_receipt.json").exists()
+
+
+@pytest.mark.parametrize(
+    ("case", "message"),
+    [
+        ("success-symlink", "success intent must not be a symlink"),
+        ("failure-symlink", "failure intent must not be a symlink"),
+        ("failure-hash", "content hash mismatch"),
+        ("failure-malformed", "failure receipt is malformed"),
+        ("dual-intents", "success and failure intents cannot coexist"),
+    ],
+)
+def test_v27_parent_intent_state_rejects_unsafe_artifacts(
+    tmp_path: Path,
+    case: str,
+    message: str,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    raw_root = tmp_path / "raw"
+    parent_root = raw_root / "parent-import"
+    parent_root.mkdir(parents=True)
+    if case == "dual-intents":
+        spec = contract.expand(stage="parent-import")[0]
+        terminal = parent_root / "summaries" / f"{spec.run_id}.json"
+        terminal.parent.mkdir(parents=True)
+        terminal.write_text("{}\n", encoding="utf-8")
+        orchestrator._persist_v27_parent_commit_intent(
+            contract,
+            spec,
+            raw_root=raw_root,
+            paid=_paid(),
+            terminal_path=terminal,
+            result={"provider_calls": 0},
+            projection=orchestrator._v27_parent_import_projection(spec),
+            entry_run_status="scheduled",
+        )
+        _write_v27_failure_intent(
+            contract,
+            raw_root,
+            {"error_type": "TestFailure", "message": "sealed"},
+        )
+    elif case.endswith("symlink"):
+        target = tmp_path / f"{case}.json"
+        target.write_text("{}\n", encoding="utf-8")
+        path = (
+            orchestrator._v27_parent_commit_intent_path(raw_root=raw_root)
+            if case.startswith("success")
+            else orchestrator._v27_parent_failure_receipt_path(
+                raw_root=raw_root
+            )
+        )
+        path.symlink_to(target)
+    else:
+        path = _write_v27_failure_intent(
+            contract,
+            raw_root,
+            {"error_type": "TestFailure", "message": "sealed"},
+            provider_calls=1 if case == "failure-malformed" else 0,
+        )
+        if case == "failure-hash":
+            value = json.loads(path.read_text(encoding="utf-8"))
+            value["failure"]["message"] = "tampered-after-seal"
+            path.write_text(
+                json.dumps(value, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+
+    with pytest.raises(
+        orchestrator.PilotOrchestrationError,
+        match=message,
+    ):
+        orchestrator._classify_v27_parent_entry_state(
+            contract,
+            raw_root=raw_root,
+            paid=_paid(),
+            entry_run_status="scheduled",
+        )
+
+
+def test_v27_parent_success_intent_survives_parent_ledger_crash(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(stage="parent-import")[0]
+    raw_root = tmp_path / "raw"
+    raw_root.mkdir()
+    ledger = _new_parent_ledger(contract, raw_root)
+    budget = _ParentBudget()
+    importer_calls: list[str] = []
+    _install_stable_parent_success(
+        monkeypatch,
+        raw_root=raw_root,
+        spec=spec,
+        calls=importer_calls,
+    )
+
+    def write_receipt(*_args: Any, **_kwargs: Any) -> Path:
+        path = raw_root / "parent-import" / "stage_receipt.json"
+        path.write_text(
+            json.dumps({"status": "complete"}) + "\n",
+            encoding="utf-8",
+        )
+        return path
+
+    monkeypatch.setattr(
+        orchestrator,
+        "_write_stage_receipt",
+        write_receipt,
+    )
+    original_finalize = ledger.finalize
+    fail_once = True
+
+    def crash_before_success_commit(run_id: str, **kwargs: Any) -> None:
+        nonlocal fail_once
+        if (
+            fail_once
+            and run_id == spec.run_id
+            and kwargs["status"] == "complete"
+        ):
+            fail_once = False
+            raise OSError("injected parent success ledger commit failure")
+        original_finalize(run_id, **kwargs)
+
+    monkeypatch.setattr(ledger, "finalize", crash_before_success_commit)
+    with pytest.raises(
+        orchestrator.PilotOrchestrationError,
+        match="requires audited --resume",
+    ):
+        _execute_parent(
+            contract,
+            spec,
+            raw_root=raw_root,
+            repo_root=tmp_path,
+            ledger=ledger,
+            budget=budget,
+        )
+    assert orchestrator._v27_parent_commit_intent_path(
+        raw_root=raw_root
+    ).is_file()
+    assert not orchestrator._v27_parent_failure_receipt_path(
+        raw_root=raw_root
+    ).exists()
+    reloaded = orchestrator.PilotRunLedger(
+        raw_root / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+        tamper_evident=True,
+    )
+    assert {row["status"] for row in reloaded.snapshot()["runs"].values()} == {
+        "scheduled"
+    }
+
+    resumed = _execute_parent(
+        contract,
+        spec,
+        raw_root=raw_root,
+        repo_root=tmp_path,
+        ledger=reloaded,
+        budget=budget,
+    )
+    statuses = {
+        row["status"] for row in reloaded.snapshot()["runs"].values()
+    }
+    assert resumed["status"] == "complete"
+    assert statuses == {"complete", "scheduled"}
+    assert importer_calls == ["importer", "importer"]
+    assert budget.rows[spec.run_id]["status"] == "complete"
+
+
+def test_v27_parent_success_rejects_terminalized_descendant(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(stage="parent-import")[0]
+    descendant = contract.expand(stage="q-ref-resolution")[0]
+    raw_root = tmp_path / "raw"
+    raw_root.mkdir()
+    ledger = _new_parent_ledger(contract, raw_root)
+    ledger.finalize(
+        descendant.run_id,
+        status="integrity-stopped",
+        artifact=None,
+        failure={"error_type": "InjectedDescendantTerminal"},
+    )
+    budget = _ParentBudget()
+    importer_calls: list[str] = []
+    _install_stable_parent_success(
+        monkeypatch,
+        raw_root=raw_root,
+        spec=spec,
+        calls=importer_calls,
+    )
+
+    with pytest.raises(
+        orchestrator.PilotOrchestrationError,
+        match="requires audited --resume",
+    ):
+        _execute_parent(
+            contract,
+            spec,
+            raw_root=raw_root,
+            repo_root=tmp_path,
+            ledger=ledger,
+            budget=budget,
+        )
+    assert ledger.status(spec.run_id) == "complete"
+    assert budget.rows[spec.run_id]["status"] == "reserved"
+    assert budget.finalize_calls == 0
+    assert not (raw_root / "parent-import" / "stage_receipt.json").exists()
+
+    with pytest.raises(
+        orchestrator.PilotOrchestrationError,
+        match="only pristine scheduled descendants",
+    ):
+        _execute_parent(
+            contract,
+            spec,
+            raw_root=raw_root,
+            repo_root=tmp_path,
+            ledger=ledger,
+            budget=budget,
+        )
+    assert importer_calls == ["importer", "importer"]
+    assert budget.finalize_calls == 0
+    assert not (raw_root / "parent-import" / "stage_receipt.json").exists()
+
+
+def test_v27_parent_partial_no_go_propagation_resumes_exactly(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(stage="parent-import")[0]
+    raw_root = tmp_path / "raw"
+    raw_root.mkdir()
+    ledger_path = raw_root / "run_ledger.json"
+    ledger = _new_parent_ledger(contract, raw_root)
+    budget = _ParentBudget()
+    importer_calls: list[str] = []
+
+    def fail_import(**_kwargs: Any) -> None:
+        importer_calls.append("importer")
+        raise RuntimeError("injected immutable parent failure")
+
+    monkeypatch.setattr(
+        orchestrator,
+        "persist_v27_parent_import",
+        fail_import,
+    )
+    original_finalize = ledger.finalize
+    propagated = 0
+
+    def flaky_finalize(run_id: str, **kwargs: Any) -> None:
+        nonlocal propagated
+        if run_id != spec.run_id and kwargs["status"] == "integrity-stopped":
+            propagated += 1
+            if propagated == 7:
+                raise OSError("injected descendant ledger write failure")
+        original_finalize(run_id, **kwargs)
+
+    monkeypatch.setattr(ledger, "finalize", flaky_finalize)
+    with pytest.raises(
+        OSError,
+        match="injected descendant ledger write failure",
+    ):
+        _execute_parent(
+            contract,
+            spec,
+            raw_root=raw_root,
+            repo_root=tmp_path,
+            ledger=ledger,
+            budget=budget,
+        )
+    persisted = orchestrator.PilotRunLedger(
+        ledger_path,
+        contract_hash=contract.canonical_hash,
+        tamper_evident=True,
+    )
+    interim = persisted.snapshot()["runs"]
+    assert interim[spec.run_id]["status"] == "integrity-stopped"
+    assert 1 < sum(
+        row["status"] == "integrity-stopped" for row in interim.values()
+    ) < 211
+    assert budget.rows[spec.run_id]["status"] == "reserved"
+    assert budget.finalize_calls == 0
+    assert not (raw_root / "parent-import" / "stage_receipt.json").exists()
+
+    resumed = _execute_parent(
+        contract,
+        spec,
+        raw_root=raw_root,
+        repo_root=tmp_path,
+        ledger=persisted,
+        budget=budget,
+    )
+    assert resumed["status"] == "integrity-stopped"
+    assert importer_calls == ["importer"]
+    _assert_exact_parent_no_go(
+        contract,
+        spec,
+        raw_root=raw_root,
+        ledger=persisted,
+    )
+    assert budget.rows[spec.run_id]["status"] == "integrity-stopped"
+    assert budget.finalize_calls == 1
+
+
+def test_v27_parent_failure_intent_survives_parent_ledger_crash(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(stage="parent-import")[0]
+    raw_root = tmp_path / "raw"
+    raw_root.mkdir()
+    ledger_path = raw_root / "run_ledger.json"
+    ledger = _new_parent_ledger(contract, raw_root)
+    budget = _ParentBudget()
+    importer_calls: list[str] = []
+
+    def fail_import(**_kwargs: Any) -> None:
+        importer_calls.append("importer")
+        raise RuntimeError("injected parent verification failure")
+
+    monkeypatch.setattr(
+        orchestrator,
+        "persist_v27_parent_import",
+        fail_import,
+    )
+    original_finalize = ledger.finalize
+
+    def crash_before_parent_commit(run_id: str, **kwargs: Any) -> None:
+        if (
+            run_id == spec.run_id
+            and kwargs["status"] == "integrity-stopped"
+        ):
+            raise OSError("injected parent ledger commit failure")
+        original_finalize(run_id, **kwargs)
+
+    monkeypatch.setattr(
+        ledger,
+        "finalize",
+        crash_before_parent_commit,
+    )
+    with pytest.raises(
+        OSError,
+        match="injected parent ledger commit failure",
+    ):
+        _execute_parent(
+            contract,
+            spec,
+            raw_root=raw_root,
+            repo_root=tmp_path,
+            ledger=ledger,
+            budget=budget,
+        )
+    failure_path = orchestrator._v27_parent_failure_receipt_path(
+        raw_root=raw_root
+    )
+    assert failure_path.is_file()
+    reloaded = orchestrator.PilotRunLedger(
+        ledger_path,
+        contract_hash=contract.canonical_hash,
+        tamper_evident=True,
+    )
+    assert {row["status"] for row in reloaded.snapshot()["runs"].values()} == {
+        "scheduled"
+    }
+    assert budget.rows[spec.run_id]["status"] == "reserved"
+
+    resumed = _execute_parent(
+        contract,
+        spec,
+        raw_root=raw_root,
+        repo_root=tmp_path,
+        ledger=reloaded,
+        budget=budget,
+    )
+    assert resumed["status"] == "integrity-stopped"
+    assert importer_calls == ["importer"]
+    _assert_exact_parent_no_go(
+        contract,
+        spec,
+        raw_root=raw_root,
+        ledger=reloaded,
+    )
+    assert budget.rows[spec.run_id]["status"] == "integrity-stopped"
+    assert budget.finalize_calls == 1
+
+
+def test_v27_parent_no_go_conflicting_terminal_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(stage="parent-import")[0]
+    descendant = contract.expand(stage="q-ref-resolution")[0]
+    raw_root = tmp_path / "raw"
+    raw_root.mkdir()
+    ledger_path = raw_root / "run_ledger.json"
+    ledger = _new_parent_ledger(contract, raw_root)
+    ledger.finalize(
+        descendant.run_id,
+        status="integrity-stopped",
+        artifact=None,
+        failure={"error_type": "ConflictingTerminal"},
+    )
+    budget = _ParentBudget()
+    importer_calls: list[str] = []
+
+    def fail_import(**_kwargs: Any) -> None:
+        importer_calls.append("importer")
+        raise RuntimeError("injected parent verification failure")
+
+    monkeypatch.setattr(
+        orchestrator,
+        "persist_v27_parent_import",
+        fail_import,
+    )
+    with pytest.raises(
+        orchestrator.PilotOrchestrationError,
+        match="descendant terminal state conflicts",
+    ):
+        _execute_parent(
+            contract,
+            spec,
+            raw_root=raw_root,
+            repo_root=tmp_path,
+            ledger=ledger,
+            budget=budget,
+        )
+    assert not (raw_root / "parent-import" / "stage_receipt.json").exists()
+    assert budget.finalize_calls == 0
+
+    reloaded = orchestrator.PilotRunLedger(
+        ledger_path,
+        contract_hash=contract.canonical_hash,
+        tamper_evident=True,
+    )
+    with pytest.raises(
+        orchestrator.PilotOrchestrationError,
+        match="descendant terminal state conflicts",
+    ):
+        _execute_parent(
+            contract,
+            spec,
+            raw_root=raw_root,
+            repo_root=tmp_path,
+            ledger=reloaded,
+            budget=budget,
+        )
+    assert importer_calls == ["importer"]
+    assert budget.rows[spec.run_id]["status"] == "reserved"
+    assert budget.finalize_calls == 0
+    assert not (raw_root / "parent-import" / "stage_receipt.json").exists()
 
 
 @pytest.mark.parametrize("failure_mode", ["receipt", "budget"])
