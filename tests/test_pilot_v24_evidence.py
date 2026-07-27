@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 from typing import Any
 
@@ -477,6 +479,62 @@ def test_atomic_no_replace_installs_new_package_once(
     assert (target / "package_manifest.json").read_text(
         encoding="utf-8"
     ) == '{"candidate":true}\n'
+
+
+def test_v24_no_go_package_copies_and_binds_parent_source_manifest(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    rows = _rows(contract)
+    _install_gate_fixtures(monkeypatch)
+    aggregate = evidence.aggregate_v24_evidence(
+        contract,
+        rows,
+        denominator=_denominator(contract),
+        release_controls=_release_controls(passed=False),
+    )
+    assert aggregate["publication_status"] == "complete-with-no-go"
+
+    manifest_path, checksums_path = evidence._write_v24_package(
+        tmp_path / "package",
+        contract_path=CONTRACT_PATH,
+        contract=contract,
+        rows=rows,
+        aggregate=aggregate,
+        common_commit="b" * 40,
+    )
+
+    package = manifest_path.parent
+    sibling_name = "pilot_v2_4_parent_source_manifest.json"
+    copied_contract = package / "contract" / CONTRACT_PATH.name
+    copied_parent_manifest = package / "contract" / sibling_name
+    expected_parent_manifest = CONTRACT_PATH.with_name(sibling_name)
+    assert copied_parent_manifest.read_bytes() == expected_parent_manifest.read_bytes()
+    assert load_pilot_contract(copied_contract).canonical_hash == contract.canonical_hash
+
+    package_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    parent_binding = contract.matrix_amendment["parent_source_manifest"]
+    assert package_manifest["publication_status"] == "complete-with-no-go"
+    assert package_manifest["parent_source_manifest"] == {
+        **dict(parent_binding),
+        "package_path": f"contract/{sibling_name}",
+    }
+    assert f"contract/{sibling_name}" in package_manifest["published_files"]
+    assert "budget_ledger.json" not in package_manifest["published_files"]
+
+    checksums = json.loads(checksums_path.read_text(encoding="utf-8"))
+    checksum_row = next(
+        row
+        for row in checksums["files"]
+        if row["path"] == f"contract/{sibling_name}"
+    )
+    payload = copied_parent_manifest.read_bytes()
+    assert checksum_row == {
+        "path": f"contract/{sibling_name}",
+        "sha256": hashlib.sha256(payload).hexdigest(),
+        "byte_size": len(payload),
+    }
 
 
 def test_incomplete_denominator_cannot_enter_immutable_publisher(

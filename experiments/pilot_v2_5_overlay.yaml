@@ -1,0 +1,119 @@
+{
+  "schema_version": "finevo-pilot-contract-v2.5-parent-import-retry-overlay-v1",
+  "contract_id": "finevo-pilot-v2.5",
+  "status": "draft",
+  "base_contract": {
+    "path": "pilot_v2_4.yaml",
+    "schema_version": "finevo-pilot-contract-v2",
+    "contract_id": "finevo-pilot-v2.4",
+    "canonical_sha256": "12d27b165a36fd0645ddedbf06e8d10a1f178b895272da6f4ea929b73d8506c3"
+  },
+  "changes": {
+    "implementation": {
+      "required_git_tag": "pilot-v2.5-science"
+    },
+    "release_requirements": {
+      "tag": "pilot-v2.5-science",
+      "expected_ci": {
+        "test_count": null,
+        "test_collection_sha256": null,
+        "compiled_source_count": null,
+        "compiled_source_inventory_sha256": null,
+        "sealed_manifest_inventory_sha256": null
+      }
+    },
+    "denominator_policy": {
+      "policy_id": "finevo-pilot-v2.5-itt"
+    }
+  },
+  "parent_import_retry_amendment": {
+    "schema_version": "finevo-pilot-parent-import-retry-amendment-v1",
+    "amendment_id": "finevo-pilot-v2.5-parent-import-integrity-retry-1",
+    "source_manifest": {
+      "path": "experiments/pilot_v2_5_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.5-source-manifest-v1",
+      "file_sha256": "62b01d74d93ae249dab8711ab7748fdd3bcfaad1ee8c5fb39f71c4bd492b81a4",
+      "content_sha256": "4f21ee44514d29e5b7fcbd4ca48daad046dc674fd0dda5f4b2c502c87f346c91"
+    },
+    "failure_classification": {
+      "parent_contract_id": "finevo-pilot-v2.4",
+      "parent_contract_sha256": "12d27b165a36fd0645ddedbf06e8d10a1f178b895272da6f4ea929b73d8506c3",
+      "failed_stage_id": "parent-import",
+      "terminal_status": "integrity-stopped",
+      "propagated_terminal_cells": 211,
+      "provider_calls": 0,
+      "cost_usd": 0.0,
+      "scientific_effect_outcomes_available": false,
+      "scientific_effect_outcomes_inspected": false,
+      "root_cause_code": "parent-checkpoint-code-binding-evaluated-against-child-import-root"
+    },
+    "correction_policy": {
+      "parent_artifact_root_role": "v2.3-raw-source-only",
+      "parent_code_tag": "pilot-v2.3-science",
+      "parent_code_tag_object": "e985abd6749471363db6b27bda66485c0b578bb3",
+      "parent_code_commit": "ab32e3c9dcf581a40f3093652e144b56f853c782",
+      "historical_code_binding_verification": "annotated-tag-peeled-commit-git-tree",
+      "historical_source_hashes_and_binding_hash_required": true,
+      "child_code_as_parent_binding_authority": false,
+      "unconditional_strict_disable_forbidden": true,
+      "current_compatibility_replay_after_historical_gate": true,
+      "current_recomputed_exactness_must_equal_frozen": true,
+      "parent_checkpoint_rewrite_forbidden": true,
+      "parent_authority_resigning_forbidden": true,
+      "provider_construction_during_import": false
+    },
+    "retry_policy": {
+      "eligible_stage_ids": [
+        "parent-import"
+      ],
+      "retry_count": 1,
+      "new_contract_required": true,
+      "preserve_parent_denominator": true,
+      "v2_4_raw_resume": "forbidden",
+      "v2_4_failed_cell_reclassification": "forbidden",
+      "failed_seed_replacement": "forbidden",
+      "matrix_shrink": "forbidden",
+      "provider_redispatch_before_import_success": "forbidden",
+      "downstream_dispatch_requires_import_success": true,
+      "retry_is_operational_amendment": true,
+      "outcome_blind": true
+    },
+    "budget_carry_forward": {
+      "total_cap_usd": 500.0,
+      "max_provider_completions": 7500,
+      "max_storage_bytes": 5000000000,
+      "v2_3": {
+        "cost_usd": 3.212770875,
+        "hosted_completions": 184,
+        "storage_bytes": 4196087
+      },
+      "v2_4_incremental": {
+        "cost_usd": 0.0,
+        "hosted_completions": 0,
+        "storage_bytes": 518235
+      },
+      "budget_reset": false,
+      "debit_before_new_dispatch": true
+    },
+    "science_design_invariance": {
+      "source_contract_id": "finevo-pilot-v2.4",
+      "source_science_design_sha256": "ac11b024435d6d6b03a68b59e5f59f28d92a822ddd3712b1b4c612b668a20586",
+      "registered_cells": 211,
+      "scientific_cells": 209,
+      "matrix_profile_id": "local-llama-full-ad-gpt52-fixed-confirmatory-cadb-v1",
+      "seeds_arms_models_stage_order_unchanged": true,
+      "provider_profiles_unchanged": true,
+      "shock_utility_stop_go_unchanged": true,
+      "budget_envelope_unchanged": true
+    },
+    "raw_namespace": {
+      "parent": "experiment_results/pilot-v2.4/raw",
+      "child": "experiment_results/pilot-v2.5/raw",
+      "shared": false
+    }
+  },
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "declared_sha256": "6e7dbe33f53b27f9c30398b5f910bfac045380151f5c7abc9ff04ecb4a3aed5e"
+  }
+}

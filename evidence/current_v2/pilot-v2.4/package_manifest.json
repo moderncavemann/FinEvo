@@ -1,0 +1,40 @@
+{
+  "contract_id": "finevo-pilot-v2.4",
+  "contract_sha256": "12d27b165a36fd0645ddedbf06e8d10a1f178b895272da6f4ea929b73d8506c3",
+  "direction_counts_merged": false,
+  "evidence_namespace": "current_v2/pilot-v2.4",
+  "excluded_sources": [
+    "historical_pre_p0_v1",
+    "V2.3 scientific outcomes",
+    "pooled local/GPT direction counts",
+    "unregistered narrative intervention",
+    "raw prompts and raw provider outputs"
+  ],
+  "lane_separated": true,
+  "narrative_status": "deferred-unregistered",
+  "parent_source_manifest": {
+    "content_sha256": "7ae427fe6eac5aa6e04eddd3efa9e63405e128c782013ed3f67c35808be3cec5",
+    "file_sha256": "d6a867cd7add43818127af7778a447d579ac1ab31ed6d053bcd29d69b3cf0f33",
+    "package_path": "contract/pilot_v2_4_parent_source_manifest.json",
+    "path": "experiments/pilot_v2_4_parent_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.4-parent-source-manifest-v1"
+  },
+  "pilot_tag": "pilot-v2.4-science",
+  "publication_status": "complete-with-no-go",
+  "published_files": [
+    "aggregate.csv",
+    "aggregate.json",
+    "claim_metric_artifact.json",
+    "claim_narrowing.json",
+    "contract/pilot_v2_4.yaml",
+    "contract/pilot_v2_4_parent_source_manifest.json",
+    "failure_ledger.json",
+    "method_differences_scaffold.json",
+    "reviewer_report.md"
+  ],
+  "resolved_git_commit": null,
+  "schema_version": "finevo-pilot-v2.4-evidence-package-v1",
+  "scientific_claim_gates_supported": false,
+  "scientific_complete": false,
+  "scientific_matrix_complete": false
+}

@@ -15,9 +15,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import os
 from pathlib import Path
 import random
+import re
 from statistics import mean
+import subprocess
 from typing import Any, Mapping, Optional, Sequence
 
 import numpy as np
@@ -259,6 +262,312 @@ def current_code_binding() -> dict[str, Any]:
     binding = {"source_hashes": hashes}
     binding["binding_hash"] = canonical_hash(binding)
     return binding
+
+
+_GIT_OBJECT_ID_RE = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
+
+
+def _git_bytes(repo_root: Path, *args: str) -> bytes:
+    try:
+        result = subprocess.run(
+            ("git", "-C", str(repo_root), *args),
+            check=False,
+            env={
+                **os.environ,
+                "GIT_NO_REPLACE_OBJECTS": "1",
+                "GIT_OPTIONAL_LOCKS": "0",
+            },
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except OSError as exc:
+        raise PilotCheckpointError(
+            "unable to execute Git for historical checkpoint verification"
+        ) from exc
+    if result.returncode != 0:
+        operation = " ".join(args[:2])
+        raise PilotCheckpointError(
+            f"Git historical checkpoint verification failed: {operation}"
+        )
+    return result.stdout
+
+
+def _git_text(repo_root: Path, *args: str) -> str:
+    try:
+        return _git_bytes(repo_root, *args).decode("utf-8").strip()
+    except UnicodeDecodeError as exc:
+        raise PilotCheckpointError(
+            "Git historical checkpoint metadata is not UTF-8"
+        ) from exc
+
+
+def _validated_git_object_id(value: Any, *, name: str) -> str:
+    if (
+        not isinstance(value, str)
+        or value != value.lower()
+        or _GIT_OBJECT_ID_RE.fullmatch(value) is None
+    ):
+        raise PilotCheckpointError(
+            f"{name} must be a full lowercase Git object id"
+        )
+    return value
+
+
+def _checkpoint_code_binding(
+    checkpoint: PilotCheckpoint,
+) -> dict[str, Any]:
+    value = checkpoint.payload.get("code_binding")
+    if not isinstance(value, Mapping) or set(value) != {
+        "source_hashes",
+        "binding_hash",
+    }:
+        raise PilotCheckpointError("checkpoint code binding shape is invalid")
+    source_hashes = value.get("source_hashes")
+    if (
+        not isinstance(source_hashes, Mapping)
+        or set(source_hashes) != set(_CODE_FILES)
+        or any(
+            not isinstance(source_hashes.get(relative), str)
+            or re.fullmatch(
+                r"[0-9a-f]{64}",
+                str(source_hashes[relative]),
+            )
+            is None
+            for relative in _CODE_FILES
+        )
+    ):
+        raise PilotCheckpointError(
+            "checkpoint code binding source hashes are incomplete"
+        )
+    normalized = {
+        "source_hashes": {
+            relative: str(source_hashes[relative])
+            for relative in _CODE_FILES
+        }
+    }
+    normalized["binding_hash"] = canonical_hash(normalized)
+    if value.get("binding_hash") != normalized["binding_hash"]:
+        raise PilotCheckpointError(
+            "checkpoint code binding hash is invalid"
+        )
+    return normalized
+
+
+def verify_checkpoint_code_binding_from_annotated_tag(
+    checkpoint: PilotCheckpoint | Mapping[str, Any],
+    *,
+    source_repo_root: str | Path,
+    source_annotated_tag: str,
+    expected_tag_object: str,
+    expected_peeled_commit: str,
+) -> dict[str, Any]:
+    """Verify a historical checkpoint against immutable tagged Git blobs.
+
+    This gate intentionally never reads ``HEAD`` or working-tree source.  It
+    requires a caller-bound annotated tag object, peels that exact object to a
+    caller-bound commit, reads every :data:`_CODE_FILES` blob from the peeled
+    commit tree, and requires the resulting SHA-256 binding to equal the
+    checkpoint payload exactly.
+    """
+
+    if not isinstance(checkpoint, PilotCheckpoint):
+        checkpoint = PilotCheckpoint.from_dict(checkpoint)
+    repo_root = Path(source_repo_root).expanduser().resolve()
+    if not repo_root.is_dir():
+        raise PilotCheckpointError(
+            "historical checkpoint repository root does not exist"
+        )
+    if not isinstance(source_annotated_tag, str) or not source_annotated_tag:
+        raise PilotCheckpointError(
+            "historical checkpoint source tag must be non-empty"
+        )
+    tag_ref = f"refs/tags/{source_annotated_tag}"
+    _git_bytes(repo_root, "check-ref-format", tag_ref)
+    top_level = Path(
+        _git_text(repo_root, "rev-parse", "--show-toplevel")
+    ).resolve()
+    if top_level != repo_root:
+        raise PilotCheckpointError(
+            "historical checkpoint repository root is not the Git top level"
+        )
+
+    expected_tag_object = _validated_git_object_id(
+        expected_tag_object,
+        name="expected annotated tag object",
+    )
+    expected_peeled_commit = _validated_git_object_id(
+        expected_peeled_commit,
+        name="expected peeled commit",
+    )
+    observed_tag_object = _validated_git_object_id(
+        _git_text(repo_root, "rev-parse", "--verify", tag_ref),
+        name="observed annotated tag object",
+    )
+    if _git_text(repo_root, "cat-file", "-t", observed_tag_object) != "tag":
+        raise PilotCheckpointError(
+            "historical checkpoint source tag is not annotated"
+        )
+    if observed_tag_object != expected_tag_object:
+        raise PilotCheckpointError(
+            "historical checkpoint annotated tag object differs from binding"
+        )
+    observed_peeled_commit = _validated_git_object_id(
+        _git_text(
+            repo_root,
+            "rev-parse",
+            "--verify",
+            f"{tag_ref}^{{commit}}",
+        ),
+        name="observed peeled commit",
+    )
+    if observed_peeled_commit != expected_peeled_commit:
+        raise PilotCheckpointError(
+            "historical checkpoint peeled commit differs from binding"
+        )
+
+    source_hashes: dict[str, str] = {}
+    source_blob_ids: dict[str, str] = {}
+    for relative in _CODE_FILES:
+        tree_entry = _git_bytes(
+            repo_root,
+            "ls-tree",
+            "-z",
+            observed_peeled_commit,
+            "--",
+            relative,
+        )
+        entries = [
+            entry for entry in tree_entry.split(b"\0") if entry
+        ]
+        if len(entries) != 1 or b"\t" not in entries[0]:
+            raise PilotCheckpointError(
+                f"historical code-binding tree entry is missing: {relative}"
+            )
+        metadata, raw_path = entries[0].split(b"\t", 1)
+        fields = metadata.split()
+        try:
+            decoded_path = raw_path.decode("utf-8")
+            mode = fields[0].decode("ascii")
+            object_type = fields[1].decode("ascii")
+            blob_id = fields[2].decode("ascii")
+        except (IndexError, UnicodeDecodeError) as exc:
+            raise PilotCheckpointError(
+                f"historical code-binding tree entry is invalid: {relative}"
+            ) from exc
+        if (
+            decoded_path != relative
+            or mode not in {"100644", "100755"}
+            or object_type != "blob"
+        ):
+            raise PilotCheckpointError(
+                f"historical code-binding tree entry is not a file: {relative}"
+            )
+        blob_id = _validated_git_object_id(
+            blob_id,
+            name=f"historical blob id for {relative}",
+        )
+        blob = _git_bytes(repo_root, "cat-file", "blob", blob_id)
+        source_blob_ids[relative] = blob_id
+        source_hashes[relative] = hashlib.sha256(blob).hexdigest()
+
+    tree_binding: dict[str, Any] = {"source_hashes": source_hashes}
+    tree_binding["binding_hash"] = canonical_hash(tree_binding)
+    checkpoint_binding = _checkpoint_code_binding(checkpoint)
+    if tree_binding != checkpoint_binding:
+        raise PilotCheckpointError(
+            "historical tagged code binding differs from checkpoint"
+        )
+    receipt: dict[str, Any] = {
+        "schema_version": (
+            "finevo-historical-checkpoint-code-binding-receipt-v1"
+        ),
+        "checkpoint_hash": checkpoint.checkpoint_hash,
+        "source_tag": source_annotated_tag,
+        "source_tag_object": observed_tag_object,
+        "source_peeled_commit": observed_peeled_commit,
+        "source_blob_ids": source_blob_ids,
+        "code_binding": tree_binding,
+        "head_consulted": False,
+        "working_tree_consulted": False,
+    }
+    receipt["receipt_hash"] = canonical_hash(receipt)
+    return receipt
+
+
+def verify_historical_closed_loop_preflight_checkpoint(
+    checkpoint: PilotCheckpoint | Mapping[str, Any],
+    *,
+    source_repo_root: str | Path,
+    source_annotated_tag: str,
+    expected_tag_object: str,
+    expected_peeled_commit: str,
+    frozen_exactness_receipt: Mapping[str, Any],
+    rng_preview_draws: int = 16,
+) -> dict[str, Any]:
+    """Apply the historical-code gate, then replay under current code.
+
+    The first gate proves that the checkpoint's code binding came from the
+    caller-bound historical annotated tag.  Only after that succeeds does the
+    second gate replay under the current implementation with
+    ``strict_code_binding=False``.  The complete replay receipt must remain
+    JSON-identical to the frozen historical exactness receipt.
+
+    Same-release callers continue to use
+    :func:`verify_closed_loop_preflight_checkpoint`, whose default remains
+    ``strict_code_binding=True``.
+    """
+
+    if not isinstance(checkpoint, PilotCheckpoint):
+        checkpoint = PilotCheckpoint.from_dict(checkpoint)
+    historical_binding = (
+        verify_checkpoint_code_binding_from_annotated_tag(
+            checkpoint,
+            source_repo_root=source_repo_root,
+            source_annotated_tag=source_annotated_tag,
+            expected_tag_object=expected_tag_object,
+            expected_peeled_commit=expected_peeled_commit,
+        )
+    )
+    if not isinstance(frozen_exactness_receipt, Mapping):
+        raise PilotCheckpointError(
+            "frozen checkpoint exactness receipt must be an object"
+        )
+    frozen_exactness = _json_copy(dict(frozen_exactness_receipt))
+    replayed_exactness = verify_closed_loop_preflight_checkpoint(
+        checkpoint,
+        rng_preview_draws=rng_preview_draws,
+        strict_code_binding=False,
+    )
+    frozen_hash = canonical_hash(frozen_exactness)
+    replayed_hash = canonical_hash(replayed_exactness)
+    if (
+        replayed_hash != frozen_hash
+        or replayed_exactness != frozen_exactness
+    ):
+        raise PilotCheckpointError(
+            "current replay exactness differs from frozen historical exactness"
+        )
+    receipt = {
+        "schema_version": (
+            "finevo-historical-checkpoint-verification-receipt-v1"
+        ),
+        "checkpoint_hash": checkpoint.checkpoint_hash,
+        "historical_code_binding": historical_binding,
+        "replay": {
+            "strict_code_binding": False,
+            "frozen_exactness_hash": frozen_hash,
+            "replayed_exactness_hash": replayed_hash,
+            "exact_match": True,
+            "provider_calls_during_verification": (
+                replayed_exactness.get(
+                    "provider_calls_during_verification"
+                )
+            ),
+        },
+        "exactness": replayed_exactness,
+    }
+    receipt["receipt_hash"] = canonical_hash(receipt)
+    return receipt
 
 
 def config_from_dict(value: Mapping[str, Any]) -> VerifiedRunConfig:
@@ -2932,5 +3241,7 @@ __all__ = [
     "decode_numpy_rng_state",
     "encode_numpy_rng_state",
     "restore_pilot_checkpoint",
+    "verify_checkpoint_code_binding_from_annotated_tag",
     "verify_closed_loop_preflight_checkpoint",
+    "verify_historical_closed_loop_preflight_checkpoint",
 ]
