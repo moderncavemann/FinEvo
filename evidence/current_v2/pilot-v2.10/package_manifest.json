@@ -1,0 +1,181 @@
+{
+  "ancestral_retry_source_manifest": {
+    "content_sha256": "f1cc3e150ae506e933233d42d7e8725c4c91e05a46c48e71c74e098eabeed3b4",
+    "file_sha256": "1e95025be3466faa38936a3c4617ace0c625fa198eb506f1431a0b6401c4e1f8",
+    "package_path": "contract/pilot_v2_8_source_manifest.json",
+    "path": "experiments/pilot_v2_8_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.8-source-manifest-v1"
+  },
+  "base_contract": {
+    "canonical_sha256": "0b07881aaceeb020dc5943ede647a665f9e9bf786a1cac109ab720e05d81d361",
+    "contract_id": "finevo-pilot-v2.9",
+    "package_path": "contract/pilot_v2_9.yaml",
+    "path": "pilot_v2_9.yaml",
+    "schema_version": "finevo-pilot-contract-v2"
+  },
+  "contract_id": "finevo-pilot-v2.10",
+  "contract_sha256": "d1b54c14d016c2b157db9e334d054ab9c7e86371d3fb9662a95fb94e50ce964b",
+  "deep_ancestral_retry_source_manifest": {
+    "content_sha256": "78d42a49f16cbbee4fc5e76de17ff26c501a5dcb04a5eb1f79cbe080d2b1b669",
+    "file_sha256": "f84778ed279b8ca98b9b61e26619669fade54b95d0c3e4f17874733acbc84efe",
+    "package_path": "contract/pilot_v2_6_source_manifest.json",
+    "path": "experiments/pilot_v2_6_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.6-source-manifest-v1"
+  },
+  "deepest_ancestral_retry_source_manifest": {
+    "content_sha256": "4f21ee44514d29e5b7fcbd4ca48daad046dc674fd0dda5f4b2c502c87f346c91",
+    "file_sha256": "62b01d74d93ae249dab8711ab7748fdd3bcfaad1ee8c5fb39f71c4bd492b81a4",
+    "package_path": "contract/pilot_v2_5_source_manifest.json",
+    "path": "experiments/pilot_v2_5_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.5-source-manifest-v1"
+  },
+  "direction_counts_merged": false,
+  "evidence_namespace": "current_v2/pilot-v2.10",
+  "excluded_sources": [
+    "historical_pre_p0_v1",
+    "V2.3 scientific outcomes",
+    "pooled local/GPT direction counts",
+    "unregistered narrative intervention",
+    "raw prompts and raw provider outputs",
+    "V2.9 offline candidate-admission outcomes as V2.10 treatment-effect evidence"
+  ],
+  "experiment_c_rule_sensitivities": {
+    "gpt52": {
+      "available": false,
+      "descriptive_only": true,
+      "effectiveness_gate": false,
+      "lane_id": "gpt52",
+      "model_id": "gpt52_main",
+      "package_path": "experiment_c_rule_sensitivity.json",
+      "pass": false,
+      "provider_calls": 0,
+      "published": false,
+      "reason": "experiment-c ITT cells are not all complete and scientifically eligible",
+      "stage_id": "experiment-c"
+    },
+    "local": {
+      "available": false,
+      "descriptive_only": true,
+      "effectiveness_gate": false,
+      "lane_id": "local",
+      "model_id": "llama33_local_controlled",
+      "package_path": "local_experiment_c_rule_sensitivity.json",
+      "pass": false,
+      "provider_calls": 0,
+      "published": false,
+      "reason": "local-experiment-c ITT cells are not all complete and scientifically eligible",
+      "stage_id": "local-experiment-c"
+    }
+  },
+  "great_ancestral_retry_source_manifest": {
+    "content_sha256": "f195661d01d0aa6742d9e2f2658b6b1acb38715ddbd43e4e5fd375309d78dbe4",
+    "file_sha256": "ee0ef62f5dcde9fc820aef6d23d1ce5a8c5bca7b9f20486bf42233f18763a1c8",
+    "package_path": "contract/pilot_v2_7_source_manifest.json",
+    "path": "experiments/pilot_v2_7_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.7-source-manifest-v1"
+  },
+  "inherited_retry_source_manifest": {
+    "content_sha256": "d0e0aaf9da4c2d7fb64521250305eec2433b8866792d273d0c9b5678041b8760",
+    "file_sha256": "9e228bcf3f6a1d636bca7aeef5ab0daab1ce3b3667d0b91f6722388876676eb4",
+    "package_path": "contract/pilot_v2_9_source_manifest.json",
+    "path": "experiments/pilot_v2_9_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.9-source-manifest-v1"
+  },
+  "lane_separated": true,
+  "narrative_status": "deferred-unregistered",
+  "parent_evidence_reference": {
+    "checks": {
+      "fresh_v2_10_effects_only": true,
+      "immutable_parent_evidence_bound": true,
+      "implementation_failure_preserved": true,
+      "offline_candidate_outcomes_disclosed": true,
+      "parent_contract_id": true,
+      "parent_denominator_preserved": true,
+      "parent_package_rewrite_forbidden": true,
+      "parent_status_preserved": true
+    },
+    "checksum_entry_count": 17,
+    "checksums_file_sha256": "b0de7185c710b69736ddfe1d331b7f6308165a9f03bb0c616f14ec1fd7a515db",
+    "implementation_no_go_verified": true,
+    "inventory_verified": true,
+    "offline_candidate_disclosure_verified": true,
+    "package_manifest_file_sha256": "6d006ba59c5af6a1e0dd3931466b90d4599edc0ded47e2de3ea4f8ecd6c4831a",
+    "package_path": "parent_evidence_reference.json",
+    "parent_actor_treatment_effect_outcomes_generated": false,
+    "parent_completed_cell_breakdown": {
+      "experiment-c-offline-candidate-admission": 5,
+      "local-experiment-c-offline-candidate-admission": 5,
+      "parent-import": 1,
+      "q-ref-resolution": 1,
+      "stage0-calibration": 14
+    },
+    "parent_failed_actor_cells": 185,
+    "parent_offline_candidate_admission_cells_generated": 10,
+    "parent_offline_candidates_imported_as_v2_10_effects": 0,
+    "parent_package_rewritten": false,
+    "parent_registered_cells": 211,
+    "parent_rows_imported_into_v2_10_effect_aggregate": 0,
+    "parent_status_counts": {
+      "complete": 26,
+      "failed": 185
+    },
+    "pass": true,
+    "reference_kind": "immutable-external-package-reference",
+    "root_cause": {
+      "code": "imported-p95-runner-binding-shape-mismatch",
+      "failure_phase": "before-provider-construction-and-dispatch",
+      "message": "The imported authority producer returned nested receipt identity fields while the runner consumer dereferenced the legacy flat names."
+    },
+    "semantic_binding_verified": true,
+    "source_contract_id": "finevo-pilot-v2.9",
+    "source_contract_sha256": "0b07881aaceeb020dc5943ede647a665f9e9bf786a1cac109ab720e05d81d361",
+    "source_evidence_commit": "51525614e138e5b7ac498d15b409048d5110b753",
+    "source_evidence_merge_commit": "08fcbc0dd9319fcc86c3f4e812c3db504a0c5a17",
+    "source_evidence_namespace": "evidence/current_v2/pilot-v2.9",
+    "source_evidence_status": "complete-with-no-go",
+    "source_package_copied": false,
+    "source_package_path": "evidence/current_v2/pilot-v2.9",
+    "source_release_commit": "2349ccd41560383965da8880744cf4df366c9ee5",
+    "source_release_tag": "pilot-v2.9-science"
+  },
+  "parent_source_manifest": {
+    "content_sha256": "7ae427fe6eac5aa6e04eddd3efa9e63405e128c782013ed3f67c35808be3cec5",
+    "file_sha256": "d6a867cd7add43818127af7778a447d579ac1ab31ed6d053bcd29d69b3cf0f33",
+    "package_path": "contract/pilot_v2_4_parent_source_manifest.json",
+    "path": "experiments/pilot_v2_4_parent_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.4-parent-source-manifest-v1"
+  },
+  "pilot_tag": "pilot-v2.10-science",
+  "publication_status": "complete-with-no-go",
+  "published_files": [
+    "aggregate.csv",
+    "aggregate.json",
+    "claim_metric_artifact.json",
+    "claim_narrowing.json",
+    "contract/pilot_v2_10.yaml",
+    "contract/pilot_v2_10_source_manifest.json",
+    "contract/pilot_v2_4_parent_source_manifest.json",
+    "contract/pilot_v2_5_source_manifest.json",
+    "contract/pilot_v2_6_source_manifest.json",
+    "contract/pilot_v2_7_source_manifest.json",
+    "contract/pilot_v2_8_source_manifest.json",
+    "contract/pilot_v2_9.yaml",
+    "contract/pilot_v2_9_source_manifest.json",
+    "failure_ledger.json",
+    "method_differences_scaffold.json",
+    "parent_evidence_reference.json",
+    "reviewer_report.md"
+  ],
+  "resolved_git_commit": "1584629a5f8fd60f42bba878d2a0fcb0eca4bdcf",
+  "retry_source_manifest": {
+    "content_sha256": "fc781697a9260fa63d0535eafa24b87a8386a76dca55f3ce95ba59e12ceb4224",
+    "file_sha256": "8540bde06f364aa9ccf2a6937b78dec1f0d3b2c66b9e4943f9a3d2e20e4b19a7",
+    "package_path": "contract/pilot_v2_10_source_manifest.json",
+    "path": "experiments/pilot_v2_10_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.10-source-manifest-v1"
+  },
+  "schema_version": "finevo-pilot-v2.10-evidence-package-v1",
+  "scientific_claim_gates_supported": false,
+  "scientific_complete": false,
+  "scientific_matrix_complete": false
+}
