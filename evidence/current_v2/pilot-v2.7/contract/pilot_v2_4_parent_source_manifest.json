@@ -1,0 +1,148 @@
+{
+  "schema_version": "finevo-pilot-v2.4-parent-source-manifest-v1",
+  "parent": {
+    "contract_id": "finevo-pilot-v2.3",
+    "contract_path": "experiments/pilot_v2_3.yaml",
+    "contract_file_sha256": "98d507a4094ed1d5266b123b4d79a4e386bd1a49e1441f1b1ee3f3362ac54699",
+    "contract_canonical_sha256": "10a76561ec59810e664d8415bff3a6aa89346a4cfd67b6e7f8aa1257d015c424",
+    "science_tag": "pilot-v2.3-science",
+    "science_tag_object": "e985abd6749471363db6b27bda66485c0b578bb3",
+    "science_commit": "ab32e3c9dcf581a40f3093652e144b56f853c782",
+    "raw_root": "experiment_results/pilot-v2.3/raw",
+    "scientific_outcomes_observed": false
+  },
+  "terminal_denominator": {
+    "registered_cells": 174,
+    "status_counts": {
+      "budget-stopped": 151,
+      "capability-no-go": 14,
+      "complete": 8,
+      "failed": 1
+    },
+    "scientific_complete": false,
+    "scientific_matrix_complete": false
+  },
+  "cumulative_budget_debit": {
+    "schema_version": "finevo-parent-budget-debit-v1",
+    "parent_contract_sha256": "10a76561ec59810e664d8415bff3a6aa89346a4cfd67b6e7f8aa1257d015c424",
+    "parent_run_ledger_sha256": "7c9baf0c9c4f9a83f81bef2c5213b59d2e44c43fdabce03efa86affef7fefc27",
+    "parent_budget_ledger_sha256": "7e84abf9f79690bbf8293596142b464685d94fce0fbb9e6a58568aa319ffd265",
+    "stage_bucket": "parent_v23",
+    "cost_usd": 3.212770875,
+    "hosted_completions": 184,
+    "storage_bytes": 4196087,
+    "record_sha256": "8371a27428ad044a3e7f959815717bff6b4b13f754bab34670056d89b9981019"
+  },
+  "ledgers": {
+    "run": {
+      "path": "experiment_results/pilot-v2.3/raw/run_ledger.json",
+      "file_sha256": "0cc360c23c6400286c6df1c7b3a3ff004af5aeda4f90bcd2140c44fc29c386dc",
+      "internal_sha256": "7c9baf0c9c4f9a83f81bef2c5213b59d2e44c43fdabce03efa86affef7fefc27",
+      "event_count": 176,
+      "event_chain_head": "c1ea08426d1a5d3b8bfd8f2a0a54c02316d532618310920b9f96c1b594568226"
+    },
+    "budget": {
+      "path": "experiment_results/pilot-v2.3/raw/budget_ledger.json",
+      "file_sha256": "d3bc35b703e3e0a8e201d301c2e0154d2e43ad59b468340f9e887c98ff0a01bf",
+      "internal_sha256": "7e84abf9f79690bbf8293596142b464685d94fce0fbb9e6a58568aa319ffd265",
+      "event_count": 22,
+      "event_chain_head": "9d02e301d6b2b4a9933fe4a70ebd180ecb200d1e737106bfc0546d3898d46407"
+    }
+  },
+  "release_attestation": {
+    "path": "experiment_results/pilot-v2.3/raw/release_attestation.json",
+    "file_sha256": "812b497a22a752591f2b3aab8a7afbfd95a9b9832a86543d0aa480abb52b824e",
+    "content_sha256": "22d56bce6d11d488071b6e929824717e804b20c61cb8a6bc174c63d191e0df76"
+  },
+  "stage_receipts": {
+    "capability-gate": {
+      "path": "experiment_results/pilot-v2.3/raw/capability-gate/stage_receipt.json",
+      "file_sha256": "28fb188c09ab69fd2623818a15d2edcdcf329925dee5ef1f222b34240535c475",
+      "content_sha256": "d15fce84b8911450ab41b07cb7e2dd99e7c37752047a7b81ce230ba3fbb37b88"
+    },
+    "closed-loop-preflight": {
+      "path": "experiment_results/pilot-v2.3/raw/closed-loop-preflight/stage_receipt.json",
+      "file_sha256": "50c2fafa3f10f89456ca9aa5ee11a2eadbf3f53c4cfb20e7fd021f84581be973",
+      "content_sha256": "e934140fd52245e38e77f0a8fc8a5ce3413eef6b2e9a351016f536183eb24c94"
+    },
+    "secondary-capability-gate": {
+      "path": "experiment_results/pilot-v2.3/raw/secondary-capability-gate/stage_receipt.json",
+      "file_sha256": "7ad4e0f125ed37bd696322e5860cc73469b93728b4c07475478a1cde7adef8eb",
+      "content_sha256": "47465c285aaf293cde3a1751bf3e38d424375584faca3b24f2852258463be75a"
+    },
+    "secondary-closed-loop-preflight": {
+      "path": "experiment_results/pilot-v2.3/raw/secondary-closed-loop-preflight/stage_receipt.json",
+      "file_sha256": "5a14f2c05484a2ac8b12330fd71ee1725667f00eedc70923a8d5f2f15572d7d9",
+      "content_sha256": "c7baf1538f9984082b512521a5801319938e1f4a78b976efbb8e2e9213136dfc"
+    },
+    "q-ref-resolution": {
+      "path": "experiment_results/pilot-v2.3/raw/q-ref-resolution/stage_receipt.json",
+      "file_sha256": "4f91b2f93fec31f4d0b2e0e27770feb6315e1fe83da204a19166dce203731a59",
+      "content_sha256": "686d1080362da05ce3e293df58b8e027fb00c5f058325020c4149e147dd01800"
+    }
+  },
+  "observed_p95_sources": {
+    "gpt52_main": {
+      "use": "v2.4-scientific-projection-authority",
+      "path": "experiment_results/pilot-v2.3/raw/closed-loop-preflight/runs/finevo-pilot-v2.3--closed-loop-preflight--gpt52_main--closed-loop-preflight--none--provider-preflight-default--s2010922376/observed_p95_authority_receipt.json",
+      "file_sha256": "1edce6fa30f530e2f83c16b64488da394d5aca04565276d482f61262fe522289",
+      "content_sha256": "3406c3bdd532f3fe529d85072d207ff3a97b4bf3a8ed3afc78397df972fdf3f0",
+      "runtime_model": "openai/gpt-5.2-2025-12-11",
+      "served_model": "gpt-5.2-2025-12-11"
+    },
+    "llama33_local_controlled": {
+      "use": "v2.4-scientific-projection-authority",
+      "path": "experiment_results/pilot-v2.3/raw/closed-loop-preflight/runs/finevo-pilot-v2.3--closed-loop-preflight--llama33_local_controlled--closed-loop-preflight--none--provider-preflight-default--s2010922376/observed_p95_authority_receipt.json",
+      "file_sha256": "26d7360577d6729e5e9a5ec4a8b2dea529a69b14770775ab1e96a3666dcc3aba",
+      "content_sha256": "fc857c65af5995847d2b8166ef9785309cdeb250df75d48d0aa608741b0033fa",
+      "runtime_model": "ollama/llama3.3:70b-instruct-q4_K_M",
+      "served_model": "llama3.3:70b-instruct-q4_K_M"
+    },
+    "gpt56_diagnostic": {
+      "use": "parent-boundary-audit-only-no-v2.4-dispatch-authority",
+      "path": "experiment_results/pilot-v2.3/raw/secondary-closed-loop-preflight/runs/finevo-pilot-v2.3--secondary-closed-loop-preflight--gpt56_diagnostic--closed-loop-preflight--none--provider-preflight-default--s2010922376/observed_p95_authority_receipt.json",
+      "file_sha256": "3ce8eab63a844514a9cf6bcbf56c511ef2c4594992041a19d7aa7a262b92f10a",
+      "content_sha256": "ad12b77e3c1f5ed35760552291da80be64ce472473303b13e280b62d96f3496e",
+      "runtime_model": "openai/gpt-5.6-sol",
+      "served_model": "gpt-5.6-sol"
+    }
+  },
+  "published_evidence": {
+    "package_manifest": {
+      "path": "evidence/current_v2/pilot-v2.3/package_manifest.json",
+      "file_sha256": "15b39724efde1fcc62184e229ae646eb29f2b68aa0a824acab3cbb687ed1d4bf"
+    },
+    "checksums": {
+      "path": "evidence/current_v2/pilot-v2.3/checksums.json",
+      "file_sha256": "ec73f1d9e17cfd30711264a3ced39f4af6ef722b4bf54962ee05987077ee0a99"
+    },
+    "aggregate": {
+      "path": "evidence/current_v2/pilot-v2.3/aggregate.json",
+      "file_sha256": "1b07d9e7ccff7a84e4aab9b259837485fa9fe2eb11bbf705a7c4c4be01d60c1a"
+    }
+  },
+  "inheritance_policy": {
+    "provider_calls": 0,
+    "new_effect_denominator_cells": 0,
+    "scientific_evidence": false,
+    "allowed_projection_profiles": [
+      "gpt52_main",
+      "llama33_local_controlled"
+    ],
+    "boundary_only_profiles": [
+      "gpt56_diagnostic",
+      "gemini35_flash_diagnostic",
+      "llama4_maverick_diagnostic"
+    ],
+    "forbidden_actions": [
+      "modify-parent-contract",
+      "move-parent-tag",
+      "reopen-parent-terminal-cells",
+      "reinterpret-parent-preflight-as-effect-evidence"
+    ]
+  },
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "content_sha256": "7ae427fe6eac5aa6e04eddd3efa9e63405e128c782013ed3f67c35808be3cec5"
+  }
+}

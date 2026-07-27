@@ -1,0 +1,76 @@
+{
+  "contract_sha256": "938627d42ec8ec78e8424793797593736b79936b00813b81259af54e6df6779f",
+  "files": [
+    {
+      "byte_size": 42832,
+      "path": "aggregate.csv",
+      "sha256": "c0667f7bb7be6f46cc172f731d8d114b67b0c96ae1f55a38717bc30a626574c6"
+    },
+    {
+      "byte_size": 455575,
+      "path": "aggregate.json",
+      "sha256": "dfd934df48e9d83c02abc63c7d365b776d88d9ac99eb94381768e3c506ae82fd"
+    },
+    {
+      "byte_size": 6260,
+      "path": "claim_metric_artifact.json",
+      "sha256": "d801f328202d9748522fa94b77ca803087f4a7c0f5fa1ecb42f1a098fb38cee2"
+    },
+    {
+      "byte_size": 3535,
+      "path": "claim_narrowing.json",
+      "sha256": "ffc0a35fc22f25cfb3e3faefdc50499066fe9184d950cd7184a8201d4a3a4a4c"
+    },
+    {
+      "byte_size": 7357,
+      "path": "contract/pilot_v2_4_parent_source_manifest.json",
+      "sha256": "d6a867cd7add43818127af7778a447d579ac1ab31ed6d053bcd29d69b3cf0f33"
+    },
+    {
+      "byte_size": 6885,
+      "path": "contract/pilot_v2_5_source_manifest.json",
+      "sha256": "62b01d74d93ae249dab8711ab7748fdd3bcfaad1ee8c5fb39f71c4bd492b81a4"
+    },
+    {
+      "byte_size": 75706,
+      "path": "contract/pilot_v2_6.yaml",
+      "sha256": "bb23062851c7b0014e9c1b07527c77be5bd70e15c492e2097cef2e4654b9cbea"
+    },
+    {
+      "byte_size": 11534,
+      "path": "contract/pilot_v2_6_source_manifest.json",
+      "sha256": "f84778ed279b8ca98b9b61e26619669fade54b95d0c3e4f17874733acbc84efe"
+    },
+    {
+      "byte_size": 83146,
+      "path": "contract/pilot_v2_7.yaml",
+      "sha256": "93bcabeca5be3cc66e30b28d3b616a3327ab77703c9462591aacecb02d1805fc"
+    },
+    {
+      "byte_size": 52371,
+      "path": "contract/pilot_v2_7_source_manifest.json",
+      "sha256": "ee0ef62f5dcde9fc820aef6d23d1ce5a8c5bca7b9f20486bf42233f18763a1c8"
+    },
+    {
+      "byte_size": 173356,
+      "path": "failure_ledger.json",
+      "sha256": "4906f40ca19854d68647859a89e44f432368a41d28d49461228f2bb56796df3e"
+    },
+    {
+      "byte_size": 7269,
+      "path": "method_differences_scaffold.json",
+      "sha256": "d92be77cee0b73532dfac6a9114bda3be95977a740abeb931c756fcf1cc27ae4"
+    },
+    {
+      "byte_size": 3230,
+      "path": "package_manifest.json",
+      "sha256": "1b44a8984b61f00cbae4851a599674fb3e0479ca60d3259961460f99519e23bb"
+    },
+    {
+      "byte_size": 9382,
+      "path": "reviewer_report.md",
+      "sha256": "c0118acfe66df14c93be1b668a5843d857b498ac1e6f28e20119c57eb50352e5"
+    }
+  ],
+  "schema_version": "finevo-pilot-package-checksums-v1"
+}
