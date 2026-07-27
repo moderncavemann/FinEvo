@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 
 from verified_memory import pilot_v24_evidence as evidence
+from verified_memory import pilot_evidence as core_evidence
 from verified_memory.pilot_contract import load_pilot_contract
 from verified_memory.pilot_evidence import PilotEvidenceError
 
@@ -21,6 +22,100 @@ PREREQUISITE_STAGES = {
     "q-ref-resolution",
     "stage0-calibration",
 }
+
+
+def test_v28_uses_exact_lane_separated_stage_partition() -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+
+    assert core_evidence._stage_sets(contract) == (
+        core_evidence.V24_NON_SCIENTIFIC_STAGES,
+        core_evidence.V24_SCIENTIFIC_STAGES,
+    )
+    assert core_evidence._expected_parent_budget_debit(contract) == {
+        "schema_version": "finevo-parent-budget-debit-v1",
+        "stage_bucket": "parent_v23",
+        "cost_usd": 3.212770875,
+        "hosted_completions": 184,
+        "storage_bytes": 32_158_175,
+        "parent_contract_sha256": (
+            "938627d42ec8ec78e8424793797593736b79936b00813b81259af54e6df6779f"
+        ),
+        "parent_run_ledger_sha256": (
+            "ab532bb56232efbc42d6e5f48c9f80c451f461a732cf2607774f6055de9deb4a"
+        ),
+        "parent_budget_ledger_sha256": (
+            "70ff3f40bbebaea766c6403fc1f2879af9002faff287a112a39c2ce405d92170"
+        ),
+        "record_sha256": (
+            "a5caad9515eb797a035c26d32d0a0cf7bfd7f0df210e7362bd3b93da18ff3ff7"
+        ),
+    }
+
+
+def test_v28_parent_import_marker_accepts_v28_zero_call_field(
+    tmp_path: Path,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(stage="parent-import")[0]
+    receipt_hash = "c" * 64
+    resolved_commit = "b" * 40
+    calls: list[dict[str, Any]] = []
+
+    def verifier(
+        receipt_path,
+        *,
+        repo_root,
+        contract,
+        expected_git_commit,
+    ):
+        calls.append(
+            {
+                "receipt_path": receipt_path,
+                "repo_root": repo_root,
+                "contract_id": contract.contract_id,
+                "expected_git_commit": expected_git_commit,
+            }
+        )
+        return {"integrity": {"content_sha256": receipt_hash}}
+
+    payload = {
+        "metrics": {},
+        "gate_evidence": {
+            "receipt": str(tmp_path / "parent-import-receipt.json"),
+            "receipt_content_sha256": receipt_hash,
+            "provider_calls_during_import": 0,
+            "scientific_evidence": False,
+        },
+        "provider_calls": 0,
+    }
+    core_evidence._validate_terminal_payload_marker(
+        contract,
+        spec.to_dict(),
+        payload,
+        raw_root=tmp_path,
+        resolved_git_commit=resolved_commit,
+        parent_import_receipt_verifier=verifier,
+    )
+
+    assert calls == [
+        {
+            "receipt_path": payload["gate_evidence"]["receipt"],
+            "repo_root": ROOT,
+            "contract_id": "finevo-pilot-v2.8",
+            "expected_git_commit": resolved_commit,
+        }
+    ]
+    bad_payload = deepcopy(payload)
+    bad_payload["gate_evidence"]["provider_calls_during_import"] = 1
+    with pytest.raises(PilotEvidenceError, match="exact zero-call marker"):
+        core_evidence._validate_terminal_payload_marker(
+            contract,
+            spec.to_dict(),
+            bad_payload,
+            raw_root=tmp_path,
+            resolved_git_commit=resolved_commit,
+            parent_import_receipt_verifier=verifier,
+        )
 
 
 def _rows(contract) -> list[dict[str, Any]]:

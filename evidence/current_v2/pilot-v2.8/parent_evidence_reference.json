@@ -1,0 +1,41 @@
+{
+  "checks": {
+    "a_d_effects_are_fresh_only": true,
+    "parent_contract_id": true,
+    "parent_denominator_preserved": true,
+    "parent_package_rewrite_forbidden": true,
+    "parent_status_preserved": true
+  },
+  "checksum_entry_count": 14,
+  "checksums_file_sha256": "b28889b0fc590ec884c69fdf43f88b01ce8f384491168a031ac5fdb2a6b3caad",
+  "contract_id": "finevo-pilot-v2.8",
+  "contract_sha256": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+  "inventory_verified": true,
+  "package_manifest_file_sha256": "1b44a8984b61f00cbae4851a599674fb3e0479ca60d3259961460f99519e23bb",
+  "parent_package_rewritten": false,
+  "parent_registered_cells": 211,
+  "parent_rows_imported_into_v2_8_effect_aggregate": 0,
+  "parent_status_counts": {
+    "complete": 1,
+    "integrity-stopped": 210
+  },
+  "pass": true,
+  "reference_kind": "immutable-external-package-reference",
+  "root_cause": {
+    "code": "qref-contract-cell-id-conflated-with-runner-execution-id",
+    "failed_stage_id": "q-ref-resolution",
+    "message": "imported source run identity is malformed"
+  },
+  "schema_version": "finevo-pilot-v2.8-parent-evidence-reference-v1",
+  "semantic_binding_verified": true,
+  "source_contract_id": "finevo-pilot-v2.7",
+  "source_contract_sha256": "938627d42ec8ec78e8424793797593736b79936b00813b81259af54e6df6779f",
+  "source_evidence_commit": "f15a26418264b5de31f53dbe7c46c1949761fcb6",
+  "source_evidence_merge_commit": "e951aa865186a7c2e841316fc6bb08a716aeaf80",
+  "source_evidence_namespace": "evidence/current_v2/pilot-v2.7",
+  "source_evidence_status": "complete-with-no-go",
+  "source_package_copied": false,
+  "source_package_path": "evidence/current_v2/pilot-v2.7",
+  "source_release_commit": "60566410f38f7842169e93ae9822f180235b60b6",
+  "source_release_tag": "pilot-v2.7-science"
+}
