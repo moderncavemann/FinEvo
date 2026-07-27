@@ -1,0 +1,2911 @@
+{
+  "contract_sha256": "0b07881aaceeb020dc5943ede647a665f9e9bf786a1cac109ab720e05d81d361",
+  "denominator": {
+    "all_completed_artifacts_validated": true,
+    "all_rows_present": true,
+    "all_rows_terminal": true,
+    "expected_count": 211,
+    "observed_ledger_count": 211,
+    "pass": true,
+    "status_counts": {
+      "complete": 26,
+      "failed": 185
+    }
+  },
+  "implementation_failure": {
+    "classification": "implementation-interface-no-go",
+    "evidence_use": "terminal implementation failure and amendment provenance only; not model-capability or A-D treatment-effect evidence",
+    "observed_failure": {
+      "error_type": "KeyError",
+      "failed_cell_count": 185,
+      "failed_stage_counts": {
+        "experiment-a": 20,
+        "experiment-b": 15,
+        "experiment-c": 20,
+        "experiment-d": 30,
+        "local-experiment-a": 20,
+        "local-experiment-b": 25,
+        "local-experiment-c": 20,
+        "local-experiment-d": 35
+      },
+      "message": "'receipt_path'",
+      "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e"
+    },
+    "outcome_boundary": {
+      "actor_action_utility_rule_exposure_outcomes_generated": false,
+      "all_a_d_outcomes_unobserved": false,
+      "claim": "V2.9 produced no actor treatment-effect outcome; its ten offline candidate-admission outcomes remain reported and must not be described as unobserved.",
+      "offline_candidate_admission_cells_generated": 10
+    },
+    "provider_boundary": {
+      "failure_phase": "before-provider-construction-and-dispatch",
+      "partial_actor_streams_persisted": false,
+      "v2_9_hosted_completions": 0,
+      "v2_9_hosted_stage_cost_usd": 0.0,
+      "v2_9_local_stage_cost_usd": 0.0
+    },
+    "resolved_git_commit": "2349ccd41560383965da8880744cf4df366c9ee5",
+    "root_cause_code": "imported-p95-runner-binding-shape-mismatch",
+    "schema_version": "finevo-pilot-v2.9-implementation-failure-summary-v1",
+    "source_audit": {
+      "consumer": {
+        "expected_binding": "receipt_path/receipt_file_sha256/receipt_content_sha256/git_commit",
+        "file_sha256": "062dbcf664a1488e191f8c5ecd6eb7f7ea5bfe41caa4faf260fdac2864ae4f1b",
+        "function": "_runner_p95_reservations",
+        "git_blob_oid": "e0b0de6a83c3a59a081954ba4fa5e22b77d68e92",
+        "path": "verified_memory/pilot_orchestrator.py"
+      },
+      "diagnosis": "The imported authority producer returned nested receipt identity fields while the runner consumer dereferenced the legacy flat names.",
+      "producer": {
+        "file_sha256": "e15eca803b3a978591d2df6895548d6527e29d5035361063eabff2410cd6622c",
+        "function": "verify_v29_imported_v28_observed_p95",
+        "git_blob_oid": "82acc1e9fadbd2a632f732eceeaaec7812d73192",
+        "path": "verified_memory/pilot_v29_stage0_import.py",
+        "returned_binding": "authority.path/file_sha256/content_sha256 plus source_git_commit"
+      }
+    }
+  },
+  "rows": [
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--full--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--full--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--full--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--full--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--full--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--unverified-dual--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--unverified-dual--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--unverified-dual--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--unverified-dual--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--unverified-dual--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--verified-error-forced--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--verified-error-forced--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--verified-error-forced--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--verified-error-forced--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--verified-error-forced--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--unverified-error-forced--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--unverified-error-forced--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--unverified-error-forced--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--unverified-error-forced--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-c--llama33_local_controlled--unverified-error-forced--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--no-context--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--no-context--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--no-context--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--no-context--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--no-context--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--prompt-only--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--prompt-only--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--prompt-only--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--prompt-only--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--prompt-only--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--retrieval-only--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--retrieval-only--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--retrieval-only--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--retrieval-only--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--retrieval-only--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--full--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--full--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--full--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--full--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-a--llama33_local_controlled--full--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--matched-a--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--matched-a--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--matched-a--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--matched-a--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--matched-a--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--matched-b--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--matched-b--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--matched-b--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--matched-b--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--matched-b--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--no-memory--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--no-memory--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--shuffled-episodic--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--shuffled-episodic--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--shuffled-episodic--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--shuffled-episodic--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--shuffled-episodic--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--wrong-context--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--wrong-context--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--wrong-context--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--wrong-context--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--wrong-context--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--error-verified--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--error-verified--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--error-verified--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--error-verified--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--error-verified--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--error-unverified--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--error-unverified--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--error-unverified--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--error-unverified--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-d--llama33_local_controlled--error-unverified--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--no-memory--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--no-memory--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--episodic-only--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--episodic-only--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--episodic-only--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--episodic-only--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--episodic-only--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--semantic-only--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--semantic-only--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--semantic-only--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--semantic-only--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--semantic-only--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--unverified-dual--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--unverified-dual--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--unverified-dual--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--unverified-dual--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--unverified-dual--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--full--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--full--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--full--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--full--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.9--local-experiment-b--llama33_local_controlled--full--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--full--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--full--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--full--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--full--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--full--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--no-context--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--no-context--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--no-context--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--no-context--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--no-context--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--full--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--full--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--full--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-a--gpt52_main--full--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--matched-a--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--matched-a--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--matched-b--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--matched-b--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--no-memory--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--no-memory--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--error-verified--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--error-verified--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--full--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--full--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--full--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--full--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--full--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--no-memory--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "KeyError",
+        "message": "'receipt_path'",
+        "message_bytes": 14,
+        "message_sha256": "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.9--experiment-b--gpt52_main--no-memory--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    }
+  ],
+  "schema_version": "finevo-pilot-failure-ledger-v1"
+}

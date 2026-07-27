@@ -2681,6 +2681,7 @@ def _validate_v29_qref_resolution_artifact(
     *,
     raw_root: Path,
     resolved_git_commit: str | None,
+    source_repo_root: Path | None = None,
 ) -> None:
     """Bind the terminal row to the sealed V2.9 q-ref equivalence artifact."""
 
@@ -2759,6 +2760,7 @@ def _validate_v29_qref_resolution_artifact(
             raw_root,
             str(resolved_git_commit),
             str(contract.implementation["required_git_tag"]),
+            authority_repo_root=source_repo_root,
         )
     except (
         OSError,
@@ -3033,6 +3035,7 @@ def _validate_terminal_payload_marker(
                 resolution,
                 raw_root=raw_root,
                 resolved_git_commit=resolved_git_commit,
+                source_repo_root=source_repo_root,
             )
         return
     if mode == "offline_candidate_admission":
@@ -3512,6 +3515,16 @@ def _load_terminal_summary(
         )
 
         try:
+            verifier_kwargs = (
+                {"authority_repo_root": source_repo_root}
+                if (
+                    source_repo_root is not None
+                    and _is_v29_contract(contract)
+                    and source_repo_root.resolve()
+                    != Path(__file__).resolve().parents[1]
+                )
+                else {}
+            )
             imported_stage0 = verify_v27_imported_stage0_terminal(
                 contract,
                 spec,
@@ -3519,6 +3532,7 @@ def _load_terminal_summary(
                 raw_root,
                 str(binding["resolved_git_commit"]),
                 str(binding["git_tag"]),
+                **verifier_kwargs,
             )
         except (OSError, TypeError, ValueError, PilotOrchestrationError) as exc:
             raise PilotEvidenceError(
@@ -4788,6 +4802,7 @@ def _validated_imported_stage0_source_row(
     row: Mapping[str, Any],
     spec: PilotRunSpec,
     common_commit: str | None,
+    source_repo_root: Path | None = None,
 ) -> bool:
     """Validate one V2.7--V2.9 imported Stage-0 source end to end.
 
@@ -4878,6 +4893,16 @@ def _validated_imported_stage0_source_row(
             verify_v27_imported_stage0_terminal,
         )
 
+        verifier_kwargs = (
+            {"authority_repo_root": source_repo_root}
+            if (
+                source_repo_root is not None
+                and _is_v29_contract(contract)
+                and source_repo_root.resolve()
+                != Path(__file__).resolve().parents[1]
+            )
+            else {}
+        )
         verified = verify_v27_imported_stage0_terminal(
             contract,
             spec,
@@ -4885,6 +4910,7 @@ def _validated_imported_stage0_source_row(
             raw_root,
             common_commit,
             str(contract.implementation["required_git_tag"]),
+            **verifier_kwargs,
         )
         verified_binding = _mapping(
             verified.get("envelope_binding"),
@@ -4943,6 +4969,7 @@ def _validated_release_controls(
     raw_root: Path,
     rows: Sequence[Mapping[str, Any]],
     common_commit: str | None,
+    source_repo_root: Path | None = None,
 ) -> dict[str, Any]:
     """Validate release, Stage-0, and budget controls without repairing them."""
 
@@ -5114,6 +5141,7 @@ def _validated_release_controls(
                         row=row,
                         spec=spec,
                         common_commit=common_commit,
+                        source_repo_root=source_repo_root,
                     )
                 else:
                     source_valid = bool(
@@ -5134,12 +5162,23 @@ def _validated_release_controls(
                     verify_v27_stage0_selection,
                 )
 
+                verifier_kwargs = (
+                    {"authority_repo_root": source_repo_root}
+                    if (
+                        source_repo_root is not None
+                        and _is_v29_contract(contract)
+                        and source_repo_root.resolve()
+                        != Path(__file__).resolve().parents[1]
+                    )
+                    else {}
+                )
                 replayed_selection = verify_v27_stage0_selection(
                     contract,
                     stage0_path,
                     raw_root,
                     str(common_commit),
                     str(contract.implementation["required_git_tag"]),
+                    **verifier_kwargs,
                 )
                 selection_semantic_replay_valid = replayed_selection == selection
             except (
@@ -8402,6 +8441,7 @@ def build_pilot_evidence_package(
         raw_root=raw,
         rows=rows,
         common_commit=common_commit,
+        source_repo_root=source_root,
     )
     release_controls["experiment_c_sensitivity"] = sensitivity_control
     release_controls["pass"] = bool(

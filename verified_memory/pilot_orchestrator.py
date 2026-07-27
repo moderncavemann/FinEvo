@@ -1433,12 +1433,17 @@ def _v29_import_authority(
     *,
     raw_root: Path,
     paid: GitProvenance,
+    authority_repo_root: str | Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Revalidate V2.9's tracked source map and copied V2.8 authority."""
 
     if contract.contract_id != V29_CONTRACT_ID:
         raise PilotOrchestrationError("V2.9 import authority used by another contract")
-    repository = Path(__file__).resolve().parents[1]
+    repository = (
+        Path(__file__).resolve().parents[1]
+        if authority_repo_root is None
+        else Path(authority_repo_root).resolve(strict=True)
+    )
     try:
         manifest = load_v29_source_manifest(
             repository.joinpath(*V29_SOURCE_MANIFEST_PATH.parts)
@@ -1995,11 +2000,15 @@ def _v29_source_binding_payload(
     source_binding: Mapping[str, Any],
     source_run_dir: Path,
     raw_root: Path,
+    authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
-    source_manifest_path = (
+    repository = (
         Path(__file__).resolve().parents[1]
-        / "experiments"
-        / "pilot_v2_9_source_manifest.json"
+        if authority_repo_root is None
+        else Path(authority_repo_root).resolve(strict=True)
+    )
+    source_manifest_path = (
+        repository / "experiments" / "pilot_v2_9_source_manifest.json"
     )
     parent_receipt_path = (
         raw_root / "parent-import" / "parent_import_receipt.json"
@@ -2374,6 +2383,7 @@ def _build_v29_qref_equivalence_receipts(
     raw_root: Path,
     paid: GitProvenance,
     current_manifest: Path,
+    authority_repo_root: str | Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Compare a fresh V2.9 q-ref with the immutable failed V2.8 attempt.
 
@@ -2392,6 +2402,7 @@ def _build_v29_qref_equivalence_receipts(
         contract,
         raw_root=raw_root,
         paid=paid,
+        authority_repo_root=authority_repo_root,
     )
     try:
         reference = q_ref_audit_reference_v29(source_manifest)
@@ -2799,6 +2810,7 @@ def _load_verified_q_ref(
     *,
     raw_root: Path,
     paid: GitProvenance | None,
+    authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     path = raw_root / "q-ref-resolution" / "q_ref_resolution.json"
     value = _read_json(path)
@@ -2885,13 +2897,23 @@ def _load_verified_q_ref(
         != contract.expand(stage="q-ref-resolution")[0].to_dict()
     ):
         raise PilotOrchestrationError("q_ref source provenance mismatch")
-    if bindings.get("environment_source_hash") != _file_sha256(DEFAULT_ENV_CONFIG):
+    environment_source_path = (
+        DEFAULT_ENV_CONFIG
+        if authority_repo_root is None
+        else Path(authority_repo_root).resolve(strict=True) / "config.yaml"
+    )
+    if bindings.get("environment_source_hash") != _file_sha256(
+        environment_source_path
+    ):
         raise PilotOrchestrationError("q_ref environment source hash mismatch")
-    source_result = load_verified_run_artifacts(expected_manifest.parent)
+    source_result = load_verified_run_artifacts(
+        expected_manifest.parent,
+        authority_repo_root=authority_repo_root,
+    )
     recomputed = build_q_ref_resolution(
         source_result,
         contract_hash=contract.canonical_hash,
-        environment_source_hash=_file_sha256(DEFAULT_ENV_CONFIG),
+        environment_source_hash=_file_sha256(environment_source_path),
     )
     for key in (
         "status",
@@ -2929,6 +2951,7 @@ def _load_verified_q_ref(
             raw_root=raw_root,
             paid=paid,
             current_manifest=expected_manifest,
+            authority_repo_root=authority_repo_root,
         )
         if (
             value.get("q_ref_summary_equivalence")
@@ -2977,6 +3000,8 @@ def verify_v29_qref_resolution(
     raw_root: str | Path,
     resolved_git_commit: str,
     git_tag: str,
+    *,
+    authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Replay a V2.9 q-ref resolution from its sealed source artifacts.
 
@@ -3023,6 +3048,7 @@ def verify_v29_qref_resolution(
             contract,
             raw_root=root,
             paid=paid,
+            authority_repo_root=authority_repo_root,
         )
     except ManifestVerificationError as exc:
         raise PilotOrchestrationError(
@@ -3180,6 +3206,7 @@ def _build_v27_stage0_envelope(
     raw_root: Path,
     paid: GitProvenance,
     source_manifest: Mapping[str, Any],
+    authority_repo_root: str | Path | None = None,
 ) -> tuple[dict[str, Any], VerifiedRunResult, dict[str, Any], Path]:
     imported_contract = contract.contract_id in {
         V27_CONTRACT_ID,
@@ -3211,6 +3238,7 @@ def _build_v27_stage0_envelope(
             source_binding=source_binding,
             source_run_dir=source_run_dir,
             raw_root=raw_root,
+            authority_repo_root=authority_repo_root,
         )
         envelope_schema = PILOT_V29_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION
     elif contract.contract_id == V28_CONTRACT_ID:
@@ -3404,6 +3432,8 @@ def verify_v27_imported_stage0_terminal(
     raw_root: str | Path,
     resolved_git_commit: str,
     git_tag: str,
+    *,
+    authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Read-only semantic verifier for an imported Stage-0 terminal.
 
@@ -3457,6 +3487,7 @@ def verify_v27_imported_stage0_terminal(
             contract,
             raw_root=root,
             paid=paid,
+            authority_repo_root=authority_repo_root,
         )
     elif contract.contract_id == V28_CONTRACT_ID:
         source_manifest, _ = _v28_import_authority(
@@ -3476,6 +3507,7 @@ def verify_v27_imported_stage0_terminal(
         raw_root=root,
         paid=paid,
         source_manifest=source_manifest,
+        authority_repo_root=authority_repo_root,
     )
     envelope_path = _v27_stage0_envelope_path(root, selected)
     envelope = _read_json(envelope_path)
@@ -3524,6 +3556,7 @@ def _expected_v27_stage0_selection(
     raw_root: Path,
     paid: GitProvenance,
     materialize: bool,
+    authority_repo_root: str | Path | None = None,
 ) -> tuple[
     dict[str, Any],
     tuple[tuple[PilotRunSpec, Path, Path, dict[str, Any]], ...],
@@ -3534,6 +3567,7 @@ def _expected_v27_stage0_selection(
             contract,
             raw_root=raw_root,
             paid=paid,
+            authority_repo_root=authority_repo_root,
         )
     elif contract.contract_id == V28_CONTRACT_ID:
         source_manifest, _ = _v28_import_authority(
@@ -3547,7 +3581,12 @@ def _expected_v27_stage0_selection(
             raw_root=raw_root,
             paid=paid,
         )
-    q_ref = _load_verified_q_ref(contract, raw_root=raw_root, paid=paid)
+    q_ref = _load_verified_q_ref(
+        contract,
+        raw_root=raw_root,
+        paid=paid,
+        authority_repo_root=authority_repo_root,
+    )
     q_ref_path = raw_root / "q-ref-resolution" / "q_ref_resolution.json"
     ofat = expand_stage0_ofat(float(q_ref["q_ref"]))
     by_profile: dict[str, list[Mapping[str, Any]]] = {
@@ -3587,6 +3626,7 @@ def _expected_v27_stage0_selection(
                 raw_root=raw_root,
                 paid=paid,
                 source_manifest=source_manifest,
+                authority_repo_root=authority_repo_root,
             )
             _verify_bound_payload(
                 envelope,
@@ -3722,6 +3762,7 @@ def _load_verified_stage0_selection(
     *,
     raw_root: Path,
     paid: GitProvenance | None,
+    authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     path = raw_root / "stage0-calibration" / "stage0_selection.json"
     value = _read_json(path)
@@ -3760,6 +3801,7 @@ def _load_verified_stage0_selection(
             raw_root=raw_root,
             paid=effective_paid,
             materialize=False,
+            authority_repo_root=authority_repo_root,
         )
         if value != expected:
             raise PilotOrchestrationError(
@@ -3874,6 +3916,8 @@ def verify_v27_stage0_selection(
     raw_root: str | Path,
     resolved_git_commit: str,
     git_tag: str,
+    *,
+    authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Read-only replay verifier for imported V2.7--V2.9 Stage-0 selection.
 
@@ -3919,6 +3963,7 @@ def verify_v27_stage0_selection(
         contract,
         raw_root=root,
         paid=paid,
+        authority_repo_root=authority_repo_root,
     )
 
 

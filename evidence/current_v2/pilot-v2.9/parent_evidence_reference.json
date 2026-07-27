@@ -1,0 +1,42 @@
+{
+  "checks": {
+    "a_d_effects_are_fresh_only": true,
+    "parent_contract_id": true,
+    "parent_denominator_preserved": true,
+    "parent_package_rewrite_forbidden": true,
+    "parent_status_preserved": true
+  },
+  "checksum_entry_count": 16,
+  "checksums_file_sha256": "1cc99291ba0bc9582c36414fce2bdc815d3cad0e753bdbb440140ad9f61127a9",
+  "contract_id": "finevo-pilot-v2.9",
+  "contract_sha256": "0b07881aaceeb020dc5943ede647a665f9e9bf786a1cac109ab720e05d81d361",
+  "inventory_verified": true,
+  "package_manifest_file_sha256": "90580f8471b02ad4d156a6e39ce09676e5cccbeadb6a4d21ad54ff88a3867ef6",
+  "parent_package_rewritten": false,
+  "parent_registered_cells": 211,
+  "parent_rows_imported_into_v2_9_effect_aggregate": 0,
+  "parent_status_counts": {
+    "complete": 1,
+    "failed": 1,
+    "integrity-stopped": 209
+  },
+  "pass": true,
+  "reference_kind": "immutable-external-package-reference",
+  "root_cause": {
+    "code": "qref-raw-summary-equivalence-included-identity-and-monotonic-time",
+    "failed_stage_id": "q-ref-resolution",
+    "message": "V2.8 fresh q-ref differs from its audit reference: ['run_summary_exact']"
+  },
+  "schema_version": "finevo-pilot-v2.9-parent-evidence-reference-v1",
+  "semantic_binding_verified": true,
+  "source_contract_id": "finevo-pilot-v2.8",
+  "source_contract_sha256": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+  "source_evidence_commit": "00cc7142ae7af603f7989804a43c4d509456bad2",
+  "source_evidence_merge_commit": "981e2af20372c0413600f2bbd1b732f2d643593e",
+  "source_evidence_namespace": "evidence/current_v2/pilot-v2.8",
+  "source_evidence_status": "complete-with-no-go",
+  "source_package_copied": false,
+  "source_package_path": "evidence/current_v2/pilot-v2.8",
+  "source_release_commit": "1988f10b5a06c3b9b3093b969c99593676721a09",
+  "source_release_tag": "pilot-v2.8-science"
+}

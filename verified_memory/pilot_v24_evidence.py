@@ -64,6 +64,47 @@ PILOT_V28_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-v2.8-evidence-package-v1"
 PILOT_V28_CONTRACT_ID = "finevo-pilot-v2.8"
 PILOT_V29_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-v2.9-evidence-package-v1"
 PILOT_V29_CONTRACT_ID = "finevo-pilot-v2.9"
+PILOT_V29_IMPLEMENTATION_FAILURE_SCHEMA_VERSION = (
+    "finevo-pilot-v2.9-implementation-failure-summary-v1"
+)
+_PILOT_V29_RELEASE_COMMIT = "2349ccd41560383965da8880744cf4df366c9ee5"
+_PILOT_V29_RECEIPT_PATH_FAILURE_SHA256 = (
+    "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e"
+)
+_PILOT_V29_FAILURE_STAGE_COUNTS = {
+    "experiment-a": 20,
+    "experiment-b": 15,
+    "experiment-c": 20,
+    "experiment-d": 30,
+    "local-experiment-a": 20,
+    "local-experiment-b": 25,
+    "local-experiment-c": 20,
+    "local-experiment-d": 35,
+}
+_PILOT_V29_SOURCE_AUDIT = {
+    "producer": {
+        "path": "verified_memory/pilot_v29_stage0_import.py",
+        "git_blob_oid": "82acc1e9fadbd2a632f732eceeaaec7812d73192",
+        "file_sha256": (
+            "e15eca803b3a978591d2df6895548d6527e29d5035361063eabff2410cd6622c"
+        ),
+        "function": "verify_v29_imported_v28_observed_p95",
+        "returned_binding": (
+            "authority.path/file_sha256/content_sha256 plus source_git_commit"
+        ),
+    },
+    "consumer": {
+        "path": "verified_memory/pilot_orchestrator.py",
+        "git_blob_oid": "e0b0de6a83c3a59a081954ba4fa5e22b77d68e92",
+        "file_sha256": (
+            "062dbcf664a1488e191f8c5ecd6eb7f7ea5bfe41caa4faf260fdac2864ae4f1b"
+        ),
+        "function": "_runner_p95_reservations",
+        "expected_binding": (
+            "receipt_path/receipt_file_sha256/" "receipt_content_sha256/git_commit"
+        ),
+    },
+}
 _PILOT_V27_EVIDENCE_CHECKSUMS_FILE_SHA256 = (
     "b28889b0fc590ec884c69fdf43f88b01ce8f384491168a031ac5fdb2a6b3caad"
 )
@@ -2096,6 +2137,113 @@ def _sanitized_rows(
     return [{field: _json_copy(row.get(field)) for field in fields} for row in rows]
 
 
+def _v29_implementation_failure_summary(
+    aggregate: Mapping[str, Any],
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    resolved_git_commit: str | None,
+) -> dict[str, Any] | None:
+    """Describe the terminal V2.9 adapter failure from sealed rows and source."""
+
+    if aggregate.get("contract_id") != PILOT_V29_CONTRACT_ID:
+        return None
+    failures = [row for row in rows if row.get("status") != "complete"]
+    stage_counts: dict[str, int] = {}
+    for row in failures:
+        stage_id = row.get("stage_id")
+        if not isinstance(stage_id, str):
+            raise PilotEvidenceError("V2.9 failed row lacks a stage identity")
+        stage_counts[stage_id] = stage_counts.get(stage_id, 0) + 1
+    failure_signatures = {
+        (
+            failure.get("error_type"),
+            failure.get("message"),
+            failure.get("message_sha256"),
+            failure.get("message_truncated"),
+        )
+        for row in failures
+        for failure in [row.get("failure")]
+        if isinstance(failure, Mapping)
+    }
+    offline_candidates = [
+        row
+        for row in rows
+        if row.get("status") == "complete"
+        and row.get("arm_id") == "verified-error-candidate"
+        and row.get("stage_id") in {"local-experiment-c", "experiment-c"}
+    ]
+    budget = aggregate.get("budget")
+    stage_costs = (
+        budget.get("actual_stage_cost_usd") if isinstance(budget, Mapping) else None
+    )
+    expected_signature = {
+        (
+            "KeyError",
+            "'receipt_path'",
+            _PILOT_V29_RECEIPT_PATH_FAILURE_SHA256,
+            False,
+        )
+    }
+    if (
+        resolved_git_commit != _PILOT_V29_RELEASE_COMMIT
+        or len(failures) != 185
+        or stage_counts != _PILOT_V29_FAILURE_STAGE_COUNTS
+        or failure_signatures != expected_signature
+        or len(offline_candidates) != 10
+        or not isinstance(stage_costs, Mapping)
+        or stage_costs.get("hosted_confirmatory") != 0.0
+        or stage_costs.get("local") != 0.0
+        or aggregate.get("scientific_matrix_complete") is not False
+        or aggregate.get("scientific_claim_gates_supported") is not False
+    ):
+        raise PilotEvidenceError(
+            "V2.9 implementation-failure summary differs from the sealed "
+            "denominator, budget ledger, or release source"
+        )
+    return {
+        "schema_version": PILOT_V29_IMPLEMENTATION_FAILURE_SCHEMA_VERSION,
+        "classification": "implementation-interface-no-go",
+        "root_cause_code": "imported-p95-runner-binding-shape-mismatch",
+        "resolved_git_commit": resolved_git_commit,
+        "observed_failure": {
+            "error_type": "KeyError",
+            "message": "'receipt_path'",
+            "message_sha256": _PILOT_V29_RECEIPT_PATH_FAILURE_SHA256,
+            "failed_cell_count": 185,
+            "failed_stage_counts": dict(sorted(stage_counts.items())),
+        },
+        "provider_boundary": {
+            "failure_phase": "before-provider-construction-and-dispatch",
+            "v2_9_local_stage_cost_usd": 0.0,
+            "v2_9_hosted_stage_cost_usd": 0.0,
+            "v2_9_hosted_completions": 0,
+            "partial_actor_streams_persisted": False,
+        },
+        "outcome_boundary": {
+            "actor_action_utility_rule_exposure_outcomes_generated": False,
+            "offline_candidate_admission_cells_generated": 10,
+            "all_a_d_outcomes_unobserved": False,
+            "claim": (
+                "V2.9 produced no actor treatment-effect outcome; its ten "
+                "offline candidate-admission outcomes remain reported and "
+                "must not be described as unobserved."
+            ),
+        },
+        "source_audit": {
+            **_json_copy(_PILOT_V29_SOURCE_AUDIT),
+            "diagnosis": (
+                "The imported authority producer returned nested receipt "
+                "identity fields while the runner consumer dereferenced the "
+                "legacy flat names."
+            ),
+        },
+        "evidence_use": (
+            "terminal implementation failure and amendment provenance only; "
+            "not model-capability or A-D treatment-effect evidence"
+        ),
+    }
+
+
 def _report_markdown(
     aggregate: Mapping[str, Any],
 ) -> str:
@@ -2172,6 +2320,38 @@ def _report_markdown(
                 "from every A-D treatment-effect gate.",
                 f"- All prerequisites complete: "
                 f"`{str(prerequisites['all_prerequisites_complete']).lower()}`.",
+            ]
+        )
+    implementation_failure = aggregate.get("implementation_failure")
+    if implementation_failure is not None:
+        observed = implementation_failure["observed_failure"]
+        boundary = implementation_failure["provider_boundary"]
+        outcome = implementation_failure["outcome_boundary"]
+        lines.extend(
+            [
+                "",
+                "## Terminal implementation failure",
+                "",
+                f"- Classification: " f"`{implementation_failure['classification']}`.",
+                f"- Root cause: " f"`{implementation_failure['root_cause_code']}`.",
+                f"- All `{observed['failed_cell_count']}` failed A-D cells "
+                f"recorded `{observed['error_type']}: "
+                f"{observed['message']}`.",
+                "- Source audit: the imported-p95 producer returned nested "
+                "`authority.path/file_sha256/content_sha256` plus "
+                "`source_git_commit`, while `_runner_p95_reservations` "
+                "dereferenced the legacy flat receipt fields.",
+                f"- Provider boundary: `{boundary['failure_phase']}`; V2.9 "
+                "local and hosted stage cost were both `$0`, with `0` hosted "
+                "completions.",
+                "- Outcome boundary: no actor action, utility, or rule-exposure "
+                "outcome was generated. The "
+                f"`{outcome['offline_candidate_admission_cells_generated']}` "
+                "offline candidate-admission outcomes were generated and "
+                "remain in the denominator.",
+                "- Evidence use: implementation/amendment provenance only; "
+                "this is not a model-capability failure or a negative A-D "
+                "effect result.",
             ]
         )
     for lane_id, lane in aggregate["lanes"].items():
@@ -3004,11 +3184,18 @@ def _write_v24_package(
         )
 
     sanitized = _sanitized_rows(rows)
+    implementation_failure = _v29_implementation_failure_summary(
+        aggregate,
+        sanitized,
+        resolved_git_commit=common_commit,
+    )
     aggregate_payload = {
         **_json_copy(aggregate),
         "resolved_git_commit": common_commit,
         "rows": sanitized,
     }
+    if implementation_failure is not None:
+        aggregate_payload["implementation_failure"] = implementation_failure
     _atomic_bytes(root / "aggregate.json", _pretty_bytes(aggregate_payload))
     _atomic_bytes(root / "aggregate.csv", _aggregate_csv(sanitized))
     _atomic_bytes(
@@ -3018,6 +3205,11 @@ def _write_v24_package(
                 "schema_version": schema_version,
                 "contract_sha256": contract.canonical_hash,
                 "claims": aggregate["claims"],
+                **(
+                    {"implementation_failure": implementation_failure}
+                    if implementation_failure is not None
+                    else {}
+                ),
             }
         ),
     )
@@ -3051,6 +3243,11 @@ def _write_v24_package(
                 "schema_version": PILOT_FAILURE_LEDGER_SCHEMA_VERSION,
                 "contract_sha256": contract.canonical_hash,
                 "denominator": aggregate["denominator"],
+                **(
+                    {"implementation_failure": implementation_failure}
+                    if implementation_failure is not None
+                    else {}
+                ),
                 "rows": failures,
             }
         ),
@@ -3061,7 +3258,7 @@ def _write_v24_package(
     )
     _atomic_bytes(
         root / "reviewer_report.md",
-        _report_markdown(aggregate).encode("utf-8"),
+        _report_markdown(aggregate_payload).encode("utf-8"),
     )
     published_files = sorted(
         [
@@ -3282,6 +3479,7 @@ def build_pilot_v24_evidence_package(
         raw_root=raw,
         rows=rows,
         common_commit=common_commit,
+        source_repo_root=source_root,
     )
     aggregate = aggregate_v24_evidence(
         contract,
