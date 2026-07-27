@@ -2019,11 +2019,30 @@ def test_v27_parent_no_go_resume_reconciles_reserved_budget(
     assert budget.rows[spec.run_id]["actual"]["completions"] == 0
 
 
-def test_v27_release_controls_validate_imported_stage0_envelope_matrix(
+@pytest.mark.parametrize(
+    ("contract_path", "envelope_schema"),
+    (
+        (
+            CONTRACT_PATH,
+            orchestrator.PILOT_V27_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION,
+        ),
+        (
+            ROOT / "experiments" / "pilot_v2_8.yaml",
+            orchestrator.PILOT_V28_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION,
+        ),
+        (
+            ROOT / "experiments" / "pilot_v2_9_overlay.yaml",
+            orchestrator.PILOT_V29_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION,
+        ),
+    ),
+)
+def test_imported_stage0_release_controls_validate_envelope_matrix(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    contract_path: Path,
+    envelope_schema: str,
 ) -> None:
-    contract = load_pilot_contract(CONTRACT_PATH)
+    contract = load_pilot_contract(contract_path)
     raw_root = tmp_path / "raw"
     stage_root = raw_root / "stage0-calibration"
     stage_root.mkdir(parents=True)
@@ -2032,13 +2051,35 @@ def test_v27_release_controls_validate_imported_stage0_envelope_matrix(
     aggregate_rows: list[dict[str, Any]] = []
     verifier_calls: list[str] = []
 
-    for index, spec in enumerate(
-        contract.expand(stage="stage0-calibration")
-    ):
+    def verify(
+        _contract: Any,
+        spec: Any,
+        terminal_path: Path,
+        *_args: Any,
+    ) -> dict[str, Any]:
+        run_id = spec["run_id"] if isinstance(spec, dict) else spec.run_id
+        verifier_calls.append(run_id)
+        value = json.loads(terminal_path.read_text(encoding="utf-8"))
+        gate = value["payload"]["gate_evidence"]
+        return {
+            "metrics": value["payload"]["metrics"],
+            "envelope_binding": gate["imported_run_envelope"],
+            "execution_disposition": gate["execution_disposition"],
+            "provider_calls_current_attempt": 0,
+            "scientific_evidence": True,
+        }
+
+    monkeypatch.setattr(
+        orchestrator,
+        "verify_v27_imported_stage0_terminal",
+        verify,
+    )
+    specs = tuple(contract.expand(stage="stage0-calibration"))
+    terminal_paths: list[Path] = []
+    for index, spec in enumerate(specs):
         source_run_id = f"v26-source-{index}"
         source_manifest_sha256 = f"{index + 1:064x}"
         envelope_content_sha256 = f"{index + 101:064x}"
-        terminal_content_sha256 = f"{index + 201:064x}"
         envelope_path = (
             stage_root
             / "runs"
@@ -2047,9 +2088,7 @@ def test_v27_release_controls_validate_imported_stage0_envelope_matrix(
         )
         envelope_path.parent.mkdir(parents=True)
         envelope = {
-            "schema_version": (
-                orchestrator.PILOT_V27_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION
-            ),
+            "schema_version": envelope_schema,
             "source_import": {
                 "source_run_id": source_run_id,
                 "source_artifacts": {
@@ -2083,21 +2122,24 @@ def test_v27_release_controls_validate_imported_stage0_envelope_matrix(
             "imported_run_envelope": envelope_binding,
         }
         terminal_path = stage_root / "summaries" / f"{spec.run_id}.json"
-        terminal_path.parent.mkdir(parents=True, exist_ok=True)
-        terminal = {
-            "payload": {
+        evidence.write_terminal_summary(
+            terminal_path,
+            contract=contract,
+            run_spec=spec,
+            resolved_git_commit=commit,
+            git_tag=contract.implementation["required_git_tag"],
+            payload={
                 "metrics": metrics,
                 "gate_evidence": gate_evidence,
             },
-            "integrity": {
-                "content_sha256": terminal_content_sha256,
-            },
-        }
-        terminal_path.write_text(
-            json.dumps(terminal, sort_keys=True) + "\n",
-            encoding="utf-8",
+            scientific_evidence=True,
+            diagnostic_only=False,
+            evidence_scope=evidence.CURRENT_SCIENTIFIC_SCOPE,
         )
+        terminal = json.loads(terminal_path.read_text(encoding="utf-8"))
+        terminal_content_sha256 = terminal["integrity"]["content_sha256"]
         terminal_file_sha256 = evidence._sha256_file(terminal_path)
+        terminal_paths.append(terminal_path)
         source_rows.append(
             {
                 "run_id": spec.run_id,
@@ -2127,6 +2169,15 @@ def test_v27_release_controls_validate_imported_stage0_envelope_matrix(
                 "gate_evidence": gate_evidence,
             }
         )
+
+    completed = evidence._load_completed_artifact(
+        contract,
+        specs[0].to_dict(),
+        raw_root=raw_root,
+        artifact=str(terminal_paths[0]),
+        source_repo_root=ROOT,
+    )
+    assert completed["artifact_kind"] == "imported-stage0-run-envelope"
 
     selection = {
         "schema_version": "finevo-stage0-selection-v1",
@@ -2188,28 +2239,6 @@ def test_v27_release_controls_validate_imported_stage0_envelope_matrix(
         encoding="utf-8",
     )
 
-    def verify(
-        _contract: Any,
-        spec: Any,
-        terminal_path: Path,
-        *_args: Any,
-    ) -> dict[str, Any]:
-        verifier_calls.append(spec.run_id)
-        value = json.loads(terminal_path.read_text(encoding="utf-8"))
-        gate = value["payload"]["gate_evidence"]
-        return {
-            "metrics": value["payload"]["metrics"],
-            "envelope_binding": gate["imported_run_envelope"],
-            "execution_disposition": gate["execution_disposition"],
-            "provider_calls_current_attempt": 0,
-            "scientific_evidence": True,
-        }
-
-    monkeypatch.setattr(
-        orchestrator,
-        "verify_v27_imported_stage0_terminal",
-        verify,
-    )
     replayed_selection = json.loads(json.dumps(selection))
     monkeypatch.setattr(
         orchestrator,
@@ -2321,6 +2350,107 @@ def test_v27_release_controls_validate_imported_stage0_envelope_matrix(
         ]
         is False
     )
+
+
+def test_v29_imported_stage0_terminal_enforces_versioned_envelope_schema(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = load_pilot_contract(
+        ROOT / "experiments" / "pilot_v2_9_overlay.yaml"
+    )
+    spec = contract.expand(stage="stage0-calibration")[0]
+    raw_root = tmp_path / "raw"
+    commit = "a" * 40
+    envelope_path = orchestrator._v27_stage0_envelope_path(raw_root, spec)
+    envelope_path.parent.mkdir(parents=True)
+    expected = orchestrator._seal_bound_payload(
+        {
+            "schema_version": (
+                orchestrator.PILOT_V29_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION
+            ),
+            "contract_id": contract.contract_id,
+            "contract_sha256": contract.canonical_hash,
+            "run_spec": spec.to_dict(),
+            "execution_disposition": (
+                "immutable-parent-import-offline-resummary"
+            ),
+            "reader": {
+                "summary": {
+                    "profile": spec.utility_profile_id,
+                    "seed": spec.environment_seed,
+                }
+            },
+            "claim_boundary": "imported Stage-0 calibration only",
+            "bindings": {
+                "contract_sha256": contract.canonical_hash,
+                "git_tag": contract.implementation["required_git_tag"],
+                "git_commit": commit,
+            },
+        }
+    )
+    envelope_path.write_text(
+        json.dumps(expected, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    terminal_path = orchestrator._v27_stage0_terminal_path(raw_root, spec)
+    evidence.write_terminal_summary(
+        terminal_path,
+        contract=contract,
+        run_spec=spec,
+        resolved_git_commit=commit,
+        git_tag=contract.implementation["required_git_tag"],
+        payload=orchestrator._v27_stage0_terminal_payload(
+            expected,
+            envelope_path,
+        ),
+        scientific_evidence=True,
+        diagnostic_only=False,
+        evidence_scope=evidence.CURRENT_SCIENTIFIC_SCOPE,
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_v29_import_authority",
+        lambda *_args, **_kwargs: ({}, {}),
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_build_v27_stage0_envelope",
+        lambda *_args, **_kwargs: (expected, None, {}, raw_root),
+    )
+
+    verified = orchestrator.verify_v27_imported_stage0_terminal(
+        contract,
+        spec,
+        terminal_path,
+        raw_root,
+        commit,
+        contract.implementation["required_git_tag"],
+    )
+    assert verified["scientific_evidence"] is True
+    assert verified["provider_calls_current_attempt"] == 0
+
+    wrong_version = json.loads(json.dumps(expected))
+    wrong_version["schema_version"] = (
+        orchestrator.PILOT_V28_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION
+    )
+    wrong_version = orchestrator._seal_bound_payload(wrong_version)
+    envelope_path.write_text(
+        json.dumps(wrong_version, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(
+        orchestrator.PilotOrchestrationError,
+        match="unsupported schema version",
+    ):
+        orchestrator.verify_v27_imported_stage0_terminal(
+            contract,
+            spec,
+            terminal_path,
+            raw_root,
+            commit,
+            contract.implementation["required_git_tag"],
+        )
 
 
 def test_v27_budget_validator_accepts_exact_import_rows_and_rejects_extra(

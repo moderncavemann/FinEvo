@@ -70,14 +70,10 @@ PILOT_RUN_LEDGER_SCHEMA_VERSION = "finevo-pilot-run-ledger-v1"
 PILOT_RUN_LEDGER_SCHEMA_VERSION_V2 = "finevo-pilot-run-ledger-v2"
 PILOT_BUDGET_SCHEMA_VERSION = "finevo-pilot-budget-ledger-v1"
 PILOT_BUDGET_SCHEMA_VERSION_V2 = "finevo-pilot-budget-ledger-v2"
-PILOT_RELEASE_ATTESTATION_SCHEMA_VERSION = (
-    "finevo-pilot-release-attestation-v1"
-)
+PILOT_RELEASE_ATTESTATION_SCHEMA_VERSION = "finevo-pilot-release-attestation-v1"
 PILOT_STAGE_RECEIPT_SCHEMA_VERSION = "finevo-pilot-stage-receipt-v1"
 PILOT_STAGE_RECEIPT_SCHEMA_VERSION_V2 = "finevo-pilot-stage-receipt-v2"
-PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION = (
-    "finevo-experiment-c-sensitivity-v1"
-)
+PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION = "finevo-experiment-c-sensitivity-v1"
 LEGACY_CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v1"
 CURRENT_CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v2"
 CAPABILITY_V3_SCHEMA_VERSION = "finevo-capability-gate-v3"
@@ -104,9 +100,7 @@ TERMINAL_STATUSES = frozenset(
     }
 )
 KNOWN_NONTERMINAL_STATUSES = frozenset({"scheduled", "running", "reserved"})
-V1_NON_SCIENTIFIC_STAGES = frozenset(
-    {"capability-preflight", "q-ref-resolution"}
-)
+V1_NON_SCIENTIFIC_STAGES = frozenset({"capability-preflight", "q-ref-resolution"})
 V1_SCIENTIFIC_STAGES = frozenset(
     {
         "stage0-calibration",
@@ -194,38 +188,27 @@ def _is_v2_contract(contract: PilotContract) -> bool:
 
 
 def _is_v24_contract(contract: PilotContract) -> bool:
-    return (
-        _is_v2_contract(contract)
-        and contract.contract_id == "finevo-pilot-v2.4"
-    )
+    return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.4"
 
 
 def _is_v25_contract(contract: PilotContract) -> bool:
-    return (
-        _is_v2_contract(contract)
-        and contract.contract_id == "finevo-pilot-v2.5"
-    )
+    return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.5"
 
 
 def _is_v26_contract(contract: PilotContract) -> bool:
-    return (
-        _is_v2_contract(contract)
-        and contract.contract_id == "finevo-pilot-v2.6"
-    )
+    return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.6"
 
 
 def _is_v27_contract(contract: PilotContract) -> bool:
-    return (
-        _is_v2_contract(contract)
-        and contract.contract_id == "finevo-pilot-v2.7"
-    )
+    return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.7"
 
 
 def _is_v28_contract(contract: PilotContract) -> bool:
-    return (
-        _is_v2_contract(contract)
-        and contract.contract_id == "finevo-pilot-v2.8"
-    )
+    return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.8"
+
+
+def _is_v29_contract(contract: PilotContract) -> bool:
+    return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.9"
 
 
 def _is_lane_separated_contract(contract: PilotContract) -> bool:
@@ -237,23 +220,28 @@ def _is_lane_separated_contract(contract: PilotContract) -> bool:
         or _is_v26_contract(contract)
         or _is_v27_contract(contract)
         or _is_v28_contract(contract)
+        or _is_v29_contract(contract)
     )
 
 
-def _is_v27_imported_stage0_spec(
+def _is_imported_stage0_spec(
     contract: PilotContract,
     spec: Mapping[str, Any],
 ) -> bool:
-    """Recognize only the amended V2.7 Stage-0 actor cells.
+    """Recognize only the amended V2.7--V2.9 Stage-0 actor cells.
 
-    These cells retain ``actor_run`` in the immutable matrix, but V2.7
-    materializes a dedicated import envelope instead of redispatching the
-    provider.  No other actor-run JSON artifact is admitted through this
-    compatibility boundary.
+    These cells retain ``actor_run`` in their immutable matrices, but the
+    amended contracts materialize version-specific import envelopes instead
+    of redispatching the provider.  No other actor-run JSON artifact is
+    admitted through this compatibility boundary.
     """
 
     return (
-        _is_v27_contract(contract)
+        (
+            _is_v27_contract(contract)
+            or _is_v28_contract(contract)
+            or _is_v29_contract(contract)
+        )
         and spec.get("stage_id") == "stage0-calibration"
         and spec.get("execution_mode") == "actor_run"
     )
@@ -392,8 +380,10 @@ def _json_copy(value: Any) -> Any:
 
 
 def _is_finite_scalar(value: Any) -> bool:
-    return not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(
-        float(value)
+    return (
+        not isinstance(value, bool)
+        and isinstance(value, (int, float))
+        and math.isfinite(float(value))
     )
 
 
@@ -471,7 +461,9 @@ def write_terminal_summary(
             "scientific terminal summaries must be non-diagnostic current-method evidence"
         )
     if _contains_text(payload, HISTORICAL_SCOPE):
-        raise PilotEvidenceError("historical_pre_p0_v1 cannot be sealed as pilot evidence")
+        raise PilotEvidenceError(
+            "historical_pre_p0_v1 cannot be sealed as pilot evidence"
+        )
     binding = contract.validate_provenance(resolved_git_commit, git_tag)
     value: dict[str, Any] = {
         "schema_version": PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION,
@@ -527,7 +519,9 @@ def _validate_binding(
         raise PilotEvidenceError("artifact provenance is missing tag/commit identity")
     expected = contract.validate_provenance(resolved_git_commit, git_tag)
     if _json_copy(_mapping(binding, "contract binding")) != expected:
-        raise PilotEvidenceError("artifact contract/tag binding does not match frozen contract")
+        raise PilotEvidenceError(
+            "artifact contract/tag binding does not match frozen contract"
+        )
     return expected
 
 
@@ -599,13 +593,10 @@ def _validate_rng_binding(value: Any, *, name: str) -> Mapping[str, Any]:
         "horizon",
     }
     if set(binding) != expected_keys:
-        raise PilotEvidenceError(
-            f"{name} must contain exactly {sorted(expected_keys)}"
-        )
+        raise PilotEvidenceError(f"{name} must contain exactly {sorted(expected_keys)}")
     if (
         binding.get("schema_version") != "finevo-pilot-d-rng-schedule-v1"
-        or binding.get("derivation")
-        != "checkpoint-bound-domain-separated-sha256"
+        or binding.get("derivation") != "checkpoint-bound-domain-separated-sha256"
         or binding.get("generated_before_provider_calls") is not True
         or binding.get("horizon") != 6
         or not _is_sha256(binding.get("source_hash"))
@@ -638,9 +629,7 @@ def _validate_branch_provider_journal_binding(
         "terminal_dispositions_verified",
     }
     if set(binding) != expected_keys:
-        raise PilotEvidenceError(
-            f"{name} must contain exactly {sorted(expected_keys)}"
-        )
+        raise PilotEvidenceError(f"{name} must contain exactly {sorted(expected_keys)}")
     if (
         binding.get("enabled") is not True
         or not isinstance(binding.get("path"), str)
@@ -652,8 +641,7 @@ def _validate_branch_provider_journal_binding(
         or binding.get("contract_hash") != contract_hash
         or binding.get("event_count") != expected_completions * 2
         or binding.get("completion_event_count") != expected_completions
-        or binding.get("parse_disposition_event_count")
-        != expected_completions
+        or binding.get("parse_disposition_event_count") != expected_completions
         or binding.get("terminal_dispositions_verified") is not True
     ):
         raise PilotEvidenceError(
@@ -710,29 +698,22 @@ def _verify_branch_provider_journal_file(
         journal["journal_sha256"] != binding["journal_sha256"]
         or len(events) != binding["event_count"]
         or len(completions) != binding["completion_event_count"]
-        or len(dispositions)
-        != binding["parse_disposition_event_count"]
+        or len(dispositions) != binding["parse_disposition_event_count"]
         or _json_copy(completions) != _json_copy(expected_api_usage)
     ):
         raise PilotEvidenceError(
             f"{name} differs from its binding or branch API denominator"
         )
     expected_coordinates = {
-        (decision_t, agent_id)
-        for decision_t in range(6, 12)
-        for agent_id in range(4)
+        (decision_t, agent_id) for decision_t in range(6, 12) for agent_id in range(4)
     }
     observed_coordinates = {
-        (row.get("decision_t"), row.get("agent_id"))
-        for row in completions
+        (row.get("decision_t"), row.get("agent_id")) for row in completions
     }
-    if (
-        observed_coordinates != expected_coordinates
-        or any(
-            row.get("call_kind") != "pilot_continuation_action"
-            or row.get("treatment") != expected_treatment
-            for row in completions
-        )
+    if observed_coordinates != expected_coordinates or any(
+        row.get("call_kind") != "pilot_continuation_action"
+        or row.get("treatment") != expected_treatment
+        for row in completions
     ):
         raise PilotEvidenceError(
             f"{name} does not contain the exact 4-agent by 6-step call grid"
@@ -764,10 +745,7 @@ def _verify_branch_provider_journal_file(
         "completion_text",
         "content",
     }
-    if any(
-        forbidden_raw_text_keys & set(event["payload"])
-        for event in events
-    ):
+    if any(forbidden_raw_text_keys & set(event["payload"]) for event in events):
         raise PilotEvidenceError(f"{name} stores raw provider output text")
 
 
@@ -796,15 +774,12 @@ def _validate_shuffle_binding(
         "permutation_hash",
     }
     if set(binding) != required:
-        raise PilotEvidenceError(
-            f"{name} must contain exactly {sorted(required)}"
-        )
+        raise PilotEvidenceError(f"{name} must contain exactly {sorted(required)}")
     originals = binding.get("original_episode_ids")
     permutation = binding.get("permutation")
     shuffled = binding.get("shuffled_episode_ids")
     if (
-        binding.get("schema_version")
-        != "finevo-pilot-d-shuffle-binding-v1"
+        binding.get("schema_version") != "finevo-pilot-d-shuffle-binding-v1"
         or binding.get("algorithm") != shuffle_policy.get("algorithm")
         or binding.get("checkpoint_hash") != checkpoint_hash
         or binding.get("decision_t") != decision_t
@@ -857,17 +832,10 @@ def _validate_shuffle_binding(
     identity = list(range(len(originals)))
     reversed_identity = list(reversed(identity))
     if expected_permutation == identity:
-        expected_permutation = (
-            expected_permutation[1:] + expected_permutation[:1]
-        )
+        expected_permutation = expected_permutation[1:] + expected_permutation[:1]
         expected_adjustment = "rotate-left-to-avoid-identity"
-    if (
-        len(expected_permutation) > 2
-        and expected_permutation == reversed_identity
-    ):
-        expected_permutation = (
-            expected_permutation[1:] + expected_permutation[:1]
-        )
+    if len(expected_permutation) > 2 and expected_permutation == reversed_identity:
+        expected_permutation = expected_permutation[1:] + expected_permutation[:1]
         expected_adjustment = "rotate-left-to-avoid-fixed-reversal"
     if (
         permutation != expected_permutation
@@ -878,9 +846,7 @@ def _validate_shuffle_binding(
         )
     if (
         shuffle_policy.get("non_identity_required") is not True
-        or shuffle_policy.get(
-            "fixed_reversal_prohibited_for_three_or_more_items"
-        )
+        or shuffle_policy.get("fixed_reversal_prohibited_for_three_or_more_items")
         is not True
         or shuffle_policy.get("checkpoint_hash_bound") is not True
     ):
@@ -912,21 +878,17 @@ def _validate_memory_pulse_binding(
         "wrong_context_source_agent_id",
     }
     if set(binding) != required:
-        raise PilotEvidenceError(
-            f"{name} must contain exactly {sorted(required)}"
-        )
+        raise PilotEvidenceError(f"{name} must contain exactly {sorted(required)}")
     focal_agent_id = int(pulse_contract["focal_agent_id"])
     decision_t = int(pulse_contract["decision_t"])
     if (
-        binding.get("schema_version")
-        != "finevo-pilot-d-memory-pulse-binding-v1"
+        binding.get("schema_version") != "finevo-pilot-d-memory-pulse-binding-v1"
         or binding.get("kind") != treatment
         or binding.get("checkpoint_hash") != checkpoint_hash
         or binding.get("focal_agent_id") != focal_agent_id
         or binding.get("decision_t") != decision_t
         or binding.get("pulse_only") is not True
-        or binding.get("duration_decisions")
-        != pulse_contract.get("duration_decisions")
+        or binding.get("duration_decisions") != pulse_contract.get("duration_decisions")
         or not _is_sha256(binding.get("original_memory_hash"))
         or not _is_sha256(binding.get("treated_memory_hash"))
     ):
@@ -941,9 +903,7 @@ def _validate_memory_pulse_binding(
             shuffle_policy=shuffle_policy,
         )
         if binding.get("wrong_context_source_agent_id") is not None:
-            raise PilotEvidenceError(
-                f"{name} shuffled pulse has a wrong-context donor"
-            )
+            raise PilotEvidenceError(f"{name} shuffled pulse has a wrong-context donor")
     elif (
         binding.get("shuffle_binding") is not None
         or (
@@ -1022,9 +982,7 @@ def _validate_causal_bindings(
             shuffle_policy,
         )
     ):
-        raise PilotEvidenceError(
-            f"{name} has an incomplete V2 pulse/journal contract"
-        )
+        raise PilotEvidenceError(f"{name} has an incomplete V2 pulse/journal contract")
     if narrative:
         required = {
             "kind",
@@ -1082,9 +1040,7 @@ def _validate_causal_bindings(
                 "branch_memory_pulse_binding",
             }
     if set(bindings) != required:
-        raise PilotEvidenceError(
-            f"{name} must contain exactly {sorted(required)}"
-        )
+        raise PilotEvidenceError(f"{name} must contain exactly {sorted(required)}")
     for field in required & {
         "checkpoint_hash",
         "prefix_hash",
@@ -1104,12 +1060,9 @@ def _validate_causal_bindings(
             or len(rng_hashes) != 6
             or any(not _is_sha256(item) for item in rng_hashes)
         ):
-            raise PilotEvidenceError(
-                f"{name}.{field} must contain six SHA-256 digests"
-            )
-    if (
-        list(bindings["pre_generated_rng_hashes"])
-        != list(bindings["branch_rng_pre_step_hashes"])
+            raise PilotEvidenceError(f"{name}.{field} must contain six SHA-256 digests")
+    if list(bindings["pre_generated_rng_hashes"]) != list(
+        bindings["branch_rng_pre_step_hashes"]
     ):
         raise PilotEvidenceError(
             f"{name} branch RNG hashes differ from the pre-generated schedule"
@@ -1148,11 +1101,7 @@ def _validate_causal_bindings(
         narrative_pulse_expected = bool(
             extended
             and bindings.get("branch_narrative_id")
-            in set(
-                (narrative_pulse_contract or {}).get(
-                    "treatment_narratives", ()
-                )
-            )
+            in set((narrative_pulse_contract or {}).get("treatment_narratives", ()))
         )
         if (
             narrative_fixture_hash is None
@@ -1176,9 +1125,7 @@ def _validate_causal_bindings(
         assert memory_pulse_contract is not None
         assert shuffle_policy is not None
         treatment = bindings.get("branch_treatment")
-        pulse_treatments = set(
-            memory_pulse_contract.get("treatment_arms", ())
-        )
+        pulse_treatments = set(memory_pulse_contract.get("treatment_arms", ()))
         pulse_expected = treatment in pulse_treatments
         if (
             bindings.get("matched_replay_equal") is not True
@@ -1188,13 +1135,10 @@ def _validate_causal_bindings(
             or not isinstance(treatment, str)
             or bindings.get("memory_pulse_contract")
             != _json_copy(dict(memory_pulse_contract))
-            or bindings.get("branch_intervention_pulse_only")
-            is not pulse_expected
+            or bindings.get("branch_intervention_pulse_only") is not pulse_expected
             or (
                 bindings.get("branch_forced_active_start_hash") is not None
-                and not _is_sha256(
-                    bindings.get("branch_forced_active_start_hash")
-                )
+                and not _is_sha256(bindings.get("branch_forced_active_start_hash"))
             )
         ):
             raise PilotEvidenceError(
@@ -1220,9 +1164,7 @@ def _validate_causal_bindings(
         or not isinstance(bindings.get("branch_treatment"), str)
         or (
             bindings.get("branch_forced_active_start_hash") is not None
-            and not _is_sha256(
-                bindings.get("branch_forced_active_start_hash")
-            )
+            and not _is_sha256(bindings.get("branch_forced_active_start_hash"))
         )
     ):
         raise PilotEvidenceError(
@@ -1284,9 +1226,7 @@ def _validate_capability_v2(capability: Mapping[str, Any]) -> None:
                     "capability v2 row schema/status is inconsistent"
                 )
             if interface_status != "pass" and row.get("correct") is not False:
-                raise PilotEvidenceError(
-                    "capability v2 non-pass row cannot be correct"
-                )
+                raise PilotEvidenceError("capability v2 non-pass row cannot be correct")
             provider_error = row.get("provider_error")
             provider_error_details = row.get("provider_error_details")
             parse_error = row.get("parse_error")
@@ -1394,11 +1334,8 @@ def _validate_capability_v2(capability: Mapping[str, Any]) -> None:
         for field, value in expected.items():
             actual = observed.get(field)
             if isinstance(value, float):
-                if (
-                    not _is_finite_scalar(actual)
-                    or not math.isclose(
-                        float(actual), value, rel_tol=0.0, abs_tol=1e-12
-                    )
+                if not _is_finite_scalar(actual) or not math.isclose(
+                    float(actual), value, rel_tol=0.0, abs_tol=1e-12
                 ):
                     raise PilotEvidenceError(
                         f"capability v2 totals {category!r} are inconsistent"
@@ -1440,24 +1377,14 @@ def _validate_capability_v2(capability: Mapping[str, Any]) -> None:
         "status": (
             "not_evaluable"
             if interface_failure_count
-            else "pass"
-            if all(conditional_checks.values())
-            else "fail"
+            else "pass" if all(conditional_checks.values()) else "fail"
         ),
-        "pass": (
-            None
-            if interface_failure_count
-            else all(conditional_checks.values())
-        ),
+        "pass": (None if interface_failure_count else all(conditional_checks.values())),
         "checks": conditional_checks,
     }
     if capability.get("capability_assessment") != expected_assessment:
-        raise PilotEvidenceError(
-            "capability v2 conditional assessment is inconsistent"
-        )
-    expected_pass = (
-        expected_interface["pass"] and expected_assessment["pass"] is True
-    )
+        raise PilotEvidenceError("capability v2 conditional assessment is inconsistent")
+    expected_pass = expected_interface["pass"] and expected_assessment["pass"] is True
     if capability.get("pass") is not expected_pass:
         raise PilotEvidenceError("capability v2 overall pass is inconsistent")
     if capability.get("provider_failure_count") != sum(
@@ -1465,17 +1392,11 @@ def _validate_capability_v2(capability: Mapping[str, Any]) -> None:
         for row in rows
         if isinstance(row, Mapping)
     ):
-        raise PilotEvidenceError(
-            "capability v2 provider-failure count is inconsistent"
-        )
+        raise PilotEvidenceError("capability v2 provider-failure count is inconsistent")
     if capability.get("parse_failure_count") != sum(
-        row.get("parse_error") is not None
-        for row in rows
-        if isinstance(row, Mapping)
+        row.get("parse_error") is not None for row in rows if isinstance(row, Mapping)
     ):
-        raise PilotEvidenceError(
-            "capability v2 parse-failure count is inconsistent"
-        )
+        raise PilotEvidenceError("capability v2 parse-failure count is inconsistent")
 
 
 def _capability_v3_usage(
@@ -1725,9 +1646,7 @@ def _capability_v4_proposal_legality(
     support_set = set(support)
     proposal_track = task.proposal_track
     episodes = (
-        proposal_track.get("episodes")
-        if isinstance(proposal_track, Mapping)
-        else None
+        proposal_track.get("episodes") if isinstance(proposal_track, Mapping) else None
     )
     if isinstance(episodes, (str, bytes)) or not isinstance(episodes, Sequence):
         raise PilotEvidenceError(
@@ -1979,9 +1898,7 @@ def _validate_capability_v3(
 
         for field in ("provider", "requested_model"):
             if not isinstance(row.get(field), str) or not row[field]:
-                raise PilotEvidenceError(
-                    f"capability v3 row {task_id!r} lacks {field}"
-                )
+                raise PilotEvidenceError(f"capability v3 row {task_id!r} lacks {field}")
         if "served_model" not in row:
             raise PilotEvidenceError(
                 f"capability v3 row {task_id!r} lacks served_model field"
@@ -2030,9 +1947,10 @@ def _validate_capability_v3(
             raise PilotEvidenceError(
                 f"capability v3 row {task_id!r} has invalid attempt count"
             )
-        if not isinstance(row.get("output_disposition"), str) or not row[
-            "output_disposition"
-        ]:
+        if (
+            not isinstance(row.get("output_disposition"), str)
+            or not row["output_disposition"]
+        ):
             raise PilotEvidenceError(
                 f"capability v3 row {task_id!r} lacks output disposition"
             )
@@ -2055,9 +1973,7 @@ def _validate_capability_v3(
             raise PilotEvidenceError(
                 f"capability v3 row {task_id!r} has invalid native finish reason"
             )
-        if response_completed is not None and not isinstance(
-            response_completed, bool
-        ):
+        if response_completed is not None and not isinstance(response_completed, bool):
             raise PilotEvidenceError(
                 f"capability v3 row {task_id!r} has invalid completion status"
             )
@@ -2085,10 +2001,7 @@ def _validate_capability_v3(
             )
         finish_valid = finish_reason == "stop" and response_completed is True
         interface_valid = (
-            not provider_failure
-            and not truncation
-            and finish_valid
-            and within_limit
+            not provider_failure and not truncation and finish_valid and within_limit
         )
         if (
             row["truncation"] is not truncation
@@ -2131,10 +2044,7 @@ def _validate_capability_v3(
                 f"capability v3 row {task_id!r} legality is inconsistent"
             )
         expected_correct = (
-            interface_valid
-            and strict_parse
-            and accepted_parse
-            and expected_legal
+            interface_valid and strict_parse and accepted_parse and expected_legal
         )
         if row["correct"] is not expected_correct:
             raise PilotEvidenceError(
@@ -2173,9 +2083,7 @@ def _validate_capability_v3(
     expected_totals: dict[str, dict[str, Any]] = {}
     for category, (registered_total, required) in category_contract.items():
         selected = [
-            item["row"]
-            for item in expected_rows
-            if item["task"].category == category
+            item["row"] for item in expected_rows if item["task"].category == category
         ]
         registered_correct = sum(bool(row["correct"]) for row in selected)
         evaluable_count = sum(bool(row["evaluable"]) for row in selected)
@@ -2252,20 +2160,14 @@ def _validate_capability_v3(
         "status": (
             "not_evaluable"
             if interface_failure_count
-            else "pass"
-            if all(expected_checks.values())
-            else "fail"
+            else "pass" if all(expected_checks.values()) else "fail"
         ),
-        "pass": (
-            None if interface_failure_count else all(expected_checks.values())
-        ),
+        "pass": (None if interface_failure_count else all(expected_checks.values())),
         "checks": conditional_checks,
     }
     if capability.get("capability_assessment") != expected_assessment:
         raise PilotEvidenceError("capability v3 assessment is inconsistent")
-    expected_pass = (
-        expected_interface["pass"] and expected_assessment["pass"] is True
-    )
+    expected_pass = expected_interface["pass"] and expected_assessment["pass"] is True
     if capability.get("pass") is not expected_pass:
         raise PilotEvidenceError("capability v3 overall pass is inconsistent")
     expected_counts = {
@@ -2276,8 +2178,7 @@ def _validate_capability_v3(
             item["row"]["parse_mode"] == "parse_failure" for item in expected_rows
         ),
         "recovered_parse_count": sum(
-            item["row"]["parse_mode"]
-            in {"fenced_recovery", "substring_recovery"}
+            item["row"]["parse_mode"] in {"fenced_recovery", "substring_recovery"}
             for item in expected_rows
         ),
         "strict_parse_count": sum(
@@ -2291,14 +2192,13 @@ def _validate_capability_v3(
         if capability.get(field) != expected:
             raise PilotEvidenceError(f"capability v3 {field} is inconsistent")
 
-    if not isinstance(capability.get("provider_model"), str) or not capability[
-        "provider_model"
-    ]:
+    if (
+        not isinstance(capability.get("provider_model"), str)
+        or not capability["provider_model"]
+    ):
         raise PilotEvidenceError("capability v3 provider_model must be non-empty")
     seed = capability.get("seed")
-    if seed is not None and (
-        isinstance(seed, bool) or not isinstance(seed, int)
-    ):
+    if seed is not None and (isinstance(seed, bool) or not isinstance(seed, int)):
         raise PilotEvidenceError("capability v3 seed must be an integer or null")
 
     budget = _mapping(capability.get("budget"), "capability v3 budget")
@@ -2411,6 +2311,471 @@ def _validate_capability_v4(capability: Mapping[str, Any]) -> None:
     )
 
 
+def _validate_v29_qref_summary_equivalence_receipt(
+    receipt: Any,
+    *,
+    run_id: str,
+) -> dict[str, Any]:
+    """Validate the complete self-hashed V2.9 q-ref summary receipt."""
+
+    from .pilot_v29_qref_projection import (  # pylint: disable=import-outside-toplevel
+        EXACT_RETAINED_PATHS,
+        IDENTITY_NORMALIZED_PATHS,
+        QREF_COMPLETION_COUNT,
+        QREF_EXPECTED_LEAF_PATH_COUNT,
+        QREF_EXPECTED_NORMALIZED_LEAF_PATH_COUNT,
+        QREF_PROVIDER_MODEL,
+        QREF_RUN_SUMMARY_CANONICALIZATION,
+        QREF_RUN_SUMMARY_EQUIVALENCE_SCHEMA_VERSION,
+        QREF_RUN_SUMMARY_PROJECTION_SCHEMA_VERSION,
+        VALIDATED_VOLATILE_PATHS,
+    )
+
+    value = _mapping(receipt, "V2.9 q-ref summary-equivalence receipt")
+    expected_keys = {
+        "schema_version",
+        "status",
+        "policy",
+        "comparison",
+        "current",
+        "historical_reference",
+        "common_projection_sha256",
+        "raw_summaries_reused_as_projection",
+        "integrity",
+    }
+    if set(value) != expected_keys:
+        raise PilotEvidenceError(
+            "V2.9 q-ref summary-equivalence receipt fields drifted"
+        )
+    integrity = _mapping(
+        value.get("integrity"),
+        "V2.9 q-ref summary-equivalence integrity",
+    )
+    unsigned = _json_copy(value)
+    unsigned.pop("integrity", None)
+    if (
+        value.get("schema_version") != QREF_RUN_SUMMARY_EQUIVALENCE_SCHEMA_VERSION
+        or value.get("status") != "pass"
+        or integrity.get("canonicalization") != QREF_RUN_SUMMARY_CANONICALIZATION
+        or not _is_sha256(integrity.get("content_sha256"))
+        or integrity.get("content_sha256") != canonical_sha256(unsigned)
+        or value.get("raw_summaries_reused_as_projection") is not False
+    ):
+        raise PilotEvidenceError(
+            "V2.9 q-ref summary-equivalence schema/self-hash drifted"
+        )
+
+    policy = _mapping(
+        value.get("policy"),
+        "V2.9 q-ref summary-equivalence policy",
+    )
+    expected_policy = {
+        "projection_schema_version": QREF_RUN_SUMMARY_PROJECTION_SCHEMA_VERSION,
+        "mode": "allowlist-first-fail-closed",
+        "exact_retained_paths": list(EXACT_RETAINED_PATHS),
+        "identity_normalized_paths": list(IDENTITY_NORMALIZED_PATHS),
+        "validated_volatile_paths": list(VALIDATED_VOLATILE_PATHS),
+        "unknown_paths": "reject",
+        "completion_order": "exact",
+        "raw_summary_hash_basis": ("full-unprojected-summary-canonical-json"),
+    }
+    if _json_copy(policy) != expected_policy:
+        raise PilotEvidenceError(
+            "V2.9 q-ref summary-equivalence allowlist policy drifted"
+        )
+    comparison = _mapping(
+        value.get("comparison"),
+        "V2.9 q-ref summary-equivalence comparison",
+    )
+    if _json_copy(comparison) != {
+        "identity_relations_validated_before_projection": True,
+        "timing_values_validated_before_omission": True,
+        "deterministic_projection_exact": True,
+        "provider_boundary_exact": True,
+        "api_accounting_exact": True,
+        "leaf_path_count": QREF_EXPECTED_LEAF_PATH_COUNT,
+        "normalized_leaf_path_count": (QREF_EXPECTED_NORMALIZED_LEAF_PATH_COUNT),
+    }:
+        raise PilotEvidenceError(
+            "V2.9 q-ref summary-equivalence 1002/195 comparison drifted"
+        )
+
+    current = _mapping(value.get("current"), "V2.9 q-ref current summary")
+    historical = _mapping(
+        value.get("historical_reference"),
+        "V2.9 q-ref historical summary",
+    )
+    expected_side_keys = {
+        "run_id",
+        "budget_id",
+        "raw_summary_sha256",
+        "projection_sha256",
+        "provider_boundary",
+        "accounting",
+    }
+    if set(current) != expected_side_keys or set(historical) != expected_side_keys:
+        raise PilotEvidenceError("V2.9 q-ref summary-equivalence side fields drifted")
+    expected_budget_id = f"{run_id}-budget"
+    common_projection = value.get("common_projection_sha256")
+    if (
+        current.get("run_id") != run_id
+        or current.get("budget_id") != expected_budget_id
+        or not isinstance(historical.get("run_id"), str)
+        or not historical["run_id"]
+        or historical.get("run_id") == run_id
+        or not isinstance(historical.get("budget_id"), str)
+        or not historical["budget_id"]
+        or historical.get("budget_id") == expected_budget_id
+        or not _is_sha256(current.get("raw_summary_sha256"))
+        or not _is_sha256(historical.get("raw_summary_sha256"))
+        or current.get("raw_summary_sha256") == historical.get("raw_summary_sha256")
+        or not _is_sha256(common_projection)
+        or current.get("projection_sha256") != common_projection
+        or historical.get("projection_sha256") != common_projection
+    ):
+        raise PilotEvidenceError(
+            "V2.9 q-ref summary-equivalence identity/hash binding drifted"
+        )
+
+    expected_provider = {
+        "provider_model": QREF_PROVIDER_MODEL,
+        "scripted_diagnostic_calls": QREF_COMPLETION_COUNT,
+        "hosted_provider_calls": 0,
+        "hosted_cost_usd": 0.0,
+        "completion_models": {QREF_PROVIDER_MODEL: QREF_COMPLETION_COUNT},
+        "call_kind_counts": {"action": QREF_COMPLETION_COUNT},
+    }
+    if (
+        _json_copy(current.get("provider_boundary")) != expected_provider
+        or _json_copy(historical.get("provider_boundary")) != expected_provider
+    ):
+        raise PilotEvidenceError(
+            "V2.9 q-ref summary-equivalence provider boundary drifted"
+        )
+    current_accounting = _mapping(
+        current.get("accounting"),
+        "V2.9 q-ref current accounting",
+    )
+    historical_accounting = _mapping(
+        historical.get("accounting"),
+        "V2.9 q-ref historical accounting",
+    )
+    accounted = _mapping(
+        current_accounting.get("accounted_usage"),
+        "V2.9 q-ref accounted usage",
+    )
+    if (
+        _json_copy(current_accounting) != _json_copy(historical_accounting)
+        or current_accounting.get("completed_calls") != QREF_COMPLETION_COUNT
+        or current_accounting.get("active_calls") != 0
+        or current_accounting.get("rolled_back_calls") != 0
+        or current_accounting.get("stopped") is not True
+        or current_accounting.get("stop_reasons") != ["call_limit"]
+        or accounted.get("total_tokens") != 15_905
+        or accounted.get("prompt_tokens") != 14_657
+        or accounted.get("completion_tokens") != 1_248
+        or accounted.get("cost_usd") != 0.0
+        or current_accounting.get("completion_usage_sum") != accounted
+        or current_accounting.get("effective_usage") != accounted
+        or current_accounting.get("reserved_usage")
+        != {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+            "cost_usd": 0.0,
+        }
+    ):
+        raise PilotEvidenceError(
+            "V2.9 q-ref summary-equivalence 48-call/15905-token " "accounting drifted"
+        )
+    return _json_copy(value)
+
+
+def _validate_v29_qref_audit_equivalence_receipt(
+    receipt: Any,
+    *,
+    contract: PilotContract,
+    resolution: Mapping[str, Any],
+    summary_receipt: Mapping[str, Any],
+    resolved_git_commit: str | None,
+) -> None:
+    """Validate the separate exact streams/q-ref V2.9 audit receipt."""
+
+    value = _mapping(receipt, "V2.9 q-ref audit-equivalence receipt")
+    expected_keys = {
+        "schema_version",
+        "status",
+        "comparison",
+        "current",
+        "historical_reference",
+        "summary_equivalence",
+        "provider_boundary",
+        "bindings",
+        "integrity",
+    }
+    if set(value) != expected_keys:
+        raise PilotEvidenceError("V2.9 q-ref audit-equivalence receipt fields drifted")
+    integrity = _mapping(
+        value.get("integrity"),
+        "V2.9 q-ref audit-equivalence integrity",
+    )
+    if (
+        value.get("schema_version") != "finevo-pilot-v2.9-qref-audit-equivalence-v1"
+        or value.get("status") != "pass"
+        or integrity.get("canonicalization") != "json-sort-keys-utf8-v1"
+        or not _is_sha256(integrity.get("content_sha256"))
+        or integrity.get("content_sha256") != _bound_artifact_hash(value)
+    ):
+        raise PilotEvidenceError(
+            "V2.9 q-ref audit-equivalence schema/self-hash drifted"
+        )
+    comparison = _mapping(
+        value.get("comparison"),
+        "V2.9 q-ref audit-equivalence comparison",
+    )
+    expected_comparison_keys = {
+        "fresh_config_run_id_matches_contract_cell",
+        "historical_config_run_id_matches_reference",
+        "config_equal_except_run_id",
+        "actions_exact",
+        "utility_ledger_exact",
+        "shock_events_exact",
+        "q_ref_exact",
+        "row_count_exact",
+        "run_contract_exact",
+        "checks_exact",
+        "ledger_hash_exact",
+        "environment_hash_exact",
+        "source_config_hash_identity_only_difference",
+        "summary_projection_exact",
+        "provider_accounting_exact",
+    }
+    if set(comparison) != expected_comparison_keys or any(
+        comparison.get(name) is not True for name in expected_comparison_keys
+    ):
+        raise PilotEvidenceError(
+            "V2.9 q-ref exact actions/utility/shocks/q_ref checks drifted"
+        )
+
+    current = _mapping(value.get("current"), "V2.9 q-ref audit current")
+    historical = _mapping(
+        value.get("historical_reference"),
+        "V2.9 q-ref audit historical reference",
+    )
+    expected_current_keys = {
+        "run_id",
+        "budget_id",
+        "manifest",
+        "manifest_file_sha256",
+        "actions_sha256",
+        "utility_ledger_sha256",
+        "shock_events_sha256",
+        "q_ref",
+        "ledger_hash",
+        "source_config_hash",
+    }
+    expected_historical_keys = {
+        "run_id",
+        "budget_id",
+        "source_run_root",
+        "source_manifest_file_sha256",
+        "actions_sha256",
+        "utility_ledger_sha256",
+        "shock_events_sha256",
+        "summary_file_sha256",
+        "q_ref",
+        "ledger_hash",
+        "source_config_hash",
+        "source_result_reused",
+    }
+    stream_hashes = (
+        "actions_sha256",
+        "utility_ledger_sha256",
+        "shock_events_sha256",
+    )
+    if (
+        set(current) != expected_current_keys
+        or set(historical) != expected_historical_keys
+        or current.get("run_id") != summary_receipt["current"]["run_id"]
+        or current.get("budget_id") != summary_receipt["current"]["budget_id"]
+        or historical.get("run_id") != summary_receipt["historical_reference"]["run_id"]
+        or historical.get("budget_id")
+        != summary_receipt["historical_reference"]["budget_id"]
+        or current.get("manifest") != resolution.get("source_manifest")
+        or current.get("manifest_file_sha256")
+        != resolution.get("bindings", {}).get("source_manifest_sha256")
+        or current.get("q_ref") != resolution.get("q_ref")
+        or historical.get("q_ref") != resolution.get("q_ref")
+        or resolution.get("q_ref") != 63.50397933257746
+        or current.get("ledger_hash") != historical.get("ledger_hash")
+        or current.get("source_config_hash") == historical.get("source_config_hash")
+        or historical.get("source_result_reused") is not False
+        or any(
+            not _is_sha256(current.get(name))
+            or current.get(name) != historical.get(name)
+            for name in stream_hashes
+        )
+        or not _is_sha256(current.get("manifest_file_sha256"))
+        or not _is_sha256(historical.get("source_manifest_file_sha256"))
+        or not _is_sha256(historical.get("summary_file_sha256"))
+        or not _is_sha256(current.get("ledger_hash"))
+        or not _is_sha256(current.get("source_config_hash"))
+        or not _is_sha256(historical.get("source_config_hash"))
+        or not isinstance(historical.get("source_run_root"), str)
+        or not historical["source_run_root"]
+    ):
+        raise PilotEvidenceError("V2.9 q-ref exact stream/scalar hash binding drifted")
+
+    summary_binding = _mapping(
+        value.get("summary_equivalence"),
+        "V2.9 q-ref audit summary binding",
+    )
+    if _json_copy(summary_binding) != {
+        "schema_version": summary_receipt["schema_version"],
+        "content_sha256": summary_receipt["integrity"]["content_sha256"],
+        "common_projection_sha256": summary_receipt["common_projection_sha256"],
+        "embedded_key": "q_ref_summary_equivalence",
+    }:
+        raise PilotEvidenceError("V2.9 q-ref audit-to-summary receipt binding drifted")
+    if _json_copy(value.get("provider_boundary")) != {
+        "scripted_diagnostic_calls": 48,
+        "hosted_provider_calls": 0,
+        "hosted_cost_usd": 0.0,
+        "hosted_provider_construction": False,
+        "total_tokens": 15_905,
+    }:
+        raise PilotEvidenceError(
+            "V2.9 q-ref audit provider/accounting boundary drifted"
+        )
+    bindings = _mapping(
+        value.get("bindings"),
+        "V2.9 q-ref audit bindings",
+    )
+    expected_binding_keys = {
+        "contract_sha256",
+        "git_tag",
+        "git_commit",
+        "source_manifest_file_sha256",
+        "source_manifest_content_sha256",
+        "parent_import_receipt_file_sha256",
+        "parent_import_receipt_content_sha256",
+    }
+    if (
+        set(bindings) != expected_binding_keys
+        or bindings.get("contract_sha256") != contract.canonical_hash
+        or bindings.get("git_tag") != contract.implementation["required_git_tag"]
+        or bindings.get("git_commit") != resolved_git_commit
+        or any(
+            not _is_sha256(bindings.get(name))
+            for name in expected_binding_keys
+            - {"contract_sha256", "git_tag", "git_commit"}
+        )
+    ):
+        raise PilotEvidenceError("V2.9 q-ref audit source/release bindings drifted")
+
+
+def _validate_v29_qref_resolution_artifact(
+    contract: PilotContract,
+    spec: Mapping[str, Any],
+    resolution_marker: Mapping[str, Any],
+    *,
+    raw_root: Path,
+    resolved_git_commit: str | None,
+) -> None:
+    """Bind the terminal row to the sealed V2.9 q-ref equivalence artifact."""
+
+    artifact_path = _resolve_artifact(
+        raw_root,
+        resolution_marker.get("resolution_artifact"),
+    )
+    resolution = _strict_json_load(artifact_path)
+    integrity = _mapping(
+        resolution.get("integrity"),
+        "V2.9 q-ref resolution integrity",
+    )
+    bindings = _mapping(
+        resolution.get("bindings"),
+        "V2.9 q-ref resolution bindings",
+    )
+    if (
+        resolution.get("schema_version") != "finevo-q-ref-resolution-v1"
+        or integrity.get("canonicalization") != "json-sort-keys-utf8-v1"
+        or not _is_sha256(integrity.get("content_sha256"))
+        or integrity.get("content_sha256") != _bound_artifact_hash(resolution)
+        or resolution.get("status") != "pass"
+        or resolution.get("scientific_evidence") is not False
+        or resolution.get("q_ref") != resolution_marker.get("q_ref")
+        or resolution.get("row_count") != resolution_marker.get("row_count")
+        or resolution.get("source_manifest") != resolution_marker.get("source_manifest")
+        or bindings.get("source_manifest_sha256")
+        != resolution_marker.get("source_manifest_sha256")
+        or bindings.get("contract_sha256") != contract.canonical_hash
+        or bindings.get("git_tag") != contract.implementation["required_git_tag"]
+        or bindings.get("git_commit") != resolved_git_commit
+    ):
+        raise PilotEvidenceError(
+            "V2.9 q-ref sealed resolution artifact binding drifted"
+        )
+    receipt = _validate_v29_qref_summary_equivalence_receipt(
+        resolution.get("q_ref_summary_equivalence"),
+        run_id=str(spec["run_id"]),
+    )
+    _validate_v29_qref_audit_equivalence_receipt(
+        resolution.get("q_ref_audit_equivalence"),
+        contract=contract,
+        resolution=resolution,
+        summary_receipt=receipt,
+        resolved_git_commit=resolved_git_commit,
+    )
+    if (
+        resolution.get("provider_calls_current_attempt") != 48
+        or resolution.get("hosted_provider_calls_current_attempt") != 0
+        or resolution.get("hosted_cost_usd_current_attempt") != 0.0
+    ):
+        raise PilotEvidenceError("V2.9 q-ref resolution provider boundary drifted")
+    marker = _mapping(
+        resolution_marker.get("summary_equivalence"),
+        "V2.9 q-ref terminal summary-equivalence binding",
+    )
+    marker_path = _resolve_artifact(raw_root, marker.get("path"))
+    if (
+        marker_path != artifact_path
+        or marker.get("embedded_key") != "q_ref_summary_equivalence"
+        or marker.get("file_sha256") != _sha256_file(artifact_path)
+        or marker.get("content_sha256") != integrity["content_sha256"]
+    ):
+        raise PilotEvidenceError(
+            "V2.9 q-ref terminal summary-equivalence binding drifted"
+        )
+    from .pilot_orchestrator import (  # pylint: disable=import-outside-toplevel
+        PilotOrchestrationError,
+        verify_v29_qref_resolution,
+    )
+
+    try:
+        replayed = verify_v29_qref_resolution(
+            contract,
+            artifact_path,
+            raw_root,
+            str(resolved_git_commit),
+            str(contract.implementation["required_git_tag"]),
+        )
+    except (
+        OSError,
+        TypeError,
+        ValueError,
+        KeyError,
+        PilotOrchestrationError,
+    ) as exc:
+        raise PilotEvidenceError(
+            f"V2.9 q-ref exact source replay failed: {exc}"
+        ) from exc
+    if replayed != resolution:
+        raise PilotEvidenceError(
+            "V2.9 q-ref exact source replay differs from the sealed resolution"
+        )
+
+
 def _validate_terminal_payload_marker(
     contract: PilotContract,
     spec: Mapping[str, Any],
@@ -2473,6 +2838,28 @@ def _validate_terminal_payload_marker(
                 )
 
                 parent_import_receipt_verifier = verify_v28_parent_import_receipt
+        elif _is_v29_contract(contract):
+            version_label = "V2.9"
+            if parent_import_receipt_verifier is None:
+                from .pilot_v29_stage0_import import (  # pylint: disable=import-outside-toplevel
+                    verify_v29_parent_import_receipt,
+                )
+
+                def verify_v29_receipt(
+                    receipt_path: str,
+                    *,
+                    repo_root: Path,
+                    contract: PilotContract,
+                    expected_git_commit: str,
+                ) -> Mapping[str, Any]:
+                    return verify_v29_parent_import_receipt(
+                        receipt_path=receipt_path,
+                        child_repo_root=repo_root,
+                        contract=contract,
+                        expected_git_commit=expected_git_commit,
+                    )
+
+                parent_import_receipt_verifier = verify_v29_receipt
         else:
             raise PilotEvidenceError(
                 "parent-authority import is unsupported for this contract"
@@ -2480,7 +2867,7 @@ def _validate_terminal_payload_marker(
         receipt_path = gate.get("receipt")
         gate_provider_calls = gate.get(
             "provider_calls_during_import"
-            if _is_v28_contract(contract)
+            if _is_v28_contract(contract) or _is_v29_contract(contract)
             else "provider_calls"
         )
         if (
@@ -2557,10 +2944,8 @@ def _validate_terminal_payload_marker(
                 raise PilotEvidenceError(
                     "capability import target spec is not uniquely registered"
                 )
-            receipt_path = (
-                pilot_evaluation_amendment.evaluator_amendment_control_path(
-                    raw_root=raw_root
-                )
+            receipt_path = pilot_evaluation_amendment.evaluator_amendment_control_path(
+                raw_root=raw_root
             )
             receipt = _strict_json_load(receipt_path)
             try:
@@ -2603,9 +2988,7 @@ def _validate_terminal_payload_marker(
                     gate.get("preflight_manifest") is None
                     and isinstance(gate.get("preflight_checkpoint"), str)
                     and bool(gate["preflight_checkpoint"])
-                    and isinstance(
-                        gate.get("preflight_checkpoint_exactness"), str
-                    )
+                    and isinstance(gate.get("preflight_checkpoint_exactness"), str)
                     and bool(gate["preflight_checkpoint_exactness"])
                 )
                 if _is_v2_contract(contract)
@@ -2642,6 +3025,14 @@ def _validate_terminal_payload_marker(
         ):
             raise PilotEvidenceError(
                 "q_ref terminal summary lacks its sealed positive resolution marker"
+            )
+        if _is_v29_contract(contract):
+            _validate_v29_qref_resolution_artifact(
+                contract,
+                spec,
+                resolution,
+                raw_root=raw_root,
+                resolved_git_commit=resolved_git_commit,
             )
         return
     if mode == "offline_candidate_admission":
@@ -2680,7 +3071,7 @@ def _validate_terminal_payload_marker(
     ):
         raise PilotEvidenceError(
             "checkpoint continuation lacks the exact 4x6 completion receipt"
-    )
+        )
     narrative = str(spec.get("arm_id")) == "narrative-content"
     (
         memory_pulse_contract,
@@ -2695,9 +3086,7 @@ def _validate_terminal_payload_marker(
             contract.stop_go["experiment_d"]["action_grid"],
             "contract experiment_d action_grid",
         ),
-        contract_hash=(
-            contract.canonical_hash if _is_v2_contract(contract) else None
-        ),
+        contract_hash=(contract.canonical_hash if _is_v2_contract(contract) else None),
         memory_pulse_contract=memory_pulse_contract,
         narrative_pulse_contract=narrative_pulse_contract,
         shuffle_policy=shuffle_policy,
@@ -2759,10 +3148,9 @@ def _validate_terminal_payload_marker(
             raise PilotEvidenceError(
                 "checkpoint continuation metrics/replay marker is incomplete"
             )
-    if (
-        gate.get("checkpoint_hash") != causal.get("checkpoint_hash")
-        or gate.get("prefix_hash") != causal.get("prefix_hash")
-    ):
+    if gate.get("checkpoint_hash") != causal.get("checkpoint_hash") or gate.get(
+        "prefix_hash"
+    ) != causal.get("prefix_hash"):
         raise PilotEvidenceError(
             "checkpoint summary top-level hashes differ from causal bindings"
         )
@@ -2780,9 +3168,7 @@ def _validate_terminal_payload_marker(
     try:
         resolved_source = source_path.resolve(strict=True)
     except FileNotFoundError as exc:
-        raise PilotEvidenceError(
-            "checkpoint shared source is missing"
-        ) from exc
+        raise PilotEvidenceError("checkpoint shared source is missing") from exc
     if not resolved_source.is_relative_to(raw_root.resolve()):
         raise PilotEvidenceError("checkpoint shared source escapes the raw root")
     if _sha256_file(resolved_source) != source_hash:
@@ -2810,9 +3196,7 @@ def _validate_terminal_payload_marker(
     branches = _mapping(source.get("branches"), "checkpoint shared-source branches")
     if narrative:
         expected_schema = (
-            contract.stop_go["experiment_d"]["source_schema_versions"][
-                "narrative"
-            ]
+            contract.stop_go["experiment_d"]["source_schema_versions"]["narrative"]
             if _is_v2_contract(contract)
             else "finevo-pilot-narrative-v1"
         )
@@ -2822,9 +3206,7 @@ def _validate_terminal_payload_marker(
         source_checks = {
             "checkpoint_hash": causal["checkpoint_hash"],
             "prefix_hash": causal["prefix_hash"],
-            "pre_generated_rng_hashes": causal[
-                "pre_generated_rng_hashes"
-            ],
+            "pre_generated_rng_hashes": causal["pre_generated_rng_hashes"],
             "rng_schedule_binding": causal["rng_schedule_binding"],
             "fixture_hash": causal["fixture_hash"],
             "focal_agent_id": causal["focal_agent_id"],
@@ -2834,16 +3216,12 @@ def _validate_terminal_payload_marker(
             source_checks.update(
                 {
                     "shock_schedule_hash": causal["shock_schedule_hash"],
-                    "narrative_pulse_contract": causal[
-                        "narrative_pulse_contract"
-                    ],
+                    "narrative_pulse_contract": causal["narrative_pulse_contract"],
                 }
             )
     else:
         expected_schema = (
-            contract.stop_go["experiment_d"]["source_schema_versions"][
-                "continuation"
-            ]
+            contract.stop_go["experiment_d"]["source_schema_versions"]["continuation"]
             if _is_v2_contract(contract)
             else "finevo-pilot-continuation-v1"
         )
@@ -2858,21 +3236,15 @@ def _validate_terminal_payload_marker(
             "checkpoint_hash": causal["checkpoint_hash"],
             "prefix_hash": causal["prefix_hash"],
             "shock_schedule_hash": causal["shock_schedule_hash"],
-            "pre_generated_rng_hashes": causal[
-                "pre_generated_rng_hashes"
-            ],
+            "pre_generated_rng_hashes": causal["pre_generated_rng_hashes"],
             "rng_schedule_binding": causal["rng_schedule_binding"],
             "matched_replay_equal": causal["matched_replay_equal"],
             "focal_agent_id": causal["focal_agent_id"],
-            "wrong_context_source_agent_id": causal[
-                "wrong_context_source_agent_id"
-            ],
+            "wrong_context_source_agent_id": causal["wrong_context_source_agent_id"],
             "action_grid": causal["action_grid"],
         }
         if _is_v2_contract(contract):
-            source_checks["memory_pulse_contract"] = causal[
-                "memory_pulse_contract"
-            ]
+            source_checks["memory_pulse_contract"] = causal["memory_pulse_contract"]
         if (
             common_start.get("equal") is not True
             or common_start.get("forced_active_start_hash")
@@ -2897,9 +3269,7 @@ def _validate_terminal_payload_marker(
         "freeze_proposals": causal["proposals_frozen"],
     }
     if _is_v2_contract(contract):
-        branch_checks["provider_call_journal"] = causal[
-            "branch_provider_call_journal"
-        ]
+        branch_checks["provider_call_journal"] = causal["branch_provider_call_journal"]
     if (
         any(branch.get(key) != expected for key, expected in branch_checks.items())
         or not isinstance(api_usage, Sequence)
@@ -2915,11 +3285,7 @@ def _validate_terminal_payload_marker(
         if (
             not isinstance(trajectory, list)
             or len(trajectory) != 6
-            or [
-                row.get("decision_t")
-                for row in trajectory
-                if isinstance(row, Mapping)
-            ]
+            or [row.get("decision_t") for row in trajectory if isinstance(row, Mapping)]
             != list(range(6, 12))
             or any(
                 not isinstance(row, Mapping)
@@ -2938,9 +3304,7 @@ def _validate_terminal_payload_marker(
                 "shared-source narrative pulse metadata",
             )
             expected_pulse = branch_key in set(
-                causal["narrative_pulse_contract"][
-                    "treatment_narratives"
-                ]
+                causal["narrative_pulse_contract"]["treatment_narratives"]
             )
             if (
                 narrative_meta.get("pulse_only") is not expected_pulse
@@ -2956,13 +3320,8 @@ def _validate_terminal_payload_marker(
                 "shared-source narrative none branch",
             )
             none_trajectory = none_branch.get("trajectory")
-            if (
-                not isinstance(none_trajectory, list)
-                or len(none_trajectory) != 6
-            ):
-                raise PilotEvidenceError(
-                    "narrative source lacks its no-text branch"
-                )
+            if not isinstance(none_trajectory, list) or len(none_trajectory) != 6:
+                raise PilotEvidenceError("narrative source lacks its no-text branch")
             if expected_pulse:
                 current_prompts = _mapping(
                     trajectory[0].get("prompt_hashes"),
@@ -2972,33 +3331,21 @@ def _validate_terminal_payload_marker(
                     none_trajectory[0].get("prompt_hashes"),
                     "no-text first-step prompt hashes",
                 )
-                if (
-                    current_prompts.get("0") == none_prompts.get("0")
-                    or any(
-                        current_prompts.get(str(agent_id))
-                        != none_prompts.get(str(agent_id))
-                        for agent_id in range(1, 4)
-                    )
+                if current_prompts.get("0") == none_prompts.get("0") or any(
+                    current_prompts.get(str(agent_id))
+                    != none_prompts.get(str(agent_id))
+                    for agent_id in range(1, 4)
                 ):
                     raise PilotEvidenceError(
                         "narrative pulse is not isolated to focal agent 0 at t=6"
                     )
         else:
-            pulse_expected = bool(
-                causal["branch_intervention_pulse_only"]
-            )
+            pulse_expected = bool(causal["branch_intervention_pulse_only"])
             expected_first_binding = (
-                {"0": causal["branch_memory_pulse_binding"]}
-                if pulse_expected
-                else {}
+                {"0": causal["branch_memory_pulse_binding"]} if pulse_expected else {}
             )
-            if (
-                trajectory[0]["memory_pulse_bindings"]
-                != expected_first_binding
-                or any(
-                    row["memory_pulse_bindings"]
-                    for row in trajectory[1:]
-                )
+            if trajectory[0]["memory_pulse_bindings"] != expected_first_binding or any(
+                row["memory_pulse_bindings"] for row in trajectory[1:]
             ):
                 raise PilotEvidenceError(
                     "memory treatment is not isolated to the registered t=6 pulse"
@@ -3030,14 +3377,10 @@ def _validate_terminal_payload_marker(
                     != pulse_binding["treated_memory_hash"]
                     or canonical_sha256(matched_texts.get("0"))
                     != pulse_binding["original_memory_hash"]
-                    or (
-                        branch_key == "no-memory"
-                        and first_memory_texts.get("0") != ""
-                    )
+                    or (branch_key == "no-memory" and first_memory_texts.get("0") != "")
                     or (
                         branch_key == "wrong-context"
-                        and first_memory_texts.get("0")
-                        != first_memory_texts.get("1")
+                        and first_memory_texts.get("0") != first_memory_texts.get("1")
                     )
                 ):
                     raise PilotEvidenceError(
@@ -3050,9 +3393,7 @@ def _validate_terminal_payload_marker(
             name="checkpoint branch provider_call_journal",
             raw_root=raw_root,
             expected_api_usage=api_usage,
-            expected_treatment=(
-                f"narrative-{branch_key}" if narrative else branch_key
-            ),
+            expected_treatment=(f"narrative-{branch_key}" if narrative else branch_key),
         )
     if narrative:
         source_narrative = _mapping(
@@ -3065,16 +3406,12 @@ def _validate_terminal_payload_marker(
         }
         if (
             source.get("fixtures") != expected_fixtures
-            or source.get("fixture_hash")
-            != canonical_sha256(expected_fixtures)
-            or source_narrative.get("narrative_id")
-            != causal["branch_narrative_id"]
-            or source_narrative.get("text")
-            != expected_fixtures[branch_key]
+            or source.get("fixture_hash") != canonical_sha256(expected_fixtures)
+            or source_narrative.get("narrative_id") != causal["branch_narrative_id"]
+            or source_narrative.get("text") != expected_fixtures[branch_key]
             or source_narrative.get("text_hash")
             != canonical_sha256(expected_fixtures[branch_key])
-            or source_narrative.get("text_hash")
-            != causal["branch_text_hash"]
+            or source_narrative.get("text_hash") != causal["branch_text_hash"]
             or (
                 _is_v2_contract(contract)
                 and source_narrative.get("pulse_only")
@@ -3089,17 +3426,15 @@ def _validate_terminal_payload_marker(
             branch.get("intervention"),
             "shared-source continuation intervention",
         )
-        if (
-            intervention.get("forced_active_start_hash")
-            != causal.get("branch_forced_active_start_hash")
-            or (
-                _is_v2_contract(contract)
-                and (
-                    intervention.get("pulse_only")
-                    is not causal["branch_intervention_pulse_only"]
-                    or intervention.get("memory_pulse_binding")
-                    != causal["branch_memory_pulse_binding"]
-                )
+        if intervention.get("forced_active_start_hash") != causal.get(
+            "branch_forced_active_start_hash"
+        ) or (
+            _is_v2_contract(contract)
+            and (
+                intervention.get("pulse_only")
+                is not causal["branch_intervention_pulse_only"]
+                or intervention.get("memory_pulse_binding")
+                != causal["branch_memory_pulse_binding"]
             )
         ):
             raise PilotEvidenceError(
@@ -3153,7 +3488,9 @@ def _load_terminal_summary(
     if provenance.get("tag_object_type") != "tag":
         raise PilotEvidenceError("terminal summary does not bind an annotated tag")
     if provenance.get("worktree_clean") is not True:
-        raise PilotEvidenceError("terminal summary was not produced from a clean worktree")
+        raise PilotEvidenceError(
+            "terminal summary was not produced from a clean worktree"
+        )
     evidence = {
         "diagnostic_only": value.get("diagnostic_only"),
         "scientific_evidence": value.get("scientific_evidence"),
@@ -3168,7 +3505,7 @@ def _load_terminal_summary(
     )
     payload = _mapping(value.get("payload"), "terminal payload")
     imported_stage0: Mapping[str, Any] | None = None
-    if _is_v27_imported_stage0_spec(contract, spec):
+    if _is_imported_stage0_spec(contract, spec):
         from .pilot_orchestrator import (  # pylint: disable=import-outside-toplevel
             PilotOrchestrationError,
             verify_v27_imported_stage0_terminal,
@@ -3185,7 +3522,7 @@ def _load_terminal_summary(
             )
         except (OSError, TypeError, ValueError, PilotOrchestrationError) as exc:
             raise PilotEvidenceError(
-                "V2.7 imported Stage-0 envelope failed exact replay "
+                "imported Stage-0 envelope failed exact replay "
                 f"verification: {exc}"
             ) from exc
     else:
@@ -3208,7 +3545,7 @@ def _load_terminal_summary(
             or imported_stage0.get("provider_calls_current_attempt") != 0
         ):
             raise PilotEvidenceError(
-                "V2.7 imported Stage-0 terminal differs from its verified "
+                "imported Stage-0 terminal differs from its verified "
                 "envelope metrics"
             )
     return {
@@ -3294,11 +3631,7 @@ def _validate_provider_usage_rows(
             "messages",
             "top_p",
             *profile.openai_request_options().keys(),
-            (
-                "max_completion_tokens"
-                if reasoning_model
-                else "max_tokens"
-            ),
+            ("max_completion_tokens" if reasoning_model else "max_tokens"),
         }
         if not reasoning_model:
             expected_request_parameters.add("temperature")
@@ -3324,15 +3657,9 @@ def _validate_provider_usage_rows(
             _expected_temperature_dispatch,
         )
 
-        expected_request_parameters = set(
-            _expected_request_parameters(profile)
-        )
-        expected_temperature_dispatch = _expected_temperature_dispatch(
-            profile
-        )
-        expected_parameter_dispatch = dict(
-            _expected_parameter_dispatch(profile)
-        )
+        expected_request_parameters = set(_expected_request_parameters(profile))
+        expected_temperature_dispatch = _expected_temperature_dispatch(profile)
+        expected_parameter_dispatch = dict(_expected_parameter_dispatch(profile))
     elif expected_seed is not None and profile.transport != "ollama":
         expected_request_parameters.add("seed")
 
@@ -3345,10 +3672,7 @@ def _validate_provider_usage_rows(
         raise PilotEvidenceError(
             "provider usage validation requested an unsupported runner schema"
         )
-    if (
-        expected_runner_schema != RUNNER_SCHEMA_VERSION
-        and allow_legacy is not True
-    ):
+    if expected_runner_schema != RUNNER_SCHEMA_VERSION and allow_legacy is not True:
         raise PilotEvidenceError(
             "legacy provider usage requires explicit read-only validation"
         )
@@ -3371,12 +3695,9 @@ def _validate_provider_usage_rows(
             usage.get("cost_usd"),
         )
         if any(
-            not _is_finite_scalar(value) or float(value) < 0
-            for value in numeric_usage
+            not _is_finite_scalar(value) or float(value) < 0 for value in numeric_usage
         ):
-            raise PilotEvidenceError(
-                "provider usage row contains invalid usage/cost"
-            )
+            raise PilotEvidenceError("provider usage row contains invalid usage/cost")
         if (
             row.get("provider") != expected_provider
             or row.get("model") != profile.requested_model
@@ -3387,8 +3708,7 @@ def _validate_provider_usage_rows(
             or row.get("request_profile_id") != profile.profile_id
             or row.get("request_provider_pin") != list(profile.provider_pin)
             or row.get("request_artifact_identity") != expected_identity
-            or row.get("request_price_snapshot_source")
-            != profile.price_snapshot.source
+            or row.get("request_price_snapshot_source") != profile.price_snapshot.source
             or row.get("request_price_snapshot_captured_at")
             != profile.price_snapshot.captured_at
             or row.get("response_provider") not in expected_response_providers
@@ -3407,16 +3727,12 @@ def _validate_provider_usage_rows(
             or row.get("provider_sdk_name") != expected_sdk_name
             or row.get("provider_sdk_version") != expected_sdk_version
             or "route_attestation_code" not in row
-            or row.get("route_attestation_code")
-            != expected_route_attestation
-            or row.get("temperature_dispatch")
-            != expected_temperature_dispatch
-            or row.get("request_parameters")
-            != sorted(expected_request_parameters)
+            or row.get("route_attestation_code") != expected_route_attestation
+            or row.get("temperature_dispatch") != expected_temperature_dispatch
+            or row.get("request_parameters") != sorted(expected_request_parameters)
             or (
                 expected_parameter_dispatch is not None
-                and row.get("parameter_dispatch")
-                != expected_parameter_dispatch
+                and row.get("parameter_dispatch") != expected_parameter_dispatch
             )
         ):
             raise PilotEvidenceError(
@@ -3544,9 +3860,7 @@ def _validate_standard_run_contract(
         contract,
         spec,
         records.get("api_usage"),
-        expected_runner_schema=str(
-            config.get("schema_version", RUNNER_SCHEMA_VERSION)
-        ),
+        expected_runner_schema=str(config.get("schema_version", RUNNER_SCHEMA_VERSION)),
     )
 
 
@@ -3571,7 +3885,9 @@ def _load_standard_run(
             authority_repo_root=source_repo_root,
         )
     except (ManifestVerificationError, ValueError, TypeError) as exc:
-        raise PilotEvidenceError(f"sealed run validation failed for {run_dir}: {exc}") from exc
+        raise PilotEvidenceError(
+            f"sealed run validation failed for {run_dir}: {exc}"
+        ) from exc
     manifest = _strict_json_load(run_dir / "manifest.json")
     provenance = _strict_json_load(run_dir / "provenance.json")
     details = _mapping(provenance.get("details"), "run provenance details")
@@ -3579,9 +3895,9 @@ def _load_standard_run(
         raise PilotEvidenceError("run provenance contract ID mismatch")
     if details.get("contract_sha256") != contract.canonical_hash:
         raise PilotEvidenceError("run provenance contract hash mismatch")
-    if _json_copy(_mapping(details.get("run_spec"), "run provenance spec")) != _json_copy(
-        spec
-    ):
+    if _json_copy(
+        _mapping(details.get("run_spec"), "run provenance spec")
+    ) != _json_copy(spec):
         raise PilotEvidenceError("sealed run spec differs from ITT ledger")
     paid = _mapping(details.get("git"), "paid git provenance")
     binding = _validate_binding(
@@ -3629,12 +3945,18 @@ def _load_standard_run(
         source=run_dir,
     )
     if manifest.get("result", {}).get("complete") is not True:
-        raise PilotEvidenceError("ledger marks complete but sealed runner result is incomplete")
+        raise PilotEvidenceError(
+            "ledger marks complete but sealed runner result is incomplete"
+        )
     if validation.get("status") != "pass":
-        raise PilotEvidenceError("ledger marks complete but runner validation did not pass")
+        raise PilotEvidenceError(
+            "ledger marks complete but runner validation did not pass"
+        )
     if eligible:
         if config.get("run_id") != spec["run_id"]:
-            raise PilotEvidenceError("scientific runner run_id differs from contract cell")
+            raise PilotEvidenceError(
+                "scientific runner run_id differs from contract cell"
+            )
         if config.get("pilot_contract_hash") != contract.canonical_hash:
             raise PilotEvidenceError("scientific runner config contract hash mismatch")
         if config.get("pilot_tag") != contract.implementation["required_git_tag"]:
@@ -3717,9 +4039,8 @@ def _load_completed_artifact(
         )
     if path.suffix.lower() != ".json":
         raise PilotEvidenceError(f"unsupported completed artifact type: {path}")
-    if (
-        mode not in TERMINAL_EXECUTION_MODES
-        and not _is_v27_imported_stage0_spec(contract, spec)
+    if mode not in TERMINAL_EXECUTION_MODES and not _is_imported_stage0_spec(
+        contract, spec
     ):
         raise PilotEvidenceError(
             f"execution mode {mode!r} requires a verified-run manifest"
@@ -3765,9 +4086,7 @@ def _validate_v2_run_ledger_integrity(
             raise PilotEvidenceError("V2 pilot run ledger event chain mismatch")
         payload = raw_event.get("payload")
         if not isinstance(payload, Mapping):
-            raise PilotEvidenceError(
-                "V2 pilot run ledger event payload is malformed"
-            )
+            raise PilotEvidenceError("V2 pilot run ledger event payload is malformed")
         event_type = raw_event.get("event_type")
         if index == 0:
             if (
@@ -3784,9 +4103,8 @@ def _validate_v2_run_ledger_integrity(
                 )
             for run_id, spec_sha256 in registered.items():
                 row = runs.get(run_id)
-                if (
-                    not isinstance(row, Mapping)
-                    or spec_sha256 != canonical_sha256(row.get("spec"))
+                if not isinstance(row, Mapping) or spec_sha256 != canonical_sha256(
+                    row.get("spec")
                 ):
                     raise PilotEvidenceError(
                         "V2 pilot run ledger registration differs from rows"
@@ -3812,10 +4130,9 @@ def _validate_v2_run_ledger_integrity(
             )
         previous = str(digest)
     last_payload = events[-1].get("payload")
-    if (
-        not isinstance(last_payload, Mapping)
-        or last_payload.get("runs_sha256") != canonical_sha256(runs)
-    ):
+    if not isinstance(last_payload, Mapping) or last_payload.get(
+        "runs_sha256"
+    ) != canonical_sha256(runs):
         raise PilotEvidenceError(
             "V2 pilot run ledger event head does not bind current rows"
         )
@@ -3919,11 +4236,10 @@ def _normalize_ledger(
                     # A failed or stopped run never contributes effect metrics or
                     # gate evidence.  A sealed capability no-go may still expose
                     # its fixed-task denominator in the reviewer failure table.
-                    if (
-                        status == "capability-no-go"
-                        and spec["execution_mode"]
-                        in {"capability_probe", "closed_loop_preflight"}
-                    ):
+                    if status == "capability-no-go" and spec["execution_mode"] in {
+                        "capability_probe",
+                        "closed_loop_preflight",
+                    }:
                         row["capability"] = evidence["capability"]
                     bindings.add(str(evidence["binding"]["resolved_git_commit"]))
         rows.append(row)
@@ -4012,12 +4328,10 @@ def _validated_experiment_c_sensitivity(
             "Experiment C sensitivity commit differs from the validated matrix"
         )
     if (
-        value.get("schema_version")
-        != PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION
+        value.get("schema_version") != PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION
         or value.get("status") != "pass"
         or value.get("terminal") is not True
-        or value.get("control_kind")
-        != "zero-api-offline-rule-sensitivity"
+        or value.get("control_kind") != "zero-api-offline-rule-sensitivity"
         or value.get("provider_calls") != 0
         or value.get("descriptive_only") is not True
         or value.get("effectiveness_gate") is not False
@@ -4030,9 +4344,7 @@ def _validated_experiment_c_sensitivity(
         contract.stop_go["experiment_c"]["zero_api_sensitivity"],
         "Experiment C sensitivity contract",
     )
-    expected_weights = list(
-        sensitivity_contract["alternative_success_weights"]
-    )
+    expected_weights = list(sensitivity_contract["alternative_success_weights"])
     expected_outcomes = list(sensitivity_contract["outcome_definitions"])
     cells = value.get("aggregate_cells")
     if (
@@ -4186,9 +4498,7 @@ def _validate_v2_release_attestation(
     ):
         raise PilotEvidenceError("V2 release must select exactly two CI jobs")
     expected_job_names = list(expected_requirements["required_job_names"])
-    selected_job_rows = [
-        _mapping(item, "V2 selected CI job") for item in selected_jobs
-    ]
+    selected_job_rows = [_mapping(item, "V2 selected CI job") for item in selected_jobs]
     selected_job_names = [item.get("name") for item in selected_job_rows]
     selected_job_ids = [item.get("database_id") for item in selected_job_rows]
     selection_valid = bool(
@@ -4201,9 +4511,7 @@ def _validate_v2_release_attestation(
         and selected_job_names == expected_job_names
         and len(set(selected_job_ids)) == 2
         and all(
-            isinstance(value, int)
-            and not isinstance(value, bool)
-            and value > 0
+            isinstance(value, int) and not isinstance(value, bool) and value > 0
             for value in selected_job_ids
         )
     )
@@ -4224,10 +4532,7 @@ def _validate_v2_release_attestation(
     )
     job_matrix_valid = bool(
         len(job_rows) == 2
-        and [
-            (item.get("name"), item.get("database_id"))
-            for item in job_rows
-        ]
+        and [(item.get("name"), item.get("database_id")) for item in job_rows]
         == list(zip(selected_job_names, selected_job_ids))
         and all(
             item.get("attempt") == selection.get("run_attempt")
@@ -4240,8 +4545,7 @@ def _validate_v2_release_attestation(
     receipts = actions.get("ci_job_receipts")
     receipt_rows = (
         [_mapping(item, "V2 CI job receipt") for item in receipts]
-        if isinstance(receipts, Sequence)
-        and not isinstance(receipts, (str, bytes))
+        if isinstance(receipts, Sequence) and not isinstance(receipts, (str, bytes))
         else []
     )
     receipt_hashes_valid = len(receipt_rows) == 2
@@ -4253,21 +4557,14 @@ def _validate_v2_release_attestation(
             break
     receipts_match = bool(
         receipt_hashes_valid
-        and [
-            (item.get("job_name"), item.get("run_id"))
-            for item in receipt_rows
-        ]
-        == [
-            (name, selection.get("run_id")) for name in selected_job_names
-        ]
+        and [(item.get("job_name"), item.get("run_id")) for item in receipt_rows]
+        == [(name, selection.get("run_id")) for name in selected_job_names]
         and all(
             item.get("run_attempt") == selection.get("run_attempt")
             and item.get("head_sha") == common_commit
             and item.get("status") == "pass"
-            and item.get("workflow_name")
-            == expected_requirements["workflow_name"]
-            and item.get("workflow_file")
-            == expected_requirements["workflow_file"]
+            and item.get("workflow_name") == expected_requirements["workflow_name"]
+            and item.get("workflow_file") == expected_requirements["workflow_file"]
             for item in receipt_rows
         )
     )
@@ -4287,7 +4584,10 @@ def _validate_v2_release_attestation(
     receipts_measurements_match = bool(
         ci_measurements == expected_measurements
         and all(
-            all(item.get(key) == expected for key, expected in expected_measurements.items())
+            all(
+                item.get(key) == expected
+                for key, expected in expected_measurements.items()
+            )
             for item in receipt_rows
         )
     )
@@ -4309,14 +4609,10 @@ def _validate_v2_release_attestation(
             policy_hashes_valid = False
             break
         selected = {
-            str(pointer): _resolve_contract_pointer(
-                contract_value, str(pointer)
-            )
+            str(pointer): _resolve_contract_pointer(contract_value, str(pointer))
             for pointer in pointers
         }
-        if contract_receipt.get(f"{policy_name}_sha256") != canonical_sha256(
-            selected
-        ):
+        if contract_receipt.get(f"{policy_name}_sha256") != canonical_sha256(selected):
             policy_hashes_valid = False
             break
 
@@ -4347,8 +4643,7 @@ def _validate_v2_release_attestation(
         "commit_and_annotated_tag_bound": (
             common_commit is not None
             and release.get("head_commit") == common_commit
-            and local_tag.get("name")
-            == contract.implementation["required_git_tag"]
+            and local_tag.get("name") == contract.implementation["required_git_tag"]
             and local_tag.get("kind") == "annotated"
             and local_tag.get("peeled_commit") == common_commit
             and remote.get("name") == expected_requirements["remote"]
@@ -4371,17 +4666,14 @@ def _validate_v2_release_attestation(
             and run.get("head_branch") == expected_requirements["branch"]
             and run.get("status") == "completed"
             and run.get("conclusion") == "success"
-            and run.get("workflow_name")
-            == expected_requirements["workflow_name"]
-            and run.get("workflow_file")
-            == expected_requirements["workflow_file"]
+            and run.get("workflow_name") == expected_requirements["workflow_name"]
+            and run.get("workflow_file") == expected_requirements["workflow_file"]
         ),
         "exact_linux_macos_ci_jobs": job_matrix_valid,
         "ci_receipt_hash_chain": receipts_match,
         "ci_measurements_exact": receipts_measurements_match,
         "contract_and_policy_hashes": (
-            contract_receipt.get("canonical_sha256")
-            == contract.canonical_hash
+            contract_receipt.get("canonical_sha256") == contract.canonical_hash
             and _is_sha256(contract_receipt.get("file_sha256"))
             and policy_hashes_valid
         ),
@@ -4405,8 +4697,11 @@ def _expected_parent_budget_debit(
     from .pilot_v26_parent_import import parent_budget_debit_for_v26
     from .pilot_v27_stage0_import import parent_budget_debit_for_v27
     from .pilot_v28_stage0_import import parent_budget_debit_for_v28
+    from .pilot_v29_stage0_import import parent_budget_debit_for_v29
 
-    debit = parent_budget_debit_for_v28(contract)
+    debit = parent_budget_debit_for_v29(contract)
+    if debit is None:
+        debit = parent_budget_debit_for_v28(contract)
     if debit is None:
         debit = parent_budget_debit_for_v27(contract)
     if debit is None:
@@ -4460,9 +4755,7 @@ def _validate_v2_budget_hash_chain(
     expected_parent = _expected_parent_budget_debit(contract)
     parent_valid = budget.get("parent_debit") == expected_parent
     parent_hash = (
-        None
-        if expected_parent is None
-        else expected_parent.get("record_sha256")
+        None if expected_parent is None else expected_parent.get("record_sha256")
     )
     parent_event_valid = True
     if expected_parent is not None:
@@ -4475,21 +4768,19 @@ def _validate_v2_budget_hash_chain(
             )
             parent_event_valid = bool(
                 parent_event.get("event_type") == "parent_debit_imported"
-                and parent_event.get("payload")
-                == {"parent_debit": expected_parent}
+                and parent_event.get("payload") == {"parent_debit": expected_parent}
             )
     return bool(
         genesis.get("event_type") == "genesis"
         and payload.get("contract_hash") == contract.canonical_hash
-        and payload.get("caps_sha256")
-        == canonical_sha256(budget.get("caps"))
+        and payload.get("caps_sha256") == canonical_sha256(budget.get("caps"))
         and payload.get("parent_debit_sha256") == parent_hash
         and parent_valid
         and parent_event_valid
     )
 
 
-def _validated_v27_stage0_source_row(
+def _validated_imported_stage0_source_row(
     contract: PilotContract,
     *,
     raw_root: Path,
@@ -4498,13 +4789,14 @@ def _validated_v27_stage0_source_row(
     spec: PilotRunSpec,
     common_commit: str | None,
 ) -> bool:
-    """Validate one V2.7 imported Stage-0 selection source end to end.
+    """Validate one V2.7--V2.9 imported Stage-0 source end to end.
 
-    V2.7 does not claim that its Stage-0 actor cells were executed again.
-    Their aggregate artifact is a current terminal summary bound to a current
-    import envelope, and the envelope is itself recomputed from immutable V2.6
-    source streams.  Keep this admission path separate from the legacy
-    ``verified-run-manifest`` path so older contracts are not relaxed.
+    These contracts do not claim that their imported Stage-0 actor cells were
+    executed again.  Their aggregate artifact is a current terminal summary
+    bound to a version-specific import envelope, and the envelope is itself
+    recomputed from immutable source streams.  Keep this admission path
+    separate from the legacy ``verified-run-manifest`` path so older
+    contracts are not relaxed.
     """
 
     expected_source_keys = {
@@ -4546,39 +4838,39 @@ def _validated_v27_stage0_source_row(
         terminal = _strict_json_load(terminal_path)
         envelope_integrity = _mapping(
             envelope.get("integrity"),
-            "V2.7 Stage-0 envelope integrity",
+            "imported Stage-0 envelope integrity",
         )
         terminal_integrity = _mapping(
             terminal.get("integrity"),
-            "V2.7 Stage-0 terminal integrity",
+            "imported Stage-0 terminal integrity",
         )
         source_import = _mapping(
             envelope.get("source_import"),
-            "V2.7 Stage-0 envelope source import",
+            "imported Stage-0 envelope source import",
         )
         source_artifacts = _mapping(
             source_import.get("source_artifacts"),
-            "V2.7 Stage-0 envelope source artifacts",
+            "imported Stage-0 envelope source artifacts",
         )
         source_manifest = _mapping(
             source_artifacts.get("manifest"),
-            "V2.7 Stage-0 source manifest",
+            "imported Stage-0 source manifest",
         )
         terminal_payload = _mapping(
             terminal.get("payload"),
-            "V2.7 Stage-0 terminal payload",
+            "imported Stage-0 terminal payload",
         )
         terminal_metrics = _mapping(
             terminal_payload.get("metrics"),
-            "V2.7 Stage-0 terminal metrics",
+            "imported Stage-0 terminal metrics",
         )
         terminal_gate = _mapping(
             terminal_payload.get("gate_evidence"),
-            "V2.7 Stage-0 terminal gate evidence",
+            "imported Stage-0 terminal gate evidence",
         )
         terminal_envelope_binding = _mapping(
             terminal_gate.get("imported_run_envelope"),
-            "V2.7 Stage-0 terminal envelope binding",
+            "imported Stage-0 terminal envelope binding",
         )
 
         from .pilot_orchestrator import (  # pylint: disable=import-outside-toplevel
@@ -4596,7 +4888,7 @@ def _validated_v27_stage0_source_row(
         )
         verified_binding = _mapping(
             verified.get("envelope_binding"),
-            "verified V2.7 Stage-0 envelope binding",
+            "verified imported Stage-0 envelope binding",
         )
         verified_envelope_path = _resolve_artifact(
             raw_root,
@@ -4618,27 +4910,21 @@ def _validated_v27_stage0_source_row(
         and _is_sha256(source.get("terminal_summary_file_sha256"))
         and _is_sha256(source.get("terminal_summary_content_sha256"))
         and _is_sha256(source.get("source_manifest_sha256"))
-        and _sha256_file(envelope_path)
-        == source.get("envelope_file_sha256")
+        and _sha256_file(envelope_path) == source.get("envelope_file_sha256")
         and envelope_integrity.get("content_sha256")
         == source.get("envelope_content_sha256")
-        and _sha256_file(terminal_path)
-        == source.get("terminal_summary_file_sha256")
+        and _sha256_file(terminal_path) == source.get("terminal_summary_file_sha256")
         and terminal_integrity.get("content_sha256")
         == source.get("terminal_summary_content_sha256")
-        and row.get("artifact_sha256")
-        == source.get("terminal_summary_file_sha256")
+        and row.get("artifact_sha256") == source.get("terminal_summary_file_sha256")
         and source_import.get("source_run_id") == source.get("source_run_id")
-        and source_manifest.get("file_sha256")
-        == source.get("source_manifest_sha256")
-        and verified.get("execution_disposition")
-        == source.get("execution_disposition")
+        and source_manifest.get("file_sha256") == source.get("source_manifest_sha256")
+        and verified.get("execution_disposition") == source.get("execution_disposition")
         and verified.get("provider_calls_current_attempt") == 0
         and verified.get("scientific_evidence") is True
         and verified_envelope_path == envelope_path
         and verified_binding == terminal_envelope_binding
-        and verified_binding.get("file_sha256")
-        == source.get("envelope_file_sha256")
+        and verified_binding.get("file_sha256") == source.get("envelope_file_sha256")
         and verified_binding.get("content_sha256")
         == source.get("envelope_content_sha256")
         and terminal_metrics == verified.get("metrics")
@@ -4695,8 +4981,7 @@ def _validated_release_controls(
                     and job.get("status") == "completed"
                     and job.get("conclusion") == "success"
                 }
-                if isinstance(jobs, Sequence)
-                and not isinstance(jobs, (str, bytes))
+                if isinstance(jobs, Sequence) and not isinstance(jobs, (str, bytes))
                 else set()
             )
             checks = {
@@ -4729,9 +5014,7 @@ def _validated_release_controls(
                 ),
             }
         release_pass = all(checks.values())
-        release_reasons.extend(
-            name for name, passed in checks.items() if not passed
-        )
+        release_reasons.extend(name for name, passed in checks.items() if not passed)
     except (PilotEvidenceError, TypeError, KeyError) as exc:
         checks = {}
         release_pass = False
@@ -4744,9 +5027,7 @@ def _validated_release_controls(
     }
 
     stage0_path = raw_root / "stage0-calibration" / "stage0_selection.json"
-    stage0_receipt_path = (
-        raw_root / "stage0-calibration" / "stage_receipt.json"
-    )
+    stage0_receipt_path = raw_root / "stage0-calibration" / "stage_receipt.json"
     stage0_reasons: list[str] = []
     try:
         selection = _strict_json_load(stage0_path)
@@ -4759,14 +5040,18 @@ def _validated_release_controls(
             selection.get("bindings"),
             "Stage-0 selection bindings",
         )
+        imported_stage0_contract = (
+            _is_v27_contract(contract)
+            or _is_v28_contract(contract)
+            or _is_v29_contract(contract)
+        )
         source_rows = bindings.get(
             "source_envelopes"
-            if _is_v27_contract(contract)
+            if imported_stage0_contract
             else "source_manifests"
         )
         expected_specs = {
-            spec.run_id: spec
-            for spec in contract.expand(stage="stage0-calibration")
+            spec.run_id: spec for spec in contract.expand(stage="stage0-calibration")
         }
         if _is_v2_contract(contract):
             receipt_integrity = receipt.get("integrity")
@@ -4774,16 +5059,14 @@ def _validated_release_controls(
             receipt_unsigned.pop("integrity", None)
             receipt_bindings = receipt.get("bindings")
             receipt_integrity_valid = bool(
-                receipt.get("schema_version")
-                == PILOT_STAGE_RECEIPT_SCHEMA_VERSION_V2
+                receipt.get("schema_version") == PILOT_STAGE_RECEIPT_SCHEMA_VERSION_V2
                 and isinstance(receipt_integrity, Mapping)
                 and receipt_integrity.get("canonicalization")
                 == "json-sort-keys-utf8-v1"
                 and receipt_integrity.get("content_sha256")
                 == canonical_sha256(receipt_unsigned)
                 and isinstance(receipt_bindings, Mapping)
-                and receipt_bindings.get("contract_sha256")
-                == contract.canonical_hash
+                and receipt_bindings.get("contract_sha256") == contract.canonical_hash
                 and receipt_bindings.get("run_ledger_schema_version")
                 == PILOT_RUN_LEDGER_SCHEMA_VERSION_V2
                 and receipt_bindings.get("stage_specs_sha256")
@@ -4799,8 +5082,7 @@ def _validated_release_controls(
             )
         else:
             receipt_integrity_valid = bool(
-                receipt.get("schema_version")
-                == PILOT_STAGE_RECEIPT_SCHEMA_VERSION
+                receipt.get("schema_version") == PILOT_STAGE_RECEIPT_SCHEMA_VERSION
             )
         aggregate_rows = {
             str(row["run_id"]): row
@@ -4824,8 +5106,8 @@ def _validated_release_controls(
                 if run_id in observed_ids or row is None or spec is None:
                     source_valid = False
                     break
-                if _is_v27_contract(contract):
-                    source_valid = _validated_v27_stage0_source_row(
+                if imported_stage0_contract:
+                    source_valid = _validated_imported_stage0_source_row(
                         contract,
                         raw_root=raw_root,
                         source=source,
@@ -4836,20 +5118,16 @@ def _validated_release_controls(
                 else:
                     source_valid = bool(
                         row.get("status") == "complete"
-                        and row.get("artifact_kind")
-                        == "verified-run-manifest"
-                        and row.get("artifact_sha256")
-                        == source.get("manifest_sha256")
-                        and source.get("utility_profile_id")
-                        == spec.utility_profile_id
-                        and source.get("environment_seed")
-                        == spec.environment_seed
+                        and row.get("artifact_kind") == "verified-run-manifest"
+                        and row.get("artifact_sha256") == source.get("manifest_sha256")
+                        and source.get("utility_profile_id") == spec.utility_profile_id
+                        and source.get("environment_seed") == spec.environment_seed
                     )
                 if not source_valid:
                     break
                 observed_ids.add(run_id)
         selection_semantic_replay_valid = True
-        if _is_v27_contract(contract):
+        if imported_stage0_contract:
             try:
                 from .pilot_orchestrator import (  # pylint: disable=import-outside-toplevel
                     PilotOrchestrationError,
@@ -4863,9 +5141,7 @@ def _validated_release_controls(
                     str(common_commit),
                     str(contract.implementation["required_git_tag"]),
                 )
-                selection_semantic_replay_valid = (
-                    replayed_selection == selection
-                )
+                selection_semantic_replay_valid = replayed_selection == selection
             except (
                 PilotEvidenceError,
                 PilotOrchestrationError,
@@ -4877,16 +5153,11 @@ def _validated_release_controls(
                 selection_semantic_replay_valid = False
         stage0_checks = {
             "sealed_selection": (
-                selection.get("schema_version")
-                == "finevo-stage0-selection-v1"
-                and selection.get("contract_sha256")
-                == contract.canonical_hash
-                and integrity.get("canonicalization")
-                == "json-sort-keys-utf8-v1"
-                and integrity.get("content_sha256")
-                == _bound_artifact_hash(selection)
-                and bindings.get("contract_sha256")
-                == contract.canonical_hash
+                selection.get("schema_version") == "finevo-stage0-selection-v1"
+                and selection.get("contract_sha256") == contract.canonical_hash
+                and integrity.get("canonicalization") == "json-sort-keys-utf8-v1"
+                and integrity.get("content_sha256") == _bound_artifact_hash(selection)
+                and bindings.get("contract_sha256") == contract.canonical_hash
                 and bindings.get("git_tag")
                 == contract.implementation["required_git_tag"]
                 and bindings.get("git_commit") == common_commit
@@ -4896,25 +5167,18 @@ def _validated_release_controls(
             ),
             "stage_receipt_go": (
                 receipt_integrity_valid
-                and receipt.get("contract_sha256")
-                == contract.canonical_hash
+                and receipt.get("contract_sha256") == contract.canonical_hash
                 and receipt.get("stage_id") == "stage0-calibration"
                 and receipt.get("status") == "complete"
                 and receipt.get("go") is True
                 and receipt.get("terminal") is True
-                and receipt.get("registered_run_count")
-                == len(expected_specs)
-                and receipt.get("complete_cell_count")
-                == len(expected_specs)
+                and receipt.get("registered_run_count") == len(expected_specs)
+                and receipt.get("complete_cell_count") == len(expected_specs)
             ),
         }
-        if _is_v27_contract(contract):
-            stage0_checks["selection_semantic_replay"] = (
-                selection_semantic_replay_valid
-            )
-            stage0_checks[
-                "selection_uses_no_a_d_treatment_outcome_fields"
-            ] = bool(
+        if imported_stage0_contract:
+            stage0_checks["selection_semantic_replay"] = selection_semantic_replay_valid
+            stage0_checks["selection_uses_no_a_d_treatment_outcome_fields"] = bool(
                 isinstance(selection.get("selected_profile_id"), str)
                 and isinstance(selection.get("selected_utility"), Mapping)
                 and selection.get("outcome_fields_used") == []
@@ -4944,9 +5208,7 @@ def _validated_release_controls(
     budget_path = raw_root / "budget_ledger.json"
     budget_reasons: list[str] = []
     raw_storage_bytes = sum(
-        path.stat().st_size
-        for path in raw_root.rglob("*")
-        if path.is_file()
+        path.stat().st_size for path in raw_root.rglob("*") if path.is_file()
     )
     try:
         budget = _strict_json_load(budget_path)
@@ -4954,15 +5216,11 @@ def _validated_release_controls(
         budget_runs = _mapping(budget.get("runs"), "budget runs")
         expected_caps = {
             "total_usd": float(contract.budgets["total_usd"]),
-            "max_completions": int(
-                contract.budgets["max_provider_completions"]
-            ),
+            "max_completions": int(contract.budgets["max_provider_completions"]),
             "completion_scope": str(contract.budgets["completion_scope"]),
             "max_storage_bytes": int(contract.budgets["max_storage_bytes"]),
             "stage_usd_caps": dict(contract.budgets["stage_usd_caps"]),
-            "automatic_reserve_usd": float(
-                contract.budgets["automatic_reserve_usd"]
-            ),
+            "automatic_reserve_usd": float(contract.budgets["automatic_reserve_usd"]),
             "dispatchable_usd": float(contract.budgets["total_usd"])
             - float(contract.budgets["automatic_reserve_usd"]),
         }
@@ -4987,14 +5245,22 @@ def _validated_release_controls(
                 for spec in contract.expand(stage="parent-import")
                 if spec.execution_mode == "parent_authority_import"
             }
-            if _is_v27_contract(contract) or _is_v28_contract(contract)
+            if (
+                _is_v27_contract(contract)
+                or _is_v28_contract(contract)
+                or _is_v29_contract(contract)
+            )
             else set()
         )
         expected_budget_ids = (
             expected_standard_ids | expected_d_ids | expected_parent_ids
         )
         required_import_budget_ids: set[str] = set()
-        if _is_v27_contract(contract) or _is_v28_contract(contract):
+        if (
+            _is_v27_contract(contract)
+            or _is_v28_contract(contract)
+            or _is_v29_contract(contract)
+        ):
             required_import_budget_ids.update(expected_parent_ids)
             for stage_id in (
                 "q-ref-resolution",
@@ -5002,8 +5268,7 @@ def _validated_release_controls(
             ):
                 if (raw_root / stage_id / "stage_receipt.json").is_file():
                     required_import_budget_ids.update(
-                        spec.run_id
-                        for spec in contract.expand(stage=stage_id)
+                        spec.run_id for spec in contract.expand(stage=stage_id)
                     )
         expected_parent_debit = _expected_parent_budget_debit(contract)
         totals = {
@@ -5023,9 +5288,7 @@ def _validated_release_controls(
                 else int(expected_parent_debit["storage_bytes"])
             ),
         }
-        by_stage = {
-            str(stage): 0.0 for stage in expected_caps["stage_usd_caps"]
-        }
+        by_stage = {str(stage): 0.0 for stage in expected_caps["stage_usd_caps"]}
         if expected_parent_debit is not None:
             by_stage[str(expected_parent_debit["stage_bucket"])] = float(
                 expected_parent_debit["cost_usd"]
@@ -5067,17 +5330,15 @@ def _validated_release_controls(
                         rows_valid = False
                         break
                     if (
-                        float(actual[field])
-                        > float(reservation[field]) + 1e-12
+                        float(actual[field]) > float(reservation[field]) + 1e-12
                         and row.get("status") != "integrity-stopped"
                     ):
                         rows_valid = False
                         break
                 if not rows_valid:
                     break
-                if (
-                    row.get("status") == "integrity-stopped"
-                    and not isinstance(row.get("failure"), Mapping)
+                if row.get("status") == "integrity-stopped" and not isinstance(
+                    row.get("failure"), Mapping
                 ):
                     rows_valid = False
                     break
@@ -5111,7 +5372,11 @@ def _validated_release_controls(
             str(row["run_id"])
             for row in rows
             if (
-                (_is_v27_contract(contract) or _is_v28_contract(contract))
+                (
+                    _is_v27_contract(contract)
+                    or _is_v28_contract(contract)
+                    or _is_v29_contract(contract)
+                )
                 and row["execution_mode"] == "parent_authority_import"
                 and row.get("artifact_kind") is not None
             )
@@ -5126,8 +5391,7 @@ def _validated_release_controls(
             and totals["completions"] <= expected_caps["max_completions"]
             and totals["storage_bytes"] <= expected_caps["max_storage_bytes"]
             and all(
-                by_stage[stage]
-                <= float(expected_caps["stage_usd_caps"][stage]) + 1e-12
+                by_stage[stage] <= float(expected_caps["stage_usd_caps"][stage]) + 1e-12
                 for stage in by_stage
             )
             and raw_storage_bytes <= expected_caps["max_storage_bytes"]
@@ -5259,9 +5523,7 @@ def _experiment_a_gate(
     by_arm = {
         arm: {
             int(row["environment_seed"]): row
-            for row in _scientific_rows(
-                rows, stage=stage_id, model=model_id, arm=arm
-            )
+            for row in _scientific_rows(rows, stage=stage_id, model=model_id, arm=arm)
         }
         for arm in ("no-context", "prompt-only", "retrieval-only", "full")
     }
@@ -5273,10 +5535,8 @@ def _experiment_a_gate(
         for seed in expected
         if seed in full_rows
         and seed in control_rows
-        and _metric(full_rows[seed], "utility.shock_recovery_discounted")
-        is not None
-        and _metric(control_rows[seed], "utility.shock_recovery_discounted")
-        is not None
+        and _metric(full_rows[seed], "utility.shock_recovery_discounted") is not None
+        and _metric(control_rows[seed], "utility.shock_recovery_discounted") is not None
     ]
     primary: dict[str, Any] | None = None
     gate: dict[str, Any] | None = None
@@ -5344,9 +5604,7 @@ def _experiment_a_gate(
         }
 
     secondary_paired_metrics = {
-        "utility_deficit_auc": paired_secondary(
-            "utility.utility_deficit_auc"
-        ),
+        "utility_deficit_auc": paired_secondary("utility.utility_deficit_auc"),
         "recovery_periods_to_within_10pct_for_two": paired_secondary(
             "utility.recovery_periods_to_within_10pct_for_two"
         ),
@@ -5408,12 +5666,8 @@ def _experiment_a_gate(
         )
 
     route_checks = {
-        "no_context_routes_neither_channel": route_flag_ok(
-            "no-context", False, False
-        ),
-        "prompt_only_routes_prompt_channel": route_flag_ok(
-            "prompt-only", True, False
-        ),
+        "no_context_routes_neither_channel": route_flag_ok("no-context", False, False),
+        "prompt_only_routes_prompt_channel": route_flag_ok("prompt-only", True, False),
         "retrieval_only_routes_retrieval_channel": route_flag_ok(
             "retrieval-only", False, True
         ),
@@ -5438,14 +5692,11 @@ def _experiment_a_gate(
         return indexed
 
     expected_trace_rows = (
-        contract.stage(stage_id).num_agents
-        * contract.stage(stage_id).episode_length
+        contract.stage(stage_id).num_agents * contract.stage(stage_id).episode_length
     )
     expected_phases = {
         str(item["phase"])
-        for item in contract.shocks[
-            str(contract.stage(stage_id).shock_id)
-        ]["schedule"]
+        for item in contract.shocks[str(contract.stage(stage_id).shock_id)]["schedule"]
     }
 
     def retrieval_trace_complete(row: Mapping[str, Any]) -> bool:
@@ -5511,7 +5762,9 @@ def _experiment_a_gate(
         scores = []
         for key in sorted(left):
             union = left[key] | right[key]
-            scores.append(1.0 if not union else len(left[key] & right[key]) / len(union))
+            scores.append(
+                1.0 if not union else len(left[key] & right[key]) / len(union)
+            )
         topk_overlap_by_seed[str(seed)] = mean(scores) if scores else None
 
     phase_relevance_at_5 = {
@@ -5524,9 +5777,7 @@ def _experiment_a_gate(
     action_distributions = {
         arm: {
             str(seed): {
-                "labor_hours_counts": _dig(
-                    row, "metrics.actions.labor_hours_counts"
-                ),
+                "labor_hours_counts": _dig(row, "metrics.actions.labor_hours_counts"),
                 "consumption_rate_counts": _dig(
                     row, "metrics.actions.consumption_rate_counts"
                 ),
@@ -5536,17 +5787,12 @@ def _experiment_a_gate(
         for arm, seed_rows in by_arm.items()
     }
     complete = (
-        len(usable)
-        >= int(contract.stop_go["experiment_a"]["complete_pairs_min"])
+        len(usable) >= int(contract.stop_go["experiment_a"]["complete_pairs_min"])
         and len(corroborating_seeds) >= 4
         and all(route_checks.values())
         and retrieval_coverage_pass
     )
-    supported = bool(
-        complete
-        and gate is not None
-        and gate["support_retrieval_effect"]
-    )
+    supported = bool(complete and gate is not None and gate["support_retrieval_effect"])
     reasons = []
     if len(usable) < 4:
         reasons.append("fewer than four validated paired seeds")
@@ -5594,14 +5840,10 @@ def _experiment_a_gate(
 def _delta_descriptives(values: Mapping[int, float]) -> dict[str, Any] | None:
     if not values:
         return None
-    normalized = {
-        int(seed): float(value) for seed, value in sorted(values.items())
-    }
+    normalized = {int(seed): float(value) for seed, value in sorted(values.items())}
     ordered = list(normalized.values())
     return {
-        "raw_paired_deltas": {
-            str(seed): value for seed, value in normalized.items()
-        },
+        "raw_paired_deltas": {str(seed): value for seed, value in normalized.items()},
         "mean": mean(ordered),
         "median": median(ordered),
         "range": [min(ordered), max(ordered)],
@@ -5660,9 +5902,7 @@ def _experiment_b_summary(
                 ),
                 "actions": _json_copy(_dig(row, "metrics.actions")),
                 "retrieval_and_rules": _json_copy(_dig(row, "metrics.memory")),
-                "rule_reliability": _json_copy(
-                    _dig(row, "metrics.rule_reliability")
-                ),
+                "rule_reliability": _json_copy(_dig(row, "metrics.rule_reliability")),
             }
         output[arm] = {
             "registered_seeds": len(arm_rows),
@@ -5684,14 +5924,8 @@ def _experiment_b_summary(
                             and item["scientific_eligible"] is True
                             and int(item["environment_seed"]) in full
                         )
-                        if (
-                            left := _metric(row, path)
-                        )
-                        is not None
-                        and (
-                            right := _metric(full[seed], path)
-                        )
-                        is not None
+                        if (left := _metric(row, path)) is not None
+                        and (right := _metric(full[seed], path)) is not None
                     }
                 )
                 for metric, path in {
@@ -5779,9 +6013,7 @@ def _experiment_c_gate(
     admission = indexed(stage_id, "verified-error-candidate")
     verified_error = indexed(stage_id, "verified-error-forced")
     unverified_error = indexed(stage_id, "unverified-error-forced")
-    control_stage = (
-        stage_id if _is_v2_contract(contract) else "experiment-b"
-    )
+    control_stage = stage_id if _is_v2_contract(contract) else "experiment-b"
     verified_control = indexed(control_stage, "full")
     unverified_control = indexed(control_stage, "unverified-dual")
     candidate_seeds = sorted(expected & set(admission))
@@ -5797,9 +6029,7 @@ def _experiment_c_gate(
             "status": "no-go",
             "scientific_evidence_complete": False,
             "support_rule_reliability": False,
-            "pairing_scope": _decoding_pairing_scope(
-                contract, model_id
-            ),
+            "pairing_scope": _decoding_pairing_scope(contract, model_id),
             "no_error_control_stage": control_stage,
             "claim_action": "withdraw or narrow the rule-reliability claim",
             "reasons": [
@@ -5828,8 +6058,7 @@ def _experiment_c_gate(
         )
         unverified_active = (
             float(unverified_value)
-            if isinstance(unverified_value, bool)
-            or _is_finite_scalar(unverified_value)
+            if isinstance(unverified_value, bool) or _is_finite_scalar(unverified_value)
             else None
         )
         if verified_active is None or unverified_active is None:
@@ -5850,10 +6079,7 @@ def _experiment_c_gate(
         arm: str,
     ) -> tuple[list[Mapping[str, Any]], list[Mapping[str, Any]]] | None:
         value = _dig(row, "metrics.rule_reliability.by_agent_rule_family")
-        if (
-            not isinstance(value, Sequence)
-            or isinstance(value, (str, bytes))
-        ):
+        if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
             return None
         injected: list[Mapping[str, Any]] = []
         natural: list[Mapping[str, Any]] = []
@@ -5904,9 +6130,7 @@ def _experiment_c_gate(
             "rule_reliability.active_exposure_steps",
         )
         utility_values = {
-            "verified_error": _metric(
-                verified_error[seed], "total_discounted_utility"
-            ),
+            "verified_error": _metric(verified_error[seed], "total_discounted_utility"),
             "unverified_error": _metric(
                 unverified_error[seed], "total_discounted_utility"
             ),
@@ -5935,13 +6159,11 @@ def _experiment_c_gate(
         )
         if verified_units is None or unverified_units is None:
             continue
-        verified_signed_loss = (
-            float(utility_values["verified_control"])
-            - float(utility_values["verified_error"])
+        verified_signed_loss = float(utility_values["verified_control"]) - float(
+            utility_values["verified_error"]
         )
-        unverified_signed_loss = (
-            float(utility_values["unverified_control"])
-            - float(utility_values["unverified_error"])
+        unverified_signed_loss = float(utility_values["unverified_control"]) - float(
+            utility_values["unverified_error"]
         )
         forced_pairs[seed] = {
             "verified_harmful_exposure": verified_exposure,
@@ -5951,9 +6173,7 @@ def _experiment_c_gate(
             "verified_signed_control_minus_error": verified_signed_loss,
             "unverified_signed_control_minus_error": unverified_signed_loss,
             "verified_cumulative_utility_loss": max(0.0, verified_signed_loss),
-            "unverified_cumulative_utility_loss": max(
-                0.0, unverified_signed_loss
-            ),
+            "unverified_cumulative_utility_loss": max(0.0, unverified_signed_loss),
             "verified_harmful_to_retirement_delay": (
                 _metric(
                     verified_error[seed],
@@ -5976,13 +6196,11 @@ def _experiment_c_gate(
 
     directions = {
         "false_activation": sum(
-            value["verified_false_activation"]
-            < value["unverified_false_activation"]
+            value["verified_false_activation"] < value["unverified_false_activation"]
             for value in candidate_pairs.values()
         ),
         "harmful_exposure": sum(
-            value["verified_harmful_exposure"]
-            < value["unverified_harmful_exposure"]
+            value["verified_harmful_exposure"] < value["unverified_harmful_exposure"]
             for value in forced_pairs.values()
         ),
         "cumulative_utility_loss": sum(
@@ -5997,14 +6215,11 @@ def _experiment_c_gate(
         for value in forced_pairs.values()
     )
     candidate_rejected = len(candidate_pairs) >= 4 and all(
-        value["verified_false_activation"] == 0
-        for value in candidate_pairs.values()
+        value["verified_false_activation"] == 0 for value in candidate_pairs.values()
     )
     unit_rows_complete = len(forced_unit_rows) >= 4
     complete = (
-        len(candidate_pairs) >= 4
-        and len(forced_pairs) >= 4
-        and unit_rows_complete
+        len(candidate_pairs) >= 4 and len(forced_pairs) >= 4 and unit_rows_complete
     )
     supported = bool(
         complete
@@ -6016,7 +6231,9 @@ def _experiment_c_gate(
     if not candidate_rejected:
         reasons.append("unsupported candidate was not demonstrably rejected")
     if not complete:
-        reasons.append("fewer than four complete paired seeds or missing primary metrics")
+        reasons.append(
+            "fewer than four complete paired seeds or missing primary metrics"
+        )
     if not unit_rows_complete:
         reasons.append(
             "fewer than four forced-error seed pairs retain complete "
@@ -6051,15 +6268,11 @@ def _experiment_c_gate(
             if _is_v2_contract(contract)
             else "historical V1 control reuse"
         ),
-        "pairing_scope": _decoding_pairing_scope(
-            contract, model_id
-        ),
+        "pairing_scope": _decoding_pairing_scope(contract, model_id),
         "usable_candidate_seeds": sorted(candidate_pairs),
         "usable_forced_active_seeds": sorted(forced_pairs),
         "same_direction_counts": directions,
-        "positive_unverified_utility_loss_seed_count": (
-            positive_unverified_loss_count
-        ),
+        "positive_unverified_utility_loss_seed_count": (positive_unverified_loss_count),
         "claim_action": (
             (
                 "retain only the registered environment-paired, "
@@ -6080,10 +6293,7 @@ def _direction_and_null_gate(
 ) -> dict[str, Any]:
     """Qualify a downstream outcome without pretending it has an action bin."""
 
-    if (
-        not treatment_deltas
-        or set(treatment_deltas) != set(matched_null_deltas)
-    ):
+    if not treatment_deltas or set(treatment_deltas) != set(matched_null_deltas):
         return {
             "passes": False,
             "checks": {
@@ -6108,14 +6318,8 @@ def _direction_and_null_gate(
                 "missing outcome metrics or treatment/null seed mismatch"
             ),
         }
-    values = {
-        int(seed): float(value)
-        for seed, value in treatment_deltas.items()
-    }
-    nulls = {
-        int(seed): float(value)
-        for seed, value in matched_null_deltas.items()
-    }
+    values = {int(seed): float(value) for seed, value in treatment_deltas.items()}
+    nulls = {int(seed): float(value) for seed, value in matched_null_deltas.items()}
     positive = sum(value > 0 for value in values.values())
     negative = sum(value < 0 for value in values.values())
     null_max = max(abs(value) for value in nulls.values())
@@ -6149,14 +6353,8 @@ def _action_change_gate(
 ) -> dict[str, Any]:
     """Run the registered action gate, preserving incomplete rows as no-go."""
 
-    values = {
-        int(seed): float(value)
-        for seed, value in treatment_deltas.items()
-    }
-    nulls = {
-        int(seed): float(value)
-        for seed, value in matched_null_deltas.items()
-    }
+    values = {int(seed): float(value) for seed, value in treatment_deltas.items()}
+    nulls = {int(seed): float(value) for seed, value in matched_null_deltas.items()}
     if not values or set(values) != set(nulls):
         return {
             "passes": False,
@@ -6185,9 +6383,7 @@ def _action_change_gate(
             action_bin_width=action_bin_width,
         )
     except (TypeError, ValueError) as exc:
-        raise PilotEvidenceError(
-            f"invalid sealed action-gate rows: {exc}"
-        ) from exc
+        raise PilotEvidenceError(f"invalid sealed action-gate rows: {exc}") from exc
     return {
         **gate,
         "treatment_deltas": {
@@ -6308,9 +6504,7 @@ def _experiment_d_gate(
     }
     for seed in expected:
         seed_rows = {
-            arm: by_arm[arm][seed]
-            for arm in normalized_arms
-            if seed in by_arm[arm]
+            arm: by_arm[arm][seed] for arm in normalized_arms if seed in by_arm[arm]
         }
         if not seed_rows:
             continue
@@ -6331,9 +6525,7 @@ def _experiment_d_gate(
                     narrative=False,
                     action_grid=action_grid,
                     contract_hash=(
-                        contract.canonical_hash
-                        if _is_v2_contract(contract)
-                        else None
+                        contract.canonical_hash if _is_v2_contract(contract) else None
                     ),
                     memory_pulse_contract=memory_pulse_contract,
                     narrative_pulse_contract=narrative_pulse_contract,
@@ -6342,10 +6534,9 @@ def _experiment_d_gate(
             except PilotEvidenceError as exc:
                 errors.append(f"{arm}:{exc}")
                 continue
-            if (
-                gate.get("checkpoint_hash") != causal.get("checkpoint_hash")
-                or gate.get("prefix_hash") != causal.get("prefix_hash")
-            ):
+            if gate.get("checkpoint_hash") != causal.get("checkpoint_hash") or gate.get(
+                "prefix_hash"
+            ) != causal.get("prefix_hash"):
                 errors.append(f"{arm}:top-level hash mismatch")
                 continue
             forced_hash = causal.get("branch_forced_active_start_hash")
@@ -6368,8 +6559,7 @@ def _experiment_d_gate(
             complete_set
             and all(
                 all(
-                    value.get(field)
-                    == next(iter(values.values())).get(field)
+                    value.get(field) == next(iter(values.values())).get(field)
                     for field in shared_fields
                 )
                 for value in values.values()
@@ -6377,12 +6567,8 @@ def _experiment_d_gate(
         )
         if common and values:
             common = (
-                values["error-verified"][
-                    "branch_forced_active_start_hash"
-                ]
-                == values["error-unverified"][
-                    "branch_forced_active_start_hash"
-                ]
+                values["error-verified"]["branch_forced_active_start_hash"]
+                == values["error-unverified"]["branch_forced_active_start_hash"]
                 == values["error-verified"]["error_common_start_hash"]
             )
         passed = bool(complete_set and common and not errors)
@@ -6397,54 +6583,40 @@ def _experiment_d_gate(
     supported: list[str] = []
     prompt_only: list[str] = []
     reported_paths = {
-        "focal_first_labor_hours": (
-            "continuation.focal.first_step.labor_hours"
-        ),
+        "focal_first_labor_hours": ("continuation.focal.first_step.labor_hours"),
         "focal_first_consumption_rate": (
             "continuation.focal.first_step.consumption_rate"
         ),
         "focal_immediate_flow_utility": (
             "continuation.focal.first_step.immediate_flow_utility"
         ),
-        "focal_next_wealth": (
-            "continuation.focal.first_step.next_wealth"
-        ),
+        "focal_next_wealth": ("continuation.focal.first_step.next_wealth"),
         "focal_six_step_discounted_utility": (
             "continuation.focal.discounted_flow_utility_sum"
         ),
         "population_next_wealth": (
             "continuation.population.first_step.average_next_wealth"
         ),
-        "population_next_gini": (
-            "continuation.population.first_step.gini_next_wealth"
-        ),
+        "population_next_gini": ("continuation.population.first_step.gini_next_wealth"),
         "population_next_low_labor": (
             "continuation.population.first_step.low_labor_rate"
         ),
-        "population_six_step_utility": (
-            "continuation.population.flow_utility_sum"
-        ),
-        "population_final_wealth": (
-            "continuation.population.average_final_wealth"
-        ),
-        "population_final_gini": (
-            "continuation.population.gini_final_wealth"
-        ),
-        "population_mean_low_labor": (
-            "continuation.population.mean_low_labor_rate"
-        ),
+        "population_six_step_utility": ("continuation.population.flow_utility_sum"),
+        "population_final_wealth": ("continuation.population.average_final_wealth"),
+        "population_final_gini": ("continuation.population.gini_final_wealth"),
+        "population_mean_low_labor": ("continuation.population.mean_low_labor_rate"),
     }
     treatment_arms = tuple(
-        arm
-        for arm in normalized_arms
-        if arm not in {"matched-a", "matched-b"}
+        arm for arm in normalized_arms if arm not in {"matched-a", "matched-b"}
     )
     for treatment_name in treatment_arms:
         treatment = by_arm[treatment_name]
         seeds = [
             seed
             for seed in expected
-            if seed in treatment and seed in baseline and seed in matched_b
+            if seed in treatment
+            and seed in baseline
+            and seed in matched_b
             and causal_binding_checks.get(str(seed), {}).get("pass") is True
         ]
         reported_deltas = {
@@ -6526,18 +6698,18 @@ def _experiment_d_gate(
             "classification": (
                 "closed-loop-continuation-effect"
                 if closed_loop_pass
-                else "prompt-sensitivity-only"
-                if action_pass
-                else "no-qualified-effect"
+                else "prompt-sensitivity-only" if action_pass else "no-qualified-effect"
             ),
             "reported_paired_deltas": reported_deltas,
         }
     causal_binding_pass = (
         sum(value["pass"] for value in causal_binding_checks.values()) >= 4
     )
-    complete = bool(results) and all(
-        len(value["usable_seeds"]) >= 4 for value in results.values()
-    ) and causal_binding_pass
+    complete = (
+        bool(results)
+        and all(len(value["usable_seeds"]) >= 4 for value in results.values())
+        and causal_binding_pass
+    )
     reasons = []
     if not complete:
         reasons.append(
@@ -6658,15 +6830,11 @@ def _narrative_gate(
             try:
                 narrative_bindings[narrative_id] = _validate_causal_bindings(
                     gate.get("causal_bindings"),
-                    name=(
-                        f"narrative seed {seed} {narrative_id} causal bindings"
-                    ),
+                    name=(f"narrative seed {seed} {narrative_id} causal bindings"),
                     narrative=True,
                     action_grid=action_grid,
                     contract_hash=(
-                        contract.canonical_hash
-                        if _is_v2_contract(contract)
-                        else None
+                        contract.canonical_hash if _is_v2_contract(contract) else None
                     ),
                     memory_pulse_contract=memory_pulse_contract,
                     narrative_pulse_contract=narrative_pulse_contract,
@@ -6677,9 +6845,10 @@ def _narrative_gate(
                 errors.append(f"{narrative_id}:{exc}")
         for arm, seed_rows in matched.items():
             gate = _dig(seed_rows[seed], "gate_evidence")
-            if not isinstance(gate, Mapping) or gate.get(
-                "matched_replay_equal"
-            ) is not True:
+            if (
+                not isinstance(gate, Mapping)
+                or gate.get("matched_replay_equal") is not True
+            ):
                 errors.append(f"{arm}:missing/equal replay binding")
                 continue
             try:
@@ -6689,9 +6858,7 @@ def _narrative_gate(
                     narrative=False,
                     action_grid=action_grid,
                     contract_hash=(
-                        contract.canonical_hash
-                        if _is_v2_contract(contract)
-                        else None
+                        contract.canonical_hash if _is_v2_contract(contract) else None
                     ),
                     memory_pulse_contract=memory_pulse_contract,
                     narrative_pulse_contract=narrative_pulse_contract,
@@ -6737,8 +6904,7 @@ def _narrative_gate(
             len(matched_bindings) == len(matched)
             and all(
                 all(
-                    value.get(field)
-                    == next(iter(matched_bindings.values())).get(field)
+                    value.get(field) == next(iter(matched_bindings.values())).get(field)
                     for field in matched_common_fields
                 )
                 for value in matched_bindings.values()
@@ -6757,8 +6923,7 @@ def _narrative_gate(
             if _is_v2_contract(contract):
                 cross_source_fields += ("shock_schedule_hash",)
             cross_source_common = all(
-                left.get(field) == right.get(field)
-                for field in cross_source_fields
+                left.get(field) == right.get(field) for field in cross_source_fields
             )
         if narrative_common:
             narrative_common = all(
@@ -6805,9 +6970,7 @@ def _narrative_gate(
     }
     matched_paths = {
         "labor_hours": "continuation.focal.first_step.labor_hours",
-        "consumption_rate": (
-            "continuation.focal.first_step.consumption_rate"
-        ),
+        "consumption_rate": ("continuation.focal.first_step.consumption_rate"),
         "immediate_flow_utility": (
             "continuation.focal.first_step.immediate_flow_utility"
         ),
@@ -6841,9 +7004,7 @@ def _narrative_gate(
         )
 
     labor_delta = narrative_delta("aligned", "opposite", "labor_hours")
-    consumption_delta = narrative_delta(
-        "aligned", "opposite", "consumption_rate"
-    )
+    consumption_delta = narrative_delta("aligned", "opposite", "consumption_rate")
     labor_gate = _action_change_gate(
         labor_delta,
         matched_null("labor_hours"),
@@ -6872,9 +7033,7 @@ def _narrative_gate(
             "expected_sign": "negative",
             "negative_direction_count": negative_consumption_count,
             "expected_direction_pass": expected_direction_pass,
-            "passes": bool(
-                consumption_gate["passes"] and expected_direction_pass
-            ),
+            "passes": bool(consumption_gate["passes"] and expected_direction_pass),
         }
     utility_delta = narrative_delta(
         "aligned",
@@ -6927,18 +7086,12 @@ def _narrative_gate(
     supported = bool(
         complete
         and action_changed
-        and (
-            True
-            if _is_v2_contract(contract)
-            else utility_gate["passes"]
-        )
+        and (True if _is_v2_contract(contract) else utility_gate["passes"])
         and equivalence_count >= 4
     )
     all_deltas = {
         comparison: {
-            metric: _delta_descriptives(
-                narrative_delta(left, right, metric)
-            )
+            metric: _delta_descriptives(narrative_delta(left, right, metric))
             for metric in narrative_paths
         }
         for comparison, (left, right) in {
@@ -7017,9 +7170,7 @@ def _capability_by_model(
                 "ledger_status": row["status"],
                 "artifact_validated": row["artifact_kind"] is not None,
                 "capability": (
-                    _json_copy(capability)
-                    if isinstance(capability, Mapping)
-                    else {}
+                    _json_copy(capability) if isinstance(capability, Mapping) else {}
                 ),
             }
         return result
@@ -7045,9 +7196,7 @@ def _capability_by_model(
             "ledger_status": row["status"],
             "artifact_validated": row["artifact_kind"] is not None,
             "capability": (
-                _json_copy(capability)
-                if isinstance(capability, Mapping)
-                else {}
+                _json_copy(capability) if isinstance(capability, Mapping) else {}
             ),
         }
 
@@ -7075,17 +7224,12 @@ def _capability_by_model(
             gate.get("capability", {}) if isinstance(gate, Mapping) else {}
         )
         preflight_capability = (
-            preflight.get("capability", {})
-            if isinstance(preflight, Mapping)
-            else {}
+            preflight.get("capability", {}) if isinstance(preflight, Mapping) else {}
         )
         combined_capability = (
             preflight_capability
-            if isinstance(preflight_capability, Mapping)
-            and preflight_capability
-            else gate_capability
-            if isinstance(gate_capability, Mapping)
-            else {}
+            if isinstance(preflight_capability, Mapping) and preflight_capability
+            else gate_capability if isinstance(gate_capability, Mapping) else {}
         )
         both_complete = bool(
             isinstance(gate, Mapping)
@@ -7104,8 +7248,7 @@ def _capability_by_model(
             "registered_dispatch_cells": sum(
                 spec.model_id == model
                 for spec in contract.expand()
-                if spec.execution_mode
-                in {"capability_probe", "closed_loop_preflight"}
+                if spec.execution_mode in {"capability_probe", "closed_loop_preflight"}
             ),
             "contract_role": role.role,
             "dispatch_eligible": True,
@@ -7145,14 +7288,11 @@ def _cross_model_summary(
         models = set(source_stages)
     else:
         models = {"gpt52_main"} | {
-            spec.model_id
-            for spec in contract.expand(stage="cross-model-sentinels")
+            spec.model_id for spec in contract.expand(stage="cross-model-sentinels")
         }
         source_stages = {
             model: (
-                "experiment-b"
-                if model == "gpt52_main"
-                else "cross-model-sentinels"
+                "experiment-b" if model == "gpt52_main" else "cross-model-sentinels"
             )
             for model in models
         }
@@ -7218,8 +7358,7 @@ def _cross_model_summary(
             for seed in expected_seeds
             if seed in full and seed in control
             if _metric(full[seed], "utility.shock_recovery_discounted") is not None
-            and _metric(control[seed], "utility.shock_recovery_discounted")
-            is not None
+            and _metric(control[seed], "utility.shock_recovery_discounted") is not None
         )
         delta = None
         if seeds:
@@ -7290,8 +7429,7 @@ def _cross_model_summary(
         }
         pairing_scope = _decoding_pairing_scope(contract, model)
         seed_unsupported = (
-            pairing_scope["seed_dispatch_mode"]
-            == "documented_unsupported_omitted"
+            pairing_scope["seed_dispatch_mode"] == "documented_unsupported_omitted"
         )
         registered_source_arms = {
             spec.arm_id
@@ -7341,8 +7479,7 @@ def _cross_model_summary(
                     "effectiveness contrast"
                 ),
                 "paired_deltas": {
-                    str(seed): value
-                    for seed, value in sorted(null_values.items())
+                    str(seed): value for seed, value in sorted(null_values.items())
                 },
                 "max_abs": (
                     max(abs(value) for value in null_values.values())
@@ -7417,9 +7554,7 @@ def _cross_model_summary(
             "rule_application_competence": _json_copy(
                 category_totals.get("rule-application")
             ),
-            "proposal_competence": _json_copy(
-                category_totals.get("rule-proposal")
-            ),
+            "proposal_competence": _json_copy(category_totals.get("rule-proposal")),
             "capability_parse_failure_count": capability_payload.get(
                 "parse_failure_count"
             ),
@@ -7430,7 +7565,9 @@ def _cross_model_summary(
             "usable_paired_seeds": seeds,
             "paired_delta": delta,
             "direction": (
-                "positive" if positive else "negative" if negative else "mixed-or-incomplete"
+                "positive"
+                if positive
+                else "negative" if negative else "mixed-or-incomplete"
             ),
             "directional_micro_pilot_replication": replicated,
             "seed_unsupported_matched_a_a_null": matched_null,
@@ -7439,9 +7576,7 @@ def _cross_model_summary(
             "pairing_scope": pairing_scope,
             "matched_a_a_null_registered": matched_null_registered,
             "model_role": (
-                contract.model_roles[model].role
-                if _is_v2_contract(contract)
-                else None
+                contract.model_roles[model].role if _is_v2_contract(contract) else None
             ),
             "claim_boundary": (
                 "direction replicated in this model-family micro-pilot only"
@@ -7677,7 +7812,10 @@ def _method_scaffold(
                 "consumption; the framework also updates personas."
             ),
             "source_refs": {
-                "FinEvo current_v2": ["finevo_contract:arms", "finevo_contract:stop_go"],
+                "FinEvo current_v2": [
+                    "finevo_contract:arms",
+                    "finevo_contract:stop_go",
+                ],
                 "EconAgent": ["econagent:3.2"],
                 "EconAI": ["econai:3.2"],
             },
@@ -7700,7 +7838,10 @@ def _method_scaffold(
                 "a verifier lifecycle for abstracted decision rules."
             ),
             "source_refs": {
-                "FinEvo current_v2": ["finevo_contract:arms", "finevo_contract:stop_go"],
+                "FinEvo current_v2": [
+                    "finevo_contract:arms",
+                    "finevo_contract:stop_go",
+                ],
                 "EconAgent": ["econagent:3.2"],
                 "EconAI": ["econai:3.1", "econai:3.2"],
             },
@@ -7723,7 +7864,10 @@ def _method_scaffold(
                 "environment."
             ),
             "source_refs": {
-                "FinEvo current_v2": ["finevo_contract:stages", "finevo_contract:stop_go"],
+                "FinEvo current_v2": [
+                    "finevo_contract:stages",
+                    "finevo_contract:stop_go",
+                ],
                 "EconAgent": ["econagent:3.2", "econagent:3.3"],
                 "EconAI": ["econai:3.2", "econai:3.4"],
             },
@@ -7744,7 +7888,10 @@ def _method_scaffold(
                 "with a counterfactual without the injection."
             ),
             "source_refs": {
-                "FinEvo current_v2": ["finevo_contract:stages", "finevo_contract:non_claims"],
+                "FinEvo current_v2": [
+                    "finevo_contract:stages",
+                    "finevo_contract:non_claims",
+                ],
                 "EconAgent": ["econagent:4.5"],
                 "EconAI": ["econai:4.5"],
             },
@@ -7767,7 +7914,10 @@ def _method_scaffold(
                 "FinEvo's cell-level provider/parse-failure ITT policy."
             ),
             "source_refs": {
-                "FinEvo current_v2": ["finevo_contract:stop_go", "finevo_contract:stages"],
+                "FinEvo current_v2": [
+                    "finevo_contract:stop_go",
+                    "finevo_contract:stages",
+                ],
                 "EconAgent": ["econagent:4.3"],
                 "EconAI": ["econai:4.4"],
             },
@@ -7957,7 +8107,9 @@ def _report_markdown(
     for gate_name in ("experiment_a", "experiment_c", "experiment_d", "narrative"):
         gate = gates[gate_name]
         if gate["status"] != "supported":
-            lines.append(f"- `{gate_name}` no-go: {gate.get('claim_action') or gate.get('claim_boundary')}.")
+            lines.append(
+                f"- `{gate_name}` no-go: {gate.get('claim_action') or gate.get('claim_boundary')}."
+            )
     return "\n".join(lines) + "\n"
 
 
@@ -7970,16 +8122,13 @@ def _scientific_completion_status(
     rows: Sequence[Mapping[str, Any]],
 ) -> tuple[bool, bool, bool]:
     scientific_stages = (
-        _stage_sets(contract)[1]
-        if contract is not None
-        else V1_SCIENTIFIC_STAGES
+        _stage_sets(contract)[1] if contract is not None else V1_SCIENTIFIC_STAGES
     )
     matrix_complete = bool(
         denominator.get("pass") is True
         and release_controls.get("pass") is True
         and all(
-            row["status"] == "complete"
-            and row["scientific_eligible"] is True
+            row["status"] == "complete" and row["scientific_eligible"] is True
             for row in rows
             if row["stage_id"] in scientific_stages
         )
@@ -8193,11 +8342,9 @@ def _write_package_files(
     package_storage = sum(
         path.stat().st_size for path in root.rglob("*") if path.is_file()
     )
-    if (
-        not _is_finite_scalar(raw_storage)
-        or float(raw_storage) + package_storage
-        > float(contract.budgets["max_storage_bytes"])
-    ):
+    if not _is_finite_scalar(raw_storage) or float(
+        raw_storage
+    ) + package_storage > float(contract.budgets["max_storage_bytes"]):
         raise PilotEvidenceError(
             "raw evidence plus reviewer package exceeds the frozen 5 GB cap"
         )
@@ -8244,13 +8391,11 @@ def build_pilot_evidence_package(
     }
     capability = _capability_by_model(rows, contract)
     cross_model = _cross_model_summary(contract, rows, capability)
-    rule_sensitivity, sensitivity_control = (
-        _validated_experiment_c_sensitivity(
-            contract,
-            raw_root=raw,
-            rows=rows,
-            common_commit=common_commit,
-        )
+    rule_sensitivity, sensitivity_control = _validated_experiment_c_sensitivity(
+        contract,
+        raw_root=raw,
+        rows=rows,
+        common_commit=common_commit,
     )
     release_controls = _validated_release_controls(
         contract,
@@ -8318,6 +8463,8 @@ __all__ = [
     "build_pilot_evidence_package",
     "write_terminal_summary",
 ]
+
+
 @contextmanager
 def source_repository_context(
     source_repo_root: str | Path | None,
