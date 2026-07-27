@@ -18,6 +18,7 @@ from verified_memory.pilot_continuation import (
     PILOT_CONTINUATION_SCHEMA_VERSION,
     PILOT_NARRATIVE_SCHEMA_VERSION,
     SHUFFLE_ALGORITHM,
+    V24_GPT_TREATMENTS,
     PilotContinuationError,
     run_pilot_continuations,
     run_pilot_narratives,
@@ -608,6 +609,102 @@ def _continuation_checkpoint(run_id: str) -> object:
         ),
         env_config_source=ROOT / "config.yaml",
     )
+
+
+def test_v24_gpt_ordered_treatment_subset_runs_without_unregistered_branch(
+    tmp_path: Path,
+) -> None:
+    checkpoint = _continuation_checkpoint("pilot-continuation-v24-gpt-subset")
+    budget = RunBudget(
+        BudgetLimits(max_calls=160, max_cost_usd=0.01),
+        budget_id="pilot-continuation-v24-gpt-subset-branches",
+    )
+    result = run_pilot_continuations(
+        checkpoint,
+        llm=MultiModelLLM(ScriptedDiagnosticProvider(), num_workers=4),
+        budget=budget,
+        treatments=V24_GPT_TREATMENTS,
+        provider_call_journals=_journal_targets(
+            tmp_path,
+            V24_GPT_TREATMENTS,
+            prefix="v24-gpt-subset",
+        ),
+    ).to_dict()
+
+    assert result["treatments"] == list(V24_GPT_TREATMENTS)
+    assert set(result["branches"]) == set(V24_GPT_TREATMENTS)
+    assert "shuffled-episodic" not in result["branches"]
+    assert result["erroneous_forced_active_common_start"]["equal"] is True
+    assert all(
+        len(branch["api_usage"]) == 24
+        for branch in result["branches"].values()
+    )
+    assert budget.snapshot().completed_calls == 24 * len(V24_GPT_TREATMENTS)
+
+
+def test_continuation_treatment_subset_rejects_invalid_causal_matrix() -> None:
+    checkpoint = _continuation_checkpoint("pilot-continuation-invalid-subsets")
+    invalid = (
+        (
+            (*V24_GPT_TREATMENTS, "unknown-branch"),
+            "unknown branches",
+        ),
+        (
+            (
+                "matched-b",
+                "matched-a",
+                *V24_GPT_TREATMENTS[2:],
+            ),
+            "preregistered branch order",
+        ),
+        (
+            (
+                "matched-a",
+                "matched-a",
+                *V24_GPT_TREATMENTS[1:],
+            ),
+            "must not contain duplicates",
+        ),
+        (
+            tuple(
+                treatment
+                for treatment in V24_GPT_TREATMENTS
+                if treatment != "matched-b"
+            ),
+            "required causal controls",
+        ),
+        (
+            tuple(
+                treatment
+                for treatment in V24_GPT_TREATMENTS
+                if treatment != "erroneous-verified"
+            ),
+            "required causal controls",
+        ),
+        (
+            tuple(
+                treatment
+                for treatment in V24_GPT_TREATMENTS
+                if treatment != "erroneous-unverified"
+            ),
+            "required causal controls",
+        ),
+    )
+
+    for index, (treatments, message) in enumerate(invalid):
+        with pytest.raises(ValueError, match=message):
+            run_pilot_continuations(
+                checkpoint,
+                llm=MultiModelLLM(
+                    ScriptedDiagnosticProvider(),
+                    num_workers=4,
+                ),
+                budget=RunBudget(
+                    BudgetLimits(max_calls=160, max_cost_usd=0.01),
+                    budget_id=f"invalid-treatment-subset-{index}",
+                ),
+                treatments=treatments,
+            )
 
 
 def test_branch_parse_failure_terminalizes_every_dispatched_completion(

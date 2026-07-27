@@ -1467,6 +1467,31 @@ def _verify_receipt_value(
     repo_root: Path,
     expected_git_commit: str,
 ) -> dict[str, dict[str, dict[str, Any]]]:
+    # V2.4 has no new provider preflight.  Its child receipt is instead
+    # rebuilt from an exact, tracked-hash copy of the fully reverified V2.3
+    # source receipt.  Keep the legacy V2.3 verifier below unchanged and
+    # dispatch only the explicitly versioned inherited schema here.
+    from .pilot_v24_parent_import import (
+        V24_INHERITED_P95_RECEIPT_SCHEMA_VERSION,
+        PilotV24ParentImportError,
+        verify_v24_inherited_p95_receipt,
+    )
+
+    if (
+        receipt.get("schema_version")
+        == V24_INHERITED_P95_RECEIPT_SCHEMA_VERSION
+    ):
+        try:
+            return verify_v24_inherited_p95_receipt(
+                receipt,
+                repo_root=repo_root,
+                expected_git_commit=expected_git_commit,
+            )
+        except PilotV24ParentImportError as exc:
+            raise ObservedP95AuthorityError(
+                f"V2.4 inherited observed-p95 receipt failed validation: {exc}"
+            ) from exc
+
     expected_keys = {
         "schema_version",
         "contract",

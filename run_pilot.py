@@ -2,6 +2,9 @@
 """Unique execution entry for a frozen FinEvo mechanism micro-pilot.
 
 Examples:
+    python run_pilot.py --contract experiments/pilot_v2_4.yaml \
+        --stage parent-import \
+        --parent-repo-root ../finevo-pilot-v2-3-release --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
         --stage capability-gate --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
@@ -16,6 +19,8 @@ Pilot-v2.2 is the evaluator-only correction that imports both immutable
 capability attempts without provider redispatch. Pilot-v2.3 preserves that
 denominator and adds the contract-bound capability-usage bootstrap needed to
 measure the closed-loop preflight p95 before normal scientific dispatch.
+Pilot-v2.4 is a prospective local-first matrix amendment.  Its zero-call
+parent-import revalidates V2.3 without reopening any terminal V2.3 cell.
 """
 
 from __future__ import annotations
@@ -27,6 +32,10 @@ import sys
 
 from verified_memory.pilot_contract import load_pilot_contract
 from verified_memory.pilot_evidence import build_pilot_evidence_package
+from verified_memory.pilot_v24_evidence import (
+    PILOT_V24_CONTRACT_ID,
+    build_pilot_v24_evidence_package,
+)
 from verified_memory.pilot_orchestrator import (
     PilotOrchestrationError,
     execute_stage,
@@ -73,6 +82,15 @@ def build_parser() -> argparse.ArgumentParser:
             "publish-evidence stage"
         ),
     )
+    parser.add_argument(
+        "--parent-repo-root",
+        type=Path,
+        default=None,
+        help=(
+            "read-only V2.3 source/raw checkout required only by the V2.4 "
+            "zero-provider parent-import stage"
+        ),
+    )
     return parser
 
 
@@ -89,6 +107,11 @@ def _raw_root_for_contract(contract_path: Path) -> Path:
 
 
 def execute(args: argparse.Namespace) -> dict:
+    parent_repo_root = getattr(args, "parent_repo_root", None)
+    if parent_repo_root is not None and args.stage != "parent-import":
+        raise PilotOrchestrationError(
+            "--parent-repo-root is accepted only for the V2.4 parent-import stage"
+        )
     raw_root = (
         args.raw_root
         if args.raw_root is not None
@@ -109,7 +132,13 @@ def execute(args: argparse.Namespace) -> dict:
             "development-a-d requires the explicit --development-fake flag"
         )
     if args.stage == "publish-evidence":
-        package = build_pilot_evidence_package(
+        contract = load_pilot_contract(args.contract)
+        builder = (
+            build_pilot_v24_evidence_package
+            if contract.contract_id == PILOT_V24_CONTRACT_ID
+            else build_pilot_evidence_package
+        )
+        package = builder(
             contract_path=args.contract,
             run_ledger_path=raw_root / "run_ledger.json",
             raw_root=raw_root,
@@ -135,6 +164,7 @@ def execute(args: argparse.Namespace) -> dict:
         resume=args.resume,
         raw_root=raw_root,
         repo_root=ROOT,
+        parent_repo_root=parent_repo_root,
     )
 
 

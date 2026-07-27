@@ -1,0 +1,255 @@
+{
+  "schema_version": "finevo-pilot-contract-v2.4-matrix-amendment-overlay-v1",
+  "contract_id": "finevo-pilot-v2.4",
+  "status": "frozen",
+  "base_contract": {
+    "path": "pilot_v2_3.yaml",
+    "schema_version": "finevo-pilot-contract-v2",
+    "contract_id": "finevo-pilot-v2.3",
+    "canonical_sha256": "10a76561ec59810e664d8415bff3a6aa89346a4cfd67b6e7f8aa1257d015c424"
+  },
+  "changes": {
+    "implementation": {
+      "required_git_tag": "pilot-v2.4-science"
+    },
+    "release_requirements": {
+      "tag": "pilot-v2.4-science",
+      "expected_ci": {
+        "test_count": 815,
+        "test_collection_sha256": "b01c2598b95d42ecba90602f1a5e27ad9d217371f6f7609cffebc5cb65882155",
+        "compiled_source_count": 156,
+        "compiled_source_inventory_sha256": "6e8e6826b7a16158e21c6bfc6de743badab9955a5e88ebb4fdd45163f760c347",
+        "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952"
+      }
+    },
+    "denominator_policy": {
+      "policy_id": "finevo-pilot-v2.4-itt"
+    },
+    "active_provider_profile_ids": [
+      "gpt52_main",
+      "llama33_local_controlled",
+      "qref_scripted"
+    ],
+    "budgets": {
+      "total_usd": 500.0,
+      "automatic_reserve_usd": 1.0,
+      "max_provider_completions": 7500,
+      "max_storage_bytes": 5000000000,
+      "stage_usd_caps": {
+        "parent_v23": 3.212770875,
+        "local": 0.0,
+        "hosted_confirmatory": 495.787229125,
+        "manual_reserve": 1.0
+      }
+    },
+    "matrix_profile_id": "local-llama-full-ad-gpt52-fixed-confirmatory-cadb-v1"
+  },
+  "matrix_amendment": {
+    "schema_version": "finevo-pilot-matrix-amendment-v1",
+    "amendment_id": "finevo-pilot-v2.4-local-first-confirmatory-1",
+    "prospective_registration": {
+      "outcome_blind": true,
+      "scientific_outcomes_observed_before_amendment": false,
+      "scientific_effect_outcomes_observed": false,
+      "parent_terminal_status_inspected": true,
+      "parent_science_outputs_inspected": false,
+      "parent_artifacts_modified": false,
+      "parent_runs_resumed": false,
+      "failed_seed_replacement": "forbidden"
+    },
+    "parent": {
+      "contract_id": "finevo-pilot-v2.3",
+      "contract_sha256": "10a76561ec59810e664d8415bff3a6aa89346a4cfd67b6e7f8aa1257d015c424",
+      "contract_file_sha256": "98d507a4094ed1d5266b123b4d79a4e386bd1a49e1441f1b1ee3f3362ac54699",
+      "release_tag": "pilot-v2.3-science",
+      "release_commit": "ab32e3c9dcf581a40f3093652e144b56f853c782",
+      "release_attestation_file_sha256": "812b497a22a752591f2b3aab8a7afbfd95a9b9832a86543d0aa480abb52b824e",
+      "run_ledger_file_sha256": "0cc360c23c6400286c6df1c7b3a3ff004af5aeda4f90bcd2140c44fc29c386dc",
+      "run_ledger_internal_sha256": "7c9baf0c9c4f9a83f81bef2c5213b59d2e44c43fdabce03efa86affef7fefc27",
+      "run_ledger_event_count": 176,
+      "run_ledger_event_head": "c1ea08426d1a5d3b8bfd8f2a0a54c02316d532618310920b9f96c1b594568226",
+      "budget_ledger_file_sha256": "d3bc35b703e3e0a8e201d301c2e0154d2e43ad59b468340f9e887c98ff0a01bf",
+      "budget_ledger_internal_sha256": "7e84abf9f79690bbf8293596142b464685d94fce0fbb9e6a58568aa319ffd265",
+      "budget_ledger_event_count": 22,
+      "budget_ledger_event_head": "9d02e301d6b2b4a9933fe4a70ebd180ecb200d1e737106bfc0546d3898d46407",
+      "registered_cells": 174,
+      "terminal_cells": 174,
+      "terminal_status": "complete-with-no-go",
+      "terminal_reason": "budget-no-go",
+      "terminal_status_counts": {
+        "complete": 8,
+        "budget-stopped": 151,
+        "capability-no-go": 14,
+        "failed": 1
+      }
+    },
+    "budget_carry_forward": {
+      "source_contract_id": "finevo-pilot-v2.3",
+      "source_contract_sha256": "10a76561ec59810e664d8415bff3a6aa89346a4cfd67b6e7f8aa1257d015c424",
+      "source_stage_bucket": "parent_v23",
+      "cost_usd": 3.212770875,
+      "hosted_completions": 184,
+      "storage_bytes": 4196087,
+      "debit_before_new_dispatch": true,
+      "parent_import_cell_additional_cost_usd": 0.0,
+      "parent_import_cell_additional_hosted_completions": 0
+    },
+    "parent_source_manifest": {
+      "path": "experiments/pilot_v2_4_parent_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.4-parent-source-manifest-v1",
+      "file_sha256": "d6a867cd7add43818127af7778a447d579ac1ab31ed6d053bcd29d69b3cf0f33",
+      "content_sha256": "7ae427fe6eac5aa6e04eddd3efa9e63405e128c782013ed3f67c35808be3cec5"
+    },
+    "parent_authority_import": {
+      "execution_mode": "parent_authority_import",
+      "provider_calls": 0,
+      "authority_remains_parent_labeled": true,
+      "import_is_scientific_evidence": false,
+      "exact_file_and_content_hash_required": true,
+      "same_runtime_and_served_model_required": true,
+      "missing_or_malformed_source_policy": "stop-before-dispatch",
+      "allowed_use": "source-backed-observed-p95-reservation-authority-for-v2.4",
+      "capability_stage_receipt": {
+        "file_sha256": "28fb188c09ab69fd2623818a15d2edcdcf329925dee5ef1f222b34240535c475",
+        "content_sha256": "d15fce84b8911450ab41b07cb7e2dd99e7c37752047a7b81ce230ba3fbb37b88"
+      },
+      "profiles": {
+        "gpt52_main": {
+          "runtime_model": "openai/gpt-5.2-2025-12-11",
+          "served_model": "gpt-5.2-2025-12-11",
+          "authority_receipt_file_sha256": "1edce6fa30f530e2f83c16b64488da394d5aca04565276d482f61262fe522289",
+          "authority_receipt_content_sha256": "3406c3bdd532f3fe529d85072d207ff3a97b4bf3a8ed3afc78397df972fdf3f0",
+          "source_run_spec_sha256": "b64434c45890fa8a13ec7f4e2570b37a2e065374b6fbaac4f39e5b81a1269934",
+          "source_projection_file_sha256": "87b5f31e91b1ad7d75b2dbd9f3558a6893a23225b6e5f867a43cd04f1a7a12e3",
+          "source_projection_content_sha256": "88a964e42cfff6cdd7b1aa1f6082abe5165f854d297414444ea3a0c1ab9d3a7b"
+        },
+        "llama33_local_controlled": {
+          "runtime_model": "ollama/llama3.3:70b-instruct-q4_K_M",
+          "served_model": "llama3.3:70b-instruct-q4_K_M",
+          "authority_receipt_file_sha256": "26d7360577d6729e5e9a5ec4a8b2dea529a69b14770775ab1e96a3666dcc3aba",
+          "authority_receipt_content_sha256": "fc857c65af5995847d2b8166ef9785309cdeb250df75d48d0aa608741b0033fa",
+          "source_run_spec_sha256": "e27609907a940f38e73490f1b8d9e3902a18800203c29c78036b212050d68dcd",
+          "source_projection_file_sha256": "8d6c9867ed7ac5a2968069eeb2df0bb1205ed5fce48b9640c5619fff72ea7ba0",
+          "source_projection_content_sha256": "6ed39de17f7a5f4f17e58cf0e4a29581201c6dfd1c13b21e964371df3f35c09d"
+        }
+      }
+    },
+    "matrix": {
+      "stage_order": [
+        "parent-import",
+        "q-ref-resolution",
+        "stage0-calibration",
+        "local-experiment-c",
+        "local-experiment-a",
+        "local-experiment-d",
+        "local-experiment-b",
+        "experiment-c",
+        "experiment-a",
+        "experiment-d",
+        "experiment-b"
+      ],
+      "active_provider_profile_ids": [
+        "gpt52_main",
+        "llama33_local_controlled",
+        "qref_scripted"
+      ],
+      "main_seeds": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ],
+      "registered_cells": 211,
+      "scientific_cells": 209,
+      "parent_import_cells": 1,
+      "q_ref_cells": 1,
+      "local_model_id": "llama33_local_controlled",
+      "hosted_confirmatory_model_id": "gpt52_main",
+      "stage_priority": "C-A-D-B",
+      "narrative_registration": "deferred-unregistered",
+      "new_cross_model_calls": "deferred-unregistered",
+      "local_arms": {
+        "C": [
+          "full",
+          "unverified-dual",
+          "verified-error-candidate",
+          "verified-error-forced",
+          "unverified-error-forced"
+        ],
+        "A": [
+          "no-context",
+          "prompt-only",
+          "retrieval-only",
+          "full"
+        ],
+        "D": [
+          "matched-a",
+          "matched-b",
+          "no-memory",
+          "shuffled-episodic",
+          "wrong-context",
+          "error-verified",
+          "error-unverified"
+        ],
+        "B": [
+          "no-memory",
+          "episodic-only",
+          "semantic-only",
+          "unverified-dual",
+          "full"
+        ]
+      },
+      "hosted_arms": {
+        "C": [
+          "full",
+          "unverified-dual",
+          "verified-error-candidate",
+          "verified-error-forced",
+          "unverified-error-forced"
+        ],
+        "A": [
+          "no-context",
+          "prompt-only",
+          "retrieval-only",
+          "full"
+        ],
+        "D": [
+          "matched-a",
+          "matched-b",
+          "no-memory",
+          "wrong-context",
+          "error-verified",
+          "error-unverified"
+        ],
+        "B": [
+          "full",
+          "episodic-only",
+          "no-memory"
+        ]
+      }
+    },
+    "budget_projection": {
+      "hard_cap_usd": 500.0,
+      "hard_cap_status": "authorized-explicit-user-2026-07-27",
+      "automatic_reserve_usd": 1.0,
+      "max_provider_completions": 7500,
+      "max_storage_bytes": 5000000000,
+      "new_hosted_core_completions": 4240,
+      "new_local_logical_calls": 5672,
+      "sealed_observed_p95_plus_25pct_core_cost_usd": 143.6043,
+      "paid_dispatch_allowed_while_draft": false,
+      "matrix_shrink_on_projection_failure": false
+    },
+    "preserved_model_boundaries": {
+      "gpt56_diagnostic": "secondary-diagnostic-no-v2.4-redispatch",
+      "gemini35_flash_diagnostic": "capability-pass-preflight-failed-no-v2.4-redispatch",
+      "llama4_maverick_diagnostic": "capability-no-go-no-v2.4-redispatch",
+      "opus48_no_go": "omitted-no-v2.4-redispatch"
+    }
+  },
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "declared_sha256": "3e2f60e2b3c95f99ff3f6685e66bd8f1d93e0b3d566ba307792f3cce21b77fed"
+  }
+}
