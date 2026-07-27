@@ -1,0 +1,81 @@
+{
+  "contract_sha256": "938627d42ec8ec78e8424793797593736b79936b00813b81259af54e6df6779f",
+  "rows": [
+    {
+      "reason": "0/5 complete paired seeds; the registered minimum is 4/5",
+      "required_wording": "denominator/failure report only; no effectiveness claim",
+      "scope": "local/experiment-c"
+    },
+    {
+      "reason": "0/5 complete paired seeds; the registered minimum is 4/5",
+      "required_wording": "denominator/failure report only; no effectiveness claim",
+      "scope": "local/experiment-a"
+    },
+    {
+      "reason": "0/5 complete paired seeds; the registered minimum is 4/5",
+      "required_wording": "denominator/failure report only; no effectiveness claim",
+      "scope": "local/experiment-d"
+    },
+    {
+      "reason": "0/5 complete paired seeds; the registered minimum is 4/5",
+      "required_wording": "denominator/failure report only; no effectiveness claim",
+      "scope": "local/experiment-b"
+    },
+    {
+      "reason": "0/5 complete paired seeds; the registered minimum is 4/5",
+      "required_wording": "denominator/failure report only; no effectiveness claim",
+      "scope": "gpt52/experiment-c"
+    },
+    {
+      "reason": "0/5 complete paired seeds; the registered minimum is 4/5",
+      "required_wording": "denominator/failure report only; no effectiveness claim",
+      "scope": "gpt52/experiment-a"
+    },
+    {
+      "reason": "0/5 complete paired seeds; the registered minimum is 4/5",
+      "required_wording": "denominator/failure report only; no effectiveness claim",
+      "scope": "gpt52/experiment-d"
+    },
+    {
+      "reason": "0/5 complete paired seeds; the registered minimum is 4/5",
+      "required_wording": "denominator/failure report only; no effectiveness claim",
+      "scope": "gpt52/experiment-b"
+    },
+    {
+      "reason": "release, Stage-0, or budget controls did not all pass",
+      "required_wording": "complete-with-no-go; do not report scientific effectiveness",
+      "scope": "release-stage0-budget"
+    },
+    {
+      "reason": "the two independently gated lanes do not establish the same registered primary direction",
+      "required_wording": "cross-backbone mechanism direction is inconclusive; do not pool seed directions",
+      "scope": "cross-lane/experiment-c"
+    },
+    {
+      "reason": "the two independently gated lanes do not establish the same registered primary direction",
+      "required_wording": "cross-backbone mechanism direction is inconclusive; do not pool seed directions",
+      "scope": "cross-lane/experiment-a"
+    },
+    {
+      "reason": "the two independently gated lanes do not establish the same registered primary direction",
+      "required_wording": "cross-backbone mechanism direction is inconclusive; do not pool seed directions",
+      "scope": "cross-lane/experiment-d"
+    },
+    {
+      "reason": "the two independently gated lanes do not establish the same registered primary direction",
+      "required_wording": "cross-backbone mechanism direction is inconclusive; do not pool seed directions",
+      "scope": "cross-lane/experiment-b"
+    },
+    {
+      "reason": "narrative intervention is deferred and unregistered",
+      "required_wording": "no narrative or real-news-understanding claim",
+      "scope": "narrative"
+    },
+    {
+      "reason": "the local and GPT lanes are separate replications",
+      "required_wording": "report each lane's seed directions separately; never pool them",
+      "scope": "cross-lane"
+    }
+  ],
+  "schema_version": "finevo-pilot-v2.7-evidence-package-v1"
+}
