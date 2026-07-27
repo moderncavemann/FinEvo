@@ -748,6 +748,9 @@ def test_v27_parent_import_accounts_incremental_snapshot_storage(
         def is_terminal(self, _run_id: str) -> bool:
             return self.terminal
 
+        def status(self, _run_id: str) -> str:
+            return "complete" if self.terminal else "scheduled"
+
         def finalize(self, *_args: Any, **_kwargs: Any) -> None:
             self.terminal = True
 
@@ -840,6 +843,193 @@ def test_v27_parent_import_accounts_incremental_snapshot_storage(
     assert budget.finalized["storage_bytes"] > 0
     assert materializations == ["importer"]
     assert verifications == ["read-only"]
+
+
+@pytest.mark.parametrize("failure_mode", ["receipt", "budget"])
+def test_v27_parent_post_commit_failure_resumes_without_no_go(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_mode: str,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(stage="parent-import")[0]
+    raw_root = tmp_path / "raw"
+    raw_root.mkdir()
+    run_ledger = orchestrator.PilotRunLedger(
+        raw_root / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+        tamper_evident=True,
+    )
+    run_ledger.register(contract.expand())
+
+    class Budget:
+        def __init__(self) -> None:
+            self.rows: dict[str, dict[str, Any]] = {}
+            self.fail_once = failure_mode == "budget"
+
+        def snapshot(self) -> dict[str, Any]:
+            return {"runs": self.rows}
+
+        def reserve(self, projection: Any) -> None:
+            self.rows[projection.run_id] = {
+                "reservation": projection.to_dict(),
+                "status": "reserved",
+                "actual": None,
+                "failure": None,
+            }
+
+        def finalize(self, run_id: str, **kwargs: Any) -> None:
+            if self.fail_once:
+                self.fail_once = False
+                raise OSError(
+                    "injected parent success budget finalization failure"
+                )
+            self.rows[run_id].update(
+                {
+                    "status": kwargs["status"],
+                    "actual": {
+                        "cost_usd": kwargs["cost_usd"],
+                        "completions": kwargs["completions"],
+                        "storage_bytes": kwargs["storage_bytes"],
+                    },
+                    "failure": kwargs["failure"],
+                }
+            )
+
+    budget = Budget()
+    importer_calls: list[str] = []
+
+    def persist(**_kwargs: Any) -> dict[str, Any]:
+        importer_calls.append("materialized")
+        return {
+            "receipt": str(
+                raw_root / "parent-import" / "parent_import_receipt.json"
+            ),
+            "snapshot_inventory_sha256": "a" * 64,
+            "resealed_p95_profiles": {
+                "sentinel": "importer-materialized",
+            },
+            "provider_calls": 0,
+            "scientific_evidence": False,
+        }
+
+    monkeypatch.setattr(
+        orchestrator,
+        "persist_v27_parent_import",
+        persist,
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_verify_v27_importer_p95_profiles",
+        lambda _contract, *, importer_result, **_kwargs: importer_result[
+            "resealed_p95_profiles"
+        ],
+    )
+    receipt_failed = False
+
+    def write_receipt(*args: Any, **kwargs: Any) -> Path:
+        nonlocal receipt_failed
+        if (
+            failure_mode == "receipt"
+            and not receipt_failed
+            and len(args) > 1
+            and args[1] == "parent-import"
+        ):
+            receipt_failed = True
+            raise OSError(
+                "injected parent success receipt publication failure"
+            )
+        path = raw_root / "parent-import" / "stage_receipt.json"
+        path.write_text(
+            json.dumps({"status": "complete"}) + "\n",
+            encoding="utf-8",
+        )
+        return path
+
+    monkeypatch.setattr(
+        orchestrator,
+        "_write_stage_receipt",
+        write_receipt,
+    )
+    with pytest.raises(
+        orchestrator.PilotOrchestrationError,
+        match="requires audited --resume",
+    ):
+        orchestrator._execute_v24_parent_import_stage(
+            contract,
+            (spec,),
+            raw_root=raw_root,
+            repo_root=tmp_path,
+            parent_repo_root=tmp_path,
+            paid=_paid(),
+            run_ledger=run_ledger,
+            budget_ledger=budget,
+        )
+    statuses: dict[str, int] = {}
+    for row in run_ledger.snapshot()["runs"].values():
+        statuses[row["status"]] = statuses.get(row["status"], 0) + 1
+    assert statuses == {"complete": 1, "scheduled": 210}
+    assert budget.rows[spec.run_id]["status"] == "reserved"
+    assert not (
+        raw_root / "parent-import" / "failure_receipt.json"
+    ).exists()
+    assert (
+        raw_root
+        / "parent-import"
+        / "parent_import_commit_intent.json"
+    ).is_file()
+
+    monkeypatch.setattr(
+        orchestrator,
+        "persist_v27_parent_import",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            RuntimeError("injected parent resume verification failure")
+        ),
+    )
+    with pytest.raises(
+        RuntimeError,
+        match="injected parent resume verification failure",
+    ):
+        orchestrator._execute_v24_parent_import_stage(
+            contract,
+            (spec,),
+            raw_root=raw_root,
+            repo_root=tmp_path,
+            parent_repo_root=tmp_path,
+            paid=_paid(),
+            run_ledger=run_ledger,
+            budget_ledger=budget,
+        )
+    assert {
+        row["status"]
+        for run_id, row in run_ledger.snapshot()["runs"].items()
+        if run_id != spec.run_id
+    } == {"scheduled"}
+    assert run_ledger.status(spec.run_id) == "complete"
+    assert budget.rows[spec.run_id]["status"] == "reserved"
+    assert not (
+        raw_root / "parent-import" / "failure_receipt.json"
+    ).exists()
+    monkeypatch.setattr(
+        orchestrator,
+        "persist_v27_parent_import",
+        persist,
+    )
+
+    resumed = orchestrator._execute_v24_parent_import_stage(
+        contract,
+        (spec,),
+        raw_root=raw_root,
+        repo_root=tmp_path,
+        parent_repo_root=tmp_path,
+        paid=_paid(),
+        run_ledger=run_ledger,
+        budget_ledger=budget,
+    )
+    assert resumed["status"] == "complete"
+    assert budget.rows[spec.run_id]["status"] == "complete"
+    assert budget.rows[spec.run_id]["failure"] is None
+    assert importer_calls == ["materialized", "materialized"]
 
 
 @pytest.mark.parametrize("failure_mode", ["receipt", "budget"])

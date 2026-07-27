@@ -964,6 +964,136 @@ def test_release_stage0_and_budget_controls_are_independently_revalidated(
     ] is True
 
 
+@pytest.mark.parametrize(
+    "contract_name",
+    [
+        "pilot_v1.yaml",
+        "pilot_v2.yaml",
+        "pilot_v2_1.yaml",
+        "pilot_v2_2.yaml",
+        "pilot_v2_3.yaml",
+        "pilot_v2_4.yaml",
+        "pilot_v2_5.yaml",
+        "pilot_v2_6.yaml",
+    ],
+)
+def test_legacy_stage0_resealed_binding_tamper_is_rejected(
+    tmp_path: Path,
+    contract_name: str,
+) -> None:
+    contract = load_pilot_contract(ROOT / "experiments" / contract_name)
+    raw = tmp_path / contract.contract_id
+    raw.mkdir(parents=True)
+    commit = "c" * 40
+    specs = contract.expand(stage="stage0-calibration")
+    rows = []
+    sources = []
+    for spec in specs:
+        manifest_hash = _digest(f"{contract.contract_id}:{spec.run_id}")
+        rows.append(
+            {
+                **spec.to_dict(),
+                "status": "complete",
+                "artifact_kind": "verified-run-manifest",
+                "artifact_sha256": manifest_hash,
+            }
+        )
+        sources.append(
+            {
+                "run_id": spec.run_id,
+                "utility_profile_id": spec.utility_profile_id,
+                "environment_seed": spec.environment_seed,
+                "manifest": f"raw/{spec.run_id}/manifest.json",
+                "manifest_sha256": manifest_hash,
+            }
+        )
+    selection = {
+        "schema_version": "finevo-stage0-selection-v1",
+        "contract_sha256": contract.canonical_hash,
+        "selected_profile_id": "center",
+        "selected_utility": {"rho": 1.0},
+        "outcome_fields_used": [],
+        "bindings": {
+            "contract_sha256": contract.canonical_hash,
+            "git_tag": contract.implementation["required_git_tag"],
+            "git_commit": commit,
+            "source_manifests": sources,
+        },
+        "integrity": {
+            "canonicalization": "json-sort-keys-utf8-v1",
+        },
+    }
+    selection["integrity"]["content_sha256"] = canonical_sha256(selection)
+    selection_path = (
+        raw / "stage0-calibration" / "stage0_selection.json"
+    )
+    _write_json(selection_path, selection)
+
+    if contract.schema_version.endswith("-v2"):
+        receipt = {
+            "schema_version": "finevo-pilot-stage-receipt-v2",
+            "contract_sha256": contract.canonical_hash,
+            "stage_id": "stage0-calibration",
+            "status": "complete",
+            "terminal": True,
+            "go": True,
+            "registered_run_count": len(specs),
+            "complete_cell_count": len(specs),
+            "bindings": {
+                "contract_sha256": contract.canonical_hash,
+                "run_ledger_schema_version": "finevo-pilot-run-ledger-v2",
+                "stage_specs_sha256": canonical_sha256(
+                    [spec.to_dict() for spec in specs]
+                ),
+                "stage_rows_sha256": "1" * 64,
+                "ledger_event_chain_head": "2" * 64,
+                "source_files_sha256": "3" * 64,
+            },
+        }
+        receipt["integrity"] = {
+            "canonicalization": "json-sort-keys-utf8-v1",
+            "content_sha256": canonical_sha256(receipt),
+        }
+    else:
+        receipt = {
+            "schema_version": "finevo-pilot-stage-receipt-v1",
+            "contract_sha256": contract.canonical_hash,
+            "stage_id": "stage0-calibration",
+            "status": "complete",
+            "terminal": True,
+            "go": True,
+            "registered_run_count": len(specs),
+            "complete_cell_count": len(specs),
+        }
+    _write_json(
+        raw / "stage0-calibration" / "stage_receipt.json",
+        receipt,
+    )
+
+    baseline = _validated_release_controls(
+        contract,
+        raw_root=raw,
+        rows=rows,
+        common_commit=commit,
+    )
+    assert baseline["stage0_selection"]["pass"] is True
+
+    selection["bindings"]["contract_sha256"] = "f" * 64
+    selection["integrity"].pop("content_sha256")
+    selection["integrity"]["content_sha256"] = canonical_sha256(selection)
+    _write_json(selection_path, selection)
+    tampered = _validated_release_controls(
+        contract,
+        raw_root=raw,
+        rows=rows,
+        common_commit=commit,
+    )
+    assert tampered["stage0_selection"]["pass"] is False
+    assert (
+        tampered["stage0_selection"]["checks"]["sealed_selection"] is False
+    )
+
+
 def test_actor_terminal_is_rejected_and_capability_terminal_binds_provenance(
     tmp_path: Path,
 ) -> None:

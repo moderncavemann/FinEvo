@@ -4861,6 +4861,8 @@ def _validated_release_controls(
                 == "json-sort-keys-utf8-v1"
                 and integrity.get("content_sha256")
                 == _bound_artifact_hash(selection)
+                and bindings.get("contract_sha256")
+                == contract.canonical_hash
                 and bindings.get("git_tag")
                 == contract.implementation["required_git_tag"]
                 and bindings.get("git_commit") == common_commit

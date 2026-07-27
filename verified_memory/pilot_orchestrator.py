@@ -233,6 +233,9 @@ PILOT_V27_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION = (
 PILOT_V27_STAGE0_COMMIT_INTENT_SCHEMA_VERSION = (
     "finevo-pilot-v2.7-stage0-commit-intent-v1"
 )
+PILOT_V27_PARENT_COMMIT_INTENT_SCHEMA_VERSION = (
+    "finevo-pilot-v2.7-parent-import-commit-intent-v1"
+)
 PILOT_BOUND_ARTIFACT_CANONICALIZATION = "json-sort-keys-utf8-v1"
 
 CORE_STAGE_IDS = (
@@ -9723,6 +9726,135 @@ def _finalize_v27_parent_import_budget(
     )
 
 
+def _v27_parent_terminal_payload(
+    result: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "metrics": {},
+        "gate_evidence": _json_copy(result),
+        "provider_calls": 0,
+        "claim_boundary": (
+            "Parent budget and p95 authority only; no V2.7 "
+            "treatment-effect evidence."
+        ),
+    }
+
+
+def _materialize_or_verify_v27_parent_terminal(
+    contract: PilotContract,
+    spec: PilotRunSpec,
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+    result: Mapping[str, Any],
+) -> Path:
+    terminal_path = (
+        raw_root
+        / "parent-import"
+        / "summaries"
+        / f"{spec.run_id}.json"
+    )
+    payload = _v27_parent_terminal_payload(result)
+    if terminal_path.exists():
+        terminal = _load_v2_terminal_summary(
+            contract,
+            spec,
+            terminal_path,
+            raw_root=raw_root,
+            paid=paid,
+        )
+        if (
+            terminal.get("payload") != payload
+            or terminal.get("scientific_evidence") is not False
+            or terminal.get("diagnostic_only") is not False
+            or terminal.get("evidence_scope")
+            != "preregistered_parent_authority_import"
+        ):
+            raise PilotOrchestrationError(
+                "V2.7 parent terminal differs on resume"
+            )
+        return terminal_path
+    return write_terminal_summary(
+        terminal_path,
+        contract=contract,
+        run_spec=spec,
+        resolved_git_commit=paid.head_commit,
+        git_tag=paid.git_tag,
+        payload=payload,
+        scientific_evidence=False,
+        diagnostic_only=False,
+        evidence_scope="preregistered_parent_authority_import",
+    )
+
+
+def _persist_v27_parent_commit_intent(
+    contract: PilotContract,
+    spec: PilotRunSpec,
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+    terminal_path: Path,
+    result: Mapping[str, Any],
+    projection: RunProjection,
+    entry_run_status: str,
+) -> Path:
+    """Seal the successful parent publication plan before the run commit."""
+
+    path = (
+        raw_root
+        / "parent-import"
+        / "parent_import_commit_intent.json"
+    )
+    origin_status = entry_run_status
+    if path.exists():
+        existing = _read_json(path)
+        _verify_bound_payload(
+            existing,
+            contract=contract,
+            schema_version=PILOT_V27_PARENT_COMMIT_INTENT_SCHEMA_VERSION,
+            paid=paid,
+            artifact_name="V2.7 parent-import commit intent",
+        )
+        origin_status = str(existing.get("entry_run_status", ""))
+        if origin_status not in {"scheduled", "complete"}:
+            raise PilotOrchestrationError(
+                "V2.7 parent commit intent entry state is malformed"
+            )
+    value = _seal_bound_payload(
+        {
+            "schema_version": (
+                PILOT_V27_PARENT_COMMIT_INTENT_SCHEMA_VERSION
+            ),
+            "contract_id": contract.contract_id,
+            "contract_sha256": contract.canonical_hash,
+            "stage_id": "parent-import",
+            "entry_run_status": origin_status,
+            "planned_run_finalization": {
+                "run_id": spec.run_id,
+                "status": "complete",
+                "terminal_summary": str(terminal_path),
+                "terminal_summary_file_sha256": _file_sha256(
+                    terminal_path
+                ),
+            },
+            "importer_result_sha256": canonical_sha256(result),
+            "budget_reservation": projection.to_dict(),
+            "provider_calls_current_attempt": 0,
+            "commit_protocol": {
+                "resume_required_after_partial_publication": True,
+                "no_go_propagation_after_run_commit": False,
+            },
+            "bindings": {
+                "contract_sha256": contract.canonical_hash,
+                "git_tag": paid.git_tag,
+                "git_commit": paid.head_commit,
+            },
+        }
+    )
+    _persist_exact_json(path, value)
+    return path
+
+
 def _reconcile_v27_parent_import_no_go_budget(
     contract: PilotContract,
     spec: PilotRunSpec,
@@ -9844,6 +9976,15 @@ def _execute_v24_parent_import_stage(
             f"{contract_label} parent import requires one exact zero-call contract cell"
         )
     spec = specs[0]
+    entry_run_status = (
+        run_ledger.status(spec.run_id)
+        if contract.contract_id == V27_CONTRACT_ID
+        else (
+            "complete"
+            if run_ledger.is_terminal(spec.run_id)
+            else "scheduled"
+        )
+    )
     v27_projection: RunProjection | None = None
     if parent_repo_root is None:
         raise PilotOrchestrationError(
@@ -9899,6 +10040,29 @@ def _execute_v24_parent_import_stage(
                     paid=paid,
                 )
             )
+            assert v27_projection is not None
+            terminal = _materialize_or_verify_v27_parent_terminal(
+                contract,
+                spec,
+                raw_root=raw_root,
+                paid=paid,
+                result=result,
+            )
+            row = run_ledger.snapshot()["runs"][spec.run_id]
+            if row.get("artifact") != str(terminal):
+                raise PilotOrchestrationError(
+                    "V2.7 parent ledger artifact differs on resume"
+                )
+            _persist_v27_parent_commit_intent(
+                contract,
+                spec,
+                raw_root=raw_root,
+                paid=paid,
+                terminal_path=terminal,
+                result=result,
+                projection=v27_projection,
+                entry_run_status=entry_run_status,
+            )
         receipt = _write_stage_receipt(
             contract,
             "parent-import",
@@ -9935,28 +10099,47 @@ def _execute_v24_parent_import_stage(
                     paid=paid,
                 )
             )
-        terminal = write_terminal_summary(
-            raw_root
-            / "parent-import"
-            / "summaries"
-            / f"{spec.run_id}.json",
-            contract=contract,
-            run_spec=spec,
-            resolved_git_commit=paid.head_commit,
-            git_tag=paid.git_tag,
-            payload={
-                "metrics": {},
-                "gate_evidence": result,
-                "provider_calls": 0,
-                "claim_boundary": (
-                    f"Parent budget and p95 authority only; no {contract_label} "
-                    "treatment-effect evidence."
-                ),
-            },
-            scientific_evidence=False,
-            diagnostic_only=False,
-            evidence_scope="preregistered_parent_authority_import",
-        )
+            assert v27_projection is not None
+            terminal = _materialize_or_verify_v27_parent_terminal(
+                contract,
+                spec,
+                raw_root=raw_root,
+                paid=paid,
+                result=result,
+            )
+            _persist_v27_parent_commit_intent(
+                contract,
+                spec,
+                raw_root=raw_root,
+                paid=paid,
+                terminal_path=terminal,
+                result=result,
+                projection=v27_projection,
+                entry_run_status=entry_run_status,
+            )
+        else:
+            terminal = write_terminal_summary(
+                raw_root
+                / "parent-import"
+                / "summaries"
+                / f"{spec.run_id}.json",
+                contract=contract,
+                run_spec=spec,
+                resolved_git_commit=paid.head_commit,
+                git_tag=paid.git_tag,
+                payload={
+                    "metrics": {},
+                    "gate_evidence": result,
+                    "provider_calls": 0,
+                    "claim_boundary": (
+                        f"Parent budget and p95 authority only; no "
+                        f"{contract_label} treatment-effect evidence."
+                    ),
+                },
+                scientific_evidence=False,
+                diagnostic_only=False,
+                evidence_scope="preregistered_parent_authority_import",
+            )
         run_ledger.finalize(
             spec.run_id,
             status="complete",
@@ -9982,6 +10165,35 @@ def _execute_v24_parent_import_stage(
             )
         return _read_json(receipt)
     except Exception as exc:
+        if (
+            contract.contract_id == V27_CONTRACT_ID
+            and run_ledger.is_terminal(spec.run_id)
+            and run_ledger.status(spec.run_id) == "complete"
+        ):
+            intent_path = (
+                raw_root
+                / "parent-import"
+                / "parent_import_commit_intent.json"
+            )
+            if not intent_path.is_file():
+                raise PilotOrchestrationError(
+                    "V2.7 parent run committed without its sealed commit "
+                    "intent; manual integrity audit is required"
+                ) from exc
+            budget_status = (
+                None
+                if budget_ledger is None
+                else budget_ledger.snapshot()["runs"]
+                .get(spec.run_id, {})
+                .get("status")
+            )
+            raise PilotOrchestrationError(
+                "V2.7 parent publication requires audited --resume; "
+                "disposition=current-attempt-partial-publication; "
+                f"entry_status={entry_run_status}; "
+                f"commit_intent={intent_path}; "
+                f"budget_status={budget_status}"
+            ) from exc
         failure = _exception_failure(exc)
         failure_path = raw_root / "parent-import" / "failure_receipt.json"
         _atomic_json(
