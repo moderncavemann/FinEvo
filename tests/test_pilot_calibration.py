@@ -7,8 +7,11 @@ from statistics import median
 
 import pytest
 
+from llm_providers import MultiModelLLM
+from verified_memory.budget import BudgetLimits, RunBudget
 from verified_memory.pilot_calibration import (
     PilotCalibrationError,
+    Q_REF_STANDALONE_RUN_ID,
     Q_REF_CONSUMPTION_FRACTION_CYCLE,
     Q_REF_EPISODE_LENGTH,
     Q_REF_EXPECTED_ROWS,
@@ -19,6 +22,7 @@ from verified_memory.pilot_calibration import (
     STAGE0_OFAT_SCHEMA_VERSION,
     STAGE0_PROFILE_ORDER,
     STAGE0_SELECTION_SCHEMA_VERSION,
+    build_q_ref_resolution,
     canonical_hash,
     expand_stage0_ofat,
     q_ref_run_config,
@@ -27,6 +31,8 @@ from verified_memory.pilot_calibration import (
     stable_baseline_shock_schedule,
 )
 from verified_memory.pilot_contract import load_pilot_contract
+from verified_memory.runner import run_verified_experiment
+from verified_memory.scripted_provider import ScriptedDiagnosticProvider
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -75,7 +81,8 @@ def _summaries(
 
 
 def test_q_ref_config_freezes_no_context_no_memory_scripted_fixture() -> None:
-    config = q_ref_run_config()
+    config = q_ref_run_config(run_id=Q_REF_STANDALONE_RUN_ID)
+    assert config.run_id == Q_REF_STANDALONE_RUN_ID
     assert config.seed == Q_REF_SEED
     assert config.num_agents == Q_REF_NUM_AGENTS
     assert config.episode_length == Q_REF_EPISODE_LENGTH
@@ -94,6 +101,74 @@ def test_q_ref_config_freezes_no_context_no_memory_scripted_fixture() -> None:
     assert {event.interest_rate for event in shocks} == {0.03}
     assert all(event.applied_before_prompt for event in shocks)
     assert all(event.applied_before_step for event in shocks)
+
+
+def test_q_ref_config_requires_an_explicit_valid_run_id() -> None:
+    with pytest.raises(TypeError, match="run_id"):
+        q_ref_run_config()  # type: ignore[call-arg]
+    with pytest.raises(TypeError, match="run_id"):
+        q_ref_run_config(run_id=1)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="run_id"):
+        q_ref_run_config(run_id="   ")
+
+
+def test_q_ref_long_run_id_preserves_frozen_deterministic_semantics() -> None:
+    long_run_id = (
+        "finevo-pilot-v2.8--q-ref-resolution--qref_scripted--"
+        "qref-scripted--none--provider-preflight-default--s2010922376"
+    )
+
+    def execute(run_id: str):
+        result = run_verified_experiment(
+            q_ref_run_config(run_id=run_id),
+            llm=MultiModelLLM(
+                ScriptedDiagnosticProvider(),
+                num_workers=Q_REF_NUM_AGENTS,
+            ),
+            budget=RunBudget(
+                BudgetLimits(
+                    max_calls=Q_REF_EXPECTED_ROWS,
+                    max_prompt_tokens=500_000,
+                    max_completion_tokens=100_000,
+                    max_cost_usd=0.01,
+                ),
+                budget_id=f"{run_id}-budget",
+            ),
+            env_config_source=ENVIRONMENT_CONFIG_PATH,
+        )
+        return result, build_q_ref_resolution(
+            result,
+            contract_hash="a" * 64,
+            environment_source_hash=hashlib.sha256(
+                ENVIRONMENT_CONFIG_PATH.read_bytes()
+            ).hexdigest(),
+        )
+
+    legacy_result, legacy_resolution = execute(Q_REF_STANDALONE_RUN_ID)
+    long_result, long_resolution = execute(long_run_id)
+
+    for stream_name in ("actions", "utility_ledger", "shock_events"):
+        assert long_result.stream(stream_name) == legacy_result.stream(stream_name)
+    assert long_resolution["q_ref"] == legacy_resolution["q_ref"]
+    assert long_resolution["source"]["utility_ledger"] == (
+        legacy_resolution["source"]["utility_ledger"]
+    )
+    assert long_resolution["run_contract"] == legacy_resolution["run_contract"]
+    assert long_resolution["checks"] == legacy_resolution["checks"]
+
+    legacy_config = dict(legacy_result.config)
+    long_config = dict(long_result.config)
+    assert legacy_config.pop("run_id") == Q_REF_STANDALONE_RUN_ID
+    assert long_config.pop("run_id") == long_run_id
+    assert long_config == legacy_config
+    assert (
+        long_resolution["bindings"]["source_config_hash"]
+        != legacy_resolution["bindings"]["source_config_hash"]
+    )
+    assert (
+        long_resolution["bindings"]["ledger_hash"]
+        == legacy_resolution["bindings"]["ledger_hash"]
+    )
 
 
 def test_q_ref_resolution_is_exact_no_network_and_hash_bound() -> None:
@@ -132,6 +207,7 @@ def test_q_ref_resolution_is_exact_no_network_and_hash_bound() -> None:
     } == {0.03}
 
     source = artifact["source"]
+    assert source["config"]["run_id"] == Q_REF_STANDALONE_RUN_ID
     ledger = source["utility_ledger"]
     assert len(ledger) == Q_REF_EXPECTED_ROWS
     assert artifact["q_ref"] == median(

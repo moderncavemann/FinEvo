@@ -14,6 +14,9 @@ Examples:
     python run_pilot.py --contract experiments/pilot_v2_7.yaml \
         --stage parent-import \
         --parent-repo-root ../finevo-pilot-v2-6-science --resume
+    python run_pilot.py --contract experiments/pilot_v2_8.yaml \
+        --stage parent-import \
+        --parent-repo-root ../finevo-pilot-v2-7-science --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
         --stage capability-gate --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
@@ -37,6 +40,9 @@ missing versioned observed-p95 reader adapter under another fresh namespace.
 Pilot-v2.7 preserves V2.6 as an immutable no-go, imports only its sixteen
 completed parent/q-ref/Stage-0 cells without provider redispatch, and applies
 the dedicated baseline-only Stage-0 evaluator before any new A--D dispatch.
+Pilot-v2.8 preserves V2.7 as an immutable no-go, regenerates q-ref through the
+fresh local scripted path, and imports exactly the fourteen nested V2.6
+Stage-0 cells without provider construction or redispatch.
 """
 
 from __future__ import annotations
@@ -55,6 +61,7 @@ from verified_memory.pilot_v24_evidence import (
 from verified_memory.pilot_v25_parent_import import V25_CONTRACT_ID
 from verified_memory.pilot_v26_parent_import import V26_CONTRACT_ID
 from verified_memory.pilot_v27_stage0_import import V27_CONTRACT_ID
+from verified_memory.pilot_v28_stage0_import import V28_CONTRACT_ID
 from verified_memory.pilot_orchestrator import (
     PilotOrchestrationError,
     execute_stage,
@@ -107,7 +114,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "read-only parent source/raw checkout required only by the "
-            "V2.4/V2.5/V2.6/V2.7 zero-provider parent-import stage"
+            "V2.4/V2.5/V2.6/V2.7/V2.8 zero-provider parent-import stage"
         ),
     )
     parser.add_argument(
@@ -175,6 +182,7 @@ def execute(args: argparse.Namespace) -> dict:
                 V25_CONTRACT_ID,
                 V26_CONTRACT_ID,
                 V27_CONTRACT_ID,
+                V28_CONTRACT_ID,
             }
             else build_pilot_evidence_package
         )

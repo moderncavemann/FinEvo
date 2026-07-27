@@ -1,4 +1,4 @@
-"""Lane-separated evidence publication for the FinEvo V2.4--V2.7 pilot.
+"""Lane-separated evidence publication for the FinEvo V2.4--V2.8 pilot.
 
 V2.4 is deliberately not a continuation of the terminal V2.3 denominator.
 Its scientific matrix contains two independently interpreted lanes:
@@ -60,6 +60,11 @@ PILOT_V26_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-v2.6-evidence-package-v1"
 PILOT_V26_CONTRACT_ID = "finevo-pilot-v2.6"
 PILOT_V27_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-v2.7-evidence-package-v1"
 PILOT_V27_CONTRACT_ID = "finevo-pilot-v2.7"
+PILOT_V28_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-v2.8-evidence-package-v1"
+PILOT_V28_CONTRACT_ID = "finevo-pilot-v2.8"
+_PILOT_V27_EVIDENCE_CHECKSUMS_FILE_SHA256 = (
+    "b28889b0fc590ec884c69fdf43f88b01ce8f384491168a031ac5fdb2a6b3caad"
+)
 PILOT_V24_STAGE_ORDER = (
     "experiment-c",
     "experiment-a",
@@ -83,6 +88,11 @@ _V24_STAGE_IDS = (
     "experiment-b",
 )
 _V27_IMPORTED_PREREQUISITE_COUNTS = {
+    "parent-import": 1,
+    "q-ref-resolution": 1,
+    "stage0-calibration": 14,
+}
+_V28_PREREQUISITE_COUNTS = {
     "parent-import": 1,
     "q-ref-resolution": 1,
     "stage0-calibration": 14,
@@ -177,6 +187,8 @@ def _contract_id_version_label(contract_id: Any) -> str:
         return "V2.6"
     if contract_id == PILOT_V27_CONTRACT_ID:
         return "V2.7"
+    if contract_id == PILOT_V28_CONTRACT_ID:
+        return "V2.8"
     raise PilotEvidenceError(
         "lane-separated evidence adapter received another contract"
     )
@@ -195,6 +207,8 @@ def _evidence_schema_version(contract: PilotContract) -> str:
         return PILOT_V26_EVIDENCE_SCHEMA_VERSION
     if contract.contract_id == PILOT_V27_CONTRACT_ID:
         return PILOT_V27_EVIDENCE_SCHEMA_VERSION
+    if contract.contract_id == PILOT_V28_CONTRACT_ID:
+        return PILOT_V28_EVIDENCE_SCHEMA_VERSION
     raise PilotEvidenceError(
         "lane-separated evidence adapter received another contract"
     )
@@ -505,6 +519,388 @@ def _v27_inherited_budget_boundary(
             "cost_usd": observed_cost,
             "hosted_completions": observed_completions,
             "storage_bytes": observed_storage,
+        },
+        "checks": binding_checks,
+        "pass": True,
+    }
+
+
+def _v28_amendment(contract: PilotContract) -> Mapping[str, Any]:
+    """Return the sealed V2.8 identity-amendment boundary."""
+
+    amendment = getattr(contract, "qref_identity_retry_amendment", None)
+    if not isinstance(amendment, Mapping):
+        raise PilotEvidenceError(
+            "V2.8 evidence contract lacks its q-ref identity retry amendment"
+        )
+    return amendment
+
+
+def _v28_parent_evidence_lineage(
+    contract: PilotContract,
+) -> dict[str, Any] | None:
+    """Expose the immutable V2.7 no-go lineage without importing its rows."""
+
+    if contract.contract_id != PILOT_V28_CONTRACT_ID:
+        return None
+    amendment = _v28_amendment(contract)
+    lineage = amendment.get("evidence_lineage")
+    failure = amendment.get("failure_classification")
+    retry = amendment.get("retry_policy")
+    if (
+        not isinstance(lineage, Mapping)
+        or not isinstance(failure, Mapping)
+        or not isinstance(retry, Mapping)
+    ):
+        raise PilotEvidenceError("V2.8 parent evidence lineage is malformed")
+    checks = {
+        "parent_contract_id": failure.get("parent_contract_id")
+        == PILOT_V27_CONTRACT_ID,
+        "parent_status_preserved": (
+            failure.get("terminal_status") == "complete-with-no-go"
+            and lineage.get("parent_evidence_status") == "complete-with-no-go"
+        ),
+        "parent_denominator_preserved": (
+            failure.get("registered_cells") == 211
+            and failure.get("status_counts")
+            == {"complete": 1, "integrity-stopped": 210}
+            and retry.get("preserve_parent_denominator") is True
+            and retry.get("v2_7_status_counts_rewrite") == "forbidden"
+            and retry.get("v2_7_terminal_cell_reclassification")
+            == "forbidden"
+        ),
+        "parent_package_rewrite_forbidden": (
+            lineage.get("parent_evidence_rewrite") == "forbidden"
+            and lineage.get("parent_claim_reclassification") == "forbidden"
+        ),
+        "a_d_effects_are_fresh_only": (
+            lineage.get("v2_8_effect_aggregation_uses_only_v2_8_a_d_cells")
+            is True
+            and failure.get("a_d_treatment_effect_outcomes_generated") is False
+            and failure.get("a_d_treatment_effect_outcomes_inspected") is False
+        ),
+    }
+    if not all(checks.values()):
+        raise PilotEvidenceError(
+            "V2.8 evidence does not preserve the immutable V2.7 no-go lineage"
+        )
+    return {
+        "source_contract_id": PILOT_V27_CONTRACT_ID,
+        "source_contract_sha256": failure.get("parent_contract_sha256"),
+        "source_release_tag": failure.get("parent_release_tag"),
+        "source_release_commit": failure.get("parent_release_commit"),
+        "source_evidence_commit": lineage.get("parent_evidence_commit"),
+        "source_evidence_merge_commit": lineage.get(
+            "parent_evidence_merge_commit"
+        ),
+        "source_evidence_namespace": lineage.get("parent_evidence_namespace"),
+        "source_evidence_status": lineage.get("parent_evidence_status"),
+        "package_manifest_file_sha256": failure.get(
+            "evidence_package_manifest_file_sha256"
+        ),
+        "root_cause": {
+            "code": failure.get("root_cause_code"),
+            "message": failure.get("root_cause_message"),
+            "failed_stage_id": failure.get("failed_stage_id"),
+        },
+        "parent_registered_cells": failure.get("registered_cells"),
+        "parent_status_counts": _json_copy(dict(failure["status_counts"])),
+        "parent_rows_imported_into_v2_8_effect_aggregate": 0,
+        "parent_package_rewritten": False,
+        "checks": checks,
+        "pass": True,
+    }
+
+
+def _v28_prerequisite_summary(
+    contract: PilotContract,
+    rows: Sequence[Mapping[str, Any]],
+) -> dict[str, Any] | None:
+    """Classify V2.8 authority, q-ref, and Stage-0 cells as non-effect inputs."""
+
+    if contract.contract_id != PILOT_V28_CONTRACT_ID:
+        return None
+    amendment = _v28_amendment(contract)
+    qref = amendment.get("q_ref_regeneration")
+    stage0 = amendment.get("stage0_import")
+    if not isinstance(qref, Mapping) or not isinstance(stage0, Mapping):
+        raise PilotEvidenceError("V2.8 prerequisite policy is malformed")
+    if (
+        qref.get("fresh_zero_hosted_provider_regeneration") is not True
+        or qref.get("scripted_diagnostic_provider_required") is not True
+        or qref.get("hosted_provider_construction_during_regeneration")
+        is not False
+        or qref.get("hosted_provider_calls") != 0
+        or qref.get("hosted_cost_usd") != 0.0
+        or qref.get("scripted_diagnostic_calls") != 48
+        or stage0.get("imported_complete_cells") != 14
+        or stage0.get("imported_cell_breakdown")
+        != {"stage0-calibration": 14}
+        or stage0.get("provider_construction_during_import") is not False
+        or stage0.get("provider_redispatch_for_imported_cells") != "forbidden"
+    ):
+        raise PilotEvidenceError("V2.8 prerequisite execution boundary drifted")
+
+    expected_specs = {
+        spec.run_id: spec
+        for stage_id in _V28_PREREQUISITE_COUNTS
+        for spec in contract.expand(stage=stage_id)
+    }
+    expected_count = sum(_V28_PREREQUISITE_COUNTS.values())
+    if len(expected_specs) != expected_count:
+        raise PilotEvidenceError("V2.8 prerequisite contract matrix drifted")
+    observed: dict[str, Mapping[str, Any]] = {}
+    for row in rows:
+        stage_id = str(row.get("stage_id"))
+        if stage_id not in _V28_PREREQUISITE_COUNTS:
+            continue
+        run_id = str(row.get("run_id"))
+        if run_id not in expected_specs or run_id in observed:
+            raise PilotEvidenceError(
+                "V2.8 prerequisite identity or multiplicity drifted"
+            )
+        spec = expected_specs[run_id]
+        expected_scientific_eligible = (
+            stage_id == "stage0-calibration" and row.get("status") == "complete"
+        )
+        if (
+            stage_id != spec.stage_id
+            or row.get("contract_id") != contract.contract_id
+            or row.get("model_id") != spec.model_id
+            or row.get("arm_id") != spec.arm_id
+            or row.get("environment_seed") != spec.environment_seed
+            or row.get("scientific_eligible") is not expected_scientific_eligible
+        ):
+            raise PilotEvidenceError(
+                "V2.8 prerequisite row differs from its registered "
+                "eligibility boundary"
+            )
+        observed[run_id] = row
+    if set(observed) != set(expected_specs):
+        raise PilotEvidenceError("V2.8 prerequisite denominator is incomplete")
+
+    classifications = {
+        "parent-import": {
+            "origin": "immutable-v2.7-parent-authority",
+            "execution": "imported-prerequisite",
+            "evidence_scope": "operational-prerequisite",
+        },
+        "q-ref-resolution": {
+            "origin": "fresh-v2.8-scripted-diagnostic",
+            "execution": "fresh-scripted-zero-hosted",
+            "evidence_scope": "q-ref-calibration-prerequisite",
+        },
+        "stage0-calibration": {
+            "origin": "v2.6-stage0-via-v2.7-nested-snapshot",
+            "execution": "hash-verified-import-no-provider-dispatch",
+            "evidence_scope": "stage0-baseline-calibration",
+        },
+    }
+    by_stage: dict[str, Any] = {}
+    for stage_id, stage_count in _V28_PREREQUISITE_COUNTS.items():
+        stage_rows = [
+            row for row in observed.values() if row.get("stage_id") == stage_id
+        ]
+        statuses: dict[str, int] = {}
+        for row in stage_rows:
+            status = str(row.get("status"))
+            statuses[status] = statuses.get(status, 0) + 1
+        by_stage[stage_id] = {
+            **classifications[stage_id],
+            "registered_cells": stage_count,
+            "observed_cells": len(stage_rows),
+            "status_counts": dict(sorted(statuses.items())),
+            "all_complete": statuses == {"complete": stage_count},
+            "scientific_eligible_cells": sum(
+                row.get("scientific_eligible") is True for row in stage_rows
+            ),
+            "used_in_a_d_effect_gates": False,
+            "treatment_effect_evidence": False,
+        }
+    return {
+        "registered_cells": expected_count,
+        "observed_cells": len(observed),
+        "all_prerequisites_complete": all(
+            stage["all_complete"] for stage in by_stage.values()
+        ),
+        "stages": by_stage,
+        "q_ref_provider_accounting": {
+            "hosted_provider_calls": 0,
+            "hosted_cost_usd": 0.0,
+            "scripted_diagnostic_calls": 48,
+        },
+        "stage0_imported_cells": 14,
+        "a_d_treatment_effect_evidence": False,
+        "used_in_a_d_effect_gates": False,
+        "claim_boundary": (
+            "parent authority, the fresh scripted q-ref, and the 14 imported "
+            "Stage-0 cells are prerequisites/non-effect evidence; only fresh "
+            "V2.8 A-D cells may support treatment-effect claims"
+        ),
+    }
+
+
+def _v28_itt_row_preservation(
+    contract: PilotContract,
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    denominator: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Require exactly one retained row for every V2.8 registered identity."""
+
+    if contract.contract_id != PILOT_V28_CONTRACT_ID:
+        return None
+    expected = {spec.run_id: spec.to_dict() for spec in contract.expand()}
+    if len(expected) != 211:
+        raise PilotEvidenceError("V2.8 registered ITT matrix is not 211 cells")
+    observed: dict[str, Mapping[str, Any]] = {}
+    for row in rows:
+        run_id = str(row.get("run_id"))
+        spec = expected.get(run_id)
+        if spec is None or run_id in observed:
+            raise PilotEvidenceError(
+                "V2.8 evidence rows contain an unknown or duplicate ITT identity"
+            )
+        if any(row.get(field) != value for field, value in spec.items()):
+            raise PilotEvidenceError(
+                "V2.8 evidence row differs from its registered ITT identity"
+            )
+        observed[run_id] = row
+    if set(observed) != set(expected):
+        raise PilotEvidenceError("V2.8 evidence does not retain all 211 ITT rows")
+    status_counts: dict[str, int] = {}
+    for row in rows:
+        status = str(row.get("status"))
+        status_counts[status] = status_counts.get(status, 0) + 1
+    status_counts = dict(sorted(status_counts.items()))
+    if (
+        denominator.get("expected_count") != 211
+        or denominator.get("status_counts") != status_counts
+    ):
+        raise PilotEvidenceError(
+            "V2.8 denominator does not match the retained 211 ITT rows"
+        )
+    return {
+        "registered_rows": 211,
+        "retained_rows": len(rows),
+        "failed_or_stopped_rows": sum(
+            row.get("status") != "complete" for row in rows
+        ),
+        "status_counts": status_counts,
+        "all_registered_rows_retained": True,
+        "failures_retained": True,
+    }
+
+
+def _v28_inherited_budget_boundary(
+    contract: PilotContract,
+    *,
+    denominator: Mapping[str, Any],
+    release_controls: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Require V2.8 to debit the V2.7 cumulative spend under the $500 cap."""
+
+    if contract.contract_id != PILOT_V28_CONTRACT_ID:
+        return None
+    amendment = _v28_amendment(contract)
+    carry = amendment.get("budget_carry_forward")
+    qref = amendment.get("q_ref_regeneration")
+    if not isinstance(carry, Mapping) or not isinstance(qref, Mapping):
+        raise PilotEvidenceError("V2.8 cumulative budget boundary is malformed")
+    expected = carry.get("cumulative_prior")
+    budget = release_controls.get("budget_ledger")
+    if not isinstance(expected, Mapping) or not isinstance(budget, Mapping):
+        raise PilotEvidenceError("V2.8 budget evidence lacks cumulative accounting")
+    checks = budget.get("checks")
+    totals = budget.get("actual_totals")
+    stage_cost = budget.get("actual_stage_cost_usd")
+    if (
+        not isinstance(checks, Mapping)
+        or not isinstance(totals, Mapping)
+        or not isinstance(stage_cost, Mapping)
+    ):
+        raise PilotEvidenceError("V2.8 budget evidence lacks exact debit accounting")
+
+    def number(value: Any, name: str) -> float:
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) < 0
+        ):
+            raise PilotEvidenceError(f"V2.8 budget {name} is invalid")
+        return float(value)
+
+    expected_cost = number(expected.get("cost_usd"), "prior cost")
+    expected_completions = number(
+        expected.get("hosted_completions"),
+        "prior completions",
+    )
+    expected_storage = number(expected.get("storage_bytes"), "prior storage")
+    observed_cost = number(totals.get("cost_usd"), "actual cost")
+    observed_completions = number(totals.get("completions"), "actual completions")
+    observed_storage = number(totals.get("storage_bytes"), "actual storage")
+    total_cap = number(carry.get("total_cap_usd"), "total cap")
+    contract_cap = number(contract.budgets.get("total_usd"), "contract total cap")
+    parent_bucket = str(expected.get("stage_bucket"))
+    inherited_stage_cost = number(
+        stage_cost.get(parent_bucket),
+        "inherited stage cost",
+    )
+    binding_checks = {
+        "denominator_exact": (
+            denominator.get("expected_count") == 211
+            and denominator.get("observed_ledger_count") == 211
+        ),
+        "parent_debit_exact": checks.get("parent_debit_exact") is True,
+        "parent_stage_cost_exact": math.isclose(
+            inherited_stage_cost,
+            expected_cost,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ),
+        "cumulative_cost_not_reset": observed_cost >= expected_cost,
+        "cumulative_completions_not_reset": (
+            observed_completions >= expected_completions
+        ),
+        "cumulative_storage_not_reset": observed_storage >= expected_storage,
+        "total_cap_is_500": math.isclose(
+            total_cap,
+            500.0,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        )
+        and math.isclose(
+            contract_cap,
+            500.0,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ),
+        "q_ref_zero_hosted": (
+            qref.get("hosted_provider_calls") == 0
+            and qref.get("hosted_cost_usd") == 0.0
+            and qref.get("hosted_provider_construction_during_regeneration")
+            is False
+        ),
+        "q_ref_scripted_calls_exact": qref.get("scripted_diagnostic_calls") == 48,
+    }
+    if not all(binding_checks.values()):
+        raise PilotEvidenceError(
+            "V2.8 evidence does not preserve its inherited debit/denominator"
+        )
+    return {
+        "source_contract_id": PILOT_V27_CONTRACT_ID,
+        "total_cap_usd": total_cap,
+        "expected_cumulative_prior": _json_copy(dict(expected)),
+        "observed_cumulative_totals": {
+            "cost_usd": observed_cost,
+            "hosted_completions": observed_completions,
+            "storage_bytes": observed_storage,
+        },
+        "q_ref_incremental": {
+            "hosted_provider_calls": 0,
+            "hosted_cost_usd": 0.0,
+            "scripted_diagnostic_calls": 48,
         },
         "checks": binding_checks,
         "pass": True,
@@ -1040,18 +1436,36 @@ def aggregate_v24_evidence(
         contract,
         rows,
     )
+    v28_itt_row_preservation = _v28_itt_row_preservation(
+        contract,
+        rows,
+        denominator=denominator,
+    )
+    v28_prerequisites = _v28_prerequisite_summary(contract, rows)
+    parent_evidence_lineage = _v28_parent_evidence_lineage(contract)
     inherited_budget_boundary = _v27_inherited_budget_boundary(
         contract,
         denominator=denominator,
         release_controls=release_controls,
     )
+    if inherited_budget_boundary is None:
+        inherited_budget_boundary = _v28_inherited_budget_boundary(
+            contract,
+            denominator=denominator,
+            release_controls=release_controls,
+        )
+    prerequisite_stage_ids: set[str] = set()
+    if contract.contract_id == PILOT_V27_CONTRACT_ID:
+        prerequisite_stage_ids = set(_V27_IMPORTED_PREREQUISITE_COUNTS)
+    elif contract.contract_id == PILOT_V28_CONTRACT_ID:
+        prerequisite_stage_ids = set(_V28_PREREQUISITE_COUNTS)
     effect_rows = (
         [
             row
             for row in rows
-            if row.get("stage_id") not in _V27_IMPORTED_PREREQUISITE_COUNTS
+            if row.get("stage_id") not in prerequisite_stage_ids
         ]
-        if contract.contract_id == PILOT_V27_CONTRACT_ID
+        if prerequisite_stage_ids
         else list(rows)
     )
     lanes = {
@@ -1089,6 +1503,43 @@ def aggregate_v24_evidence(
                 "boundary": imported_prerequisites["claim_boundary"],
             }
         )
+    if v28_prerequisites is not None:
+        claims.extend(
+            [
+                {
+                    "lane": "prerequisite-non-effect",
+                    "claim": (
+                        "V2.8 parent authority, fresh scripted q-ref, and "
+                        "imported Stage-0 inputs are complete prerequisites"
+                    ),
+                    "metric": (
+                        "16 registered prerequisite cells; q-ref 0 hosted / "
+                        "48 scripted diagnostic calls; 14 imported Stage-0 cells"
+                    ),
+                    "artifact": "aggregate.json#/prerequisites",
+                    "status": (
+                        "complete"
+                        if v28_prerequisites["all_prerequisites_complete"]
+                        else "no-go"
+                    ),
+                    "boundary": v28_prerequisites["claim_boundary"],
+                },
+                {
+                    "lane": "parent-lineage",
+                    "claim": "V2.7 remains an immutable complete-with-no-go package",
+                    "metric": (
+                        "exact parent manifest hash, terminal denominator, "
+                        "evidence commit, and merge commit"
+                    ),
+                    "artifact": "parent_evidence_reference.json",
+                    "status": "preserved",
+                    "boundary": (
+                        "reference only; do not rewrite, reclassify, or import "
+                        "V2.7 rows into V2.8 effects"
+                    ),
+                },
+            ]
+        )
     narrowing = _claim_narrowing(
         lanes,
         denominator=denominator,
@@ -1098,6 +1549,10 @@ def aggregate_v24_evidence(
     scientific_matrix_complete = bool(
         denominator.get("pass") is True
         and release_controls.get("pass") is True
+        and (
+            v28_prerequisites is None
+            or v28_prerequisites["all_prerequisites_complete"] is True
+        )
         and all(lane["paired_matrix_complete"] for lane in lanes.values())
     )
     scientific_claim_gates_supported = all(
@@ -1148,6 +1603,25 @@ def aggregate_v24_evidence(
     }
     if imported_prerequisites is not None:
         aggregate["imported_prerequisites"] = imported_prerequisites
+    if v28_prerequisites is not None:
+        aggregate["prerequisites"] = v28_prerequisites
+        aggregate["effect_aggregation_scope"] = {
+            "included_stage_ids": sorted(
+                {
+                    str(row.get("stage_id"))
+                    for row in effect_rows
+                    if str(row.get("stage_id")).endswith(
+                        tuple(PILOT_V24_STAGE_ORDER)
+                    )
+                }
+            ),
+            "prerequisite_stage_ids_excluded": sorted(prerequisite_stage_ids),
+            "v2_8_a_d_cells_only": True,
+        }
+    if v28_itt_row_preservation is not None:
+        aggregate["itt_row_preservation"] = v28_itt_row_preservation
+    if parent_evidence_lineage is not None:
+        aggregate["parent_evidence_lineage"] = parent_evidence_lineage
     if inherited_budget_boundary is not None:
         aggregate["inherited_budget_boundary"] = inherited_budget_boundary
     return aggregate
@@ -1240,6 +1714,39 @@ def _report_markdown(
             )
             + " |"
         )
+    if aggregate.get("contract_id") == PILOT_V28_CONTRACT_ID:
+        lineage = aggregate["parent_evidence_lineage"]
+        prerequisites = aggregate["prerequisites"]
+        inherited_budget = aggregate["inherited_budget_boundary"]
+        lines.extend(
+            [
+                "",
+                "## V2.8 amendment lineage and prerequisite boundary",
+                "",
+                "- V2.7 remains an immutable `complete-with-no-go` package; "
+                f"namespace `{lineage['source_evidence_namespace']}`, evidence "
+                f"commit `{lineage['source_evidence_commit']}`, merge commit "
+                f"`{lineage['source_evidence_merge_commit']}`.",
+                "- V2.7 root cause: "
+                f"`{lineage['root_cause']['code']}` — "
+                f"{lineage['root_cause']['message']}.",
+                "- Parent denominator preserved: "
+                f"`{lineage['parent_registered_cells']}` cells / "
+                f"`{json.dumps(lineage['parent_status_counts'], sort_keys=True)}`.",
+                "- Cumulative hosted budget before new V2.8 dispatch: "
+                f"`${inherited_budget['expected_cumulative_prior']['cost_usd']}` / "
+                f"`{inherited_budget['expected_cumulative_prior']['hosted_completions']}` "
+                f"hosted completions, under the `${inherited_budget['total_cap_usd']}` "
+                "hard cap.",
+                "- Fresh q-ref accounting: `0` hosted provider calls, `$0` "
+                "hosted cost, and `48` scripted diagnostic calls.",
+                "- Prerequisite classification: parent authority, fresh "
+                "scripted q-ref, and 14 imported Stage-0 cells are excluded "
+                "from every A-D treatment-effect gate.",
+                f"- All prerequisites complete: "
+                f"`{str(prerequisites['all_prerequisites_complete']).lower()}`.",
+            ]
+        )
     for lane_id, lane in aggregate["lanes"].items():
         lines.extend(
             [
@@ -1305,6 +1812,162 @@ def _report_markdown(
     return "\n".join(lines) + "\n"
 
 
+def _validated_v28_parent_evidence_reference(
+    contract: PilotContract,
+    *,
+    contract_path: Path,
+) -> dict[str, Any] | None:
+    """Revalidate V2.7 in place and return a reference, never a copied package."""
+
+    lineage = _v28_parent_evidence_lineage(contract)
+    if lineage is None:
+        return None
+    repository_root = contract_path.resolve().parent.parent
+    namespace = str(lineage["source_evidence_namespace"])
+    if namespace != "evidence/current_v2/pilot-v2.7":
+        raise PilotEvidenceError("V2.8 parent evidence namespace drifted")
+    package_root = repository_root / namespace
+    if (
+        not package_root.is_dir()
+        or package_root.is_symlink()
+        or package_root.resolve()
+        != (repository_root / "evidence/current_v2/pilot-v2.7").resolve()
+    ):
+        raise PilotEvidenceError(
+            "V2.8 immutable V2.7 evidence package is missing or unsafe"
+        )
+    manifest_path = package_root / "package_manifest.json"
+    checksums_path = package_root / "checksums.json"
+    if (
+        not manifest_path.is_file()
+        or manifest_path.is_symlink()
+        or not checksums_path.is_file()
+        or checksums_path.is_symlink()
+    ):
+        raise PilotEvidenceError(
+            "V2.8 immutable V2.7 evidence manifest/checksums are missing"
+        )
+    expected_manifest_sha = str(lineage["package_manifest_file_sha256"])
+    if _sha256_file(manifest_path) != expected_manifest_sha:
+        raise PilotEvidenceError(
+            "V2.8 immutable V2.7 package manifest hash mismatch"
+        )
+    if (
+        _sha256_file(checksums_path)
+        != _PILOT_V27_EVIDENCE_CHECKSUMS_FILE_SHA256
+    ):
+        raise PilotEvidenceError(
+            "V2.8 immutable V2.7 package checksums hash mismatch"
+        )
+    manifest = _strict_json_load(manifest_path)
+    checksums = _strict_json_load(checksums_path)
+    if (
+        manifest.get("schema_version") != PILOT_V27_EVIDENCE_SCHEMA_VERSION
+        or manifest.get("contract_id") != PILOT_V27_CONTRACT_ID
+        or manifest.get("evidence_namespace") != "current_v2/pilot-v2.7"
+        or manifest.get("contract_sha256")
+        != lineage["source_contract_sha256"]
+        or manifest.get("pilot_tag") != lineage["source_release_tag"]
+        or manifest.get("publication_status") != "complete-with-no-go"
+        or manifest.get("scientific_complete") is not False
+        or manifest.get("resolved_git_commit")
+        != lineage["source_release_commit"]
+        or checksums.get("schema_version") != PILOT_CHECKSUM_SCHEMA_VERSION
+        or checksums.get("contract_sha256")
+        != lineage["source_contract_sha256"]
+    ):
+        raise PilotEvidenceError(
+            "V2.8 immutable V2.7 evidence semantic binding mismatch"
+        )
+    checksum_rows = checksums.get("files")
+    if (
+        not isinstance(checksum_rows, Sequence)
+        or isinstance(checksum_rows, (str, bytes))
+    ):
+        raise PilotEvidenceError("V2.7 parent evidence checksum rows are malformed")
+    observed_paths: set[str] = set()
+    for row in checksum_rows:
+        if not isinstance(row, Mapping):
+            raise PilotEvidenceError(
+                "V2.7 parent evidence checksum row is malformed"
+            )
+        relative = str(row.get("path", ""))
+        candidate_relative = Path(relative)
+        if (
+            not relative
+            or candidate_relative.is_absolute()
+            or ".." in candidate_relative.parts
+            or relative in observed_paths
+        ):
+            raise PilotEvidenceError(
+                "V2.7 parent evidence checksum path is unsafe or duplicated"
+            )
+        observed_paths.add(relative)
+        candidate = package_root / candidate_relative
+        if (
+            not candidate.is_file()
+            or candidate.is_symlink()
+            or _sha256_file(candidate) != row.get("sha256")
+            or candidate.stat().st_size != row.get("byte_size")
+        ):
+            raise PilotEvidenceError(
+                "V2.7 parent evidence checksum verification failed"
+            )
+    actual_paths = {
+        path.relative_to(package_root).as_posix()
+        for path in package_root.rglob("*")
+        if path.is_file()
+    }
+    if actual_paths != observed_paths | {"checksums.json"}:
+        raise PilotEvidenceError(
+            "V2.7 parent evidence inventory differs from its checksum ledger"
+        )
+    published = manifest.get("published_files")
+    if (
+        not isinstance(published, Sequence)
+        or isinstance(published, (str, bytes))
+        or not set(map(str, published)).issubset(observed_paths)
+        or "package_manifest.json" not in observed_paths
+        or next(
+            (
+                row
+                for row in checksum_rows
+                if row.get("path") == "package_manifest.json"
+            ),
+            {},
+        ).get("sha256")
+        != expected_manifest_sha
+    ):
+        raise PilotEvidenceError(
+            "V2.7 parent evidence manifest is not bound by its checksums"
+        )
+    aggregate = _strict_json_load(package_root / "aggregate.json")
+    failure_ledger = _strict_json_load(package_root / "failure_ledger.json")
+    parent_denominator = aggregate.get("denominator")
+    failure_denominator = failure_ledger.get("denominator")
+    expected_statuses = {"complete": 1, "integrity-stopped": 210}
+    if (
+        not isinstance(parent_denominator, Mapping)
+        or parent_denominator.get("expected_count") != 211
+        or parent_denominator.get("observed_ledger_count") != 211
+        or parent_denominator.get("status_counts") != expected_statuses
+        or failure_denominator != parent_denominator
+    ):
+        raise PilotEvidenceError(
+            "V2.7 parent evidence denominator does not match its terminal no-go"
+        )
+    return {
+        **lineage,
+        "reference_kind": "immutable-external-package-reference",
+        "source_package_path": namespace,
+        "source_package_copied": False,
+        "checksums_file_sha256": _sha256_file(checksums_path),
+        "checksum_entry_count": len(checksum_rows),
+        "inventory_verified": True,
+        "semantic_binding_verified": True,
+    }
+
+
 def _write_v24_package(
     root: Path,
     *,
@@ -1359,6 +2022,8 @@ def _write_v24_package(
     inherited_retry_manifest_name: str | None = None
     ancestral_retry_binding: dict[str, Any] | None = None
     ancestral_retry_manifest_name: str | None = None
+    great_ancestral_retry_binding: dict[str, Any] | None = None
+    great_ancestral_retry_manifest_name: str | None = None
     base_binding: dict[str, Any] | None = None
     base_contract_name: str | None = None
     if contract.contract_id == PILOT_V25_CONTRACT_ID:
@@ -1414,6 +2079,96 @@ def _write_v24_package(
             shutil.copyfile(
                 base_contract_source,
                 contract_target.with_name(base_contract_name),
+            )
+    elif contract.contract_id == PILOT_V28_CONTRACT_ID:
+        lineage_bindings = (
+            (
+                contract.qref_identity_retry_amendment,
+                "pilot_v2_8_source_manifest.json",
+            ),
+            (
+                contract.stage0_evaluator_retry_amendment,
+                "pilot_v2_7_source_manifest.json",
+            ),
+            (
+                contract.p95_authority_retry_amendment,
+                "pilot_v2_6_source_manifest.json",
+            ),
+            (
+                contract.parent_import_retry_amendment,
+                "pilot_v2_5_source_manifest.json",
+            ),
+        )
+        copied_bindings: list[dict[str, Any]] = []
+        for amendment, manifest_name in lineage_bindings:
+            if not isinstance(amendment, Mapping):
+                raise PilotEvidenceError(
+                    "V2.8 contract lacks a required source-manifest amendment"
+                )
+            binding_raw = amendment.get("source_manifest")
+            if not isinstance(binding_raw, Mapping):
+                raise PilotEvidenceError(
+                    "V2.8 contract lacks a required source-manifest binding"
+                )
+            binding = dict(binding_raw)
+            if (
+                binding.get("path") != f"experiments/{manifest_name}"
+                or not isinstance(binding.get("file_sha256"), str)
+                or len(str(binding["file_sha256"])) != 64
+                or not isinstance(binding.get("content_sha256"), str)
+                or len(str(binding["content_sha256"])) != 64
+            ):
+                raise PilotEvidenceError(
+                    "V2.8 source-manifest binding is unsealed or drifted"
+                )
+            source = contract_path.with_name(manifest_name)
+            target = contract_target.with_name(manifest_name)
+            if not source.is_file() or source.is_symlink():
+                raise PilotEvidenceError(
+                    f"V2.8 source manifest is missing or unsafe: {manifest_name}"
+                )
+            shutil.copyfile(source, target)
+            if _sha256_file(target) != binding["file_sha256"]:
+                raise PilotEvidenceError(
+                    f"copied V2.8 source manifest failed hash revalidation: "
+                    f"{manifest_name}"
+                )
+            copied_bindings.append(binding)
+        (
+            retry_binding,
+            inherited_retry_binding,
+            ancestral_retry_binding,
+            great_ancestral_retry_binding,
+        ) = copied_bindings
+        (
+            retry_manifest_name,
+            inherited_retry_manifest_name,
+            ancestral_retry_manifest_name,
+            great_ancestral_retry_manifest_name,
+        ) = tuple(name for _, name in lineage_bindings)
+
+        failure = _v28_amendment(contract).get("failure_classification")
+        if not isinstance(failure, Mapping):
+            raise PilotEvidenceError("V2.8 parent contract binding is malformed")
+        base_contract_name = "pilot_v2_7.yaml"
+        base_binding = {
+            "path": base_contract_name,
+            "schema_version": "finevo-pilot-contract-v2",
+            "contract_id": PILOT_V27_CONTRACT_ID,
+            "canonical_sha256": failure.get("parent_contract_sha256"),
+        }
+        base_contract_source = contract_path.with_name(base_contract_name)
+        base_contract_target = contract_target.with_name(base_contract_name)
+        if not base_contract_source.is_file() or base_contract_source.is_symlink():
+            raise PilotEvidenceError("V2.8 base V2.7 contract is missing or unsafe")
+        shutil.copyfile(base_contract_source, base_contract_target)
+        copied_base = load_pilot_contract(base_contract_target)
+        if (
+            copied_base.contract_id != PILOT_V27_CONTRACT_ID
+            or copied_base.canonical_hash != base_binding["canonical_sha256"]
+        ):
+            raise PilotEvidenceError(
+                "copied V2.8 base V2.7 contract failed identity revalidation"
             )
     elif contract.contract_id in {
         PILOT_V26_CONTRACT_ID,
@@ -1594,6 +2349,25 @@ def _write_v24_package(
             f"copied {version_label} contract failed hash revalidation"
         )
 
+    parent_evidence_reference = _validated_v28_parent_evidence_reference(
+        contract,
+        contract_path=contract_path,
+    )
+    if parent_evidence_reference is not None:
+        _atomic_bytes(
+            root / "parent_evidence_reference.json",
+            _pretty_bytes(
+                {
+                    "schema_version": (
+                        "finevo-pilot-v2.8-parent-evidence-reference-v1"
+                    ),
+                    "contract_id": contract.contract_id,
+                    "contract_sha256": contract.canonical_hash,
+                    **parent_evidence_reference,
+                }
+            ),
+        )
+
     sanitized = _sanitized_rows(rows)
     aggregate_payload = {
         **_json_copy(aggregate),
@@ -1681,7 +2455,17 @@ def _write_v24_package(
             if ancestral_retry_manifest_name is not None
             else []
         )
+        + (
+            [f"contract/{great_ancestral_retry_manifest_name}"]
+            if great_ancestral_retry_manifest_name is not None
+            else []
+        )
         + ([f"contract/{base_contract_name}"] if base_contract_name is not None else [])
+        + (
+            ["parent_evidence_reference.json"]
+            if parent_evidence_reference is not None
+            else []
+        )
     )
     manifest = {
         "schema_version": schema_version,
@@ -1710,7 +2494,12 @@ def _write_v24_package(
             "pooled local/GPT direction counts",
             "unregistered narrative intervention",
             "raw prompts and raw provider outputs",
-        ],
+        ]
+        + (
+            ["V2.7 treatment-effect outcomes"]
+            if contract.contract_id == PILOT_V28_CONTRACT_ID
+            else []
+        ),
     }
     if retry_binding is not None and retry_manifest_name is not None:
         manifest["retry_source_manifest"] = {
@@ -1733,10 +2522,25 @@ def _write_v24_package(
             **ancestral_retry_binding,
             "package_path": f"contract/{ancestral_retry_manifest_name}",
         }
+    if (
+        great_ancestral_retry_binding is not None
+        and great_ancestral_retry_manifest_name is not None
+    ):
+        manifest["great_ancestral_retry_source_manifest"] = {
+            **great_ancestral_retry_binding,
+            "package_path": (
+                f"contract/{great_ancestral_retry_manifest_name}"
+            ),
+        }
     if base_binding is not None and base_contract_name is not None:
         manifest["base_contract"] = {
             **base_binding,
             "package_path": f"contract/{base_contract_name}",
+        }
+    if parent_evidence_reference is not None:
+        manifest["parent_evidence_reference"] = {
+            **parent_evidence_reference,
+            "package_path": "parent_evidence_reference.json",
         }
     manifest_path = root / "package_manifest.json"
     _atomic_bytes(manifest_path, _pretty_bytes(manifest))
@@ -1888,6 +2692,8 @@ __all__ = [
     "PILOT_V26_EVIDENCE_SCHEMA_VERSION",
     "PILOT_V27_CONTRACT_ID",
     "PILOT_V27_EVIDENCE_SCHEMA_VERSION",
+    "PILOT_V28_CONTRACT_ID",
+    "PILOT_V28_EVIDENCE_SCHEMA_VERSION",
     "aggregate_lane_separated_evidence",
     "aggregate_v24_evidence",
     "build_lane_separated_evidence_package",
