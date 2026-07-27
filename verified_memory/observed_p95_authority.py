@@ -38,7 +38,9 @@ from typing import Any, Mapping, Sequence
 from .pilot_budget import preflight_p95
 from .pilot_contract import (
     PILOT_CONTRACT_ID_V2_3,
+    PILOT_CONTRACT_TAG_V2_6,
     PILOT_CONTRACT_V2_3_CANONICAL_SHA256,
+    PILOT_CONTRACT_V2_6_CANONICAL_SHA256,
     PilotContract,
     PilotRunSpec,
     canonical_sha256,
@@ -48,12 +50,14 @@ from .pilot_contract import (
 OBSERVED_P95_AUTHORITY_RECEIPT_SCHEMA_VERSION = (
     "finevo-observed-p95-authority-receipt-v1"
 )
-OBSERVED_P95_AUTHORITY_RECEIPT_FILENAME = (
-    "observed_p95_authority_receipt.json"
-)
+OBSERVED_P95_AUTHORITY_RECEIPT_FILENAME = "observed_p95_authority_receipt.json"
 OBSERVED_P95_PROJECTION_SCHEMA_VERSION = "finevo-pilot-projection-p95-v1"
 OBSERVED_P95_AUTHORITY_ID = "finevo-closed-loop-observed-p95-v1"
 OBSERVED_P95_SOURCE_KIND = "sealed-closed-loop-observed-p95"
+V27_RESEALED_OBSERVED_P95_AUTHORITY_SCHEMA_VERSION = (
+    "finevo-pilot-v2.7-inherited-observed-p95-authority-v1"
+)
+V27_RESEALED_OBSERVED_P95_SOURCE_KIND = "v2.6-terminal-stage0-import-v2.7"
 PREFLIGHT_CHECKPOINT_EXACTNESS_SCHEMA_VERSION = (
     "finevo-preflight-checkpoint-exactness-v1"
 )
@@ -77,6 +81,72 @@ _SOURCE_NAMES = (
     "provider_call_journal",
 )
 _V23_CONTRACT_PATH = PurePosixPath("experiments/pilot_v2_3.yaml")
+_V27_CONTRACT_ID = "finevo-pilot-v2.7"
+_V27_CONTRACT_PATH = PurePosixPath("experiments/pilot_v2_7.yaml")
+_V27_RAW_ROOT = PurePosixPath("experiment_results/pilot-v2.7/raw")
+_V27_SCIENCE_TAG = "pilot-v2.7-science"
+_V26_SCIENCE_COMMIT = "0f59a15bc2cc3cce68f64de1dc1be78f7d74e214"
+_V27_ALLOWED_P95_PROFILES = frozenset({"gpt52_main", "llama33_local_controlled"})
+_V27_FROZEN_V26_P95_SOURCES: Mapping[str, Mapping[str, Mapping[str, str]]] = {
+    "gpt52_main": {
+        "authority": {
+            "path": (
+                "experiment_results/pilot-v2.6/raw/parent-import/"
+                "observed_p95/gpt52_main/"
+                "observed_p95_authority_receipt.json"
+            ),
+            "schema_version": ("finevo-pilot-v2.6-inherited-observed-p95-authority-v1"),
+            "file_sha256": (
+                "8e4354de7f0b6365acf15b023952f6a93570c9e03ad0ccef475dd1477bade3df"
+            ),
+            "content_sha256": (
+                "e5c0a0ab61826b14fcf75dc22b6713e0d62233411e33747d10301ffcfa95d9c6"
+            ),
+        },
+        "projection": {
+            "path": (
+                "experiment_results/pilot-v2.6/raw/parent-import/"
+                "observed_p95/gpt52_main/projection_p95.json"
+            ),
+            "schema_version": OBSERVED_P95_PROJECTION_SCHEMA_VERSION,
+            "file_sha256": (
+                "73a3be859d6d2b33290923d5f31aafd5bb30637572fc5c58282b6fb8239abeea"
+            ),
+            "content_sha256": (
+                "aa1ac22be1010a62bfd0efd3b2794c4c9afdbdca67a03a2ff84d50e2ddc080ce"
+            ),
+        },
+    },
+    "llama33_local_controlled": {
+        "authority": {
+            "path": (
+                "experiment_results/pilot-v2.6/raw/parent-import/"
+                "observed_p95/llama33_local_controlled/"
+                "observed_p95_authority_receipt.json"
+            ),
+            "schema_version": ("finevo-pilot-v2.6-inherited-observed-p95-authority-v1"),
+            "file_sha256": (
+                "1dc2e0059b11824fcb0b4ea460f13043986903c4499f138c85852764bbe034ef"
+            ),
+            "content_sha256": (
+                "d64fe792f9fb22dfcbbd4ce7bb44f576a7a7568a22cf027686743f9ac0896715"
+            ),
+        },
+        "projection": {
+            "path": (
+                "experiment_results/pilot-v2.6/raw/parent-import/"
+                "observed_p95/llama33_local_controlled/projection_p95.json"
+            ),
+            "schema_version": OBSERVED_P95_PROJECTION_SCHEMA_VERSION,
+            "file_sha256": (
+                "b90e3af2cd6de30a7061a16173d2a415e921ad7016368063dc4977bdbf39b8a6"
+            ),
+            "content_sha256": (
+                "414ff8f4254a978baf66079d1ad95909638e7be4deae5227ee683190faa4b399"
+            ),
+        },
+    },
+}
 
 
 class ObservedP95AuthorityError(RuntimeError):
@@ -139,9 +209,7 @@ def _strict_json_from_bytes(value: bytes, *, name: str) -> dict[str, Any]:
             parse_constant=reject_nonfinite,
         )
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ObservedP95AuthorityError(
-            f"{name} is not strict UTF-8 JSON"
-        ) from exc
+        raise ObservedP95AuthorityError(f"{name} is not strict UTF-8 JSON") from exc
     if not isinstance(parsed, dict):
         raise ObservedP95AuthorityError(f"{name} must contain a JSON object")
     return parsed
@@ -169,12 +237,7 @@ def _normalize_relative(
     name: str,
 ) -> PurePosixPath:
     text = str(value)
-    if (
-        not text
-        or "\\" in text
-        or "\x00" in text
-        or Path(text).is_absolute()
-    ):
+    if not text or "\\" in text or "\x00" in text or Path(text).is_absolute():
         raise ObservedP95AuthorityError(
             f"{name} must be a normalized repository-relative POSIX path"
         )
@@ -257,8 +320,7 @@ def _read_regular_bytes(
                 )
             except OSError as exc:
                 raise ObservedP95AuthorityError(
-                    f"{name} path cannot be opened safely: "
-                    f"{relative.as_posix()}"
+                    f"{name} path cannot be opened safely: " f"{relative.as_posix()}"
                 ) from exc
             os.close(descriptor)
             descriptor = next_descriptor
@@ -280,9 +342,7 @@ def _read_regular_bytes(
             or after.st_size != opened.st_size
             or after.st_mtime_ns != opened.st_mtime_ns
         ):
-            raise ObservedP95AuthorityError(
-                f"{name} changed during its guarded read"
-            )
+            raise ObservedP95AuthorityError(f"{name} changed during its guarded read")
         return b"".join(chunks)
     finally:
         os.close(descriptor)
@@ -324,25 +384,17 @@ def _verify_bound_payload(
     name: str,
 ) -> None:
     if value.get("schema_version") != schema_version:
-        raise ObservedP95AuthorityError(
-            f"{name} has an unsupported schema version"
-        )
+        raise ObservedP95AuthorityError(f"{name} has an unsupported schema version")
     bindings = value.get("bindings")
     integrity = value.get("integrity")
-    if not isinstance(bindings, Mapping) or not isinstance(
-        integrity, Mapping
-    ):
-        raise ObservedP95AuthorityError(
-            f"{name} bindings or integrity are malformed"
-        )
+    if not isinstance(bindings, Mapping) or not isinstance(integrity, Mapping):
+        raise ObservedP95AuthorityError(f"{name} bindings or integrity are malformed")
     if (
         bindings.get("contract_sha256") != contract_hash
         or bindings.get("git_tag") != git_tag
         or bindings.get("git_commit") != git_commit
     ):
-        raise ObservedP95AuthorityError(
-            f"{name} contract/tag/commit binding mismatch"
-        )
+        raise ObservedP95AuthorityError(f"{name} contract/tag/commit binding mismatch")
     if (
         set(integrity) != {"canonicalization", "content_sha256"}
         or integrity.get("canonicalization") != CANONICALIZATION
@@ -374,9 +426,7 @@ def _source_entry(
 
 def _assert_digest(value: Any, *, name: str) -> str:
     if not isinstance(value, str) or _SHA256_RE.fullmatch(value) is None:
-        raise ObservedP95AuthorityError(
-            f"{name} must be a lowercase SHA-256 digest"
-        )
+        raise ObservedP95AuthorityError(f"{name} must be a lowercase SHA-256 digest")
     return value
 
 
@@ -384,9 +434,7 @@ def _stage_execution_modes(
     contract: PilotContract,
     stage_id: str,
 ) -> frozenset[str]:
-    return frozenset(
-        cell.execution_mode for cell in contract.stage(stage_id).cells
-    )
+    return frozenset(cell.execution_mode for cell in contract.stage(stage_id).cells)
 
 
 def _preflight_stage_for_model(
@@ -397,8 +445,7 @@ def _preflight_stage_for_model(
         stage_id
         for stage_id in contract.stage_ids
         if model_id in contract.models_for_stage(stage_id)
-        and "closed_loop_preflight"
-        in _stage_execution_modes(contract, stage_id)
+        and "closed_loop_preflight" in _stage_execution_modes(contract, stage_id)
     ]
     if len(candidates) != 1:
         raise ObservedP95AuthorityError(
@@ -415,8 +462,7 @@ def _capability_source_stage(
     candidates = [
         prerequisite
         for prerequisite in contract.stage(preflight_stage).prerequisites
-        if "capability_probe"
-        in _stage_execution_modes(contract, prerequisite)
+        if "capability_probe" in _stage_execution_modes(contract, prerequisite)
         and model_id in contract.models_for_stage(prerequisite)
     ]
     if len(candidates) != 1:
@@ -452,32 +498,20 @@ def _expected_source_paths(
     preflight_spec: PilotRunSpec,
     capability_spec: PilotRunSpec,
 ) -> dict[str, PurePosixPath]:
-    run_dir = (
-        raw_root
-        / preflight_spec.stage_id
-        / "runs"
-        / preflight_spec.run_id
-    )
+    run_dir = raw_root / preflight_spec.stage_id / "runs" / preflight_spec.run_id
     capability_dir = (
-        raw_root
-        / capability_spec.stage_id
-        / "runs"
-        / capability_spec.run_id
+        raw_root / capability_spec.stage_id / "runs" / capability_spec.run_id
     )
     return {
         "projection": run_dir / "projection_p95.json",
         "capability": capability_dir / "capability.json",
         "evaluator_control": raw_root / "evaluator_amendment_receipt.json",
-        "bootstrap_projection": (
-            capability_dir / "bootstrap_projection_p95.json"
-        ),
+        "bootstrap_projection": (capability_dir / "bootstrap_projection_p95.json"),
         "preflight_amendment_control": (
             raw_root / "preflight_bootstrap_amendment_control.json"
         ),
         "checkpoint": run_dir / "preflight_checkpoint.json",
-        "checkpoint_exactness": (
-            run_dir / "preflight_checkpoint_exactness.json"
-        ),
+        "checkpoint_exactness": (run_dir / "preflight_checkpoint_exactness.json"),
         "provider_call_journal": (
             raw_root
             / preflight_spec.stage_id
@@ -518,8 +552,7 @@ def _load_frozen_v23_contract(
         ) from exc
     if (
         contract_relative != _V23_CONTRACT_PATH
-        or contract.canonical_hash
-        != PILOT_CONTRACT_V2_3_CANONICAL_SHA256
+        or contract.canonical_hash != PILOT_CONTRACT_V2_3_CANONICAL_SHA256
         or contract.contract_id != PILOT_CONTRACT_ID_V2_3
         or contract.status != "frozen"
         or contract.preflight_bootstrap_amendment is None
@@ -572,9 +605,7 @@ def _validate_capability(
                 )
             _validate_capability_v4(capability)
         else:
-            raise ObservedP95AuthorityError(
-                "unsupported V2.3 capability source schema"
-            )
+            raise ObservedP95AuthorityError("unsupported V2.3 capability source schema")
     except (PilotEvaluationAmendmentError, PilotEvidenceError) as exc:
         raise ObservedP95AuthorityError(
             f"capability source failed validation: {exc}"
@@ -600,12 +631,8 @@ def _usage_projection_rows(
     if not isinstance(amendment, Mapping) or not isinstance(
         amendment.get("bootstrap_policy"), Mapping
     ):
-        raise ObservedP95AuthorityError(
-            "V2.3 capability call-kind policy is malformed"
-        )
-    kind_map = amendment["bootstrap_policy"].get(
-        "source_output_contract_map"
-    )
+        raise ObservedP95AuthorityError("V2.3 capability call-kind policy is malformed")
+    kind_map = amendment["bootstrap_policy"].get("source_output_contract_map")
     if not isinstance(kind_map, Mapping):
         raise ObservedP95AuthorityError(
             "V2.3 capability output-contract map is malformed"
@@ -624,8 +651,7 @@ def _usage_projection_rows(
         call_kind = kind_map.get(output_contract)
         if call_kind not in {"action", "semantic"}:
             raise ObservedP95AuthorityError(
-                f"capability usage row {index} has an unregistered "
-                "output contract"
+                f"capability usage row {index} has an unregistered " "output contract"
             )
         observed_model = row.get(
             "served_model",
@@ -648,9 +674,7 @@ def _usage_projection_rows(
     ):
         for index, row in enumerate(capability_rows):
             if not isinstance(row, Mapping):
-                raise ObservedP95AuthorityError(
-                    f"capability row {index} is malformed"
-                )
+                raise ObservedP95AuthorityError(f"capability row {index} is malformed")
             rows.append(
                 normalized_capability_row(
                     row,
@@ -659,9 +683,7 @@ def _usage_projection_rows(
             )
     else:
         imported = capability.get("usage_projection_rows")
-        if isinstance(imported, (str, bytes)) or not isinstance(
-            imported, Sequence
-        ):
+        if isinstance(imported, (str, bytes)) or not isinstance(imported, Sequence):
             raise ObservedP95AuthorityError(
                 "capability source lacks replayable usage rows"
             )
@@ -703,9 +725,7 @@ def _runner_config_binding_sha256(
 ) -> str:
     payload = _json_copy(serialized_config)
     if not isinstance(payload, dict):
-        raise ObservedP95AuthorityError(
-            "checkpoint runner config is malformed"
-        )
+        raise ObservedP95AuthorityError("checkpoint runner config is malformed")
     payload.pop("contract_bootstrap_reservations", None)
     payload["preflight_measurement_role"] = "closed_loop_preflight"
     encoded = json.dumps(
@@ -734,9 +754,7 @@ def _build_receipt(
     raw_root_relative: PurePosixPath,
     model_id: str,
     expected_git_commit: str,
-    historical_checkpoint_policy: (
-        HistoricalCheckpointVerificationPolicy | None
-    ) = None,
+    historical_checkpoint_policy: HistoricalCheckpointVerificationPolicy | None = None,
 ) -> dict[str, Any]:
     if _COMMIT_RE.fullmatch(expected_git_commit) is None:
         raise ObservedP95AuthorityError(
@@ -808,9 +826,7 @@ def _build_receipt(
         "projection",
         "integrity",
     }:
-        raise ObservedP95AuthorityError(
-            "preflight projection top-level shape drifted"
-        )
+        raise ObservedP95AuthorityError("preflight projection top-level shape drifted")
     _verify_bound_payload(
         projection,
         schema_version=OBSERVED_P95_PROJECTION_SCHEMA_VERSION,
@@ -824,9 +840,7 @@ def _build_receipt(
         projection.get("model_id") != model_id
         or projection.get("served_model") != profile.served_model
     ):
-        raise ObservedP95AuthorityError(
-            "preflight projection model identity mismatch"
-        )
+        raise ObservedP95AuthorityError("preflight projection model identity mismatch")
     bindings = projection["bindings"]
     required_binding_keys = {
         "contract_sha256",
@@ -851,9 +865,7 @@ def _build_receipt(
         "source_checkpoint_exactness_content_sha256",
     }
     if set(bindings) != required_binding_keys:
-        raise ObservedP95AuthorityError(
-            "preflight projection source bindings drifted"
-        )
+        raise ObservedP95AuthorityError("preflight projection source bindings drifted")
     for binding_name, source_name in (
         ("source_capability", "capability"),
         ("source_provider_call_journal", "provider_call_journal"),
@@ -870,9 +882,7 @@ def _build_receipt(
             repo_root=repo_root,
             expected=paths[source_name],
         ):
-            raise ObservedP95AuthorityError(
-                f"projection {binding_name} path mismatch"
-            )
+            raise ObservedP95AuthorityError(f"projection {binding_name} path mismatch")
 
     capability = source_values["capability"]
     evaluator_control = source_values["evaluator_control"]
@@ -884,9 +894,7 @@ def _build_receipt(
     )
     capability_file_sha256 = _sha256_bytes(source_raw["capability"])
     if bindings.get("source_capability_sha256") != capability_file_sha256:
-        raise ObservedP95AuthorityError(
-            "projection capability file hash mismatch"
-        )
+        raise ObservedP95AuthorityError("projection capability file hash mismatch")
 
     # Bootstrap validators import pilot_evidence/runner, so keep them local.
     from .pilot_preflight_amendment import (
@@ -899,9 +907,7 @@ def _build_receipt(
     bootstrap = source_values["bootstrap_projection"]
     bootstrap_bindings = bootstrap.get("bindings")
     if not isinstance(bootstrap_bindings, Mapping):
-        raise ObservedP95AuthorityError(
-            "bootstrap projection bindings are malformed"
-        )
+        raise ObservedP95AuthorityError("bootstrap projection bindings are malformed")
     authorized_config_sha256 = _assert_digest(
         bootstrap_bindings.get("authorized_config_sha256"),
         name="bootstrap authorized config hash",
@@ -929,27 +935,19 @@ def _build_receipt(
             f"bootstrap/control validation failed: {exc}"
         ) from exc
     bootstrap_integrity = bootstrap.get("integrity")
-    control_integrity = source_values["preflight_amendment_control"].get(
-        "integrity"
-    )
+    control_integrity = source_values["preflight_amendment_control"].get("integrity")
     if not isinstance(bootstrap_integrity, Mapping) or not isinstance(
         control_integrity, Mapping
     ):
-        raise ObservedP95AuthorityError(
-            "bootstrap/control integrity is malformed"
-        )
+        raise ObservedP95AuthorityError("bootstrap/control integrity is malformed")
     if (
         bindings.get("source_bootstrap_projection_file_sha256")
         != _sha256_bytes(source_raw["bootstrap_projection"])
         or bindings.get("source_bootstrap_projection_content_sha256")
         != bootstrap_integrity.get("content_sha256")
-        or bindings.get(
-            "source_preflight_amendment_control_file_sha256"
-        )
+        or bindings.get("source_preflight_amendment_control_file_sha256")
         != _sha256_bytes(source_raw["preflight_amendment_control"])
-        or bindings.get(
-            "source_preflight_amendment_control_content_sha256"
-        )
+        or bindings.get("source_preflight_amendment_control_content_sha256")
         != control_integrity.get("content_sha256")
     ):
         raise ObservedP95AuthorityError(
@@ -966,9 +964,7 @@ def _build_receipt(
         "exactness",
         "integrity",
     }:
-        raise ObservedP95AuthorityError(
-            "checkpoint exactness top-level shape drifted"
-        )
+        raise ObservedP95AuthorityError("checkpoint exactness top-level shape drifted")
     _verify_bound_payload(
         exactness,
         schema_version=PREFLIGHT_CHECKPOINT_EXACTNESS_SCHEMA_VERSION,
@@ -978,9 +974,7 @@ def _build_receipt(
         name="checkpoint exactness receipt",
     )
     exactness_bindings = exactness.get("bindings")
-    if not isinstance(exactness_bindings, Mapping) or set(
-        exactness_bindings
-    ) != {
+    if not isinstance(exactness_bindings, Mapping) or set(exactness_bindings) != {
         "contract_sha256",
         "git_tag",
         "git_commit",
@@ -988,9 +982,7 @@ def _build_receipt(
         "checkpoint_file_sha256",
         "checkpoint_hash",
     }:
-        raise ObservedP95AuthorityError(
-            "checkpoint exactness bindings drifted"
-        )
+        raise ObservedP95AuthorityError("checkpoint exactness bindings drifted")
 
     # Checkpoint construction and exact replay are intentionally lazy imports.
     from .pilot_checkpoint import (
@@ -1003,16 +995,12 @@ def _build_receipt(
     try:
         checkpoint = PilotCheckpoint(source_values["checkpoint"])
         if historical_checkpoint_policy is None:
-            recomputed_exactness = (
-                verify_closed_loop_preflight_checkpoint(checkpoint)
-            )
+            recomputed_exactness = verify_closed_loop_preflight_checkpoint(checkpoint)
         else:
             historical_verification = (
                 verify_historical_closed_loop_preflight_checkpoint(
                     checkpoint,
-                    source_repo_root=(
-                        historical_checkpoint_policy.source_repo_root
-                    ),
+                    source_repo_root=(historical_checkpoint_policy.source_repo_root),
                     source_annotated_tag=(
                         historical_checkpoint_policy.source_annotated_tag
                     ),
@@ -1032,22 +1020,18 @@ def _build_receipt(
         ) from exc
     checkpoint_config = checkpoint.payload.get("run_config")
     if not isinstance(checkpoint_config, Mapping):
-        raise ObservedP95AuthorityError(
-            "preflight checkpoint lacks a runner config"
-        )
-    expected_bootstrap_reservations = (
-        runner_reservations_from_bootstrap_projection(
-            bootstrap,
-            contract=contract,
-            capability_spec=capability_spec,
-            target_preflight_spec=preflight_spec,
-            capability=capability,
-            source_capability_path=capability_path,
-            source_capability_file_sha256=capability_file_sha256,
-            git_tag=git_tag,
-            git_commit=expected_git_commit,
-            authorized_config_sha256=authorized_config_sha256,
-        )
+        raise ObservedP95AuthorityError("preflight checkpoint lacks a runner config")
+    expected_bootstrap_reservations = runner_reservations_from_bootstrap_projection(
+        bootstrap,
+        contract=contract,
+        capability_spec=capability_spec,
+        target_preflight_spec=preflight_spec,
+        capability=capability,
+        source_capability_path=capability_path,
+        source_capability_file_sha256=capability_file_sha256,
+        git_tag=git_tag,
+        git_commit=expected_git_commit,
+        authorized_config_sha256=authorized_config_sha256,
     )
     if (
         checkpoint_config.get("contract_bootstrap_reservations")
@@ -1055,15 +1039,12 @@ def _build_receipt(
         or checkpoint_config.get("preflight_measurement_role")
         != "closed_loop_preflight"
         or checkpoint_config.get("preflight_p95_reservations") != {}
-        or checkpoint_config.get("pilot_contract_hash")
-        != contract.canonical_hash
+        or checkpoint_config.get("pilot_contract_hash") != contract.canonical_hash
         or checkpoint_config.get("pilot_tag") != git_tag
         or checkpoint_config.get("run_id")
         != f"{preflight_spec.run_id}--actor-preflight"
-        or checkpoint_config.get("seed")
-        != preflight_spec.environment_seed
-        or _runner_config_binding_sha256(checkpoint_config)
-        != authorized_config_sha256
+        or checkpoint_config.get("seed") != preflight_spec.environment_seed
+        or _runner_config_binding_sha256(checkpoint_config) != authorized_config_sha256
     ):
         raise ObservedP95AuthorityError(
             "checkpoint runner/bootstrap authority binding mismatch"
@@ -1078,22 +1059,16 @@ def _build_receipt(
             repo_root=repo_root,
             expected=paths["checkpoint"],
         )
-        or exactness_bindings.get("checkpoint_file_sha256")
-        != checkpoint_file_sha256
-        or exactness_bindings.get("checkpoint_hash")
-        != checkpoint.checkpoint_hash
-        or bindings.get("source_checkpoint_file_sha256")
-        != checkpoint_file_sha256
-        or bindings.get("source_checkpoint_hash")
-        != checkpoint.checkpoint_hash
+        or exactness_bindings.get("checkpoint_file_sha256") != checkpoint_file_sha256
+        or exactness_bindings.get("checkpoint_hash") != checkpoint.checkpoint_hash
+        or bindings.get("source_checkpoint_file_sha256") != checkpoint_file_sha256
+        or bindings.get("source_checkpoint_hash") != checkpoint.checkpoint_hash
         or bindings.get("source_checkpoint_exactness_file_sha256")
         != _sha256_bytes(source_raw["checkpoint_exactness"])
         or bindings.get("source_checkpoint_exactness_content_sha256")
         != exactness_content_sha256
     ):
-        raise ObservedP95AuthorityError(
-            "checkpoint/exactness source binding mismatch"
-        )
+        raise ObservedP95AuthorityError("checkpoint/exactness source binding mismatch")
 
     # Full journal verification is also kept lazy to avoid a top-level runner
     # dependency.  It verifies both the event hash chain and every terminal
@@ -1103,9 +1078,7 @@ def _build_receipt(
     try:
         journal = verify_provider_call_journal(
             source_values["provider_call_journal"],
-            expected_run_id=(
-                f"{preflight_spec.run_id}--actor-preflight"
-            ),
+            expected_run_id=(f"{preflight_spec.run_id}--actor-preflight"),
             expected_contract_hash=contract.canonical_hash,
             require_terminal_dispositions=True,
         )
@@ -1113,9 +1086,7 @@ def _build_receipt(
         raise ObservedP95AuthorityError(
             f"provider call journal failed validation: {exc}"
         ) from exc
-    journal_file_sha256 = _sha256_bytes(
-        source_raw["provider_call_journal"]
-    )
+    journal_file_sha256 = _sha256_bytes(source_raw["provider_call_journal"])
     journal_sha256 = _assert_digest(
         journal.get("journal_sha256"),
         name="provider journal hash",
@@ -1135,9 +1106,7 @@ def _build_receipt(
         not isinstance(checkpoint_provider_rows, Sequence)
         or isinstance(checkpoint_provider_rows, (str, bytes))
         or len(journal_completion_events) != len(checkpoint_provider_rows)
-        or len(journal_disposition_events) != len(
-            checkpoint_provider_rows
-        )
+        or len(journal_disposition_events) != len(checkpoint_provider_rows)
     ):
         raise ObservedP95AuthorityError(
             "checkpoint provider denominator differs from the terminal journal"
@@ -1148,8 +1117,7 @@ def _build_receipt(
         strict=True,
     ):
         if not isinstance(row, Mapping) or any(
-            row.get(key) != value
-            for key, value in event["payload"].items()
+            row.get(key) != value for key, value in event["payload"].items()
         ):
             raise ObservedP95AuthorityError(
                 "checkpoint provider usage differs from the terminal journal"
@@ -1162,9 +1130,7 @@ def _build_receipt(
         if not isinstance(row, Mapping) or not isinstance(
             row.get("parse_disposition"), Mapping
         ):
-            raise ObservedP95AuthorityError(
-                "checkpoint parse disposition is malformed"
-            )
+            raise ObservedP95AuthorityError("checkpoint parse disposition is malformed")
         disposition = row["parse_disposition"]
         if any(
             event["payload"].get(key) != disposition.get(key)
@@ -1173,25 +1139,18 @@ def _build_receipt(
             raise ObservedP95AuthorityError(
                 "checkpoint parse disposition differs from the terminal journal"
             )
-    checkpoint_journal_binding = checkpoint.payload.get(
-        "provider_call_journal_binding"
-    )
+    checkpoint_journal_binding = checkpoint.payload.get("provider_call_journal_binding")
     if (
         not isinstance(checkpoint_journal_binding, Mapping)
         or checkpoint_journal_binding.get("enabled") is not True
-        or checkpoint_journal_binding.get("journal_sha256")
-        != journal_sha256
-        or checkpoint_journal_binding.get("event_count")
-        != len(journal["events"])
+        or checkpoint_journal_binding.get("journal_sha256") != journal_sha256
+        or checkpoint_journal_binding.get("event_count") != len(journal["events"])
         or checkpoint_journal_binding.get("completion_event_count")
         != len(journal_completion_events)
-        or checkpoint_journal_binding.get(
-            "parse_disposition_event_count"
-        )
+        or checkpoint_journal_binding.get("parse_disposition_event_count")
         != len(journal_disposition_events)
         or checkpoint_journal_binding.get("run_id") != journal["run_id"]
-        or checkpoint_journal_binding.get("contract_hash")
-        != journal["contract_hash"]
+        or checkpoint_journal_binding.get("contract_hash") != journal["contract_hash"]
         or checkpoint_journal_binding.get("path_name")
         != paths["provider_call_journal"].name
     ):
@@ -1199,19 +1158,15 @@ def _build_receipt(
             "checkpoint journal binding differs from the terminal journal"
         )
     if (
-        bindings.get("source_provider_call_journal_file_sha256")
-        != journal_file_sha256
-        or bindings.get("source_provider_call_journal_sha256")
-        != journal_sha256
+        bindings.get("source_provider_call_journal_file_sha256") != journal_file_sha256
+        or bindings.get("source_provider_call_journal_sha256") != journal_sha256
     ):
         raise ObservedP95AuthorityError(
             "projection provider-journal hash binding mismatch"
         )
 
     reserve_multiplier = float(
-        contract.budgets["pre_dispatch_projection"][
-            "reserve_multiplier"
-        ]
+        contract.budgets["pre_dispatch_projection"]["reserve_multiplier"]
     )
     try:
         recomputed_projection = preflight_p95(
@@ -1233,12 +1188,9 @@ def _build_receipt(
         )
     served_model = str(projection["served_model"])
     if any(
-        str(key).rpartition("::")[0] != served_model
-        for key in recomputed_projection
+        str(key).rpartition("::")[0] != served_model for key in recomputed_projection
     ):
-        raise ObservedP95AuthorityError(
-            "projection contains a non-frozen served model"
-        )
+        raise ObservedP95AuthorityError("projection contains a non-frozen served model")
     expected_normal_keys = {
         f"{served_model}::action",
         f"{served_model}::semantic",
@@ -1261,9 +1213,7 @@ def _build_receipt(
         )
     denominator_policy = amendment["bootstrap_policy"]
     capability_counts = denominator_policy.get("required_sample_counts")
-    preflight_counts = denominator_policy.get(
-        "target_dispatch_call_counts"
-    )
+    preflight_counts = denominator_policy.get("target_dispatch_call_counts")
     if not isinstance(capability_counts, Mapping) or not isinstance(
         preflight_counts, Mapping
     ):
@@ -1271,8 +1221,7 @@ def _build_receipt(
             "V2.3 bootstrap denominator counts are malformed"
         )
     expected_sample_counts = {
-        call_kind: int(capability_counts[call_kind])
-        + int(preflight_counts[call_kind])
+        call_kind: int(capability_counts[call_kind]) + int(preflight_counts[call_kind])
         for call_kind in ("action", "semantic")
     }
     if any(
@@ -1294,15 +1243,11 @@ def _build_receipt(
         "source_kind": OBSERVED_P95_SOURCE_KIND,
         "pilot_contract_hash": contract.canonical_hash,
         "pilot_tag": git_tag,
-        "source_projection_schema_version": (
-            OBSERVED_P95_PROJECTION_SCHEMA_VERSION
-        ),
+        "source_projection_schema_version": (OBSERVED_P95_PROJECTION_SCHEMA_VERSION),
         "source_projection_file_sha256": projection_file_sha256,
         "source_projection_content_sha256": projection_content_sha256,
         "source_preflight_run_id": preflight_spec.run_id,
-        "source_preflight_run_spec_sha256": canonical_sha256(
-            preflight_spec.to_dict()
-        ),
+        "source_preflight_run_spec_sha256": canonical_sha256(preflight_spec.to_dict()),
         "source_model_id": model_id,
         "source_served_model": served_model,
         "source_execution_artifact_sha256": checkpoint_file_sha256,
@@ -1312,9 +1257,7 @@ def _build_receipt(
         runtime_model: {
             call_kind: {
                 "authority": _json_copy(authority),
-                "reservation": _json_copy(
-                    normal_rows[f"{served_model}::{call_kind}"]
-                ),
+                "reservation": _json_copy(normal_rows[f"{served_model}::{call_kind}"]),
             }
             for call_kind in ("action", "semantic")
         }
@@ -1329,23 +1272,17 @@ def _build_receipt(
             parsed = PreflightP95Reservation.from_dict(
                 model=runtime_model,
                 call_kind=call_kind,
-                value=reservations[runtime_model][call_kind][
-                    "reservation"
-                ],
+                value=reservations[runtime_model][call_kind]["reservation"],
             )
         except (TypeError, ValueError) as exc:
             raise ObservedP95AuthorityError(
                 f"{call_kind} reservation failed runner validation: {exc}"
             ) from exc
-        reservations[runtime_model][call_kind]["reservation"] = (
-            parsed.to_dict()
-        )
+        reservations[runtime_model][call_kind]["reservation"] = parsed.to_dict()
 
     evaluator_integrity = evaluator_control.get("integrity")
     if not isinstance(evaluator_integrity, Mapping):
-        raise ObservedP95AuthorityError(
-            "evaluator control integrity is malformed"
-        )
+        raise ObservedP95AuthorityError("evaluator control integrity is malformed")
     sources = {
         "projection": _source_entry(
             paths["projection"],
@@ -1364,23 +1301,17 @@ def _build_receipt(
         "evaluator_control": _source_entry(
             paths["evaluator_control"],
             source_raw["evaluator_control"],
-            content_sha256=(
-                evaluator_integrity.get("content_sha256")
-            ),
+            content_sha256=(evaluator_integrity.get("content_sha256")),
         ),
         "bootstrap_projection": _source_entry(
             paths["bootstrap_projection"],
             source_raw["bootstrap_projection"],
-            content_sha256=str(
-                bootstrap_integrity["content_sha256"]
-            ),
+            content_sha256=str(bootstrap_integrity["content_sha256"]),
         ),
         "preflight_amendment_control": _source_entry(
             paths["preflight_amendment_control"],
             source_raw["preflight_amendment_control"],
-            content_sha256=str(
-                control_integrity["content_sha256"]
-            ),
+            content_sha256=str(control_integrity["content_sha256"]),
         ),
         "checkpoint": _source_entry(
             paths["checkpoint"],
@@ -1399,9 +1330,7 @@ def _build_receipt(
         ),
     }
     receipt: dict[str, Any] = {
-        "schema_version": (
-            OBSERVED_P95_AUTHORITY_RECEIPT_SCHEMA_VERSION
-        ),
+        "schema_version": (OBSERVED_P95_AUTHORITY_RECEIPT_SCHEMA_VERSION),
         "contract": {
             "path": contract_relative.as_posix(),
             "file_sha256": _sha256_bytes(contract_raw),
@@ -1421,21 +1350,15 @@ def _build_receipt(
         "source_preflight": {
             "stage_id": preflight_stage,
             "run_id": preflight_spec.run_id,
-            "run_spec_sha256": canonical_sha256(
-                preflight_spec.to_dict()
-            ),
+            "run_spec_sha256": canonical_sha256(preflight_spec.to_dict()),
             "capability_stage_id": capability_stage,
             "capability_run_id": capability_spec.run_id,
-            "capability_run_spec_sha256": canonical_sha256(
-                capability_spec.to_dict()
-            ),
+            "capability_run_spec_sha256": canonical_sha256(capability_spec.to_dict()),
         },
         "sources": sources,
         "reservations": reservations,
         "scientific_evidence": False,
-        "evidence_use": (
-            "source-backed dispatch authority; not a scientific result"
-        ),
+        "evidence_use": ("source-backed dispatch authority; not a scientific result"),
     }
     receipt["integrity"] = {
         "canonicalization": CANONICALIZATION,
@@ -1451,9 +1374,7 @@ def build_observed_p95_authority_receipt(
     raw_root: str | Path,
     model_id: str,
     expected_git_commit: str,
-    historical_checkpoint_policy: (
-        HistoricalCheckpointVerificationPolicy | None
-    ) = None,
+    historical_checkpoint_policy: HistoricalCheckpointVerificationPolicy | None = None,
 ) -> dict[str, Any]:
     """Rebuild and serialize one model's source-backed p95 authority.
 
@@ -1480,11 +1401,7 @@ def build_observed_p95_authority_receipt(
         name="raw_root",
         require_file=False,
     )
-    if (
-        not isinstance(model_id, str)
-        or not model_id
-        or model_id != model_id.strip()
-    ):
+    if not isinstance(model_id, str) or not model_id or model_id != model_id.strip():
         raise ObservedP95AuthorityError(
             "model_id must be a normalized non-empty string"
         )
@@ -1495,6 +1412,727 @@ def build_observed_p95_authority_receipt(
         model_id=model_id,
         expected_git_commit=expected_git_commit,
         historical_checkpoint_policy=historical_checkpoint_policy,
+    )
+
+
+def v27_observed_p95_receipt_path(
+    raw_root: str | Path,
+    profile_id: str,
+) -> Path:
+    """Return the only V2.7 child authority location for one profile."""
+
+    return (
+        Path(raw_root)
+        / "parent-import"
+        / "observed_p95"
+        / profile_id
+        / OBSERVED_P95_AUTHORITY_RECEIPT_FILENAME
+    )
+
+
+def v27_observed_p95_projection_path(
+    raw_root: str | Path,
+    profile_id: str,
+) -> Path:
+    """Return the V2.7 projection paired with the child authority."""
+
+    return (
+        Path(raw_root)
+        / "parent-import"
+        / "observed_p95"
+        / profile_id
+        / "projection_p95.json"
+    )
+
+
+def _repo_relative_path(
+    repo_root: Path,
+    value: str | Path,
+    *,
+    required_top: str,
+    name: str,
+) -> PurePosixPath:
+    path = Path(value)
+    if path.is_absolute():
+        try:
+            relative = path.absolute().relative_to(repo_root)
+        except ValueError as exc:
+            raise ObservedP95AuthorityError(f"{name} escaped the repository") from exc
+        text = PurePosixPath(*relative.parts).as_posix()
+    else:
+        text = str(value)
+    return _normalize_relative(
+        text,
+        required_top=required_top,
+        name=name,
+    )
+
+
+def _seal_v27(value: Mapping[str, Any]) -> dict[str, Any]:
+    sealed = _json_copy(value)
+    integrity = sealed.setdefault("integrity", {})
+    if not isinstance(integrity, dict):
+        raise ObservedP95AuthorityError("V2.7 observed-p95 integrity must be an object")
+    integrity["canonicalization"] = CANONICALIZATION
+    integrity.pop("content_sha256", None)
+    integrity["content_sha256"] = _bound_content_sha256(sealed)
+    return sealed
+
+
+def _validate_v27_contract_binding(
+    *,
+    repo_root: Path,
+    contract: PilotContract,
+    contract_path: str | Path,
+) -> tuple[dict[str, Any], PurePosixPath]:
+    relative = _repo_relative_path(
+        repo_root,
+        contract_path,
+        required_top="experiments",
+        name="V2.7 contract path",
+    )
+    if relative != _V27_CONTRACT_PATH:
+        raise ObservedP95AuthorityError(
+            "V2.7 authority requires the expanded V2.7 contract path"
+        )
+    parsed, raw = _read_json_source(
+        repo_root,
+        relative,
+        name="expanded V2.7 contract",
+    )
+    try:
+        loaded = PilotContract.from_dict(parsed)
+    except (TypeError, ValueError) as exc:
+        raise ObservedP95AuthorityError(
+            f"expanded V2.7 contract failed validation: {exc}"
+        ) from exc
+    if (
+        contract.contract_id != _V27_CONTRACT_ID
+        or contract.implementation.get("required_git_tag") != _V27_SCIENCE_TAG
+        or loaded.contract_id != contract.contract_id
+        or loaded.canonical_hash != contract.canonical_hash
+        or loaded.to_dict() != contract.to_dict()
+    ):
+        raise ObservedP95AuthorityError("expanded V2.7 contract identity drifted")
+    return (
+        {
+            "path": relative.as_posix(),
+            "file_sha256": _sha256_bytes(raw),
+            "contract_id": contract.contract_id,
+            "contract_sha256": contract.canonical_hash,
+        },
+        relative,
+    )
+
+
+def _validate_v27_raw_root(
+    *,
+    repo_root: Path,
+    raw_root: str | Path,
+) -> tuple[Path, PurePosixPath]:
+    relative = _repo_relative_path(
+        repo_root,
+        raw_root,
+        required_top="experiment_results",
+        name="V2.7 raw root",
+    )
+    if relative != _V27_RAW_ROOT:
+        raise ObservedP95AuthorityError(
+            "V2.7 authority requires the fresh pilot-v2.7 raw namespace"
+        )
+    path = _checked_path(
+        repo_root,
+        relative,
+        name="V2.7 raw root",
+        require_file=False,
+    )
+    return path, relative
+
+
+def _validate_v27_source_artifact_binding(
+    value: Any,
+    *,
+    repo_root: Path,
+    name: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    source = _json_copy(value)
+    if not isinstance(source, dict) or set(source) != {
+        "path",
+        "schema_version",
+        "file_sha256",
+        "content_sha256",
+        "snapshot_path",
+    }:
+        raise ObservedP95AuthorityError(f"verified V2.6 {name} binding shape drifted")
+    for field in ("file_sha256", "content_sha256"):
+        if _SHA256_RE.fullmatch(str(source.get(field))) is None:
+            raise ObservedP95AuthorityError(
+                f"verified V2.6 {name} {field} is malformed"
+            )
+    original = _normalize_relative(
+        str(source.get("path")),
+        required_top="experiment_results",
+        name=f"V2.6 {name} source path",
+    )
+    snapshot = _normalize_relative(
+        str(source.get("snapshot_path")),
+        required_top="experiment_results",
+        name=f"V2.6 {name} snapshot path",
+    )
+    source_prefix = PurePosixPath("experiment_results/pilot-v2.6/raw")
+    snapshot_prefix = _V27_RAW_ROOT / "parent-import" / "v2_6_raw_snapshot"
+    try:
+        source_inside = original.relative_to(source_prefix)
+    except ValueError as exc:
+        raise ObservedP95AuthorityError(
+            f"verified V2.6 {name} source escaped its raw namespace"
+        ) from exc
+    if (
+        snapshot != snapshot_prefix / source_inside
+        or not isinstance(source.get("schema_version"), str)
+        or not source["schema_version"]
+    ):
+        raise ObservedP95AuthorityError(f"verified V2.6 {name} provenance drifted")
+    parsed, raw = _read_json_source(
+        repo_root,
+        snapshot,
+        name=f"V2.6 {name} snapshot",
+    )
+    integrity = parsed.get("integrity")
+    if (
+        _sha256_bytes(raw) != source["file_sha256"]
+        or parsed.get("schema_version") != source["schema_version"]
+        or not isinstance(integrity, dict)
+        or set(integrity) != {"canonicalization", "content_sha256"}
+        or integrity.get("canonicalization") != CANONICALIZATION
+        or integrity.get("content_sha256") != source["content_sha256"]
+        or integrity.get("content_sha256") != _bound_content_sha256(parsed)
+    ):
+        raise ObservedP95AuthorityError(
+            f"verified V2.6 {name} snapshot hash or schema drifted"
+        )
+    return source, parsed
+
+
+def _validated_v27_source_binding(
+    value: Mapping[str, Any],
+    *,
+    repo_root: Path,
+    contract: PilotContract,
+    profile_id: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    source = _json_copy(value)
+    expected_keys = {
+        "source_contract_sha256",
+        "source_git_tag",
+        "source_git_commit",
+        "model_id",
+        "runtime_model",
+        "served_model",
+        "authority",
+        "projection",
+        "reservations",
+    }
+    if not isinstance(source, dict) or set(source) != expected_keys:
+        raise ObservedP95AuthorityError(
+            "verified V2.6 p95 source binding shape drifted"
+        )
+    if (
+        profile_id not in _V27_ALLOWED_P95_PROFILES
+        or source.get("model_id") != profile_id
+        or _SHA256_RE.fullmatch(str(source.get("source_contract_sha256"))) is None
+        or source.get("source_contract_sha256") != PILOT_CONTRACT_V2_6_CANONICAL_SHA256
+        or source.get("source_git_tag") != PILOT_CONTRACT_TAG_V2_6
+        or source.get("source_git_commit") != _V26_SCIENCE_COMMIT
+    ):
+        raise ObservedP95AuthorityError("verified V2.6 p95 source identity drifted")
+    profile = contract.provider_profiles.get(profile_id)
+    if profile is None:
+        raise ObservedP95AuthorityError(
+            f"V2.7 contract lacks provider profile {profile_id}"
+        )
+    expected_runtime = _runtime_model(contract, profile_id)
+    if (
+        source.get("runtime_model") != expected_runtime
+        or source.get("served_model") != profile.served_model
+    ):
+        raise ObservedP95AuthorityError(
+            "verified V2.6 p95 model identity differs from V2.7"
+        )
+    source["authority"], source_authority = _validate_v27_source_artifact_binding(
+        source["authority"],
+        repo_root=repo_root,
+        name="authority",
+    )
+    source["projection"], source_projection = _validate_v27_source_artifact_binding(
+        source["projection"],
+        repo_root=repo_root,
+        name="projection",
+    )
+    frozen_sources = _V27_FROZEN_V26_P95_SOURCES.get(profile_id)
+    if not isinstance(frozen_sources, Mapping) or any(
+        {
+            key: source[kind][key]
+            for key in (
+                "path",
+                "schema_version",
+                "file_sha256",
+                "content_sha256",
+            )
+        }
+        != frozen_sources.get(kind)
+        for kind in ("authority", "projection")
+    ):
+        raise ObservedP95AuthorityError(
+            "verified V2.6 p95 binding differs from the frozen source"
+        )
+    if (
+        source["authority"]["schema_version"]
+        != "finevo-pilot-v2.6-inherited-observed-p95-authority-v1"
+        or source["projection"]["schema_version"]
+        != OBSERVED_P95_PROJECTION_SCHEMA_VERSION
+    ):
+        raise ObservedP95AuthorityError("verified V2.6 p95 source schema drifted")
+
+    reservations = source.get("reservations")
+    if (
+        not isinstance(reservations, dict)
+        or source_authority.get("reservations") != reservations
+        or set(reservations) != {expected_runtime}
+        or not isinstance(reservations[expected_runtime], dict)
+        or set(reservations[expected_runtime]) != {"action", "semantic"}
+    ):
+        raise ObservedP95AuthorityError("verified V2.6 p95 reservations are malformed")
+    source_model = source_authority.get("model")
+    source_git = source_authority.get("git")
+    source_contract = source_authority.get("contract")
+    source_projection_bindings = source_projection.get("bindings")
+    if (
+        source_authority.get("scientific_evidence") is not False
+        or not isinstance(source_model, Mapping)
+        or source_model.get("model_id") != profile_id
+        or source_model.get("runtime_model") != expected_runtime
+        or source_model.get("served_model") != profile.served_model
+        or not isinstance(source_git, Mapping)
+        or source_git.get("tag") != PILOT_CONTRACT_TAG_V2_6
+        or source_git.get("commit") != _V26_SCIENCE_COMMIT
+        or not isinstance(source_contract, Mapping)
+        or source_contract.get("contract_sha256")
+        != PILOT_CONTRACT_V2_6_CANONICAL_SHA256
+        or set(source_projection)
+        != {
+            "schema_version",
+            "model_id",
+            "served_model",
+            "projection",
+            "bindings",
+            "integrity",
+        }
+        or source_projection.get("model_id") != profile_id
+        or source_projection.get("served_model") != profile.served_model
+        or not isinstance(source_projection_bindings, Mapping)
+        or source_projection_bindings.get("contract_sha256")
+        != PILOT_CONTRACT_V2_6_CANONICAL_SHA256
+        or source_projection_bindings.get("git_tag") != PILOT_CONTRACT_TAG_V2_6
+        or source_projection_bindings.get("git_commit") != _V26_SCIENCE_COMMIT
+        or source_projection_bindings.get("source_kind")
+        != "v2.5-terminal-parent-import-v2.6"
+        or source_projection_bindings.get("source_authority_receipt_content_sha256")
+        != source["authority"]["content_sha256"]
+    ):
+        raise ObservedP95AuthorityError(
+            "verified V2.6 authority/projection identity drifted"
+        )
+    expected_source_projection = {
+        f"{profile.served_model}::{call_kind}": _json_copy(
+            reservations[expected_runtime][call_kind]["reservation"]
+        )
+        for call_kind in ("action", "semantic")
+    }
+    if source_projection.get("projection") != expected_source_projection:
+        raise ObservedP95AuthorityError(
+            "verified V2.6 projection differs from authority reservations"
+        )
+    transformed = _json_copy(reservations)
+    from .runner import PreflightP95Reservation
+
+    for call_kind in ("action", "semantic"):
+        entry = transformed[expected_runtime].get(call_kind)
+        if (
+            not isinstance(entry, dict)
+            or set(entry) != {"authority", "reservation"}
+            or not isinstance(entry.get("authority"), dict)
+        ):
+            raise ObservedP95AuthorityError(
+                f"verified V2.6 {call_kind} authority is malformed"
+            )
+        authority = entry["authority"]
+        if (
+            authority.get("pilot_contract_hash") != source["source_contract_sha256"]
+            or authority.get("pilot_tag") != source["source_git_tag"]
+            or authority.get("source_model_id") != profile_id
+            or authority.get("source_served_model") != profile.served_model
+        ):
+            raise ObservedP95AuthorityError(
+                f"verified V2.6 {call_kind} authority identity drifted"
+            )
+        try:
+            reservation = PreflightP95Reservation.from_dict(
+                model=expected_runtime,
+                call_kind=call_kind,
+                value=entry.get("reservation"),
+            )
+        except (TypeError, ValueError) as exc:
+            raise ObservedP95AuthorityError(
+                f"verified V2.6 {call_kind} reservation is invalid: {exc}"
+            ) from exc
+        entry["reservation"] = reservation.to_dict()
+        authority["pilot_contract_hash"] = contract.canonical_hash
+        authority["pilot_tag"] = _V27_SCIENCE_TAG
+
+    parent_source = {
+        key: _json_copy(source[key])
+        for key in (
+            "source_contract_sha256",
+            "source_git_tag",
+            "source_git_commit",
+            "model_id",
+            "runtime_model",
+            "served_model",
+            "authority",
+            "projection",
+        )
+    }
+    return parent_source, transformed
+
+
+def build_v27_resealed_observed_p95_authority(
+    *,
+    repo_root: str | Path,
+    contract: PilotContract,
+    contract_path: str | Path,
+    raw_root: str | Path,
+    profile_id: str,
+    expected_git_commit: str,
+    verified_v2_6_source_binding: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build, but do not persist, one V2.7 child receipt and projection.
+
+    ``verified_v2_6_source_binding`` must be the output of
+    :func:`pilot_v27_stage0_import.v2_6_p95_source_binding`.  The child
+    artifacts retain the numeric V2.6 observations while resealing their
+    dispatch authority to the selected V2.7 contract, release tag, and commit.
+    """
+
+    root = _normalize_repo_root(repo_root)
+    if _COMMIT_RE.fullmatch(expected_git_commit) is None:
+        raise ObservedP95AuthorityError("V2.7 expected commit must be lowercase 40-hex")
+    if not isinstance(profile_id, str) or profile_id not in _V27_ALLOWED_P95_PROFILES:
+        raise ObservedP95AuthorityError(
+            f"{profile_id!r} has no V2.7 inherited p95 authority"
+        )
+    contract_binding, _ = _validate_v27_contract_binding(
+        repo_root=root,
+        contract=contract,
+        contract_path=contract_path,
+    )
+    raw_path, raw_relative = _validate_v27_raw_root(
+        repo_root=root,
+        raw_root=raw_root,
+    )
+    parent_source, reservations = _validated_v27_source_binding(
+        verified_v2_6_source_binding,
+        repo_root=root,
+        contract=contract,
+        profile_id=profile_id,
+    )
+    profile = contract.provider_profiles[profile_id]
+    runtime_model = _runtime_model(contract, profile_id)
+    receipt = _seal_v27(
+        {
+            "schema_version": (V27_RESEALED_OBSERVED_P95_AUTHORITY_SCHEMA_VERSION),
+            "contract": contract_binding,
+            "raw_root": raw_relative.as_posix(),
+            "git": {
+                "tag": _V27_SCIENCE_TAG,
+                "commit": expected_git_commit,
+            },
+            "model": {
+                "model_id": profile_id,
+                "runtime_model": runtime_model,
+                "served_model": profile.served_model,
+            },
+            "parent_source": parent_source,
+            "reservations": reservations,
+            "scientific_evidence": False,
+            "evidence_use": (
+                "V2.7 prospective budget authority only; the imported V2.6 "
+                "terminal no-go and Stage-0 calibration contribute no A-D "
+                "treatment effect."
+            ),
+        }
+    )
+    receipt_path = v27_observed_p95_receipt_path(raw_path, profile_id)
+    receipt_relative = _repo_relative_path(
+        root,
+        receipt_path,
+        required_top="experiment_results",
+        name="V2.7 child authority path",
+    )
+    projection = {
+        f"{profile.served_model}::{call_kind}": _json_copy(
+            reservations[runtime_model][call_kind]["reservation"]
+        )
+        for call_kind in ("action", "semantic")
+    }
+    projection_value = _seal_v27(
+        {
+            "schema_version": OBSERVED_P95_PROJECTION_SCHEMA_VERSION,
+            "model_id": profile_id,
+            "served_model": profile.served_model,
+            "projection": projection,
+            "bindings": {
+                "contract_sha256": contract.canonical_hash,
+                "git_tag": _V27_SCIENCE_TAG,
+                "git_commit": expected_git_commit,
+                "source_kind": V27_RESEALED_OBSERVED_P95_SOURCE_KIND,
+                "source_authority_receipt": receipt_relative.as_posix(),
+                "source_authority_receipt_content_sha256": receipt["integrity"][
+                    "content_sha256"
+                ],
+                "source_v2_6_authority_content_sha256": parent_source["authority"][
+                    "content_sha256"
+                ],
+                "source_v2_6_projection_content_sha256": parent_source["projection"][
+                    "content_sha256"
+                ],
+            },
+        }
+    )
+    return {
+        "receipt_path": receipt_path,
+        "projection_path": v27_observed_p95_projection_path(
+            raw_path,
+            profile_id,
+        ),
+        "receipt": receipt,
+        "projection": projection_value,
+    }
+
+
+def _read_v27_artifact_input(
+    value_or_path: Mapping[str, Any] | str | Path,
+    *,
+    repo_root: Path,
+    name: str,
+) -> dict[str, Any]:
+    if isinstance(value_or_path, Mapping):
+        value = _json_copy(value_or_path)
+        if not isinstance(value, dict):
+            raise ObservedP95AuthorityError(f"{name} must be an object")
+        return value
+    relative = _repo_relative_path(
+        repo_root,
+        value_or_path,
+        required_top="experiment_results",
+        name=f"{name} path",
+    )
+    value, _ = _read_json_source(repo_root, relative, name=name)
+    return value
+
+
+def _v27_rebuild_from_receipt(
+    receipt: Mapping[str, Any],
+    *,
+    repo_root: Path,
+    expected_git_commit: str,
+) -> dict[str, Any]:
+    value = _json_copy(receipt)
+    expected_keys = {
+        "schema_version",
+        "contract",
+        "raw_root",
+        "git",
+        "model",
+        "parent_source",
+        "reservations",
+        "scientific_evidence",
+        "evidence_use",
+        "integrity",
+    }
+    if (
+        not isinstance(value, dict)
+        or set(value) != expected_keys
+        or value.get("schema_version")
+        != V27_RESEALED_OBSERVED_P95_AUTHORITY_SCHEMA_VERSION
+    ):
+        raise ObservedP95AuthorityError(
+            "V2.7 observed-p95 receipt shape or schema drifted"
+        )
+    git = value.get("git")
+    model = value.get("model")
+    contract_binding = value.get("contract")
+    if (
+        not isinstance(git, dict)
+        or set(git) != {"tag", "commit"}
+        or git.get("tag") != _V27_SCIENCE_TAG
+        or git.get("commit") != expected_git_commit
+        or _COMMIT_RE.fullmatch(expected_git_commit) is None
+        or not isinstance(model, dict)
+        or set(model) != {"model_id", "runtime_model", "served_model"}
+        or not isinstance(contract_binding, dict)
+        or set(contract_binding)
+        != {
+            "path",
+            "file_sha256",
+            "contract_id",
+            "contract_sha256",
+        }
+    ):
+        raise ObservedP95AuthorityError(
+            "V2.7 observed-p95 release or identity binding drifted"
+        )
+    contract_relative = _normalize_relative(
+        str(contract_binding.get("path")),
+        required_top="experiments",
+        name="V2.7 receipt contract path",
+    )
+    contract_value, contract_raw = _read_json_source(
+        repo_root,
+        contract_relative,
+        name="V2.7 receipt contract",
+    )
+    try:
+        contract = PilotContract.from_dict(contract_value)
+    except (TypeError, ValueError) as exc:
+        raise ObservedP95AuthorityError(
+            f"V2.7 receipt contract failed validation: {exc}"
+        ) from exc
+    if (
+        contract_relative != _V27_CONTRACT_PATH
+        or contract_binding.get("file_sha256") != _sha256_bytes(contract_raw)
+        or contract_binding.get("contract_id") != contract.contract_id
+        or contract_binding.get("contract_sha256") != contract.canonical_hash
+        or contract.contract_id != _V27_CONTRACT_ID
+    ):
+        raise ObservedP95AuthorityError("V2.7 observed-p95 contract binding drifted")
+    raw_relative = _normalize_relative(
+        str(value.get("raw_root")),
+        required_top="experiment_results",
+        name="V2.7 receipt raw root",
+    )
+    if raw_relative != _V27_RAW_ROOT:
+        raise ObservedP95AuthorityError("V2.7 observed-p95 raw namespace drifted")
+    raw_root = _checked_path(
+        repo_root,
+        raw_relative,
+        name="V2.7 receipt raw root",
+        require_file=False,
+    )
+    profile_id = str(model.get("model_id"))
+    try:
+        from .pilot_v27_stage0_import import (
+            PilotV27Stage0ImportError,
+            v2_6_p95_source_binding,
+        )
+
+        source_binding = v2_6_p95_source_binding(
+            repo_root=repo_root,
+            child_raw_root=raw_root,
+            profile_id=profile_id,
+        )
+    except PilotV27Stage0ImportError as exc:
+        raise ObservedP95AuthorityError(
+            f"V2.7 imported p95 source failed validation: {exc}"
+        ) from exc
+    return build_v27_resealed_observed_p95_authority(
+        repo_root=repo_root,
+        contract=contract,
+        contract_path=contract_relative.as_posix(),
+        raw_root=raw_relative.as_posix(),
+        profile_id=profile_id,
+        expected_git_commit=expected_git_commit,
+        verified_v2_6_source_binding=source_binding,
+    )
+
+
+def verify_v27_resealed_observed_p95_authority(
+    receipt_or_path: Mapping[str, Any] | str | Path,
+    *,
+    repo_root: str | Path,
+    expected_git_commit: str,
+) -> dict[str, dict[str, dict[str, Any]]]:
+    """Rebuild one V2.7 child receipt from the verified imported V2.6 source."""
+
+    root = _normalize_repo_root(repo_root)
+    receipt = _read_v27_artifact_input(
+        receipt_or_path,
+        repo_root=root,
+        name="V2.7 observed-p95 authority receipt",
+    )
+    rebuilt = _v27_rebuild_from_receipt(
+        receipt,
+        repo_root=root,
+        expected_git_commit=expected_git_commit,
+    )
+    if receipt != rebuilt["receipt"]:
+        raise ObservedP95AuthorityError(
+            "V2.7 observed-p95 receipt differs from verified imported sources"
+        )
+    reservations = rebuilt["receipt"]["reservations"]
+    if not isinstance(reservations, dict):  # pragma: no cover - builder owns
+        raise ObservedP95AuthorityError("V2.7 observed-p95 reservations are malformed")
+    return _json_copy(reservations)
+
+
+def verify_v27_resealed_observed_p95_projection(
+    projection_or_path: Mapping[str, Any] | str | Path,
+    *,
+    receipt_or_path: Mapping[str, Any] | str | Path,
+    repo_root: str | Path,
+    expected_git_commit: str,
+) -> dict[str, Any]:
+    """Verify the paired V2.7 projection against the rebuilt child receipt."""
+
+    root = _normalize_repo_root(repo_root)
+    receipt = _read_v27_artifact_input(
+        receipt_or_path,
+        repo_root=root,
+        name="V2.7 observed-p95 authority receipt",
+    )
+    rebuilt = _v27_rebuild_from_receipt(
+        receipt,
+        repo_root=root,
+        expected_git_commit=expected_git_commit,
+    )
+    if receipt != rebuilt["receipt"]:
+        raise ObservedP95AuthorityError(
+            "V2.7 observed-p95 receipt differs from verified imported sources"
+        )
+    projection = _read_v27_artifact_input(
+        projection_or_path,
+        repo_root=root,
+        name="V2.7 observed-p95 projection",
+    )
+    if projection != rebuilt["projection"]:
+        raise ObservedP95AuthorityError(
+            "V2.7 observed-p95 projection differs from its child receipt"
+        )
+    return _json_copy(projection)
+
+
+def verify_v27_inherited_p95_receipt(
+    receipt: Mapping[str, Any],
+    *,
+    repo_root: str | Path,
+    expected_git_commit: str,
+) -> dict[str, dict[str, dict[str, Any]]]:
+    """Compatibility name used by the version-dispatched authority reader."""
+
+    return verify_v27_resealed_observed_p95_authority(
+        receipt,
+        repo_root=repo_root,
+        expected_git_commit=expected_git_commit,
     )
 
 
@@ -1510,9 +2148,7 @@ def _read_receipt_input(
     if isinstance(value_or_path, Mapping):
         value = _json_copy(value_or_path)
         if not isinstance(value, dict):
-            raise ObservedP95AuthorityError(
-                "observed-p95 receipt must be an object"
-            )
+            raise ObservedP95AuthorityError("observed-p95 receipt must be an object")
         return value, None, None
     relative = _normalize_relative(
         value_or_path,
@@ -1532,9 +2168,7 @@ def _verify_receipt_value(
     *,
     repo_root: Path,
     expected_git_commit: str,
-    historical_checkpoint_policy: (
-        HistoricalCheckpointVerificationPolicy | None
-    ) = None,
+    historical_checkpoint_policy: HistoricalCheckpointVerificationPolicy | None = None,
 ) -> dict[str, dict[str, dict[str, Any]]]:
     # V2.4 has no new provider preflight.  Its child receipt is instead
     # rebuilt from an exact, tracked-hash copy of the fully reverified V2.3
@@ -1564,10 +2198,7 @@ def _verify_receipt_value(
                 f"V2.4 inherited observed-p95 receipt failed validation: {exc}"
             ) from exc
 
-    if (
-        schema_version
-        == "finevo-pilot-v2.5-inherited-observed-p95-authority-v1"
-    ):
+    if schema_version == "finevo-pilot-v2.5-inherited-observed-p95-authority-v1":
         from .pilot_v25_parent_import import (
             PilotV25ParentImportError,
             verify_v25_inherited_p95_receipt,
@@ -1589,10 +2220,7 @@ def _verify_receipt_value(
                 f"V2.5 inherited observed-p95 receipt failed validation: {exc}"
             ) from exc
 
-    if (
-        schema_version
-        == "finevo-pilot-v2.6-inherited-observed-p95-authority-v1"
-    ):
+    if schema_version == "finevo-pilot-v2.6-inherited-observed-p95-authority-v1":
         from .pilot_v26_parent_import import (
             PilotV26ParentImportError,
             verify_v26_inherited_p95_receipt,
@@ -1614,6 +2242,18 @@ def _verify_receipt_value(
                 f"V2.6 inherited observed-p95 receipt failed validation: {exc}"
             ) from exc
 
+    if schema_version == V27_RESEALED_OBSERVED_P95_AUTHORITY_SCHEMA_VERSION:
+        if historical_checkpoint_policy is not None:
+            raise ObservedP95AuthorityError(
+                "historical checkpoint policy applies only to the "
+                "source V2.3 authority receipt"
+            )
+        return verify_v27_inherited_p95_receipt(
+            receipt,
+            repo_root=repo_root,
+            expected_git_commit=expected_git_commit,
+        )
+
     expected_keys = {
         "schema_version",
         "contract",
@@ -1627,17 +2267,17 @@ def _verify_receipt_value(
         "evidence_use",
         "integrity",
     }
-    if set(receipt) != expected_keys or receipt.get(
-        "schema_version"
-    ) != OBSERVED_P95_AUTHORITY_RECEIPT_SCHEMA_VERSION:
+    if (
+        set(receipt) != expected_keys
+        or receipt.get("schema_version")
+        != OBSERVED_P95_AUTHORITY_RECEIPT_SCHEMA_VERSION
+    ):
         raise ObservedP95AuthorityError(
             "observed-p95 receipt top-level shape or schema drifted"
         )
     integrity = receipt.get("integrity")
     if not isinstance(integrity, Mapping):
-        raise ObservedP95AuthorityError(
-            "observed-p95 receipt integrity is malformed"
-        )
+        raise ObservedP95AuthorityError("observed-p95 receipt integrity is malformed")
     unsigned = _json_copy(receipt)
     unsigned.pop("integrity", None)
     if (
@@ -1645,9 +2285,7 @@ def _verify_receipt_value(
         or integrity.get("canonicalization") != CANONICALIZATION
         or integrity.get("content_sha256") != canonical_sha256(unsigned)
     ):
-        raise ObservedP95AuthorityError(
-            "observed-p95 receipt self-hash mismatch"
-        )
+        raise ObservedP95AuthorityError("observed-p95 receipt self-hash mismatch")
     contract_binding = receipt.get("contract")
     model_binding = receipt.get("model")
     git_binding = receipt.get("git")
@@ -1662,8 +2300,7 @@ def _verify_receipt_value(
             "contract_sha256",
         }
         or not isinstance(model_binding, Mapping)
-        or set(model_binding)
-        != {"model_id", "served_model", "runtime_model"}
+        or set(model_binding) != {"model_id", "served_model", "runtime_model"}
         or not isinstance(git_binding, Mapping)
         or set(git_binding) != {"tag", "commit"}
         or not isinstance(sources, Mapping)
@@ -1713,9 +2350,7 @@ def _verify_receipt_value(
         )
     reservations = expected["reservations"]
     if not isinstance(reservations, dict):  # pragma: no cover - builder owns it
-        raise ObservedP95AuthorityError(
-            "observed-p95 reservations are malformed"
-        )
+        raise ObservedP95AuthorityError("observed-p95 reservations are malformed")
     return _json_copy(reservations)
 
 
@@ -1724,9 +2359,7 @@ def verify_observed_p95_authority_receipt(
     *,
     repo_root: str | Path,
     expected_git_commit: str,
-    historical_checkpoint_policy: (
-        HistoricalCheckpointVerificationPolicy | None
-    ) = None,
+    historical_checkpoint_policy: HistoricalCheckpointVerificationPolicy | None = None,
 ) -> dict[str, dict[str, dict[str, Any]]]:
     """Verify a receipt and return runner-compatible action/semantic rows.
 
@@ -1754,9 +2387,7 @@ def verified_observed_p95_authority_binding(
     *,
     repo_root: str | Path,
     expected_git_commit: str,
-    historical_checkpoint_policy: (
-        HistoricalCheckpointVerificationPolicy | None
-    ) = None,
+    historical_checkpoint_policy: HistoricalCheckpointVerificationPolicy | None = None,
 ) -> dict[str, Any]:
     """Return a guarded receipt binding plus its verified reservations.
 
@@ -1797,9 +2428,7 @@ def validate_observed_p95_authority_receipt(
     *,
     repo_root: str | Path,
     expected_git_commit: str,
-    historical_checkpoint_policy: (
-        HistoricalCheckpointVerificationPolicy | None
-    ) = None,
+    historical_checkpoint_policy: HistoricalCheckpointVerificationPolicy | None = None,
 ) -> None:
     """Validate the complete source chain without returning reservations."""
 
@@ -1818,10 +2447,18 @@ __all__ = [
     "OBSERVED_P95_AUTHORITY_RECEIPT_SCHEMA_VERSION",
     "OBSERVED_P95_PROJECTION_SCHEMA_VERSION",
     "OBSERVED_P95_SOURCE_KIND",
+    "V27_RESEALED_OBSERVED_P95_AUTHORITY_SCHEMA_VERSION",
+    "V27_RESEALED_OBSERVED_P95_SOURCE_KIND",
     "HistoricalCheckpointVerificationPolicy",
     "ObservedP95AuthorityError",
     "build_observed_p95_authority_receipt",
+    "build_v27_resealed_observed_p95_authority",
     "validate_observed_p95_authority_receipt",
+    "v27_observed_p95_projection_path",
+    "v27_observed_p95_receipt_path",
     "verified_observed_p95_authority_binding",
     "verify_observed_p95_authority_receipt",
+    "verify_v27_inherited_p95_receipt",
+    "verify_v27_resealed_observed_p95_authority",
+    "verify_v27_resealed_observed_p95_projection",
 ]
