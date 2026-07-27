@@ -89,6 +89,18 @@ closed-loop observed p95 plus 25% remains the only reservation authority for
 normal scientific stages. The bootstrap measurement is explicitly
 `scientific_evidence=false`.
 
+V2.3 is now terminal and immutable: its full-matrix projection stopped before
+Stage 0 or any A-D dispatch, and its published package is
+`complete-with-no-go`. The prospective V2.4 amendment therefore does not edit
+or resume V2.3. It imports only the exact cumulative debit and source-verified
+p95 reservation authority, then registers a new 211-cell local-first plus
+GPT-5.2-confirmatory denominator. V2.4 remains a preauthorization `draft`; the
+proposed `$150` hard cap is not permission to spend, freeze, tag, or dispatch.
+See
+[`docs/pilot_v2_4_amendment.md`](docs/pilot_v2_4_amendment.md)
+and
+[`experiments/pilot_v2_4_cost_projection.json`](experiments/pilot_v2_4_cost_projection.json).
+
 Real V2.3 stages require a clean checkout at the peeled annotated
 `pilot-v2.3-science` tag,
 the same commit on `origin/main`, the remote annotated tag, and successful

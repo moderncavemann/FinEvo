@@ -134,6 +134,25 @@ V2_SCIENTIFIC_STAGES = frozenset(
         "cross-model-diagnostics",
     }
 )
+V24_NON_SCIENTIFIC_STAGES = frozenset(
+    {
+        "parent-import",
+        "q-ref-resolution",
+    }
+)
+V24_SCIENTIFIC_STAGES = frozenset(
+    {
+        "stage0-calibration",
+        "local-experiment-c",
+        "local-experiment-a",
+        "local-experiment-d",
+        "local-experiment-b",
+        "experiment-c",
+        "experiment-a",
+        "experiment-d",
+        "experiment-b",
+    }
+)
 # Public compatibility aliases.  Internal admission always uses the
 # contract-specific helpers below.
 NON_SCIENTIFIC_STAGES = V1_NON_SCIENTIFIC_STAGES
@@ -141,6 +160,7 @@ CORE_STAGES = V1_SCIENTIFIC_STAGES
 RUNNER_EXECUTION_MODES = frozenset({"actor_run", "matched_duplicate"})
 TERMINAL_EXECUTION_MODES = frozenset(
     {
+        "parent_authority_import",
         "capability_probe",
         "closed_loop_preflight",
         "q_ref_resolution",
@@ -170,12 +190,22 @@ def _is_v2_contract(contract: PilotContract) -> bool:
     return contract.schema_version == "finevo-pilot-contract-v2"
 
 
+def _is_v24_contract(contract: PilotContract) -> bool:
+    return (
+        _is_v2_contract(contract)
+        and contract.contract_id == "finevo-pilot-v2.4"
+    )
+
+
 def _stage_sets(
     contract: PilotContract,
 ) -> tuple[frozenset[str], frozenset[str]]:
     """Return the exact gating/scientific stage partition for this contract."""
 
-    if _is_v2_contract(contract):
+    if _is_v24_contract(contract):
+        non_scientific = V24_NON_SCIENTIFIC_STAGES
+        scientific = V24_SCIENTIFIC_STAGES
+    elif _is_v2_contract(contract):
         non_scientific = V2_NON_SCIENTIFIC_STAGES
         scientific = V2_SCIENTIFIC_STAGES
     else:
@@ -2325,6 +2355,7 @@ def _validate_terminal_payload_marker(
     payload: Mapping[str, Any],
     *,
     raw_root: Path,
+    resolved_git_commit: str | None = None,
 ) -> None:
     """Enforce the execution-mode-specific terminal-summary contract."""
 
@@ -2336,6 +2367,46 @@ def _validate_terminal_payload_marker(
         )
     metrics = _mapping(payload.get("metrics", {}), "terminal metrics")
     gate = _mapping(payload.get("gate_evidence", {}), "terminal gate_evidence")
+    if mode == "parent_authority_import":
+        from .pilot_v24_parent_import import (  # pylint: disable=import-outside-toplevel
+            verify_v24_parent_import_receipt,
+        )
+
+        receipt_path = gate.get("receipt")
+        if (
+            not _is_v24_contract(contract)
+            or metrics
+            or payload.get("provider_calls") != 0
+            or gate.get("provider_calls") != 0
+            or gate.get("scientific_evidence") is not False
+            or not isinstance(receipt_path, str)
+            or not receipt_path
+            or not _is_sha256(gate.get("receipt_content_sha256"))
+            or not isinstance(resolved_git_commit, str)
+            or not resolved_git_commit
+        ):
+            raise PilotEvidenceError(
+                "V2.4 parent-authority import lacks its exact zero-call marker"
+            )
+        try:
+            receipt = verify_v24_parent_import_receipt(
+                receipt_path,
+                repo_root=Path(__file__).resolve().parents[1],
+                contract=contract,
+                expected_git_commit=resolved_git_commit,
+            )
+        except Exception as exc:
+            raise PilotEvidenceError(
+                f"V2.4 parent-authority receipt failed revalidation: {exc}"
+            ) from exc
+        if (
+            receipt.get("integrity", {}).get("content_sha256")
+            != gate["receipt_content_sha256"]
+        ):
+            raise PilotEvidenceError(
+                "V2.4 parent-authority receipt content hash drifted"
+            )
+        return
     if mode in {"capability_probe", "closed_loop_preflight"}:
         from . import pilot_evaluation_amendment
 
@@ -2985,6 +3056,7 @@ def _load_terminal_summary(
         spec,
         payload,
         raw_root=raw_root,
+        resolved_git_commit=str(binding["resolved_git_commit"]),
     )
     metrics = payload.get("metrics", {})
     gate_evidence = payload.get("gate_evidence", {})
@@ -4150,8 +4222,11 @@ def _expected_parent_budget_debit(
     from .pilot_preflight_amendment import (
         parent_budget_debit_for_preflight_amendment,
     )
+    from .pilot_v24_parent_import import parent_budget_debit_for_v24
 
-    debit = parent_budget_debit_for_preflight_amendment(contract)
+    debit = parent_budget_debit_for_v24(contract)
+    if debit is None:
+        debit = parent_budget_debit_for_preflight_amendment(contract)
     if debit is None:
         debit = parent_budget_debit_for_evaluator_amendment(contract)
     if debit is None:
@@ -4488,12 +4563,17 @@ def _validated_release_controls(
         expected_standard_ids = {
             spec.run_id
             for spec in contract.expand()
-            if spec.execution_mode != "checkpoint_continuation"
+            if spec.execution_mode
+            not in {
+                "checkpoint_continuation",
+                "parent_authority_import",
+            }
         }
         expected_d_ids = {
-            f"{contract.contract_id}--experiment-d--gpt52_main--"
-            f"checkpoint-group--s{seed}"
-            for seed in contract.seeds["sets"]["main"]
+            f"{contract.contract_id}--{spec.stage_id}--{spec.model_id}--"
+            f"checkpoint-group--s{spec.environment_seed}"
+            for spec in contract.expand()
+            if spec.execution_mode == "checkpoint_continuation"
         }
         expected_budget_ids = expected_standard_ids | expected_d_ids
         expected_parent_debit = _expected_parent_budget_debit(contract)
@@ -4578,12 +4658,16 @@ def _validated_release_controls(
             str(row["run_id"])
             for row in rows
             if (
-                row["execution_mode"] != "checkpoint_continuation"
+                row["execution_mode"]
+                not in {
+                    "checkpoint_continuation",
+                    "parent_authority_import",
+                }
                 and row.get("artifact_kind") is not None
             )
         }
         artifact_backed_d_ids = {
-            f"{contract.contract_id}--experiment-d--gpt52_main--"
+            f"{contract.contract_id}--{row['stage_id']}--{row['model_id']}--"
             f"checkpoint-group--s{int(row['environment_seed'])}"
             for row in rows
             if (
@@ -4725,13 +4809,15 @@ def _decoding_pairing_scope(
 def _experiment_a_gate(
     contract: PilotContract,
     rows: Sequence[Mapping[str, Any]],
+    *,
+    stage_id: str = "experiment-a",
+    model_id: str = "gpt52_main",
 ) -> dict[str, Any]:
-    model = "gpt52_main"
     by_arm = {
         arm: {
             int(row["environment_seed"]): row
             for row in _scientific_rows(
-                rows, stage="experiment-a", model=model, arm=arm
+                rows, stage=stage_id, model=model_id, arm=arm
             )
         }
         for arm in ("no-context", "prompt-only", "retrieval-only", "full")
@@ -4866,9 +4952,10 @@ def _experiment_a_gate(
 
     def route_flag_ok(arm: str, prompt: bool, retrieval: bool) -> bool:
         arm_rows = by_arm[arm].values()
-        expected_rows = contract.stage("experiment-a").num_agents * contract.stage(
-            "experiment-a"
-        ).episode_length
+        expected_rows = (
+            contract.stage(stage_id).num_agents
+            * contract.stage(stage_id).episode_length
+        )
         return len(by_arm[arm]) >= 4 and all(
             _metric(row, "memory.context_to_prompt_count")
             == (expected_rows if prompt else 0)
@@ -4908,13 +4995,13 @@ def _experiment_a_gate(
         return indexed
 
     expected_trace_rows = (
-        contract.stage("experiment-a").num_agents
-        * contract.stage("experiment-a").episode_length
+        contract.stage(stage_id).num_agents
+        * contract.stage(stage_id).episode_length
     )
     expected_phases = {
         str(item["phase"])
         for item in contract.shocks[
-            str(contract.stage("experiment-a").shock_id)
+            str(contract.stage(stage_id).shock_id)
         ]["schedule"]
     }
 
@@ -5046,7 +5133,7 @@ def _experiment_a_gate(
         "phase_relevance_at_5": phase_relevance_at_5,
         "full_vs_retrieval_only_top5_overlap": topk_overlap_by_seed,
         "action_distributions": action_distributions,
-        "pairing_scope": _decoding_pairing_scope(contract, model),
+        "pairing_scope": _decoding_pairing_scope(contract, model_id),
         "claim_action": (
             (
                 "retain the narrow environment-paired, decoding-unmatched "
@@ -5084,32 +5171,36 @@ def _delta_descriptives(values: Mapping[int, float]) -> dict[str, Any] | None:
 
 def _experiment_b_summary(
     rows: Sequence[Mapping[str, Any]],
+    *,
+    stage_id: str = "experiment-b",
+    model_id: str = "gpt52_main",
+    arms: Sequence[str] = (
+        "no-memory",
+        "episodic-only",
+        "semantic-only",
+        "unverified-dual",
+        "full",
+    ),
 ) -> dict[str, Any]:
-    """Preserve the five-arm architecture comparison without ranking arms."""
+    """Preserve a registered architecture comparison without ranking arms."""
 
     output: dict[str, Any] = {}
     full = {
         int(row["environment_seed"]): row
         for row in _scientific_rows(
             rows,
-            stage="experiment-b",
-            model="gpt52_main",
+            stage=stage_id,
+            model=model_id,
             arm="full",
         )
     }
-    for arm in (
-        "no-memory",
-        "episodic-only",
-        "semantic-only",
-        "unverified-dual",
-        "full",
-    ):
+    for arm in arms:
         arm_rows = sorted(
             (
                 row
                 for row in rows
-                if row["stage_id"] == "experiment-b"
-                and row["model_id"] == "gpt52_main"
+                if row["stage_id"] == stage_id
+                and row["model_id"] == model_id
                 and row["arm_id"] == arm
             ),
             key=lambda row: int(row["environment_seed"]),
@@ -5225,6 +5316,9 @@ def _seed_metric_map(value: Any, name: str) -> dict[int, dict[str, float]]:
 def _experiment_c_gate(
     contract: PilotContract,
     rows: Sequence[Mapping[str, Any]],
+    *,
+    stage_id: str = "experiment-c",
+    model_id: str = "gpt52_main",
 ) -> dict[str, Any]:
     expected = set(int(value) for value in contract.seeds["sets"]["main"])
 
@@ -5234,16 +5328,16 @@ def _experiment_c_gate(
             for row in _scientific_rows(
                 rows,
                 stage=stage,
-                model="gpt52_main",
+                model=model_id,
                 arm=arm,
             )
         }
 
-    admission = indexed("experiment-c", "verified-error-candidate")
-    verified_error = indexed("experiment-c", "verified-error-forced")
-    unverified_error = indexed("experiment-c", "unverified-error-forced")
+    admission = indexed(stage_id, "verified-error-candidate")
+    verified_error = indexed(stage_id, "verified-error-forced")
+    unverified_error = indexed(stage_id, "unverified-error-forced")
     control_stage = (
-        "experiment-c" if _is_v2_contract(contract) else "experiment-b"
+        stage_id if _is_v2_contract(contract) else "experiment-b"
     )
     verified_control = indexed(control_stage, "full")
     unverified_control = indexed(control_stage, "unverified-dual")
@@ -5261,7 +5355,7 @@ def _experiment_c_gate(
             "scientific_evidence_complete": False,
             "support_rule_reliability": False,
             "pairing_scope": _decoding_pairing_scope(
-                contract, "gpt52_main"
+                contract, model_id
             ),
             "no_error_control_stage": control_stage,
             "claim_action": "withdraw or narrow the rule-reliability claim",
@@ -5329,7 +5423,7 @@ def _experiment_c_gate(
             identity = (agent_id, str(family_id))
             if (
                 not isinstance(agent_id, int)
-                or agent_id not in range(contract.stage("experiment-c").num_agents)
+                or agent_id not in range(contract.stage(stage_id).num_agents)
                 or not isinstance(family_id, str)
                 or not family_id
                 or identity in identities
@@ -5345,7 +5439,7 @@ def _experiment_c_gate(
                 natural.append(unit)
             else:
                 return None
-        if len(injected) != contract.stage("experiment-c").num_agents:
+        if len(injected) != contract.stage(stage_id).num_agents:
             return None
         for unit in natural:
             natural_proposal_audit.append(
@@ -5515,7 +5609,7 @@ def _experiment_c_gate(
             else "historical V1 control reuse"
         ),
         "pairing_scope": _decoding_pairing_scope(
-            contract, "gpt52_main"
+            contract, model_id
         ),
         "usable_candidate_seeds": sorted(candidate_pairs),
         "usable_forced_active_seeds": sorted(forced_pairs),
@@ -5681,11 +5775,10 @@ def _paired_metric_deltas(
 def _experiment_d_gate(
     contract: PilotContract,
     rows: Sequence[Mapping[str, Any]],
-) -> dict[str, Any]:
-    """Compute D from sealed branches; no run may self-assert its own gate."""
-
-    expected = tuple(int(value) for value in contract.seeds["sets"]["main"])
-    arms = (
+    *,
+    stage_id: str = "experiment-d",
+    model_id: str = "gpt52_main",
+    arms: Sequence[str] = (
         "matched-a",
         "matched-b",
         "no-memory",
@@ -5693,18 +5786,49 @@ def _experiment_d_gate(
         "wrong-context",
         "error-verified",
         "error-unverified",
-    )
+    ),
+) -> dict[str, Any]:
+    """Compute D from sealed branches; no run may self-assert its own gate."""
+
+    expected = tuple(int(value) for value in contract.seeds["sets"]["main"])
+    normalized_arms = tuple(arms)
+    required_controls = {
+        "matched-a",
+        "matched-b",
+        "error-verified",
+        "error-unverified",
+    }
+    if (
+        len(normalized_arms) != len(set(normalized_arms))
+        or not required_controls <= set(normalized_arms)
+        or any(
+            arm
+            not in {
+                "matched-a",
+                "matched-b",
+                "no-memory",
+                "shuffled-episodic",
+                "wrong-context",
+                "error-verified",
+                "error-unverified",
+            }
+            for arm in normalized_arms
+        )
+    ):
+        raise PilotEvidenceError(
+            "Experiment D evidence arms are not a registered causal subset"
+        )
     by_arm = {
         arm: {
             int(row["environment_seed"]): row
             for row in _scientific_rows(
                 rows,
-                stage="experiment-d",
-                model="gpt52_main",
+                stage=stage_id,
+                model=model_id,
                 arm=arm,
             )
         }
-        for arm in arms
+        for arm in normalized_arms
     }
     baseline = by_arm["matched-a"]
     matched_b = by_arm["matched-b"]
@@ -5742,7 +5866,7 @@ def _experiment_d_gate(
     for seed in expected:
         seed_rows = {
             arm: by_arm[arm][seed]
-            for arm in arms
+            for arm in normalized_arms
             if seed in by_arm[arm]
         }
         if not seed_rows:
@@ -5796,7 +5920,7 @@ def _experiment_d_gate(
                 errors.append(f"{arm}:branch treatment/error-start mismatch")
                 continue
             values[arm] = causal
-        complete_set = len(values) == len(arms)
+        complete_set = len(values) == len(normalized_arms)
         common = bool(
             complete_set
             and all(
@@ -5822,7 +5946,7 @@ def _experiment_d_gate(
         causal_binding_checks[str(seed)] = {
             "pass": passed,
             "complete_arm_count": len(values),
-            "registered_arm_count": len(arms),
+            "registered_arm_count": len(normalized_arms),
             "common_checkpoint_prefix_rng_and_error_start": common,
             "errors": errors,
         }
@@ -5867,7 +5991,12 @@ def _experiment_d_gate(
             "continuation.population.mean_low_labor_rate"
         ),
     }
-    for treatment_name in arms[2:]:
+    treatment_arms = tuple(
+        arm
+        for arm in normalized_arms
+        if arm not in {"matched-a", "matched-b"}
+    )
+    for treatment_name in treatment_arms:
         treatment = by_arm[treatment_name]
         seeds = [
             seed

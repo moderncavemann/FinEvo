@@ -31,6 +31,9 @@ PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_2 = (
 PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_3 = (
     "finevo-pilot-contract-v2.3-preflight-bootstrap-overlay-v1"
 )
+PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_4 = (
+    "finevo-pilot-contract-v2.4-matrix-amendment-overlay-v1"
+)
 # Backward-compatible public name.  V1 artifacts remain immutable/readable;
 # callers that need the science contract should use the explicit V2 constant.
 PILOT_CONTRACT_SCHEMA_VERSION = PILOT_CONTRACT_SCHEMA_VERSION_V1
@@ -40,10 +43,12 @@ PILOT_CONTRACT_ID_V2 = "finevo-pilot-v2"
 PILOT_CONTRACT_ID_V2_1 = "finevo-pilot-v2.1"
 PILOT_CONTRACT_ID_V2_2 = "finevo-pilot-v2.2"
 PILOT_CONTRACT_ID_V2_3 = "finevo-pilot-v2.3"
+PILOT_CONTRACT_ID_V2_4 = "finevo-pilot-v2.4"
 PILOT_CONTRACT_TAG_V2 = "pilot-v2-science"
 PILOT_CONTRACT_TAG_V2_1 = "pilot-v2.1-science"
 PILOT_CONTRACT_TAG_V2_2 = "pilot-v2.2-science"
 PILOT_CONTRACT_TAG_V2_3 = "pilot-v2.3-science"
+PILOT_CONTRACT_TAG_V2_4 = "pilot-v2.4-science"
 PILOT_CONTRACT_V2_CANONICAL_SHA256 = (
     "980deddf2f82a762db7d73baa6ee0428c5e653298f4f275c5b3a5b23a95865c5"
 )
@@ -58,6 +63,40 @@ PILOT_CONTRACT_V2_2_CANONICAL_SHA256 = (
 # validated; paid provenance additionally requires the frozen replacement.
 PILOT_CONTRACT_V2_3_CANONICAL_SHA256 = (
     "10a76561ec59810e664d8415bff3a6aa89346a4cfd67b6e7f8aa1257d015c424"
+)
+# V2.4 remains a prospective draft until its implementation inventory and
+# Linux/macOS CI receipts are frozen.  Keeping this sentinel null makes a
+# prematurely relabelled ``status=frozen`` overlay fail closed.
+PILOT_CONTRACT_V2_4_CANONICAL_SHA256: Optional[str] = None
+
+# Immutable terminal V2.3 identities used by the prospective V2.4 parent
+# import.  V2.4 does not resume or rewrite the 174-cell V2.3 denominator.
+PILOT_V2_4_PARENT_RELEASE_COMMIT = (
+    "ab32e3c9dcf581a40f3093652e144b56f853c782"
+)
+PILOT_V2_4_PARENT_CONTRACT_FILE_SHA256 = (
+    "98d507a4094ed1d5266b123b4d79a4e386bd1a49e1441f1b1ee3f3362ac54699"
+)
+PILOT_V2_4_PARENT_RELEASE_ATTESTATION_FILE_SHA256 = (
+    "812b497a22a752591f2b3aab8a7afbfd95a9b9832a86543d0aa480abb52b824e"
+)
+PILOT_V2_4_PARENT_RUN_LEDGER_FILE_SHA256 = (
+    "0cc360c23c6400286c6df1c7b3a3ff004af5aeda4f90bcd2140c44fc29c386dc"
+)
+PILOT_V2_4_PARENT_RUN_LEDGER_INTERNAL_SHA256 = (
+    "7c9baf0c9c4f9a83f81bef2c5213b59d2e44c43fdabce03efa86affef7fefc27"
+)
+PILOT_V2_4_PARENT_RUN_LEDGER_EVENT_HEAD = (
+    "c1ea08426d1a5d3b8bfd8f2a0a54c02316d532618310920b9f96c1b594568226"
+)
+PILOT_V2_4_PARENT_BUDGET_LEDGER_FILE_SHA256 = (
+    "d3bc35b703e3e0a8e201d301c2e0154d2e43ad59b468340f9e887c98ff0a01bf"
+)
+PILOT_V2_4_PARENT_BUDGET_LEDGER_INTERNAL_SHA256 = (
+    "7e84abf9f79690bbf8293596142b464685d94fce0fbb9e6a58568aa319ffd265"
+)
+PILOT_V2_4_PARENT_BUDGET_LEDGER_EVENT_HEAD = (
+    "9d02e301d6b2b4a9933fe4a70ebd180ecb200d1e737106bfc0546d3898d46407"
 )
 
 # Immutable pilot-v2.2 release/failure identities for the single V2.3
@@ -868,6 +907,7 @@ class ReleaseRequirements:
             PILOT_CONTRACT_TAG_V2_1,
             PILOT_CONTRACT_TAG_V2_2,
             PILOT_CONTRACT_TAG_V2_3,
+            PILOT_CONTRACT_TAG_V2_4,
         }:
             raise PilotContractError(
                 "V2 release tag must be a registered annotated science tag"
@@ -2385,6 +2425,587 @@ def _validate_v2_3_preflight_bootstrap_amendment(
     return _freeze_json(amendment)
 
 
+def _v2_4_expected_parent_import_arm() -> dict[str, Any]:
+    return {
+        "arm_id": "parent-import",
+        "family": "parent-authority-import",
+        "execution_mode": "parent_authority_import",
+        "parameters": {
+            "provider_calls": 0,
+            "scientific_evidence": False,
+            "parent_denominator_reused": False,
+            "parent_artifacts_read_only": True,
+        },
+    }
+
+
+def _v2_4_expected_model_roles() -> dict[str, Any]:
+    return {
+        "gpt52_main": {
+            "profile_id": "gpt52_main",
+            "role": "primary",
+            "dispatch_eligible": True,
+            "ineligibility_reason": None,
+            "allowed_stages": [
+                "experiment-c",
+                "experiment-a",
+                "experiment-d",
+                "experiment-b",
+            ],
+            "allowed_call_roles": [
+                "actor-action",
+                "semantic-proposal",
+                "offline-verifier",
+                "checkpoint-branch",
+            ],
+        },
+        "llama33_local_controlled": {
+            "profile_id": "llama33_local_controlled",
+            "role": "controlled_second",
+            "dispatch_eligible": True,
+            "ineligibility_reason": None,
+            "allowed_stages": [
+                "stage0-calibration",
+                "local-experiment-c",
+                "local-experiment-a",
+                "local-experiment-d",
+                "local-experiment-b",
+            ],
+            "allowed_call_roles": [
+                "actor-action",
+                "semantic-proposal",
+                "offline-verifier",
+                "checkpoint-branch",
+            ],
+        },
+        "qref_scripted": {
+            "profile_id": "qref_scripted",
+            "role": "calibration_only",
+            "dispatch_eligible": True,
+            "ineligibility_reason": None,
+            "allowed_stages": [
+                "parent-import",
+                "q-ref-resolution",
+            ],
+            "allowed_call_roles": [
+                "parent-authority-import",
+                "qref-scripted",
+            ],
+        },
+    }
+
+
+def _v2_4_stage(
+    stage_id: str,
+    *,
+    budget_bucket: str,
+    model_id: str,
+    arms: Sequence[str],
+    execution_mode: str,
+    seed_set: str,
+    shock_id: str,
+    utility_profiles: Sequence[str],
+    prerequisites: Sequence[str],
+    call_roles: Sequence[str],
+    num_agents: int = 4,
+    episode_length: int = 12,
+) -> dict[str, Any]:
+    return {
+        "stage_id": stage_id,
+        "enabled": True,
+        "budget_bucket": budget_bucket,
+        "num_agents": num_agents,
+        "episode_length": episode_length,
+        "seed_set": seed_set,
+        "utility_profiles": list(utility_profiles),
+        "shock_id": shock_id,
+        "cells": [
+            {
+                "models": [model_id],
+                "arms": list(arms),
+                "narratives": ["none"],
+                "execution_mode": execution_mode,
+            }
+        ],
+        "prerequisites": list(prerequisites),
+        "reuse": [],
+        "call_roles": list(call_roles),
+    }
+
+
+def _v2_4_expected_stages() -> list[dict[str, Any]]:
+    calibration_profiles = [
+        "center",
+        "psi-1",
+        "psi-4",
+        "nu-0.5",
+        "nu-2",
+        "q0-0.5x",
+        "q0-2x",
+    ]
+    local = "llama33_local_controlled"
+    hosted = "gpt52_main"
+    return [
+        _v2_4_stage(
+            "parent-import",
+            budget_bucket="parent_v23",
+            model_id="qref_scripted",
+            arms=["parent-import"],
+            execution_mode="parent_authority_import",
+            seed_set="preflight",
+            shock_id="baseline-3pct",
+            utility_profiles=["provider-preflight-default"],
+            prerequisites=[],
+            call_roles=["parent-authority-import"],
+            num_agents=2,
+            episode_length=1,
+        ),
+        _v2_4_stage(
+            "q-ref-resolution",
+            budget_bucket="local",
+            model_id="qref_scripted",
+            arms=["qref-scripted"],
+            execution_mode="q_ref_resolution",
+            seed_set="q-ref",
+            shock_id="baseline-3pct",
+            utility_profiles=["provider-preflight-default"],
+            prerequisites=["parent-import"],
+            call_roles=["qref-scripted"],
+        ),
+        _v2_4_stage(
+            "stage0-calibration",
+            budget_bucket="local",
+            model_id=local,
+            arms=["stage0-no-memory-no-context"],
+            execution_mode="actor_run",
+            seed_set="calibration",
+            shock_id="baseline-3pct",
+            utility_profiles=calibration_profiles,
+            prerequisites=["parent-import", "q-ref-resolution"],
+            call_roles=["actor-action"],
+        ),
+        _v2_4_stage(
+            "local-experiment-c",
+            budget_bucket="local",
+            model_id=local,
+            arms=[
+                "full",
+                "unverified-dual",
+                "verified-error-candidate",
+                "verified-error-forced",
+                "unverified-error-forced",
+            ],
+            execution_mode="actor_run",
+            seed_set="main",
+            shock_id="registered-rate-shock",
+            utility_profiles=["stage0-selected"],
+            prerequisites=["stage0-calibration"],
+            call_roles=[
+                "actor-action",
+                "semantic-proposal",
+                "offline-verifier",
+            ],
+        ),
+        _v2_4_stage(
+            "local-experiment-a",
+            budget_bucket="local",
+            model_id=local,
+            arms=["no-context", "prompt-only", "retrieval-only", "full"],
+            execution_mode="actor_run",
+            seed_set="main",
+            shock_id="registered-rate-shock",
+            utility_profiles=["stage0-selected"],
+            prerequisites=["local-experiment-c"],
+            call_roles=["actor-action", "semantic-proposal"],
+        ),
+        _v2_4_stage(
+            "local-experiment-d",
+            budget_bucket="local",
+            model_id=local,
+            arms=[
+                "matched-a",
+                "matched-b",
+                "no-memory",
+                "shuffled-episodic",
+                "wrong-context",
+                "error-verified",
+                "error-unverified",
+            ],
+            execution_mode="checkpoint_continuation",
+            seed_set="main",
+            shock_id="registered-rate-shock",
+            utility_profiles=["stage0-selected"],
+            prerequisites=["local-experiment-c", "local-experiment-a"],
+            call_roles=["actor-action", "checkpoint-branch"],
+        ),
+        _v2_4_stage(
+            "local-experiment-b",
+            budget_bucket="local",
+            model_id=local,
+            arms=[
+                "no-memory",
+                "episodic-only",
+                "semantic-only",
+                "unverified-dual",
+                "full",
+            ],
+            execution_mode="actor_run",
+            seed_set="main",
+            shock_id="registered-rate-shock",
+            utility_profiles=["stage0-selected"],
+            prerequisites=["local-experiment-d"],
+            call_roles=["actor-action", "semantic-proposal"],
+        ),
+        _v2_4_stage(
+            "experiment-c",
+            budget_bucket="hosted_confirmatory",
+            model_id=hosted,
+            arms=[
+                "full",
+                "unverified-dual",
+                "verified-error-candidate",
+                "verified-error-forced",
+                "unverified-error-forced",
+            ],
+            execution_mode="actor_run",
+            seed_set="main",
+            shock_id="registered-rate-shock",
+            utility_profiles=["stage0-selected"],
+            prerequisites=["local-experiment-b"],
+            call_roles=[
+                "actor-action",
+                "semantic-proposal",
+                "offline-verifier",
+            ],
+        ),
+        _v2_4_stage(
+            "experiment-a",
+            budget_bucket="hosted_confirmatory",
+            model_id=hosted,
+            arms=["no-context", "prompt-only", "retrieval-only", "full"],
+            execution_mode="actor_run",
+            seed_set="main",
+            shock_id="registered-rate-shock",
+            utility_profiles=["stage0-selected"],
+            prerequisites=["experiment-c"],
+            call_roles=["actor-action", "semantic-proposal"],
+        ),
+        _v2_4_stage(
+            "experiment-d",
+            budget_bucket="hosted_confirmatory",
+            model_id=hosted,
+            arms=[
+                "matched-a",
+                "matched-b",
+                "no-memory",
+                "wrong-context",
+                "error-verified",
+                "error-unverified",
+            ],
+            execution_mode="checkpoint_continuation",
+            seed_set="main",
+            shock_id="registered-rate-shock",
+            utility_profiles=["stage0-selected"],
+            prerequisites=["experiment-c", "experiment-a"],
+            call_roles=["actor-action", "checkpoint-branch"],
+        ),
+        _v2_4_stage(
+            "experiment-b",
+            budget_bucket="hosted_confirmatory",
+            model_id=hosted,
+            arms=["full", "episodic-only", "no-memory"],
+            execution_mode="actor_run",
+            seed_set="main",
+            shock_id="registered-rate-shock",
+            utility_profiles=["stage0-selected"],
+            prerequisites=["experiment-d"],
+            call_roles=["actor-action", "semantic-proposal"],
+        ),
+    ]
+
+
+def _v2_4_expected_non_claims() -> list[str]:
+    return [
+        (
+            "V2.3 remains an immutable 174-cell complete-with-no-go budget "
+            "receipt and is not resumed, rewritten, or counted in V2.4 effects."
+        ),
+        (
+            "The V2.4 parent-import cell performs zero provider calls and "
+            "imports only hash-bound operational authorities, not science outcomes."
+        ),
+        (
+            "Narrative interventions and new cross-model provider calls are "
+            "deferred and are not registered V2.4 cells."
+        ),
+        (
+            "GPT-5.6, Gemini-3.5-Flash, Llama-4-Maverick, and Opus-4.8 retain "
+            "their V2.3 boundary statuses without V2.4 redispatch."
+        ),
+        (
+            "The local Llama and GPT-5.2 matrices are environment-seed paired "
+            "but do not reuse decoded completions."
+        ),
+        (
+            "The 4-agent by 12-month mechanism micro-pilot does not establish "
+            "backbone independence, full-scale validity, or real-economy validity."
+        ),
+        (
+            "No V2.4 paid dispatch is authorized while the contract status is draft."
+        ),
+    ]
+
+
+def _v2_4_expected_matrix_amendment() -> dict[str, Any]:
+    return {
+        "schema_version": "finevo-pilot-matrix-amendment-v1",
+        "amendment_id": "finevo-pilot-v2.4-local-first-confirmatory-1",
+        "prospective_registration": {
+            "outcome_blind": True,
+            "scientific_outcomes_observed_before_amendment": False,
+            "scientific_effect_outcomes_observed": False,
+            "parent_terminal_status_inspected": True,
+            "parent_science_outputs_inspected": False,
+            "parent_artifacts_modified": False,
+            "parent_runs_resumed": False,
+            "failed_seed_replacement": "forbidden",
+        },
+        "parent": {
+            "contract_id": PILOT_CONTRACT_ID_V2_3,
+            "contract_sha256": PILOT_CONTRACT_V2_3_CANONICAL_SHA256,
+            "contract_file_sha256": PILOT_V2_4_PARENT_CONTRACT_FILE_SHA256,
+            "release_tag": PILOT_CONTRACT_TAG_V2_3,
+            "release_commit": PILOT_V2_4_PARENT_RELEASE_COMMIT,
+            "release_attestation_file_sha256": (
+                PILOT_V2_4_PARENT_RELEASE_ATTESTATION_FILE_SHA256
+            ),
+            "run_ledger_file_sha256": PILOT_V2_4_PARENT_RUN_LEDGER_FILE_SHA256,
+            "run_ledger_internal_sha256": (
+                PILOT_V2_4_PARENT_RUN_LEDGER_INTERNAL_SHA256
+            ),
+            "run_ledger_event_count": 176,
+            "run_ledger_event_head": PILOT_V2_4_PARENT_RUN_LEDGER_EVENT_HEAD,
+            "budget_ledger_file_sha256": (
+                PILOT_V2_4_PARENT_BUDGET_LEDGER_FILE_SHA256
+            ),
+            "budget_ledger_internal_sha256": (
+                PILOT_V2_4_PARENT_BUDGET_LEDGER_INTERNAL_SHA256
+            ),
+            "budget_ledger_event_count": 22,
+            "budget_ledger_event_head": (
+                PILOT_V2_4_PARENT_BUDGET_LEDGER_EVENT_HEAD
+            ),
+            "registered_cells": 174,
+            "terminal_cells": 174,
+            "terminal_status": "complete-with-no-go",
+            "terminal_reason": "budget-no-go",
+            "terminal_status_counts": {
+                "complete": 8,
+                "budget-stopped": 151,
+                "capability-no-go": 14,
+                "failed": 1,
+            },
+        },
+        "budget_carry_forward": {
+            "source_contract_id": PILOT_CONTRACT_ID_V2_3,
+            "source_contract_sha256": PILOT_CONTRACT_V2_3_CANONICAL_SHA256,
+            "source_stage_bucket": "parent_v23",
+            "cost_usd": 3.212770875,
+            "hosted_completions": 184,
+            "storage_bytes": 4_196_087,
+            "debit_before_new_dispatch": True,
+            "parent_import_cell_additional_cost_usd": 0.0,
+            "parent_import_cell_additional_hosted_completions": 0,
+        },
+        "parent_source_manifest": {
+            "path": "experiments/pilot_v2_4_parent_source_manifest.json",
+            "schema_version": "finevo-pilot-v2.4-parent-source-manifest-v1",
+            "file_sha256": (
+                "d6a867cd7add43818127af7778a447d579ac1ab31ed6d053bcd29d69b3cf0f33"
+            ),
+            "content_sha256": (
+                "7ae427fe6eac5aa6e04eddd3efa9e63405e128c782013ed3f67c35808be3cec5"
+            ),
+        },
+        "parent_authority_import": {
+            "execution_mode": "parent_authority_import",
+            "provider_calls": 0,
+            "authority_remains_parent_labeled": True,
+            "import_is_scientific_evidence": False,
+            "exact_file_and_content_hash_required": True,
+            "same_runtime_and_served_model_required": True,
+            "missing_or_malformed_source_policy": "stop-before-dispatch",
+            "allowed_use": (
+                "source-backed-observed-p95-reservation-authority-for-v2.4"
+            ),
+            "capability_stage_receipt": {
+                "file_sha256": (
+                    "28fb188c09ab69fd2623818a15d2edcdcf329925dee5ef1f222b34240535c475"
+                ),
+                "content_sha256": (
+                    "d15fce84b8911450ab41b07cb7e2dd99e7c37752047a7b81ce230ba3fbb37b88"
+                ),
+            },
+            "profiles": {
+                "gpt52_main": {
+                    "runtime_model": "openai/gpt-5.2-2025-12-11",
+                    "served_model": "gpt-5.2-2025-12-11",
+                    "authority_receipt_file_sha256": (
+                        "1edce6fa30f530e2f83c16b64488da394d5aca04565276d482f61262fe522289"
+                    ),
+                    "authority_receipt_content_sha256": (
+                        "3406c3bdd532f3fe529d85072d207ff3a97b4bf3a8ed3afc78397df972fdf3f0"
+                    ),
+                    "source_run_spec_sha256": (
+                        "b64434c45890fa8a13ec7f4e2570b37a2e065374b6fbaac4f39e5b81a1269934"
+                    ),
+                    "source_projection_file_sha256": (
+                        "87b5f31e91b1ad7d75b2dbd9f3558a6893a23225b6e5f867a43cd04f1a7a12e3"
+                    ),
+                    "source_projection_content_sha256": (
+                        "88a964e42cfff6cdd7b1aa1f6082abe5165f854d297414444ea3a0c1ab9d3a7b"
+                    ),
+                },
+                "llama33_local_controlled": {
+                    "runtime_model": "ollama/llama3.3:70b-instruct-q4_K_M",
+                    "served_model": "llama3.3:70b-instruct-q4_K_M",
+                    "authority_receipt_file_sha256": (
+                        "26d7360577d6729e5e9a5ec4a8b2dea529a69b14770775ab1e96a3666dcc3aba"
+                    ),
+                    "authority_receipt_content_sha256": (
+                        "fc857c65af5995847d2b8166ef9785309cdeb250df75d48d0aa608741b0033fa"
+                    ),
+                    "source_run_spec_sha256": (
+                        "e27609907a940f38e73490f1b8d9e3902a18800203c29c78036b212050d68dcd"
+                    ),
+                    "source_projection_file_sha256": (
+                        "8d6c9867ed7ac5a2968069eeb2df0bb1205ed5fce48b9640c5619fff72ea7ba0"
+                    ),
+                    "source_projection_content_sha256": (
+                        "6ed39de17f7a5f4f17e58cf0e4a29581201c6dfd1c13b21e964371df3f35c09d"
+                    ),
+                },
+            },
+        },
+        "matrix": {
+            "stage_order": [
+                "parent-import",
+                "q-ref-resolution",
+                "stage0-calibration",
+                "local-experiment-c",
+                "local-experiment-a",
+                "local-experiment-d",
+                "local-experiment-b",
+                "experiment-c",
+                "experiment-a",
+                "experiment-d",
+                "experiment-b",
+            ],
+            "active_provider_profile_ids": [
+                "gpt52_main",
+                "llama33_local_controlled",
+                "qref_scripted",
+            ],
+            "main_seeds": [
+                1099057501,
+                1421875452,
+                1769977770,
+                959809858,
+                617806385,
+            ],
+            "registered_cells": 211,
+            "scientific_cells": 209,
+            "parent_import_cells": 1,
+            "q_ref_cells": 1,
+            "local_model_id": "llama33_local_controlled",
+            "hosted_confirmatory_model_id": "gpt52_main",
+            "stage_priority": "C-A-D-B",
+            "narrative_registration": "deferred-unregistered",
+            "new_cross_model_calls": "deferred-unregistered",
+            "local_arms": {
+                "C": [
+                    "full",
+                    "unverified-dual",
+                    "verified-error-candidate",
+                    "verified-error-forced",
+                    "unverified-error-forced",
+                ],
+                "A": ["no-context", "prompt-only", "retrieval-only", "full"],
+                "D": [
+                    "matched-a",
+                    "matched-b",
+                    "no-memory",
+                    "shuffled-episodic",
+                    "wrong-context",
+                    "error-verified",
+                    "error-unverified",
+                ],
+                "B": [
+                    "no-memory",
+                    "episodic-only",
+                    "semantic-only",
+                    "unverified-dual",
+                    "full",
+                ],
+            },
+            "hosted_arms": {
+                "C": [
+                    "full",
+                    "unverified-dual",
+                    "verified-error-candidate",
+                    "verified-error-forced",
+                    "unverified-error-forced",
+                ],
+                "A": ["no-context", "prompt-only", "retrieval-only", "full"],
+                "D": [
+                    "matched-a",
+                    "matched-b",
+                    "no-memory",
+                    "wrong-context",
+                    "error-verified",
+                    "error-unverified",
+                ],
+                "B": ["full", "episodic-only", "no-memory"],
+            },
+        },
+        "budget_projection": {
+            "hard_cap_usd": 150.0,
+            "hard_cap_status": "proposed-pending-explicit-authorization",
+            "automatic_reserve_usd": 1.0,
+            "max_provider_completions": 7500,
+            "max_storage_bytes": 5_000_000_000,
+            "new_hosted_core_completions": 4240,
+            "new_local_logical_calls": 5672,
+            "sealed_observed_p95_plus_25pct_core_cost_usd": 143.6043,
+            "paid_dispatch_allowed_while_draft": False,
+            "matrix_shrink_on_projection_failure": False,
+        },
+        "preserved_model_boundaries": {
+            "gpt56_diagnostic": "secondary-diagnostic-no-v2.4-redispatch",
+            "gemini35_flash_diagnostic": (
+                "capability-pass-preflight-failed-no-v2.4-redispatch"
+            ),
+            "llama4_maverick_diagnostic": (
+                "capability-no-go-no-v2.4-redispatch"
+            ),
+            "opus48_no_go": "omitted-no-v2.4-redispatch",
+        },
+    }
+
+
+def _validate_v2_4_matrix_amendment(value: Any) -> Mapping[str, Any]:
+    amendment = _mapping(value, "matrix_amendment")
+    expected = _v2_4_expected_matrix_amendment()
+    _strict_keys(
+        amendment,
+        required=set(expected),
+        name="matrix_amendment",
+    )
+    if _json_copy(amendment) != expected:
+        raise PilotContractError("V2.4 matrix amendment drifted")
+    return _freeze_json(amendment)
+
+
 @dataclass(frozen=True, slots=True)
 class PilotContract:
     schema_version: str
@@ -2408,6 +3029,7 @@ class PilotContract:
     operational_amendment: Optional[Mapping[str, Any]]
     evaluator_amendment: Optional[Mapping[str, Any]]
     preflight_bootstrap_amendment: Optional[Mapping[str, Any]]
+    matrix_amendment: Optional[Mapping[str, Any]]
     non_claims: tuple[str, ...]
     canonicalization: str
     declared_sha256: str
@@ -2446,6 +3068,7 @@ class PilotContract:
             is_v2_1 = False
             is_v2_2 = False
             is_v2_3 = False
+            is_v2_4 = False
         elif schema_version == PILOT_CONTRACT_SCHEMA_VERSION_V2:
             fields = base_fields | v2_fields
             is_v2 = True
@@ -2453,6 +3076,7 @@ class PilotContract:
             is_v2_1 = contract_id == PILOT_CONTRACT_ID_V2_1
             is_v2_2 = contract_id == PILOT_CONTRACT_ID_V2_2
             is_v2_3 = contract_id == PILOT_CONTRACT_ID_V2_3
+            is_v2_4 = contract_id == PILOT_CONTRACT_ID_V2_4
             if is_v2_1:
                 fields = fields | {"operational_amendment"}
             elif is_v2_2:
@@ -2466,20 +3090,37 @@ class PilotContract:
                     "evaluator_amendment",
                     "preflight_bootstrap_amendment",
                 }
+            elif is_v2_4:
+                fields = fields | {
+                    "operational_amendment",
+                    "evaluator_amendment",
+                    "preflight_bootstrap_amendment",
+                    "matrix_amendment",
+                }
         else:
             raise PilotContractError("unsupported pilot contract schema")
         _strict_keys(value, required=fields, name="pilot contract")
         if value["status"] != "frozen" and not (
-            (is_v2_1 or is_v2_2 or is_v2_3) and value["status"] == "draft"
+            (is_v2_1 or is_v2_2 or is_v2_3 or is_v2_4)
+            and value["status"] == "draft"
         ):
             raise PilotContractError(
                 "pilot contract status must be frozen, except an amendment draft"
+            )
+        if (
+            is_v2_4
+            and value["status"] == "frozen"
+            and PILOT_CONTRACT_V2_4_CANONICAL_SHA256 is None
+        ):
+            raise PilotContractError(
+                "V2.4 cannot be frozen before its canonical hash and CI inventory"
             )
         if is_v2 and value["contract_id"] not in {
             PILOT_CONTRACT_ID_V2,
             PILOT_CONTRACT_ID_V2_1,
             PILOT_CONTRACT_ID_V2_2,
             PILOT_CONTRACT_ID_V2_3,
+            PILOT_CONTRACT_ID_V2_4,
         }:
             raise PilotContractError("unsupported V2 contract_id")
         if (
@@ -2515,15 +3156,19 @@ class PilotContract:
         _boolean(implementation["require_clean_worktree"], "require_clean_worktree")
         if is_v2:
             expected_tag = (
-                PILOT_CONTRACT_TAG_V2_3
-                if is_v2_3
+                PILOT_CONTRACT_TAG_V2_4
+                if is_v2_4
                 else (
-                    PILOT_CONTRACT_TAG_V2_2
-                    if is_v2_2
+                    PILOT_CONTRACT_TAG_V2_3
+                    if is_v2_3
                     else (
-                        PILOT_CONTRACT_TAG_V2_1
-                        if is_v2_1
-                        else PILOT_CONTRACT_TAG_V2
+                        PILOT_CONTRACT_TAG_V2_2
+                        if is_v2_2
+                        else (
+                            PILOT_CONTRACT_TAG_V2_1
+                            if is_v2_1
+                            else PILOT_CONTRACT_TAG_V2
+                        )
                     )
                 )
             )
@@ -2549,6 +3194,7 @@ class PilotContract:
         operational_amendment: Optional[Mapping[str, Any]] = None
         evaluator_amendment: Optional[Mapping[str, Any]] = None
         preflight_bootstrap_amendment: Optional[Mapping[str, Any]] = None
+        matrix_amendment: Optional[Mapping[str, Any]] = None
         if is_v2:
             parameter_dispatch_policy = ParameterDispatchPolicy.from_dict(
                 _mapping(
@@ -2589,15 +3235,19 @@ class PilotContract:
                 _mapping(value["release_requirements"], "release_requirements")
             )
             expected_tag = (
-                PILOT_CONTRACT_TAG_V2_3
-                if is_v2_3
+                PILOT_CONTRACT_TAG_V2_4
+                if is_v2_4
                 else (
-                    PILOT_CONTRACT_TAG_V2_2
-                    if is_v2_2
+                    PILOT_CONTRACT_TAG_V2_3
+                    if is_v2_3
                     else (
-                        PILOT_CONTRACT_TAG_V2_1
-                        if is_v2_1
-                        else PILOT_CONTRACT_TAG_V2
+                        PILOT_CONTRACT_TAG_V2_2
+                        if is_v2_2
+                        else (
+                            PILOT_CONTRACT_TAG_V2_1
+                            if is_v2_1
+                            else PILOT_CONTRACT_TAG_V2
+                        )
                     )
                 )
             )
@@ -2643,6 +3293,26 @@ class PilotContract:
                     status=str(value["status"]),
                     name="release expected_ci",
                 )
+            elif is_v2_4:
+                operational_amendment = _validate_v2_1_operational_amendment(
+                    value["operational_amendment"]
+                )
+                evaluator_amendment = _validate_v2_2_evaluator_amendment(
+                    value["evaluator_amendment"]
+                )
+                preflight_bootstrap_amendment = (
+                    _validate_v2_3_preflight_bootstrap_amendment(
+                        value["preflight_bootstrap_amendment"]
+                    )
+                )
+                matrix_amendment = _validate_v2_4_matrix_amendment(
+                    value["matrix_amendment"]
+                )
+                _validate_v2_1_expected_ci_state(
+                    release_requirements.expected_ci,
+                    status=str(value["status"]),
+                    name="release expected_ci",
+                )
 
         profiles_value = _mapping(value["provider_profiles"], "provider_profiles")
         profiles: dict[str, ProviderRequestProfile] = {}
@@ -2680,20 +3350,21 @@ class PilotContract:
                     raise PilotContractError(
                         f"profile/model-role ineligibility reason differs for {profile_id}"
                     )
-            opus = profiles.get("opus48_no_go")
-            opus_role = model_roles.get("opus48_no_go")
-            if (
-                opus is None
-                or opus_role is None
-                or opus.dispatch_eligible
-                or opus.ineligibility_reason
-                != "cross_model_budget_no_go_under_nonshrink_policy"
-                or opus_role.role != "capability_no_go"
-            ):
-                raise PilotContractError(
-                    "Opus must remain zero-dispatch under the frozen "
-                    "cross-model non-shrink budget gate"
-                )
+            if not is_v2_4:
+                opus = profiles.get("opus48_no_go")
+                opus_role = model_roles.get("opus48_no_go")
+                if (
+                    opus is None
+                    or opus_role is None
+                    or opus.dispatch_eligible
+                    or opus.ineligibility_reason
+                    != "cross_model_budget_no_go_under_nonshrink_policy"
+                    or opus_role.role != "capability_no_go"
+                ):
+                    raise PilotContractError(
+                        "Opus must remain zero-dispatch under the frozen "
+                        "cross-model non-shrink budget gate"
+                    )
             for profile_id, profile in profiles.items():
                 decoding = dict(profile.decoding_fields)
                 if set(decoding) != set(parameter_dispatch_policy.fields):
@@ -2943,7 +3614,7 @@ class PilotContract:
                 raise PilotContractError("V2 shock hook semantics drifted")
 
             expected_budget = {
-                "total_usd": 25.0,
+                "total_usd": 150.0 if is_v2_4 else 25.0,
                 "max_provider_completions": 7500,
                 "completion_scope": "hosted-api-only",
                 "max_storage_bytes": 5_000_000_000,
@@ -2953,6 +3624,14 @@ class PilotContract:
                 raise PilotContractError("V2 global budget limits drifted")
             caps = _mapping(budgets.get("stage_usd_caps"), "budgets.stage_usd_caps")
             expected_caps = (
+                {
+                    "parent_v23": 3.212770875,
+                    "local": 0.0,
+                    "hosted_confirmatory": 145.787229125,
+                    "manual_reserve": 1.0,
+                }
+                if is_v2_4
+                else
                 {
                     "capability": 3.0701145,
                     "calibration": 3.0,
@@ -3422,7 +4101,31 @@ class PilotContract:
         stage_ids = tuple(stage.stage_id for stage in stages)
         if len(stage_ids) != len(set(stage_ids)):
             raise PilotContractError("stage IDs must be unique")
-        if is_v2:
+        if is_v2_4:
+            if [stage.to_dict() for stage in stages] != _v2_4_expected_stages():
+                raise PilotContractError(
+                    "V2.4 stages differ from the prospective 211-cell matrix"
+                )
+            if {
+                key: role.to_dict() for key, role in model_roles.items()
+            } != _v2_4_expected_model_roles():
+                raise PilotContractError("V2.4 active model roles drifted")
+            for role in model_roles.values():
+                if not set(role.allowed_stages) <= set(stage_ids):
+                    raise PilotContractError(
+                        f"model role {role.profile_id} references an unknown stage"
+                    )
+                if not set(role.allowed_call_roles) <= {
+                    *task_output_contracts,
+                    "qref-scripted",
+                    "offline-verifier",
+                    "checkpoint-branch",
+                    "parent-authority-import",
+                }:
+                    raise PilotContractError(
+                        f"model role {role.profile_id} references an unknown call role"
+                    )
+        if is_v2 and not is_v2_4:
             expected_stage_order = (
                 "capability-gate",
                 "closed-loop-preflight",
@@ -3564,6 +4267,7 @@ class PilotContract:
                     "qref-scripted",
                     "offline-verifier",
                     "checkpoint-branch",
+                    "parent-authority-import",
                 }:
                     raise PilotContractError(
                         f"stage {stage.stage_id} has an unknown V2 call role"
@@ -3600,6 +4304,34 @@ class PilotContract:
                                 f"roles in stage {stage.stage_id}"
                             )
 
+        if is_v2_4:
+            if set(profiles) != {
+                "gpt52_main",
+                "llama33_local_controlled",
+                "qref_scripted",
+            }:
+                raise PilotContractError("V2.4 active provider profiles drifted")
+            if _json_copy(arms.get("parent-import")) != (
+                _v2_4_expected_parent_import_arm()
+            ):
+                raise PilotContractError("V2.4 parent-import arm drifted")
+            if list(value["non_claims"]) != _v2_4_expected_non_claims():
+                raise PilotContractError("V2.4 non-claim boundary drifted")
+            registered_cells = sum(
+                len(normalized_seed_sets[stage.seed_set])
+                * len(stage.utility_profiles)
+                * sum(
+                    len(cell.models) * len(cell.arms) * len(cell.narratives)
+                    for cell in stage.cells
+                )
+                for stage in stages
+                if stage.enabled
+            )
+            if registered_cells != 211:
+                raise PilotContractError(
+                    "V2.4 denominator must contain exactly 211 registered cells"
+                )
+
         integrity = _mapping(value["integrity"], "integrity")
         _strict_keys(
             integrity,
@@ -3614,6 +4346,12 @@ class PilotContract:
             raise PilotContractError(
                 f"pilot contract hash mismatch: declared {declared}, actual {actual}"
             )
+        if (
+            is_v2_4
+            and value["status"] == "frozen"
+            and actual != PILOT_CONTRACT_V2_4_CANONICAL_SHA256
+        ):
+            raise PilotContractError("V2.4 frozen canonical hash drifted")
 
         non_claims = _string_tuple(value["non_claims"], "non_claims")
         return cls(
@@ -3645,6 +4383,7 @@ class PilotContract:
             operational_amendment=operational_amendment,
             evaluator_amendment=evaluator_amendment,
             preflight_bootstrap_amendment=preflight_bootstrap_amendment,
+            matrix_amendment=matrix_amendment,
             non_claims=non_claims,
             canonicalization=integrity["canonicalization"],
             declared_sha256=declared,
@@ -3781,6 +4520,7 @@ class PilotContract:
             PILOT_CONTRACT_ID_V2_1,
             PILOT_CONTRACT_ID_V2_2,
             PILOT_CONTRACT_ID_V2_3,
+            PILOT_CONTRACT_ID_V2_4,
         }:
             if self.release_requirements is None:  # pragma: no cover - parser
                 raise PilotContractError(
@@ -3906,6 +4646,32 @@ class PilotContract:
                 result["preflight_bootstrap_amendment"] = _thaw_json(
                     self.preflight_bootstrap_amendment
                 )
+                if self.matrix_amendment is not None:
+                    raise PilotContractError(
+                        "V2.3 contract cannot carry a matrix amendment"
+                    )
+            elif self.contract_id == PILOT_CONTRACT_ID_V2_4:
+                if (
+                    self.operational_amendment is None
+                    or self.evaluator_amendment is None
+                    or self.preflight_bootstrap_amendment is None
+                    or self.matrix_amendment is None
+                ):
+                    raise PilotContractError(
+                        "V2.4 contract lacks its parent amendment chain"
+                    )
+                result["operational_amendment"] = _thaw_json(
+                    self.operational_amendment
+                )
+                result["evaluator_amendment"] = _thaw_json(
+                    self.evaluator_amendment
+                )
+                result["preflight_bootstrap_amendment"] = _thaw_json(
+                    self.preflight_bootstrap_amendment
+                )
+                result["matrix_amendment"] = _thaw_json(
+                    self.matrix_amendment
+                )
             elif self.operational_amendment is not None:
                 raise PilotContractError(
                     "original V2 contract cannot carry an operational amendment"
@@ -3917,6 +4683,10 @@ class PilotContract:
             elif self.preflight_bootstrap_amendment is not None:
                 raise PilotContractError(
                     "original V2 contract cannot carry a preflight amendment"
+                )
+            elif self.matrix_amendment is not None:
+                raise PilotContractError(
+                    "original V2 contract cannot carry a matrix amendment"
                 )
         return result
 
@@ -4674,6 +5444,418 @@ def _expand_v2_3_overlay(
     return expanded
 
 
+def _assert_v2_4_base_equivalence(
+    base: Mapping[str, Any],
+    expanded: Mapping[str, Any],
+    *,
+    overlay_status: str,
+) -> None:
+    """Permit only the exact prospective local-first matrix amendment."""
+
+    for field in (
+        "seeds",
+        "narratives",
+        "shocks",
+        "stop_go",
+        "parameter_dispatch_policy",
+        "task_output_contracts",
+        "operational_amendment",
+        "evaluator_amendment",
+        "preflight_bootstrap_amendment",
+    ):
+        if _json_copy(expanded[field]) != _json_copy(base[field]):
+            raise PilotContractError(
+                f"V2.4 inherited field {field!r} differs from V2.3"
+            )
+
+    expected_profiles = {
+        profile_id: _json_copy(base["provider_profiles"][profile_id])
+        for profile_id in (
+            "gpt52_main",
+            "llama33_local_controlled",
+            "qref_scripted",
+        )
+    }
+    if _json_copy(expanded["provider_profiles"]) != expected_profiles:
+        raise PilotContractError("V2.4 active provider profile selection drifted")
+
+    expected_arms = _json_copy(base["arms"])
+    expected_arms["parent-import"] = _v2_4_expected_parent_import_arm()
+    if _json_copy(expanded["arms"]) != expected_arms:
+        raise PilotContractError("V2.4 arm registry drifted")
+
+    expected_utility = _json_copy(base["utility"])
+    expected_utility["q_ref_resolution"]["required_before"] = [
+        "stage0-calibration",
+        "local-experiment-c",
+        "local-experiment-a",
+        "local-experiment-d",
+        "local-experiment-b",
+        "experiment-c",
+        "experiment-a",
+        "experiment-d",
+        "experiment-b",
+    ]
+    expected_utility["selection_rule"]["required_before"] = [
+        "local-experiment-c",
+        "local-experiment-a",
+        "local-experiment-d",
+        "local-experiment-b",
+        "experiment-c",
+        "experiment-a",
+        "experiment-d",
+        "experiment-b",
+    ]
+    if _json_copy(expanded["utility"]) != expected_utility:
+        raise PilotContractError("V2.4 outcome-blind utility dependencies drifted")
+
+    if _json_copy(expanded["model_roles"]) != _v2_4_expected_model_roles():
+        raise PilotContractError("V2.4 model roles drifted")
+    if _json_copy(expanded["stages"]) != _v2_4_expected_stages():
+        raise PilotContractError("V2.4 registered stage matrix drifted")
+    if _json_copy(expanded["non_claims"]) != _v2_4_expected_non_claims():
+        raise PilotContractError("V2.4 non-claim boundary drifted")
+    if _json_copy(expanded["matrix_amendment"]) != (
+        _v2_4_expected_matrix_amendment()
+    ):
+        raise PilotContractError("V2.4 parent/matrix amendment drifted")
+
+    expected_budgets = _json_copy(base["budgets"])
+    expected_budgets.update(
+        {
+            "total_usd": 150.0,
+            "automatic_reserve_usd": 1.0,
+            "max_provider_completions": 7500,
+            "max_storage_bytes": 5_000_000_000,
+            "stage_usd_caps": {
+                "parent_v23": 3.212770875,
+                "local": 0.0,
+                "hosted_confirmatory": 145.787229125,
+                "manual_reserve": 1.0,
+            },
+        }
+    )
+    if _json_copy(expanded["budgets"]) != expected_budgets:
+        raise PilotContractError("V2.4 proposed budget envelope drifted")
+
+    base_denominator = _json_copy(base["denominator_policy"])
+    expanded_denominator = _json_copy(expanded["denominator_policy"])
+    base_denominator.pop("policy_id")
+    expanded_denominator.pop("policy_id")
+    if expanded_denominator != base_denominator:
+        raise PilotContractError(
+            "V2.4 denominator differs beyond its policy identifier"
+        )
+
+    base_implementation = _json_copy(base["implementation"])
+    expanded_implementation = _json_copy(expanded["implementation"])
+    base_implementation.pop("required_git_tag")
+    expanded_implementation.pop("required_git_tag")
+    if expanded_implementation != base_implementation:
+        raise PilotContractError(
+            "V2.4 implementation differs beyond its release tag"
+        )
+
+    base_release = _json_copy(base["release_requirements"])
+    expanded_release = _json_copy(expanded["release_requirements"])
+    for release in (base_release, expanded_release):
+        release.pop("tag")
+        release.pop("expected_ci")
+    if expanded_release != base_release:
+        raise PilotContractError(
+            "V2.4 release requirements differ beyond tag/CI identity"
+        )
+
+    expected_ci = expanded["release_requirements"]["expected_ci"]
+    _validate_v2_1_expected_ci_state(
+        expected_ci,
+        status=overlay_status,
+        name="V2.4 expanded release expected_ci",
+    )
+    if (
+        expanded["schema_version"] != base["schema_version"]
+        or expanded["status"] != overlay_status
+        or expanded["contract_id"] != PILOT_CONTRACT_ID_V2_4
+        or expanded["implementation"]["required_git_tag"]
+        != PILOT_CONTRACT_TAG_V2_4
+        or expanded["release_requirements"]["tag"]
+        != PILOT_CONTRACT_TAG_V2_4
+        or expanded["denominator_policy"]["policy_id"]
+        != "finevo-pilot-v2.4-itt"
+        or set(expected_ci) != _V2_1_EXPECTED_CI_FIELDS
+    ):
+        raise PilotContractError("V2.4 identifier/CI amendment drifted")
+
+
+def _expand_v2_4_overlay(
+    value: Mapping[str, Any],
+    *,
+    source: Path,
+) -> Mapping[str, Any]:
+    """Expand the prospective V2.4 matrix amendment over immutable V2.3."""
+
+    _strict_keys(
+        value,
+        required={
+            "schema_version",
+            "contract_id",
+            "status",
+            "base_contract",
+            "changes",
+            "matrix_amendment",
+            "integrity",
+        },
+        name="V2.4 matrix amendment overlay",
+    )
+    if (
+        value["schema_version"]
+        != PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_4
+        or value["contract_id"] != PILOT_CONTRACT_ID_V2_4
+        or value["status"] not in {"draft", "frozen"}
+    ):
+        raise PilotContractError("V2.4 matrix overlay identity drifted")
+    if (
+        value["status"] == "frozen"
+        and PILOT_CONTRACT_V2_4_CANONICAL_SHA256 is None
+    ):
+        raise PilotContractError(
+            "V2.4 cannot be frozen before its canonical hash and CI inventory"
+        )
+
+    integrity = _mapping(value["integrity"], "V2.4 overlay integrity")
+    _strict_keys(
+        integrity,
+        required={"canonicalization", "declared_sha256"},
+        name="V2.4 overlay integrity",
+    )
+    if integrity["canonicalization"] != PILOT_CONTRACT_CANONICALIZATION:
+        raise PilotContractError("unsupported V2.4 overlay canonicalization")
+    declared = _sha256(
+        integrity["declared_sha256"],
+        "V2.4 overlay declared_sha256",
+    )
+    actual = canonical_contract_sha256(value)
+    if declared != actual:
+        raise PilotContractError(
+            f"V2.4 overlay hash mismatch: declared {declared}, actual {actual}"
+        )
+
+    base_binding = _mapping(value["base_contract"], "V2.4 base_contract")
+    _strict_keys(
+        base_binding,
+        required={
+            "path",
+            "schema_version",
+            "contract_id",
+            "canonical_sha256",
+        },
+        name="V2.4 base_contract",
+    )
+    if _json_copy(base_binding) != {
+        "path": "pilot_v2_3.yaml",
+        "schema_version": PILOT_CONTRACT_SCHEMA_VERSION_V2,
+        "contract_id": PILOT_CONTRACT_ID_V2_3,
+        "canonical_sha256": PILOT_CONTRACT_V2_3_CANONICAL_SHA256,
+    }:
+        raise PilotContractError("V2.4 base contract binding drifted")
+    base_path = source.parent / str(base_binding["path"])
+    if (
+        base_path.name != "pilot_v2_3.yaml"
+        or base_path.resolve().parent != source.parent.resolve()
+    ):
+        raise PilotContractError(
+            "V2.4 base contract must be the sibling pilot_v2_3.yaml"
+        )
+    base_contract = load_pilot_contract(base_path)
+    if (
+        base_contract.schema_version != PILOT_CONTRACT_SCHEMA_VERSION_V2
+        or base_contract.contract_id != PILOT_CONTRACT_ID_V2_3
+        or base_contract.canonical_hash
+        != PILOT_CONTRACT_V2_3_CANONICAL_SHA256
+    ):
+        raise PilotContractError("V2.4 resolved base contract identity drifted")
+
+    changes = _mapping(value["changes"], "V2.4 changes")
+    _strict_keys(
+        changes,
+        required={
+            "implementation",
+            "release_requirements",
+            "denominator_policy",
+            "active_provider_profile_ids",
+            "budgets",
+            "matrix_profile_id",
+        },
+        name="V2.4 changes",
+    )
+    if _json_copy(changes["implementation"]) != {
+        "required_git_tag": PILOT_CONTRACT_TAG_V2_4
+    }:
+        raise PilotContractError("V2.4 implementation tag drifted")
+
+    release_change = _mapping(
+        changes["release_requirements"],
+        "V2.4 changes.release_requirements",
+    )
+    _strict_keys(
+        release_change,
+        required={"tag", "expected_ci"},
+        name="V2.4 changes.release_requirements",
+    )
+    expected_ci = _mapping(
+        release_change["expected_ci"],
+        "V2.4 changes.release_requirements.expected_ci",
+    )
+    _strict_keys(
+        expected_ci,
+        required=_V2_1_EXPECTED_CI_FIELDS,
+        name="V2.4 changes.release_requirements.expected_ci",
+    )
+    if release_change["tag"] != PILOT_CONTRACT_TAG_V2_4:
+        raise PilotContractError("V2.4 release tag drifted")
+    _validate_v2_1_expected_ci_state(
+        expected_ci,
+        status=str(value["status"]),
+        name="V2.4 changes.release_requirements.expected_ci",
+    )
+
+    if _json_copy(changes["denominator_policy"]) != {
+        "policy_id": "finevo-pilot-v2.4-itt"
+    }:
+        raise PilotContractError("V2.4 denominator identifier drifted")
+    if list(changes["active_provider_profile_ids"]) != [
+        "gpt52_main",
+        "llama33_local_controlled",
+        "qref_scripted",
+    ]:
+        raise PilotContractError("V2.4 active provider profile list drifted")
+    expected_budget_change = {
+        "total_usd": 150.0,
+        "automatic_reserve_usd": 1.0,
+        "max_provider_completions": 7500,
+        "max_storage_bytes": 5_000_000_000,
+        "stage_usd_caps": {
+            "parent_v23": 3.212770875,
+            "local": 0.0,
+            "hosted_confirmatory": 145.787229125,
+            "manual_reserve": 1.0,
+        },
+    }
+    if _json_copy(changes["budgets"]) != expected_budget_change:
+        raise PilotContractError("V2.4 proposed budget change drifted")
+    if changes["matrix_profile_id"] != (
+        "local-llama-full-ad-gpt52-fixed-confirmatory-cadb-v1"
+    ):
+        raise PilotContractError("V2.4 matrix profile identifier drifted")
+
+    amendment = _validate_v2_4_matrix_amendment(
+        value["matrix_amendment"]
+    )
+    expanded = base_contract.to_dict()
+    expanded["status"] = value["status"]
+    expanded["contract_id"] = PILOT_CONTRACT_ID_V2_4
+    expanded["implementation"]["required_git_tag"] = PILOT_CONTRACT_TAG_V2_4
+    expanded["release_requirements"]["tag"] = PILOT_CONTRACT_TAG_V2_4
+    expanded["release_requirements"]["expected_ci"] = _json_copy(expected_ci)
+    expanded["denominator_policy"]["policy_id"] = "finevo-pilot-v2.4-itt"
+    expanded["provider_profiles"] = {
+        profile_id: expanded["provider_profiles"][profile_id]
+        for profile_id in changes["active_provider_profile_ids"]
+    }
+    expanded["arms"]["parent-import"] = _v2_4_expected_parent_import_arm()
+    expanded["model_roles"] = _v2_4_expected_model_roles()
+    expanded["stages"] = _v2_4_expected_stages()
+    expanded["utility"]["q_ref_resolution"]["required_before"] = [
+        "stage0-calibration",
+        "local-experiment-c",
+        "local-experiment-a",
+        "local-experiment-d",
+        "local-experiment-b",
+        "experiment-c",
+        "experiment-a",
+        "experiment-d",
+        "experiment-b",
+    ]
+    expanded["utility"]["selection_rule"]["required_before"] = [
+        "local-experiment-c",
+        "local-experiment-a",
+        "local-experiment-d",
+        "local-experiment-b",
+        "experiment-c",
+        "experiment-a",
+        "experiment-d",
+        "experiment-b",
+    ]
+    expanded["budgets"].update(_json_copy(changes["budgets"]))
+    expanded["non_claims"] = _v2_4_expected_non_claims()
+    expanded["matrix_amendment"] = _thaw_json(amendment)
+    expanded["integrity"]["declared_sha256"] = "0" * 64
+    expanded["integrity"]["declared_sha256"] = canonical_contract_sha256(
+        expanded
+    )
+    _assert_v2_4_base_equivalence(
+        base_contract.to_dict(),
+        expanded,
+        overlay_status=str(value["status"]),
+    )
+    if (
+        value["status"] == "frozen"
+        and expanded["integrity"]["declared_sha256"]
+        != PILOT_CONTRACT_V2_4_CANONICAL_SHA256
+    ):
+        raise PilotContractError("V2.4 frozen canonical hash drifted")
+    return expanded
+
+
+def _validate_v2_4_parent_source_manifest_file(
+    source: Path,
+    amendment: Mapping[str, Any],
+) -> None:
+    binding = _mapping(
+        amendment.get("parent_source_manifest"),
+        "matrix_amendment.parent_source_manifest",
+    )
+    expected_path = "experiments/pilot_v2_4_parent_source_manifest.json"
+    if binding.get("path") != expected_path:
+        raise PilotContractError("V2.4 parent source manifest path drifted")
+    manifest_path = source.parent / "pilot_v2_4_parent_source_manifest.json"
+    if (
+        manifest_path.name != "pilot_v2_4_parent_source_manifest.json"
+        or manifest_path.resolve().parent != source.parent.resolve()
+        or not manifest_path.is_file()
+    ):
+        raise PilotContractError(
+            "V2.4 parent source manifest must be the tracked sibling file"
+        )
+    payload = manifest_path.read_bytes()
+    if hashlib.sha256(payload).hexdigest() != binding.get("file_sha256"):
+        raise PilotContractError("V2.4 parent source manifest file hash drifted")
+    try:
+        manifest = _mapping(
+            json.loads(payload.decode("utf-8")),
+            "V2.4 parent source manifest",
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PilotContractError(
+            "V2.4 parent source manifest is not canonical JSON"
+        ) from exc
+    integrity = _mapping(
+        manifest.get("integrity"),
+        "V2.4 parent source manifest integrity",
+    )
+    if (
+        manifest.get("schema_version") != binding.get("schema_version")
+        or integrity.get("canonicalization")
+        != PILOT_CONTRACT_CANONICALIZATION
+        or integrity.get("content_sha256") != binding.get("content_sha256")
+    ):
+        raise PilotContractError("V2.4 parent source manifest identity drifted")
+    content_payload = _json_copy(manifest)
+    content_payload["integrity"].pop("content_sha256")
+    if canonical_sha256(content_payload) != binding.get("content_sha256"):
+        raise PilotContractError("V2.4 parent source manifest content hash drifted")
+
+
 def load_pilot_contract(path: str | Path) -> PilotContract:
     """Load a JSON-compatible YAML pilot contract and verify its declared hash."""
 
@@ -4722,7 +5904,20 @@ def load_pilot_contract(path: str | Path) -> PilotContract:
         == PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_3
     ):
         document = _expand_v2_3_overlay(document, source=source)
-    return PilotContract.from_dict(document)
+    elif (
+        document.get("schema_version")
+        == PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_4
+    ):
+        document = _expand_v2_4_overlay(document, source=source)
+    contract = PilotContract.from_dict(document)
+    if contract.contract_id == PILOT_CONTRACT_ID_V2_4:
+        if contract.matrix_amendment is None:  # pragma: no cover - parser guard
+            raise PilotContractError("V2.4 contract lacks its matrix amendment")
+        _validate_v2_4_parent_source_manifest_file(
+            source,
+            contract.matrix_amendment,
+        )
+    return contract
 
 
 __all__ = [
@@ -4733,18 +5928,22 @@ __all__ = [
     "PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_1",
     "PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_2",
     "PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_3",
+    "PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_4",
     "PILOT_CONTRACT_ID_V2",
     "PILOT_CONTRACT_ID_V2_1",
     "PILOT_CONTRACT_ID_V2_2",
     "PILOT_CONTRACT_ID_V2_3",
+    "PILOT_CONTRACT_ID_V2_4",
     "PILOT_CONTRACT_TAG_V2",
     "PILOT_CONTRACT_TAG_V2_1",
     "PILOT_CONTRACT_TAG_V2_2",
     "PILOT_CONTRACT_TAG_V2_3",
+    "PILOT_CONTRACT_TAG_V2_4",
     "PILOT_CONTRACT_V2_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_1_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_2_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_3_CANONICAL_SHA256",
+    "PILOT_CONTRACT_V2_4_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_SCIENCE_DESIGN_SHA256",
     "DecodingFieldDispatch",
     "DenominatorPolicy",

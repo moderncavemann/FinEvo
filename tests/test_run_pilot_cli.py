@@ -1,5 +1,6 @@
 from argparse import Namespace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -53,6 +54,11 @@ def test_publish_evidence_uses_strict_builder_without_provider_dispatch(
         raise AssertionError("publish-evidence must not dispatch a pilot stage")
 
     monkeypatch.setattr(run_pilot, "build_pilot_evidence_package", fake_build)
+    monkeypatch.setattr(
+        run_pilot,
+        "load_pilot_contract",
+        lambda _path: SimpleNamespace(contract_id="finevo-pilot-v2.3"),
+    )
     monkeypatch.setattr(run_pilot, "execute_stage", forbidden_dispatch)
 
     args = _args(tmp_path)
@@ -70,6 +76,72 @@ def test_publish_evidence_uses_strict_builder_without_provider_dispatch(
     assert result["provider_calls"] == 0
     assert result["scientific_complete"] is scientific_complete
     assert result["contract_sha256"] == "a" * 64
+
+
+def test_v24_publish_evidence_selects_lane_separated_adapter(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = []
+    package_dir = tmp_path / "evidence" / "current_v2" / "pilot-v2.4"
+
+    def fake_v24_build(**kwargs):
+        calls.append(kwargs)
+        return PilotEvidencePackage(
+            package_dir=package_dir,
+            manifest_path=package_dir / "package_manifest.json",
+            checksums_path=package_dir / "checksums.json",
+            contract_hash="b" * 64,
+            scientific_complete=False,
+            claim_gates={
+                "lanes": {
+                    "local": {"status": "supported"},
+                    "gpt52": {"status": "no-go"},
+                }
+            },
+        )
+
+    monkeypatch.setattr(
+        run_pilot,
+        "load_pilot_contract",
+        lambda _path: SimpleNamespace(
+            contract_id=run_pilot.PILOT_V24_CONTRACT_ID
+        ),
+    )
+    monkeypatch.setattr(
+        run_pilot,
+        "build_pilot_v24_evidence_package",
+        fake_v24_build,
+    )
+    monkeypatch.setattr(
+        run_pilot,
+        "build_pilot_evidence_package",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            AssertionError("V2.4 must not use the V1-V2.3 evidence builder")
+        ),
+    )
+    monkeypatch.setattr(
+        run_pilot,
+        "execute_stage",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            AssertionError("publish-evidence must not dispatch a pilot stage")
+        ),
+    )
+
+    args = _args(tmp_path)
+    result = run_pilot.execute(args)
+
+    assert calls == [
+        {
+            "contract_path": args.contract,
+            "run_ledger_path": args.raw_root / "run_ledger.json",
+            "raw_root": args.raw_root,
+            "build_root": args.evidence_root,
+        }
+    ]
+    assert result["status"] == "complete-with-no-go"
+    assert result["provider_calls"] == 0
+    assert set(result["claim_gates"]["lanes"]) == {"local", "gpt52"}
 
 
 def test_development_matrix_still_requires_explicit_fake_flag(

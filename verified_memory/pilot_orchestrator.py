@@ -147,6 +147,16 @@ from .pilot_preflight_amendment import (
     validate_capability_bootstrap_projection,
     validate_preflight_amendment_control,
 )
+from .pilot_v24_parent_import import (
+    V24_ALLOWED_P95_PROFILES,
+    V24_CONTRACT_ID,
+    PilotV24ParentImportError,
+    inherited_p95_receipt_path,
+    inherited_projection_path,
+    parent_budget_debit_for_v24,
+    persist_v24_parent_import,
+    verify_v24_parent_import_receipt,
+)
 from .runner import (
     OBSERVED_P95_AUTHORITY_ID,
     OBSERVED_P95_PROJECTION_SCHEMA_VERSION,
@@ -192,6 +202,51 @@ SCIENTIFIC_STAGE_IDS = (
 )
 
 CAPABILITY_EXECUTION_MODES = frozenset({"capability_probe", "closed_loop_preflight"})
+
+
+def _core_stage_family(stage_id: str) -> str | None:
+    """Map V2.4 lane-specific stages onto the frozen A--D mechanisms."""
+
+    normalized = (
+        stage_id[len("local-") :]
+        if stage_id.startswith("local-experiment-")
+        else stage_id
+    )
+    return normalized if normalized in CORE_STAGE_IDS else None
+
+
+def _is_core_stage(stage_id: str) -> bool:
+    return _core_stage_family(stage_id) is not None
+
+
+def _contract_core_stage_ids(contract: PilotContract) -> tuple[str, ...]:
+    return tuple(
+        stage_id
+        for stage_id in contract.stage_ids
+        if _is_core_stage(stage_id)
+    )
+
+
+def _is_experiment_c_stage(stage_id: str) -> bool:
+    return _core_stage_family(stage_id) == "experiment-c"
+
+
+def _is_experiment_d_stage(stage_id: str) -> bool:
+    return _core_stage_family(stage_id) == "experiment-d"
+
+
+def _materializes_legacy_amendment_controls(
+    contract: PilotContract,
+) -> bool:
+    """Whether the contract still executes its V2.1--V2.3 raw amendments.
+
+    V2.4 retains those objects only as immutable contract lineage. Its new
+    parent-import receipt is the sole runtime authority for the cumulative
+    debit and inherited p95 reservations.
+    """
+
+    return contract.contract_id != V24_CONTRACT_ID
+
 
 DEFAULT_RAW_ROOT = (
     Path(__file__).resolve().parents[1] / "experiment_results" / "pilot-v1" / "raw"
@@ -1038,6 +1093,9 @@ def _budget_caps(contract: PilotContract) -> PilotBudgetCaps:
 
 
 def _parent_budget_debit(contract: PilotContract):
+    v24_debit = parent_budget_debit_for_v24(contract)
+    if v24_debit is not None:
+        return v24_debit
     preflight_debit = parent_budget_debit_for_preflight_amendment(contract)
     if preflight_debit is not None:
         return preflight_debit
@@ -1654,6 +1712,12 @@ def _observed_p95_authority_receipt_path(
     *,
     raw_root: Path,
 ) -> Path:
+    if contract.contract_id == V24_CONTRACT_ID:
+        if model_id not in V24_ALLOWED_P95_PROFILES:
+            raise PilotOrchestrationError(
+                f"{model_id} has no V2.4 inherited dispatch authority"
+            )
+        return inherited_p95_receipt_path(raw_root, model_id)
     preflight_stage = _preflight_stage_for_model(contract, model_id)
     specs = contract.expand(stage=preflight_stage, model=model_id)
     if len(specs) != 1:
@@ -1713,6 +1777,11 @@ def _persist_observed_p95_authority_receipt(
     raw_root: Path,
     paid: GitProvenance,
 ) -> tuple[Path, dict[str, Any]]:
+    if contract.contract_id == V24_CONTRACT_ID:
+        raise PilotOrchestrationError(
+            "V2.4 observed p95 receipts are created only by the zero-call "
+            "parent-import stage"
+        )
     repo_root = Path(__file__).resolve().parents[1]
     raw_root_relative = _repository_relative_path(
         raw_root,
@@ -3708,6 +3777,86 @@ def _execute_capability_preflight(
     return status, terminal, budget, receipt
 
 
+def _load_v24_inherited_projection(
+    contract: PilotContract,
+    model_id: str,
+    *,
+    raw_root: Path,
+    paid: GitProvenance | None,
+) -> tuple[dict[str, Any], Path]:
+    if paid is None:
+        raise PilotOrchestrationError(
+            "V2.4 inherited p95 projection requires paid release provenance"
+        )
+    if model_id not in V24_ALLOWED_P95_PROFILES:
+        raise PilotOrchestrationError(
+            f"{model_id} is not an allowed V2.4 inherited p95 profile"
+        )
+    import_path = raw_root / "parent-import" / "parent_import_receipt.json"
+    try:
+        verify_v24_parent_import_receipt(
+            import_path,
+            repo_root=Path(__file__).resolve().parents[1],
+            contract=contract,
+            expected_git_commit=paid.head_commit,
+        )
+    except PilotV24ParentImportError as exc:
+        raise PilotOrchestrationError(
+            f"V2.4 parent import failed validation: {exc}"
+        ) from exc
+    path = inherited_projection_path(raw_root, model_id)
+    payload = _read_json(path)
+    _verify_bound_payload(
+        payload,
+        contract=contract,
+        schema_version=PILOT_PROJECTION_SCHEMA_VERSION,
+        paid=paid,
+        artifact_name=f"{model_id} inherited p95 projection",
+    )
+    profile = contract.provider_profiles[model_id]
+    if (
+        payload.get("model_id") != model_id
+        or payload.get("served_model") != profile.served_model
+    ):
+        raise PilotOrchestrationError(
+            "V2.4 inherited p95 projection model identity mismatch"
+        )
+    receipt_path = inherited_p95_receipt_path(raw_root, model_id)
+    bindings = payload.get("bindings")
+    if (
+        not isinstance(bindings, Mapping)
+        or bindings.get("source_kind") != "v2.3-verified-parent-import"
+        or bindings.get("source_authority_receipt") != str(receipt_path)
+    ):
+        raise PilotOrchestrationError(
+            "V2.4 inherited p95 projection source binding mismatch"
+        )
+    receipt_binding = _verified_observed_p95_binding(
+        contract,
+        model_id,
+        raw_root=raw_root,
+        paid=paid,
+    )
+    runtime_model = _runtime_model_for_profile(profile)
+    reservations = receipt_binding.get("reservations")
+    projection = payload.get("projection")
+    if (
+        not isinstance(reservations, Mapping)
+        or set(reservations) != {runtime_model}
+        or not isinstance(reservations[runtime_model], Mapping)
+        or not isinstance(projection, Mapping)
+        or any(
+            reservations[runtime_model].get(call_kind, {}).get("reservation")
+            != projection.get(f"{profile.served_model}::{call_kind}")
+            for call_kind in ("action", "semantic")
+        )
+    ):
+        raise PilotOrchestrationError(
+            "V2.4 inherited p95 receipt differs from its child projection"
+        )
+    return payload, path
+
+
 def _load_verified_projection(
     contract: PilotContract,
     model_id: str,
@@ -3715,6 +3864,13 @@ def _load_verified_projection(
     raw_root: Path,
     paid: GitProvenance | None,
 ) -> tuple[dict[str, Any], Path]:
+    if contract.contract_id == V24_CONTRACT_ID:
+        return _load_v24_inherited_projection(
+            contract,
+            model_id,
+            raw_root=raw_root,
+            paid=paid,
+        )
     preflight_stage = _preflight_stage_for_model(contract, model_id)
     capability_stage = _capability_source_stage(
         contract,
@@ -4419,7 +4575,10 @@ def _scientific_stage_ids(contract: PilotContract) -> tuple[str, ...]:
             for stage_id in SCIENTIFIC_STAGE_IDS
             if stage_id in contract.stage_ids
         )
-    excluded_modes = CAPABILITY_EXECUTION_MODES | {"q_ref_resolution"}
+    excluded_modes = CAPABILITY_EXECUTION_MODES | {
+        "q_ref_resolution",
+        "parent_authority_import",
+    }
     return tuple(
         stage_id
         for stage_id in contract.stage_ids
@@ -4430,6 +4589,15 @@ def _scientific_stage_ids(contract: PilotContract) -> tuple[str, ...]:
 def _cross_model_science_stage_ids(
     contract: PilotContract,
 ) -> tuple[str, ...]:
+    if contract.contract_id == V24_CONTRACT_ID:
+        # V2.4 registers the local Llama lane as a controlled second
+        # mechanism matrix, not as the legacy cross-model sentinel stage.
+        # Treating every ``controlled_second`` stage as a sentinel would
+        # duplicate Stage-0/local A--D projections and then require a
+        # capability-preflight cell that V2.4 deliberately replaces with the
+        # zero-call parent p95 import.  New cross-model calls are explicitly
+        # deferred by the V2.4 amendment.
+        return ()
     if not contract.model_roles:
         return tuple(
             stage_id
@@ -4858,11 +5026,20 @@ def _v2_stage_control_paths(
         path = stage_root / "q_ref_resolution.json"
         if path.exists():
             paths.add(path)
+    elif stage_id == "parent-import":
+        stage_receipt = _stage_receipt_path(raw_root, stage_id)
+        for path in stage_root.rglob("*.json"):
+            if (
+                path != stage_receipt
+                and path.is_file()
+                and not path.is_symlink()
+            ):
+                paths.add(path)
     elif stage_id == "stage0-calibration":
         path = stage_root / "stage0_selection.json"
         if path.exists():
             paths.add(path)
-    elif stage_id == "experiment-c":
+    elif _is_experiment_c_stage(stage_id):
         path = stage_root / "rule_sensitivity.json"
         if path.exists():
             paths.add(path)
@@ -4873,11 +5050,17 @@ def _v2_stage_control_paths(
     )
     if amendment_path is not None and amendment_path.exists():
         paths.add(amendment_path)
-    if contract.evaluator_amendment is not None:
+    if (
+        _materializes_legacy_amendment_controls(contract)
+        and contract.evaluator_amendment is not None
+    ):
         evaluator_path = evaluator_amendment_control_path(raw_root=raw_root)
         if evaluator_path.exists():
             paths.add(evaluator_path)
-    if contract.preflight_bootstrap_amendment is not None:
+    if (
+        _materializes_legacy_amendment_controls(contract)
+        and contract.preflight_bootstrap_amendment is not None
+    ):
         preflight_control = preflight_amendment_control_path(
             raw_root=raw_root
         )
@@ -4966,6 +5149,26 @@ def _v2_control_gate_ok(
     raw_root: Path,
     paid: GitProvenance | None,
 ) -> bool:
+    if stage_id == "parent-import":
+        if paid is None:
+            raise PilotOrchestrationError(
+                "V2.4 parent import control requires paid provenance"
+            )
+        path = raw_root / stage_id / "parent_import_receipt.json"
+        if not path.exists():
+            return False
+        try:
+            verify_v24_parent_import_receipt(
+                path,
+                repo_root=Path(__file__).resolve().parents[1],
+                contract=contract,
+                expected_git_commit=paid.head_commit,
+            )
+        except PilotV24ParentImportError as exc:
+            raise PilotOrchestrationError(
+                f"V2.4 parent import receipt failed validation: {exc}"
+            ) from exc
+        return True
     if stage_id == "q-ref-resolution":
         try:
             value = _load_verified_q_ref(
@@ -4989,14 +5192,15 @@ def _v2_control_gate_ok(
             if "required artifact is missing" in str(exc):
                 return False
             raise
-    elif stage_id == "experiment-c":
-        path = _experiment_c_sensitivity_path(raw_root)
+    elif _is_experiment_c_stage(stage_id):
+        path = _experiment_c_sensitivity_path(raw_root, stage_id)
         if not path.exists():
             return False
         _load_verified_experiment_c_sensitivity(
             contract,
             raw_root=raw_root,
             paid=paid,
+            stage_id=stage_id,
         )
     return True
 
@@ -5045,7 +5249,7 @@ def _v2_recomputed_stage_fields(
         terminal
         and hard_stop_count == 0
         and (
-            stage_id in {*CORE_STAGE_IDS, "cross-model-sentinels"}
+            _is_core_stage(stage_id) or stage_id == "cross-model-sentinels"
             or (
                 _is_capability_stage(contract, stage_id)
                 and bool(go_models)
@@ -5380,7 +5584,7 @@ def _write_stage_receipt(
         and status in {"complete", "complete-with-no-go"}
         and hard_stop_count == 0
         and (
-            stage_id in {*CORE_STAGE_IDS, "cross-model-sentinels"}
+            _is_core_stage(stage_id) or stage_id == "cross-model-sentinels"
             or (
                 contract.schema_version.endswith("-v2")
                 and _is_capability_stage(contract, stage_id)
@@ -5596,8 +5800,15 @@ def _select_stage0(
     return output
 
 
-def _experiment_c_sensitivity_path(raw_root: Path) -> Path:
-    return raw_root / "experiment-c" / "rule_sensitivity.json"
+def _experiment_c_sensitivity_path(
+    raw_root: Path,
+    stage_id: str = "experiment-c",
+) -> Path:
+    if not _is_experiment_c_stage(stage_id):
+        raise PilotOrchestrationError(
+            f"{stage_id!r} is not an Experiment C stage"
+        )
+    return raw_root / stage_id / "rule_sensitivity.json"
 
 
 def _verifier_config_from_runner_config(
@@ -5628,6 +5839,8 @@ def _build_experiment_c_sensitivity(
     raw_root: Path,
     git_tag: str,
     git_commit: str,
+    stage_id: str = "experiment-c",
+    model_id: str | None = None,
 ) -> dict[str, Any]:
     """Recompute descriptive C sensitivity from the frozen full-control arm."""
 
@@ -5661,13 +5874,32 @@ def _build_experiment_c_sensitivity(
         )
 
     source_stage = (
-        "experiment-c" if contract.schema_version.endswith("-v2") else "experiment-b"
+        stage_id if contract.schema_version.endswith("-v2") else "experiment-b"
     )
+    if not _is_experiment_c_stage(stage_id):
+        raise PilotOrchestrationError(
+            f"{stage_id!r} is not an Experiment C stage"
+        )
+    if model_id is None:
+        candidates = tuple(
+            candidate
+            for candidate in contract.models_for_stage(source_stage)
+            if contract.expand(
+                stage=source_stage,
+                model=candidate,
+                arm="full",
+            )
+        )
+        if len(candidates) != 1:
+            raise PilotOrchestrationError(
+                f"{source_stage} sensitivity requires one exact source model"
+            )
+        model_id = candidates[0]
     source_label = f"{source_stage}/full"
     expected_specs = tuple(
         contract.expand(
             stage=source_stage,
-            model="gpt52_main",
+            model=model_id,
             arm="full",
         )
     )
@@ -5842,8 +6074,10 @@ def _load_verified_experiment_c_sensitivity(
     *,
     raw_root: Path,
     paid: GitProvenance | None,
+    stage_id: str = "experiment-c",
+    model_id: str | None = None,
 ) -> dict[str, Any]:
-    path = _experiment_c_sensitivity_path(raw_root)
+    path = _experiment_c_sensitivity_path(raw_root, stage_id)
     value = _read_json(path)
     _verify_bound_payload(
         value,
@@ -5858,6 +6092,8 @@ def _load_verified_experiment_c_sensitivity(
         raw_root=raw_root,
         git_tag=str(bindings["git_tag"]),
         git_commit=str(bindings["git_commit"]),
+        stage_id=stage_id,
+        model_id=model_id,
     )
     actual_without_integrity = _json_copy(value)
     actual_without_integrity.pop("integrity", None)
@@ -5874,13 +6110,17 @@ def _write_experiment_c_sensitivity(
     *,
     raw_root: Path,
     paid: GitProvenance,
+    stage_id: str = "experiment-c",
+    model_id: str | None = None,
 ) -> Path:
-    output = _experiment_c_sensitivity_path(raw_root)
+    output = _experiment_c_sensitivity_path(raw_root, stage_id)
     if output.exists():
         _load_verified_experiment_c_sensitivity(
             contract,
             raw_root=raw_root,
             paid=paid,
+            stage_id=stage_id,
+            model_id=model_id,
         )
         return output
     payload = _build_experiment_c_sensitivity(
@@ -5888,12 +6128,16 @@ def _write_experiment_c_sensitivity(
         raw_root=raw_root,
         git_tag=paid.git_tag,
         git_commit=paid.head_commit,
+        stage_id=stage_id,
+        model_id=model_id,
     )
     _atomic_bound_json(output, _seal_bound_payload(payload))
     _load_verified_experiment_c_sensitivity(
         contract,
         raw_root=raw_root,
         paid=paid,
+        stage_id=stage_id,
+        model_id=model_id,
     )
     return output
 
@@ -6006,7 +6250,7 @@ def _d_group_projection(
     raw_root: Path,
     paid: GitProvenance | None = None,
 ) -> RunProjection:
-    """Reserve one seed's shared prefix, seven D branches, and four narratives."""
+    """Reserve one model/seed shared prefix and its registered D branches."""
 
     normal = projection_from_preflight(
         contract,
@@ -6014,7 +6258,40 @@ def _d_group_projection(
         raw_root=raw_root,
         paid=paid,
     )
-    calls = {"action": 4 * 6 * (1 + len(DEFAULT_TREATMENTS) + len(DEFAULT_NARRATIVES))}
+    group_specs = tuple(
+        spec
+        for spec in contract.expand(stage=representative.stage_id)
+        if spec.model_id == representative.model_id
+        and spec.environment_seed == representative.environment_seed
+    )
+    branch_arms = {
+        "matched-a",
+        "matched-b",
+        "no-memory",
+        "shuffled-episodic",
+        "wrong-context",
+        "error-verified",
+        "error-unverified",
+    }
+    continuation_count = sum(
+        spec.arm_id in branch_arms for spec in group_specs
+    )
+    narrative_count = sum(
+        spec.arm_id == "narrative-content" for spec in group_specs
+    )
+    if (
+        not group_specs
+        or continuation_count + narrative_count != len(group_specs)
+        or continuation_count < 4
+    ):
+        raise PilotOrchestrationError(
+            "Experiment D projection lacks its registered causal branch group"
+        )
+    calls = {
+        "action": 4
+        * 6
+        * (1 + continuation_count + narrative_count)
+    }
     calls["semantic"] = 4 * 2  # prefix proposals at outcomes 3 and 6 only
     source = _read_json(Path(normal.basis["source"]))["projection"]
     by_kind: dict[str, Mapping[str, Any]] = {}
@@ -6033,21 +6310,29 @@ def _d_group_projection(
         for field in totals:
             totals[field] += float(reserved[field]) * count
     group_id = (
-        f"{contract.contract_id}--experiment-d--gpt52_main--"
+        f"{contract.contract_id}--{representative.stage_id}--"
+        f"{representative.model_id}--"
         f"checkpoint-group--s{representative.environment_seed}"
+    )
+    hosted_completion_cap_counted = _counts_toward_hosted_completion_cap(
+        contract.provider_profiles[representative.model_id]
     )
     return RunProjection(
         run_id=group_id,
         stage_bucket=representative.budget_bucket,
         cost_usd=totals["cost_usd"],
-        completions=sum(calls.values()),
+        completions=(
+            sum(calls.values()) if hosted_completion_cap_counted else 0
+        ),
         storage_bytes=80_000_000,
         basis={
             "method": "shared-checkpoint-preflight-p95-times-1.25",
             "source": normal.basis["source"],
             "calls_by_kind": calls,
             "run_call_limit": sum(calls.values()),
-            "hosted_completion_cap_counted": True,
+            "hosted_completion_cap_counted": (
+                hosted_completion_cap_counted
+            ),
             "prompt_tokens": math.ceil(totals["prompt_tokens"]),
             "completion_tokens": math.ceil(totals["completion_tokens"]),
             "total_tokens": math.ceil(totals["total_tokens"]),
@@ -6085,10 +6370,16 @@ def _demote_d_publication(
 ) -> None:
     """Remove partial scientific publication and demote shared sources."""
 
+    stage_ids = {spec.stage_id for spec in specs}
+    if len(stage_ids) != 1:
+        raise PilotOrchestrationError(
+            "Experiment D demotion requires one exact stage"
+        )
+    stage_id = next(iter(stage_ids))
     for spec in specs:
         summary = (
             raw_root
-            / "experiment-d"
+            / stage_id
             / "summaries"
             / f"{spec.run_id}.json"
         )
@@ -6125,24 +6416,32 @@ def _execute_d_seed(
     run_ledger: PilotRunLedger,
     verify_bound_inputs: bool = False,
 ) -> None:
-    """Execute all eleven registered D cells from one seed/checkpoint."""
+    """Execute one registered model/seed D group from a shared checkpoint."""
 
     if not specs:
         return
+    stage_id = specs[0].stage_id
+    model_id = specs[0].model_id
+    if not _is_experiment_d_stage(stage_id):
+        raise ValueError("D group must belong to an Experiment D stage")
     frozen_narratives = {
         narrative_id: row["text"] for narrative_id, row in contract.narratives.items()
     }
     d_contract = contract.stop_go["experiment_d"]
-    if frozen_narratives != DEFAULT_NARRATIVES or d_contract[
-        "narrative_fixture_hash"
-    ] != canonical_sha256(DEFAULT_NARRATIVES):
-        raise PilotOrchestrationError(
-            "Experiment D runtime narrative fixtures differ from the contract"
-        )
     seed = specs[0].environment_seed
-    if any(spec.environment_seed != seed for spec in specs):
-        raise ValueError("D group must contain exactly one environment seed")
-    group_dir = raw_root / "experiment-d" / "checkpoints" / f"s{seed}"
+    if any(
+        spec.environment_seed != seed
+        or spec.stage_id != stage_id
+        or spec.model_id != model_id
+        for spec in specs
+    ):
+        raise ValueError(
+            "D group must contain exactly one stage, model, and environment seed"
+        )
+    group_root = raw_root / stage_id / "checkpoints"
+    if len(contract.models_for_stage(stage_id)) > 1:
+        group_root = group_root / model_id
+    group_dir = group_root / f"s{seed}"
     reserve_path = (
         group_dir / D_PUBLICATION_FAILURE_RESERVE_FILENAME
     )
@@ -6165,8 +6464,10 @@ def _execute_d_seed(
     )
     projection = (
         RunProjection(
-            run_id=f"development-fake-d-s{seed}",
-            stage_bucket="core",
+            run_id=(
+                f"development-fake-{stage_id}-{model_id}-d-s{seed}"
+            ),
+            stage_bucket=representative.budget_bucket,
             cost_usd=0.0,
             completions=0,
             storage_bytes=80_000_000,
@@ -6306,13 +6607,26 @@ def _execute_d_seed(
             for spec in specs
             if spec.arm_id == "narrative-content"
         }
-        if set(continuation_specs) != set(DEFAULT_TREATMENTS):
+        registered_treatments = tuple(
+            treatment
+            for treatment in DEFAULT_TREATMENTS
+            if treatment in continuation_specs
+        )
+        if (
+            set(continuation_specs) != set(registered_treatments)
+            or len(continuation_specs) + len(narrative_specs) != len(specs)
+        ):
             raise PilotOrchestrationError(
-                "Experiment D group lacks one or more continuation journal cells"
+                "Experiment D group contains an unregistered branch mapping"
             )
-        if set(narrative_specs) != set(DEFAULT_NARRATIVES):
+        if narrative_specs and (
+            set(narrative_specs) != set(DEFAULT_NARRATIVES)
+            or frozen_narratives != DEFAULT_NARRATIVES
+            or d_contract.get("narrative_fixture_hash")
+            != canonical_sha256(DEFAULT_NARRATIVES)
+        ):
             raise PilotOrchestrationError(
-                "Experiment D group lacks one or more narrative journal cells"
+                "Experiment D narrative cells or fixtures differ from the contract"
             )
         if diagnostic:
             llm = MultiModelLLM(ScriptedDiagnosticProvider(), num_workers=4)
@@ -6351,6 +6665,7 @@ def _execute_d_seed(
             checkpoint,
             llm=llm,
             budget=budget,
+            treatments=registered_treatments,
             provider_call_journals={
                 treatment: journal_target(spec)
                 for treatment, spec in continuation_specs.items()
@@ -6368,30 +6683,37 @@ def _execute_d_seed(
         )
         continuation_path = group_dir / "continuations.json"
         _atomic_json(continuation_path, continuation)
-        narratives = run_pilot_narratives(
-            checkpoint,
-            llm=llm,
-            budget=budget,
-            provider_call_journals={
-                narrative_id: journal_target(spec)
-                for narrative_id, spec in narrative_specs.items()
-            },
-        ).to_dict()
-        narratives.update(
-            {
-                "contract_sha256": contract.canonical_hash,
-                "diagnostic_only": diagnostic,
-                "scientific_evidence": False,
-            }
-        )
-        narrative_path = group_dir / "narratives.json"
-        _atomic_json(narrative_path, narratives)
+        narratives: dict[str, Any] | None = None
+        narrative_path: Path | None = None
+        if narrative_specs:
+            narratives = run_pilot_narratives(
+                checkpoint,
+                llm=llm,
+                budget=budget,
+                provider_call_journals={
+                    narrative_id: journal_target(spec)
+                    for narrative_id, spec in narrative_specs.items()
+                },
+            ).to_dict()
+            narratives.update(
+                {
+                    "contract_sha256": contract.canonical_hash,
+                    "diagnostic_only": diagnostic,
+                    "scientific_evidence": False,
+                }
+            )
+            narrative_path = group_dir / "narratives.json"
+            _atomic_json(narrative_path, narratives)
         shared_budget_receipt = budget.snapshot().to_dict()
         completed_artifacts: dict[str, Path] = {}
         scientific_run = paid is not None and not diagnostic
 
         def terminal_payload(spec: PilotRunSpec) -> dict[str, Any]:
             if spec.arm_id == "narrative-content":
+                if narratives is None or narrative_path is None:
+                    raise PilotOrchestrationError(
+                        "registered narrative cell lacks its shared execution"
+                    )
                 narrative_branch = narratives["branches"][spec.narrative_id]
                 return {
                     "metrics": {
@@ -6484,7 +6806,7 @@ def _execute_d_seed(
             for spec in specs:
                 artifact_path = (
                     raw_root
-                    / "experiment-d"
+                    / stage_id
                     / "diagnostic_summaries"
                     / f"{spec.run_id}.json"
                 )
@@ -6537,14 +6859,15 @@ def _execute_d_seed(
                 # Replacing ``false`` with ``true`` makes each promoted file
                 # no larger than its reconciled non-scientific precursor.
                 continuation["scientific_evidence"] = True
-                narratives["scientific_evidence"] = True
                 _atomic_json(continuation_path, continuation)
-                _atomic_json(narrative_path, narratives)
+                if narratives is not None and narrative_path is not None:
+                    narratives["scientific_evidence"] = True
+                    _atomic_json(narrative_path, narratives)
                 clear_pending_non_scientific_summaries()
                 for spec in specs:
                     completed_artifacts[spec.run_id] = write_terminal_summary(
                         raw_root
-                        / "experiment-d"
+                        / stage_id
                         / "summaries"
                         / f"{spec.run_id}.json",
                         contract=contract,
@@ -6591,7 +6914,7 @@ def _execute_d_seed(
             reconciliation_failure_receipt = _write_execution_failure_receipt(
                 group_dir / "failure_receipt",
                 scope=(
-                    "finevo-pilot/experiment-d/"
+                    f"finevo-pilot/{stage_id}/"
                     "shared-checkpoint-group-budget-reconciliation"
                 ),
                 error=exc,
@@ -6664,7 +6987,7 @@ def _execute_d_seed(
             failure_receipt = _write_execution_failure_receipt(
                 group_dir / "failure_receipt",
                 scope=(
-                    "finevo-pilot/experiment-d/"
+                    f"finevo-pilot/{stage_id}/"
                     "post-reconciliation-publication"
                 ),
                 error=exc,
@@ -6720,7 +7043,7 @@ def _execute_d_seed(
         failure = _exception_failure(exc, seed=seed)
         failure_receipt = _write_execution_failure_receipt(
             group_dir / "failure_receipt",
-            scope="finevo-pilot/experiment-d/shared-checkpoint-group",
+            scope=f"finevo-pilot/{stage_id}/shared-checkpoint-group",
             error=exc,
             contract=contract,
             projection=projection,
@@ -6941,15 +7264,18 @@ def _remaining_core_projections(
     paid: GitProvenance,
     run_ledger: PilotRunLedger,
 ) -> tuple[RunProjection, ...]:
-    """Project every still-dispatchable A--D unit under the shared core cap.
+    """Project every still-dispatchable lane-specific A--D unit.
 
     Experiment C's admission rows consume storage but zero provider calls.
-    Experiment D is represented exactly once per seed because its eleven ITT
+    Each Experiment D stage is represented once per model/seed because its ITT
     cells share one prefix/continuation provider budget.
     """
 
     projections: list[RunProjection] = []
-    for stage_id in ("experiment-a", "experiment-b", "experiment-c"):
+    core_stage_ids = _contract_core_stage_ids(contract)
+    for stage_id in core_stage_ids:
+        if _is_experiment_d_stage(stage_id):
+            continue
         for spec in contract.expand(stage=stage_id):
             if run_ledger.is_terminal(spec.run_id):
                 continue
@@ -6957,7 +7283,7 @@ def _remaining_core_projections(
                 projections.append(
                     RunProjection(
                         run_id=spec.run_id,
-                        stage_bucket="core",
+                        stage_bucket=spec.budget_bucket,
                         cost_usd=0.0,
                         completions=0,
                         storage_bytes=2_000_000,
@@ -6974,20 +7300,38 @@ def _remaining_core_projections(
                     )
                 )
 
-    d_specs = tuple(contract.expand(stage="experiment-d"))
-    for seed in sorted({spec.environment_seed for spec in d_specs}):
-        seed_specs = tuple(spec for spec in d_specs if spec.environment_seed == seed)
-        if all(run_ledger.is_terminal(spec.run_id) for spec in seed_specs):
+    for stage_id in core_stage_ids:
+        if not _is_experiment_d_stage(stage_id):
             continue
-        representative = next(spec for spec in seed_specs if spec.arm_id == "matched-a")
-        projections.append(
-            _d_group_projection(
-                contract,
-                representative,
-                raw_root=raw_root,
-                paid=paid,
-            )
+        d_specs = tuple(contract.expand(stage=stage_id))
+        groups = sorted(
+            {
+                (spec.model_id, spec.environment_seed)
+                for spec in d_specs
+            }
         )
+        for model_id, seed in groups:
+            group_specs = tuple(
+                spec
+                for spec in d_specs
+                if spec.model_id == model_id
+                and spec.environment_seed == seed
+            )
+            if all(
+                run_ledger.is_terminal(spec.run_id) for spec in group_specs
+            ):
+                continue
+            representative = next(
+                spec for spec in group_specs if spec.arm_id == "matched-a"
+            )
+            projections.append(
+                _d_group_projection(
+                    contract,
+                    representative,
+                    raw_root=raw_root,
+                    paid=paid,
+                )
+            )
     return tuple(projections)
 
 
@@ -7061,6 +7405,142 @@ def _remaining_scientific_projections(
     return tuple(projections)
 
 
+def _execute_v24_parent_import_stage(
+    contract: PilotContract,
+    specs: Sequence[PilotRunSpec],
+    *,
+    raw_root: Path,
+    repo_root: Path,
+    parent_repo_root: str | Path | None,
+    paid: GitProvenance,
+    run_ledger: PilotRunLedger,
+) -> dict[str, Any]:
+    if (
+        contract.contract_id != V24_CONTRACT_ID
+        or len(specs) != 1
+        or specs[0].stage_id != "parent-import"
+        or specs[0].execution_mode != "parent_authority_import"
+    ):
+        raise PilotOrchestrationError(
+            "V2.4 parent import requires one exact zero-call contract cell"
+        )
+    spec = specs[0]
+    if parent_repo_root is None:
+        raise PilotOrchestrationError(
+            "V2.4 parent-import requires --parent-repo-root pointing to the "
+            "immutable V2.3 raw/source checkout"
+        )
+    if run_ledger.is_terminal(spec.run_id):
+        if run_ledger.status(spec.run_id) != "complete":
+            raise PilotOrchestrationError(
+                "V2.4 parent-import is already terminal with no dispatch authority"
+            )
+        result = persist_v24_parent_import(
+            contract=contract,
+            repo_root=repo_root,
+            raw_root=raw_root,
+            parent_repo_root=parent_repo_root,
+            child_git_tag=paid.git_tag,
+            child_git_commit=paid.head_commit,
+        )
+        receipt = _write_stage_receipt(
+            contract,
+            "parent-import",
+            raw_root=raw_root,
+            ledger=run_ledger,
+            status="complete",
+            artifacts=result,
+            paid=paid,
+        )
+        return _read_json(receipt)
+    try:
+        result = persist_v24_parent_import(
+            contract=contract,
+            repo_root=repo_root,
+            raw_root=raw_root,
+            parent_repo_root=parent_repo_root,
+            child_git_tag=paid.git_tag,
+            child_git_commit=paid.head_commit,
+        )
+        terminal = write_terminal_summary(
+            raw_root
+            / "parent-import"
+            / "summaries"
+            / f"{spec.run_id}.json",
+            contract=contract,
+            run_spec=spec,
+            resolved_git_commit=paid.head_commit,
+            git_tag=paid.git_tag,
+            payload={
+                "metrics": {},
+                "gate_evidence": result,
+                "provider_calls": 0,
+                "claim_boundary": (
+                    "Parent budget and p95 authority only; no V2.4 "
+                    "treatment-effect evidence."
+                ),
+            },
+            scientific_evidence=False,
+            diagnostic_only=False,
+            evidence_scope="preregistered_parent_authority_import",
+        )
+        run_ledger.finalize(
+            spec.run_id,
+            status="complete",
+            artifact=str(terminal),
+            failure=None,
+        )
+        receipt = _write_stage_receipt(
+            contract,
+            "parent-import",
+            raw_root=raw_root,
+            ledger=run_ledger,
+            status="complete",
+            artifacts=result,
+            paid=paid,
+        )
+        return _read_json(receipt)
+    except Exception as exc:
+        failure = _exception_failure(exc)
+        failure_path = raw_root / "parent-import" / "failure_receipt.json"
+        _atomic_json(
+            failure_path,
+            {
+                "schema_version": "finevo-pilot-v2.4-parent-import-failure-v1",
+                "contract_sha256": contract.canonical_hash,
+                "provider_calls": 0,
+                "scientific_evidence": False,
+                "failure": failure,
+            },
+        )
+        if not run_ledger.is_terminal(spec.run_id):
+            run_ledger.finalize(
+                spec.run_id,
+                status="integrity-stopped",
+                artifact=str(failure_path),
+                failure=failure,
+            )
+        _propagate_stage_no_go(
+            contract,
+            source_stage="parent-import",
+            ledger=run_ledger,
+            failure=failure,
+        )
+        receipt = _write_stage_receipt(
+            contract,
+            "parent-import",
+            raw_root=raw_root,
+            ledger=run_ledger,
+            status="integrity-stopped",
+            artifacts={"failure_receipt": str(failure_path)},
+            failure=failure,
+            paid=paid,
+        )
+        raise PilotOrchestrationError(
+            f"V2.4 parent import failed; receipt={receipt}"
+        ) from exc
+
+
 def _execute_stage_locked(
     *,
     contract_path: str | Path,
@@ -7068,6 +7548,7 @@ def _execute_stage_locked(
     resume: bool,
     raw_root: str | Path = DEFAULT_RAW_ROOT,
     repo_root: str | Path | None = None,
+    parent_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Execute one frozen real stage after all release and prerequisite gates.
 
@@ -7097,7 +7578,11 @@ def _execute_stage_locked(
         ),
     )
     _persist_release_attestation(root, paid)
-    preflight_amendment_control = build_preflight_amendment_control(contract)
+    preflight_amendment_control = (
+        build_preflight_amendment_control(contract)
+        if _materializes_legacy_amendment_controls(contract)
+        else None
+    )
     if preflight_amendment_control is not None:
         preflight_control_path = preflight_amendment_control_path(
             raw_root=root
@@ -7148,13 +7633,26 @@ def _execute_stage_locked(
         )
     evaluator_receipt: Mapping[str, Any] | None = None
     evaluator_receipt_path: Path | None = None
-    if contract.evaluator_amendment is not None:
+    if (
+        _materializes_legacy_amendment_controls(contract)
+        and contract.evaluator_amendment is not None
+    ):
         evaluator_receipt, evaluator_receipt_path = (
             persist_evaluator_correction_receipt(
                 repo_root=repository,
                 raw_root=root,
                 contract=contract,
             )
+        )
+    if stage_id == "parent-import":
+        return _execute_v24_parent_import_stage(
+            contract,
+            specs,
+            raw_root=root,
+            repo_root=repository,
+            parent_repo_root=parent_repo_root,
+            paid=paid,
+            run_ledger=run_ledger,
         )
     budget_ledger = PilotBudgetLedger(
         root / "budget_ledger.json",
@@ -7362,7 +7860,7 @@ def _execute_stage_locked(
                     run_ledger=run_ledger,
                 )
             )
-        elif stage_id in CORE_STAGE_IDS:
+        elif _is_core_stage(stage_id):
             projections = list(
                 _remaining_core_projections(
                     contract,
@@ -7371,25 +7869,6 @@ def _execute_stage_locked(
                     run_ledger=run_ledger,
                 )
             )
-        elif stage_id == "experiment-d":
-            projections = [
-                _d_group_projection(
-                    contract,
-                    next(
-                        spec
-                        for spec in specs
-                        if spec.environment_seed == seed and spec.arm_id == "matched-a"
-                    ),
-                    raw_root=root,
-                    paid=paid,
-                )
-                for seed in sorted({spec.environment_seed for spec in specs})
-                if not all(
-                    run_ledger.is_terminal(spec.run_id)
-                    for spec in specs
-                    if spec.environment_seed == seed
-                )
-            ]
         else:
             projections = []
             for spec in specs:
@@ -7429,10 +7908,10 @@ def _execute_stage_locked(
                 for scientific_stage in _scientific_stage_ids(contract)
                 for spec in contract.expand(stage=scientific_stage)
             )
-        elif stage_id in CORE_STAGE_IDS:
+        elif _is_core_stage(stage_id):
             stopped_specs = tuple(
                 spec
-                for core_stage in CORE_STAGE_IDS
+                for core_stage in _contract_core_stage_ids(contract)
                 for spec in contract.expand(stage=core_stage)
             )
         terminal_status = (
@@ -7444,8 +7923,8 @@ def _execute_stage_locked(
             "all-remaining-stage0-a-b-c-d-and-capability-eligible-cross"
             if full_scientific_projection
             else (
-                "all-remaining-a-b-c-d"
-                if stage_id in CORE_STAGE_IDS
+                "all-remaining-local-and-hosted-a-b-c-d"
+                if _is_core_stage(stage_id)
                 else "current-stage"
             )
         )
@@ -7481,9 +7960,20 @@ def _execute_stage_locked(
             f"full stage projection failed before dispatch; receipt={receipt}"
         ) from exc
 
-    if stage_id == "experiment-d":
-        for seed in sorted({spec.environment_seed for spec in specs}):
-            group = tuple(spec for spec in specs if spec.environment_seed == seed)
+    if _is_experiment_d_stage(stage_id):
+        groups = sorted(
+            {
+                (spec.model_id, spec.environment_seed)
+                for spec in specs
+            }
+        )
+        for model_id, seed in groups:
+            group = tuple(
+                spec
+                for spec in specs
+                if spec.model_id == model_id
+                and spec.environment_seed == seed
+            )
             if contract.schema_version.endswith("-v2"):
                 _assert_prerequisites(
                     contract,
@@ -7840,12 +8330,13 @@ def _execute_stage_locked(
                 "message": str(exc),
             }
 
-    if stage_id == "experiment-c":
+    if _is_experiment_c_stage(stage_id):
         try:
             sensitivity = _write_experiment_c_sensitivity(
                 contract,
                 raw_root=root,
                 paid=paid,
+                stage_id=stage_id,
             )
             sensitivity_value = _read_json(sensitivity)
             stage_artifacts["zero_api_rule_sensitivity"] = {
@@ -7869,7 +8360,8 @@ def _execute_stage_locked(
     elif complete and (
         (stage_id != "stage0-calibration" or "stage0_selection" in stage_artifacts)
         and (
-            stage_id != "experiment-c" or "zero_api_rule_sensitivity" in stage_artifacts
+            not _is_experiment_c_stage(stage_id)
+            or "zero_api_rule_sensitivity" in stage_artifacts
         )
     ):
         status = "complete"
@@ -7918,6 +8410,7 @@ def execute_stage(
     resume: bool,
     raw_root: str | Path = DEFAULT_RAW_ROOT,
     repo_root: str | Path | None = None,
+    parent_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Execute one real stage while holding the raw-root process lock.
 
@@ -7933,6 +8426,7 @@ def execute_stage(
             resume=resume,
             raw_root=raw_root,
             repo_root=repo_root,
+            parent_repo_root=parent_repo_root,
         )
 
 
@@ -8031,7 +8525,17 @@ def run_development_fake_matrix(
     root.mkdir(parents=True, exist_ok=True)
     bootstrap = _bootstrap_development_utility(contract, raw_root=root)
     selected: list[PilotRunSpec] = []
-    for stage_id in ("experiment-a", "experiment-b", "experiment-c", "experiment-d"):
+    development_stages = (
+        _contract_core_stage_ids(contract)
+        if contract.contract_id == V24_CONTRACT_ID
+        else (
+            "experiment-a",
+            "experiment-b",
+            "experiment-c",
+            "experiment-d",
+        )
+    )
+    for stage_id in development_stages:
         stage_specs = contract.expand(stage=stage_id)
         first_seed = int(contract.seeds["sets"]["main"][0])
         selected.extend(
@@ -8055,8 +8559,12 @@ def run_development_fake_matrix(
         parent_debit=_parent_budget_debit(contract),
     )
 
-    d_specs = tuple(spec for spec in selected if spec.stage_id == "experiment-d")
-    actor_specs = tuple(spec for spec in selected if spec.stage_id != "experiment-d")
+    d_specs = tuple(
+        spec for spec in selected if _is_experiment_d_stage(spec.stage_id)
+    )
+    actor_specs = tuple(
+        spec for spec in selected if not _is_experiment_d_stage(spec.stage_id)
+    )
     for spec in actor_specs:
         if run_ledger.is_terminal(spec.run_id):
             continue
@@ -8133,15 +8641,28 @@ def run_development_fake_matrix(
                 failure=budget_failure or failure,
             )
 
-    _execute_d_seed(
-        contract,
-        d_specs,
-        raw_root=root,
-        paid=None,
-        diagnostic=True,
-        budget_ledger=budget_ledger,
-        run_ledger=run_ledger,
+    d_groups = sorted(
+        {
+            (spec.stage_id, spec.model_id, spec.environment_seed)
+            for spec in d_specs
+        }
     )
+    for stage_id, model_id, seed in d_groups:
+        _execute_d_seed(
+            contract,
+            tuple(
+                spec
+                for spec in d_specs
+                if spec.stage_id == stage_id
+                and spec.model_id == model_id
+                and spec.environment_seed == seed
+            ),
+            raw_root=root,
+            paid=None,
+            diagnostic=True,
+            budget_ledger=budget_ledger,
+            run_ledger=run_ledger,
+        )
     statuses = [run_ledger.status(spec.run_id) for spec in selected]
     payload = {
         "schema_version": PILOT_DEVELOPMENT_MATRIX_SCHEMA_VERSION,
@@ -8154,7 +8675,7 @@ def run_development_fake_matrix(
         "status_counts": {
             status: statuses.count(status) for status in sorted(set(statuses))
         },
-        "stages": ["experiment-a", "experiment-b", "experiment-c", "experiment-d"],
+        "stages": list(development_stages),
         "one_environment_seed": int(contract.seeds["sets"]["main"][0]),
         "actor_fixture_shape": {"num_agents": 2, "episode_length": 6},
         "experiment_d_shape": {"num_agents": 4, "episode_length": 12},

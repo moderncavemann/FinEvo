@@ -109,6 +109,20 @@ DEFAULT_TREATMENTS = (
     "erroneous-verified",
     "erroneous-unverified",
 )
+V24_GPT_TREATMENTS = (
+    "matched-a",
+    "matched-b",
+    "no-memory",
+    "wrong-context",
+    "erroneous-verified",
+    "erroneous-unverified",
+)
+_REQUIRED_CAUSAL_CONTROL_TREATMENTS = (
+    "matched-a",
+    "matched-b",
+    "erroneous-verified",
+    "erroneous-unverified",
+)
 DEFAULT_NARRATIVES = {
     "none": "",
     "aligned": (
@@ -1419,6 +1433,58 @@ class PilotContinuationResult:
         )
 
 
+def _normalize_registered_treatments(
+    treatments: Sequence[str],
+) -> tuple[str, ...]:
+    """Validate one exact, causally interpretable ordered branch subset."""
+
+    if isinstance(treatments, (str, bytes)) or not isinstance(
+        treatments, Sequence
+    ):
+        raise TypeError("Experiment D treatments must be a sequence of strings")
+    if any(
+        not isinstance(value, str)
+        or not value
+        or value != value.strip()
+        for value in treatments
+    ):
+        raise ValueError(
+            "Experiment D treatments must contain normalized non-empty strings"
+        )
+    normalized = tuple(treatments)
+    if len(normalized) != len(set(normalized)):
+        raise ValueError("Experiment D treatments must not contain duplicates")
+    unknown = tuple(
+        treatment
+        for treatment in normalized
+        if treatment not in DEFAULT_TREATMENTS
+    )
+    if unknown:
+        raise ValueError(
+            f"Experiment D treatments contain unknown branches: {list(unknown)}"
+        )
+    default_positions = {
+        treatment: index
+        for index, treatment in enumerate(DEFAULT_TREATMENTS)
+    }
+    positions = tuple(default_positions[treatment] for treatment in normalized)
+    if positions != tuple(sorted(positions)):
+        raise ValueError(
+            "Experiment D treatments must preserve the preregistered branch order"
+        )
+    missing_controls = tuple(
+        treatment
+        for treatment in _REQUIRED_CAUSAL_CONTROL_TREATMENTS
+        if treatment not in normalized
+    )
+    if missing_controls:
+        raise ValueError(
+            "Experiment D treatments lack required causal controls: "
+            f"{list(missing_controls)}"
+        )
+    return normalized
+
+
 def run_pilot_continuations(
     checkpoint: PilotCheckpoint | Mapping[str, Any],
     *,
@@ -1430,7 +1496,7 @@ def run_pilot_continuations(
     strict_code_binding: bool = True,
     provider_call_journals: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> PilotContinuationResult:
-    """Run paired 4-agent Experiment-D continuations with frozen proposals."""
+    """Run an ordered registered subset of paired Experiment-D continuations."""
 
     if not isinstance(checkpoint, PilotCheckpoint):
         checkpoint = PilotCheckpoint.from_dict(checkpoint)
@@ -1460,11 +1526,7 @@ def run_pilot_continuations(
         raise ValueError("focal_agent_id must identify one of four agents")
     if focal_agent_id != MEMORY_PULSE_CONTRACT["focal_agent_id"]:
         raise ValueError("Experiment D freezes focal_agent_id=0")
-    normalized = tuple(str(value) for value in treatments)
-    if normalized != DEFAULT_TREATMENTS:
-        raise ValueError(
-            "Experiment D requires the preregistered ordered treatment set"
-        )
+    normalized = _normalize_registered_treatments(treatments)
     if provider_call_journals is not None and set(provider_call_journals) != set(
         normalized
     ):
@@ -1832,6 +1894,7 @@ __all__ = [
     "PilotContinuationError",
     "PilotContinuationResult",
     "SHUFFLE_ALGORITHM",
+    "V24_GPT_TREATMENTS",
     "run_pilot_continuations",
     "run_pilot_narratives",
 ]
