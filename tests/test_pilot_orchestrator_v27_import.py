@@ -2050,15 +2050,18 @@ def test_imported_stage0_release_controls_validate_envelope_matrix(
     source_rows: list[dict[str, Any]] = []
     aggregate_rows: list[dict[str, Any]] = []
     verifier_calls: list[str] = []
+    verifier_kwargs_calls: list[dict[str, Any]] = []
 
     def verify(
         _contract: Any,
         spec: Any,
         terminal_path: Path,
         *_args: Any,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         run_id = spec["run_id"] if isinstance(spec, dict) else spec.run_id
         verifier_calls.append(run_id)
+        verifier_kwargs_calls.append(kwargs)
         value = json.loads(terminal_path.read_text(encoding="utf-8"))
         gate = value["payload"]["gate_evidence"]
         return {
@@ -2178,6 +2181,8 @@ def test_imported_stage0_release_controls_validate_envelope_matrix(
         source_repo_root=ROOT,
     )
     assert completed["artifact_kind"] == "imported-stage0-run-envelope"
+    verifier_calls.clear()
+    verifier_kwargs_calls.clear()
 
     selection = {
         "schema_version": "finevo-stage0-selection-v1",
@@ -2240,16 +2245,25 @@ def test_imported_stage0_release_controls_validate_envelope_matrix(
     )
 
     replayed_selection = json.loads(json.dumps(selection))
+    selection_kwargs_calls: list[dict[str, Any]] = []
+
+    def verify_selection(*_args: Any, **kwargs: Any) -> dict[str, Any]:
+        selection_kwargs_calls.append(kwargs)
+        return replayed_selection
+
     monkeypatch.setattr(
         orchestrator,
         "verify_v27_stage0_selection",
-        lambda *_args, **_kwargs: replayed_selection,
+        verify_selection,
     )
+    external_source_root = tmp_path / "science-source"
+    external_source_root.mkdir()
     controls = evidence._validated_release_controls(
         contract,
         raw_root=raw_root,
         rows=aggregate_rows,
         common_commit=commit,
+        source_repo_root=external_source_root,
     )
     assert controls["stage0_selection"]["pass"] is True
     assert controls["stage0_selection"]["checks"]["complete_source_matrix"] is True
@@ -2268,6 +2282,17 @@ def test_imported_stage0_release_controls_validate_envelope_matrix(
         is True
     )
     assert set(verifier_calls) == {row["run_id"] for row in source_rows}
+    expected_verifier_kwargs = (
+        [{"authority_repo_root": external_source_root}] * len(specs)
+        if contract.contract_id == orchestrator.V29_CONTRACT_ID
+        else [{}] * len(specs)
+    )
+    assert verifier_kwargs_calls == expected_verifier_kwargs
+    assert selection_kwargs_calls == (
+        [{"authority_repo_root": external_source_root}]
+        if contract.contract_id == orchestrator.V29_CONTRACT_ID
+        else [{}]
+    )
 
     aggregate_rows[0]["artifact_sha256"] = "f" * 64
     tampered = evidence._validated_release_controls(

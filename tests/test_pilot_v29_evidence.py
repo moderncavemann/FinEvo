@@ -479,6 +479,83 @@ def test_v29_contract_uses_lane_adapter_and_cumulative_v28_debit() -> None:
     }
 
 
+def test_v29_implementation_failure_summary_is_exact_and_fail_closed() -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    rows = _rows(contract)
+    for row in rows:
+        if row["stage_id"] not in PREREQUISITE_STAGES:
+            is_offline_candidate = (
+                row["stage_id"] in {"local-experiment-c", "experiment-c"}
+                and row["arm_id"] == "verified-error-candidate"
+            )
+            if not is_offline_candidate:
+                row["status"] = "failed"
+                row["failure"] = {
+                    "error_type": "KeyError",
+                    "message": "'receipt_path'",
+                    "message_bytes": 14,
+                    "message_sha256": (
+                        "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014"
+                        "fc7b8b8c3fdf2870e"
+                    ),
+                    "message_truncated": False,
+                }
+                row["scientific_eligible"] = False
+                row["artifact_kind"] = None
+                row["artifact_sha256"] = None
+    aggregate = {
+        "contract_id": contract.contract_id,
+        "budget": {
+            "actual_stage_cost_usd": {
+                "hosted_confirmatory": 0.0,
+                "local": 0.0,
+            }
+        },
+        "scientific_matrix_complete": False,
+        "scientific_claim_gates_supported": False,
+    }
+
+    summary = evidence._v29_implementation_failure_summary(
+        aggregate,
+        rows,
+        resolved_git_commit="2349ccd41560383965da8880744cf4df366c9ee5",
+    )
+
+    assert summary is not None
+    assert summary["classification"] == "implementation-interface-no-go"
+    assert summary["observed_failure"]["failed_cell_count"] == 185
+    assert summary["provider_boundary"] == {
+        "failure_phase": "before-provider-construction-and-dispatch",
+        "v2_9_local_stage_cost_usd": 0.0,
+        "v2_9_hosted_stage_cost_usd": 0.0,
+        "v2_9_hosted_completions": 0,
+        "partial_actor_streams_persisted": False,
+    }
+    assert (
+        summary["outcome_boundary"]["offline_candidate_admission_cells_generated"] == 10
+    )
+    assert (
+        summary["outcome_boundary"][
+            "actor_action_utility_rule_exposure_outcomes_generated"
+        ]
+        is False
+    )
+    assert summary["outcome_boundary"]["all_a_d_outcomes_unobserved"] is False
+
+    tampered = deepcopy(rows)
+    failed = next(row for row in tampered if row["status"] == "failed")
+    failed["failure"]["message"] = "'other_key'"
+    with pytest.raises(
+        PilotEvidenceError,
+        match="implementation-failure summary differs",
+    ):
+        evidence._v29_implementation_failure_summary(
+            aggregate,
+            tampered,
+            resolved_git_commit="2349ccd41560383965da8880744cf4df366c9ee5",
+        )
+
+
 def test_v29_parent_marker_adapts_default_verifier_signature(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -558,10 +635,16 @@ def test_v29_qref_terminal_requires_full_summary_equivalence_receipt(
         spec=spec,
         resolved_commit=resolved_commit,
     )
+    calls: list[dict[str, Any]] = []
+
+    def verify(*_args, **kwargs):
+        calls.append(kwargs)
+        return resolution
+
     monkeypatch.setattr(
         pilot_orchestrator,
         "verify_v29_qref_resolution",
-        lambda *_args, **_kwargs: resolution,
+        verify,
     )
 
     core_evidence._validate_terminal_payload_marker(
@@ -570,7 +653,9 @@ def test_v29_qref_terminal_requires_full_summary_equivalence_receipt(
         payload,
         raw_root=tmp_path,
         resolved_git_commit=resolved_commit,
+        source_repo_root=tmp_path,
     )
+    assert calls == [{"authority_repo_root": tmp_path}]
 
 
 def test_v29_qref_terminal_rejects_missing_exact_runner_source(
