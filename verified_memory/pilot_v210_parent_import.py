@@ -32,6 +32,7 @@ from .pilot_contract import (
     load_pilot_contract,
 )
 from .pilot_v24_parent_import import (
+    CANONICALIZATION,
     PilotV24ParentImportError,
     _git,
     _guarded_file,
@@ -279,6 +280,38 @@ def _verify_terminal_summary_hash(
         or integrity.get("content_sha256") != canonical_sha256(copied)
     ):
         raise PilotV210ParentImportError(f"{name} schema or content hash mismatch")
+
+
+def _verify_bound_artifact_self_hash(
+    value: Mapping[str, Any],
+    *,
+    name: str,
+) -> None:
+    """Verify an imported artifact using its schema's frozen hash convention."""
+
+    schema_version = str(value.get("schema_version", ""))
+    if schema_version == "finevo-pilot-terminal-summary-v1":
+        _verify_terminal_summary_hash(value, name=name)
+        return
+    if schema_version == "finevo-pilot-stage-receipt-v2":
+        unsigned = _json_copy(value)
+        integrity = unsigned.pop("integrity", None)
+        if (
+            not isinstance(integrity, Mapping)
+            or set(integrity) != {"canonicalization", "content_sha256"}
+            or integrity.get("canonicalization") != CANONICALIZATION
+            or integrity.get("content_sha256") != canonical_sha256(unsigned)
+        ):
+            raise PilotV210ParentImportError(f"{name} schema or content hash mismatch")
+        return
+    try:
+        _verify_self_hash(
+            value,
+            schema_version=schema_version,
+            name=name,
+        )
+    except PilotV24ParentImportError as exc:
+        raise _translate(exc) from exc
 
 
 def _repo_relative(
@@ -2430,19 +2463,12 @@ def verified_v210_imported_prerequisite_binding(
                     raw,
                     name=f"imported prerequisite {key}",
                 )
-                if value.get("schema_version") == "finevo-pilot-terminal-summary-v1":
-                    _verify_terminal_summary_hash(
-                        value,
-                        name=f"imported prerequisite {key}",
-                    )
-                else:
-                    _verify_self_hash(
-                        value,
-                        schema_version=str(value.get("schema_version", "")),
-                        name=f"imported prerequisite {key}",
-                    )
             except PilotV24ParentImportError as exc:
                 raise _translate(exc) from exc
+            _verify_bound_artifact_self_hash(
+                value,
+                name=f"imported prerequisite {key}",
+            )
             if (
                 value.get("integrity", {}).get("content_sha256")
                 != declared_map["content_sha256"]

@@ -33,6 +33,8 @@ CONTRACT_PATH = ROOT / "experiments" / "pilot_v2.yaml"
         ("finevo-pilot-v12", "current_v2/pilot-v12"),
         ("finevo-pilot-v2.1", "current_v2/pilot-v2.1"),
         ("finevo-pilot-v12.34", "current_v2/pilot-v12.34"),
+        ("finevo-pilot-v2.1.1", "current_v2/pilot-v2.1.1"),
+        ("finevo-pilot-v2.10.1", "current_v2/pilot-v2.10.1"),
     ],
 )
 def test_evidence_namespace_accepts_integer_and_amendment_versions(
@@ -51,7 +53,6 @@ def test_evidence_namespace_accepts_integer_and_amendment_versions(
         "finevo-pilot-v01",
         "finevo-pilot-v2.0",
         "finevo-pilot-v2.01",
-        "finevo-pilot-v2.1.1",
         "finevo-pilot-v2.",
         "finevo-pilot-v2..1",
         "finevo-pilot-v2/1",

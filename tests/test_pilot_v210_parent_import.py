@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -320,3 +321,71 @@ def test_real_v29_raw_audit_is_zero_call_when_source_checkout_is_present() -> No
     }
     assert audit["provider_construction_during_import"] is False
     assert audit["provider_calls_during_import"] == 0
+
+
+@pytest.mark.parametrize(
+    ("relative", "expected_content_sha256"),
+    (
+        (
+            "q-ref-resolution/stage_receipt.json",
+            "e9865c91ec078043489592813f62e72ca4f1d19239cf935a31699637e9f37d57",
+        ),
+        (
+            "stage0-calibration/stage_receipt.json",
+            "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+        ),
+    ),
+)
+def test_real_v29_v2_stage_receipts_use_integrity_excluded_hash_convention(
+    relative: str,
+    expected_content_sha256: str,
+) -> None:
+    path = V29_SCIENCE_ROOT / "experiment_results" / "pilot-v2.9" / "raw" / relative
+    if not path.is_file():
+        pytest.skip("immutable V2.9 science stage receipt is not installed")
+    value = json.loads(path.read_text(encoding="utf-8"))
+
+    parent_import._verify_bound_artifact_self_hash(
+        value,
+        name=f"real V2.9 {relative}",
+    )
+
+    assert value["integrity"]["content_sha256"] == expected_content_sha256
+    unsigned = deepcopy(value)
+    unsigned.pop("integrity")
+    assert parent_import.canonical_sha256(unsigned) == expected_content_sha256
+
+
+def test_v2_stage_receipt_tamper_and_wrong_hash_convention_fail_closed() -> None:
+    path = (
+        V29_SCIENCE_ROOT
+        / "experiment_results"
+        / "pilot-v2.9"
+        / "raw"
+        / "q-ref-resolution"
+        / "stage_receipt.json"
+    )
+    if not path.is_file():
+        pytest.skip("immutable V2.9 science stage receipt is not installed")
+    value = json.loads(path.read_text(encoding="utf-8"))
+
+    tampered = deepcopy(value)
+    tampered["complete_cell_count"] = 0
+    with pytest.raises(
+        parent_import.PilotV210ParentImportError,
+        match="schema or content hash mismatch",
+    ):
+        parent_import._verify_bound_artifact_self_hash(
+            tampered,
+            name="tampered V2.9 q-ref stage receipt",
+        )
+
+    wrongly_resealed = parent_import._seal(value)
+    with pytest.raises(
+        parent_import.PilotV210ParentImportError,
+        match="schema or content hash mismatch",
+    ):
+        parent_import._verify_bound_artifact_self_hash(
+            wrongly_resealed,
+            name="wrong-convention V2.9 q-ref stage receipt",
+        )

@@ -1,4 +1,4 @@
-"""Lane-separated evidence publication for the FinEvo V2.4--V2.10 pilot.
+"""Lane-separated evidence publication for the FinEvo V2.4--V2.10.1 pilot.
 
 V2.4 is deliberately not a continuation of the terminal V2.3 denominator.
 Its scientific matrix contains two independently interpreted lanes:
@@ -68,6 +68,8 @@ PILOT_V29_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-v2.9-evidence-package-v1"
 PILOT_V29_CONTRACT_ID = "finevo-pilot-v2.9"
 PILOT_V210_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-v2.10-evidence-package-v1"
 PILOT_V210_CONTRACT_ID = "finevo-pilot-v2.10"
+PILOT_V2101_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-v2.10.1-evidence-package-v1"
+PILOT_V2101_CONTRACT_ID = "finevo-pilot-v2.10.1"
 PILOT_V29_IMPLEMENTATION_FAILURE_SCHEMA_VERSION = (
     "finevo-pilot-v2.9-implementation-failure-summary-v1"
 )
@@ -86,6 +88,18 @@ _PILOT_V29_EVIDENCE_CHECKSUMS_SHA256 = (
 )
 _PILOT_V29_RECEIPT_PATH_FAILURE_SHA256 = (
     "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e"
+)
+_PILOT_V210_RELEASE_COMMIT = "1584629a5f8fd60f42bba878d2a0fcb0eca4bdcf"
+_PILOT_V210_CONTRACT_SHA256 = (
+    "d1b54c14d016c2b157db9e334d054ab9c7e86371d3fb9662a95fb94e50ce964b"
+)
+_PILOT_V210_EVIDENCE_PUBLICATION_COMMIT = "1e96373fa847b44e3418a777c1ed74165ecf2bac"
+_PILOT_V210_EVIDENCE_MERGE_COMMIT = "2c4f4750d02c9c6b90051cfaa4f16b8ab16aa637"
+_PILOT_V210_EVIDENCE_PACKAGE_MANIFEST_SHA256 = (
+    "9aa7d07d1d813a5acdea39401e017d5cefe9d85f9127917b119d2453ff972806"
+)
+_PILOT_V210_EVIDENCE_CHECKSUMS_SHA256 = (
+    "b117c3e9d2555af9582c22de08b6e39f1366876d9bc0c6a84b37728533748695"
 )
 _PILOT_V29_FAILURE_STAGE_COUNTS = {
     "experiment-a": 20,
@@ -166,6 +180,12 @@ _V210_PREREQUISITE_COUNTS = {
     "q-ref-resolution": 1,
     "stage0-calibration": 14,
 }
+_V210_FAMILY_CONTRACT_IDS = frozenset(
+    {
+        PILOT_V210_CONTRACT_ID,
+        PILOT_V2101_CONTRACT_ID,
+    }
+)
 _V24_LANES: Mapping[str, Mapping[str, Any]] = {
     "local": {
         "model_id": "llama33_local_controlled",
@@ -266,6 +286,8 @@ def _contract_id_version_label(contract_id: Any) -> str:
         return "V2.9"
     if contract_id == PILOT_V210_CONTRACT_ID:
         return "V2.10"
+    if contract_id == PILOT_V2101_CONTRACT_ID:
+        return "V2.10.1"
     raise PilotEvidenceError(
         "lane-separated evidence adapter received another contract"
     )
@@ -288,6 +310,8 @@ def _evidence_schema_version(contract: PilotContract) -> str:
         return PILOT_V28_EVIDENCE_SCHEMA_VERSION
     if contract.contract_id == PILOT_V29_CONTRACT_ID:
         return PILOT_V29_EVIDENCE_SCHEMA_VERSION
+    if contract.contract_id == PILOT_V2101_CONTRACT_ID:
+        return PILOT_V2101_EVIDENCE_SCHEMA_VERSION
     if contract.contract_id == PILOT_V210_CONTRACT_ID:
         return PILOT_V210_EVIDENCE_SCHEMA_VERSION
     raise PilotEvidenceError(
@@ -1386,6 +1410,21 @@ def _v210_amendment(contract: PilotContract) -> Mapping[str, Any]:
     return amendment
 
 
+def _v2101_amendment(contract: PilotContract) -> Mapping[str, Any]:
+    """Return the sealed V2.10.1 q-ref receipt-verifier amendment."""
+
+    amendment = getattr(
+        contract,
+        "qref_receipt_verifier_retry_amendment",
+        None,
+    )
+    if not isinstance(amendment, Mapping):
+        raise PilotEvidenceError(
+            "V2.10.1 evidence contract lacks its q-ref receipt-verifier " "amendment"
+        )
+    return amendment
+
+
 def _v210_parent_evidence_lineage(
     contract: PilotContract,
 ) -> dict[str, Any] | None:
@@ -1531,6 +1570,154 @@ def _v210_parent_evidence_lineage(
     }
 
 
+def _v2101_parent_evidence_lineage(
+    contract: PilotContract,
+) -> dict[str, Any] | None:
+    """Expose V2.10's immutable q-ref implementation no-go."""
+
+    if contract.contract_id != PILOT_V2101_CONTRACT_ID:
+        return None
+    amendment = _v2101_amendment(contract)
+    lineage = amendment.get("evidence_lineage")
+    failure = amendment.get("failure_classification")
+    retry = amendment.get("retry_policy")
+    observation = amendment.get("observation_boundary")
+    fresh = amendment.get("fresh_science_dispatch")
+    repair = amendment.get("qref_receipt_verifier_repair")
+    if not all(
+        isinstance(value, Mapping)
+        for value in (
+            lineage,
+            failure,
+            retry,
+            observation,
+            fresh,
+            repair,
+        )
+    ):
+        raise PilotEvidenceError("V2.10.1 parent evidence lineage is malformed")
+
+    expected_statuses = {"complete": 1, "integrity-stopped": 210}
+    checks = {
+        "parent_contract_id": (
+            failure.get("parent_contract_id") == PILOT_V210_CONTRACT_ID
+        ),
+        "parent_status_preserved": (
+            failure.get("terminal_status") == "complete-with-no-go"
+            and failure.get("status_counts") == expected_statuses
+            and failure.get("completed_cell_breakdown")
+            == {
+                "parent-import": 1,
+                "q-ref-resolution": 0,
+                "stage0-calibration": 0,
+                "a-d": 0,
+            }
+            and lineage.get("parent_evidence_status") == "complete-with-no-go"
+            and retry.get("preserve_parent_denominator") is True
+            and retry.get("v2_10_status_counts_rewrite") == "forbidden"
+            and retry.get("v2_10_terminal_cell_reclassification") == "forbidden"
+        ),
+        "qref_failure_preserved": (
+            failure.get("failed_stage_id") == "q-ref-resolution"
+            and failure.get("root_cause_code")
+            == "qref-stage-receipt-schema-hash-domain-mismatch"
+            and failure.get("failure_phase")
+            == "before-provider-construction-and-dispatch"
+            and failure.get("incremental_cost_usd") == 0.0
+            and failure.get("incremental_hosted_completions") == 0
+            and failure.get("actor_action_utility_rule_exposure_outcomes_generated")
+            is False
+            and failure.get("a_d_treatment_effect_outcomes_generated") is False
+            and failure.get("q_ref_failure_stage_receipt_file_sha256")
+            == "66dac19579be01cb617fda51c6636a7a27cb3dff5f65d82e66cafb7a3da60823"
+            and failure.get("q_ref_failure_stage_receipt_content_sha256")
+            == "48ae5807da2c3175b3fd427cc023796e7bd81c5b77695789a900474e023da098"
+        ),
+        "repair_is_narrow": (
+            repair.get("artifact_schema_version") == "finevo-pilot-stage-receipt-v2"
+            and repair.get("content_hash_projection")
+            == ("canonical-json-of-artifact-after-removing-entire-" "integrity-object")
+            and repair.get("generic_self_hash_convention_for_stage_receipt_v2")
+            == "forbidden"
+            and repair.get("schema_dispatched_hash_verification_required") is True
+            and repair.get("source_artifact_reseal_or_rewrite") == "forbidden"
+            and repair.get("validation_before_provider_construction") is True
+        ),
+        "parent_package_rewrite_forbidden": (
+            lineage.get("parent_evidence_rewrite") == "forbidden"
+            and lineage.get("parent_claim_reclassification") == "forbidden"
+        ),
+        "fresh_v2_10_1_effects_only": (
+            lineage.get("v2_10_1_effect_aggregation_uses_only_fresh_v2_10_1_a_d_cells")
+            is True
+            and fresh.get("a_d_cells") == 195
+            and fresh.get("imported_a_d_completions") == 0
+            and fresh.get("a_d_provider_dispatch") == "fresh-only"
+            and retry.get("a_d_provider_dispatch") == "fresh-only"
+        ),
+        "outcome_blind_amendment": (
+            observation.get("amendment_is_outcome_blind_for_actor_treatment_effects")
+            is True
+            and observation.get("a_d_actor_treatment_effect_outcomes_generated")
+            is False
+            and observation.get("a_d_actor_treatment_effect_outcomes_observed") is False
+        ),
+        "immutable_parent_evidence_bound": (
+            failure.get("parent_contract_sha256")
+            == _PILOT_V210_CONTRACT_SHA256
+            and failure.get("parent_release_tag") == "pilot-v2.10-science"
+            and failure.get("parent_release_commit")
+            == _PILOT_V210_RELEASE_COMMIT
+            and lineage.get("parent_evidence_commit")
+            == _PILOT_V210_EVIDENCE_PUBLICATION_COMMIT
+            and lineage.get("parent_evidence_merge_commit")
+            == _PILOT_V210_EVIDENCE_MERGE_COMMIT
+            and failure.get("parent_evidence_commit")
+            == _PILOT_V210_EVIDENCE_PUBLICATION_COMMIT
+            and failure.get("parent_evidence_merge_commit")
+            == _PILOT_V210_EVIDENCE_MERGE_COMMIT
+            and failure.get("evidence_package_manifest_file_sha256")
+            == _PILOT_V210_EVIDENCE_PACKAGE_MANIFEST_SHA256
+            and failure.get("evidence_checksums_file_sha256")
+            == _PILOT_V210_EVIDENCE_CHECKSUMS_SHA256
+        ),
+    }
+    if not all(checks.values()):
+        raise PilotEvidenceError(
+            "V2.10.1 evidence does not preserve the immutable V2.10 "
+            "q-ref implementation no-go lineage"
+        )
+    return {
+        "source_contract_id": PILOT_V210_CONTRACT_ID,
+        "source_contract_sha256": failure.get("parent_contract_sha256"),
+        "source_release_tag": failure.get("parent_release_tag"),
+        "source_release_commit": failure.get("parent_release_commit"),
+        "source_evidence_commit": lineage.get("parent_evidence_commit"),
+        "source_evidence_merge_commit": lineage.get("parent_evidence_merge_commit"),
+        "source_evidence_namespace": lineage.get("parent_evidence_namespace"),
+        "source_evidence_status": lineage.get("parent_evidence_status"),
+        "package_manifest_file_sha256": failure.get(
+            "evidence_package_manifest_file_sha256"
+        ),
+        "checksums_file_sha256": failure.get("evidence_checksums_file_sha256"),
+        "root_cause": {
+            "code": failure.get("root_cause_code"),
+            "message": failure.get("root_cause_message"),
+            "failure_phase": failure.get("failure_phase"),
+        },
+        "parent_registered_cells": failure.get("registered_cells"),
+        "parent_status_counts": _json_copy(dict(failure["status_counts"])),
+        "parent_completed_cell_breakdown": _json_copy(
+            dict(failure["completed_cell_breakdown"])
+        ),
+        "parent_actor_treatment_effect_outcomes_generated": False,
+        "parent_rows_imported_into_v2_10_1_effect_aggregate": 0,
+        "parent_package_rewritten": False,
+        "checks": checks,
+        "pass": True,
+    }
+
+
 def _v210_prerequisite_summary(
     contract: PilotContract,
     rows: Sequence[Mapping[str, Any]],
@@ -1660,16 +1847,178 @@ def _v210_prerequisite_summary(
     }
 
 
+def _v2101_prerequisite_summary(
+    contract: PilotContract,
+    rows: Sequence[Mapping[str, Any]],
+) -> dict[str, Any] | None:
+    """Classify V2.10.1's sixteen V2.9-derived prerequisite wrappers."""
+
+    if contract.contract_id != PILOT_V2101_CONTRACT_ID:
+        return None
+    amendment = _v2101_amendment(contract)
+    imported = amendment.get("prerequisite_retry")
+    fresh = amendment.get("fresh_science_dispatch")
+    design = amendment.get("science_design_invariance")
+    if not all(isinstance(value, Mapping) for value in (imported, fresh, design)):
+        raise PilotEvidenceError("V2.10.1 prerequisite policy is malformed")
+    if (
+        imported.get("q_ref_and_stage0_source_contract_id") != PILOT_V29_CONTRACT_ID
+        or imported.get("expected_complete_cells_before_a_d_dispatch") != 16
+        or imported.get("expected_cell_breakdown") != _V210_PREREQUISITE_COUNTS
+        or imported.get("provider_construction_during_import") is not False
+        or imported.get("provider_redispatch_for_imported_cells") != "forbidden"
+        or imported.get("prerequisites_are_treatment_effect_evidence") is not False
+        or imported.get("v2_10_complete_parent_import_reverification_required")
+        is not True
+        or fresh.get("a_d_cells") != 195
+        or fresh.get("imported_a_d_completions") != 0
+        or fresh.get("a_d_provider_dispatch") != "fresh-only"
+        or fresh.get("downstream_dispatch_requires_all_16_prerequisites") is not True
+        or design.get("fresh_a_d_cells") != 195
+        or design.get("registered_cells") != 211
+        or design.get("scientific_cells") != 209
+    ):
+        raise PilotEvidenceError("V2.10.1 prerequisite execution boundary drifted")
+
+    expected_specs = {
+        spec.run_id: spec
+        for stage_id in _V210_PREREQUISITE_COUNTS
+        for spec in contract.expand(stage=stage_id)
+    }
+    if len(expected_specs) != 16:
+        raise PilotEvidenceError("V2.10.1 prerequisite contract matrix drifted")
+    observed: dict[str, Mapping[str, Any]] = {}
+    for row in rows:
+        stage_id = str(row.get("stage_id"))
+        if stage_id not in _V210_PREREQUISITE_COUNTS:
+            continue
+        run_id = str(row.get("run_id"))
+        if run_id not in expected_specs or run_id in observed:
+            raise PilotEvidenceError(
+                "V2.10.1 prerequisite identity or multiplicity drifted"
+            )
+        spec = expected_specs[run_id]
+        expected_scientific_eligible = (
+            stage_id == "stage0-calibration" and row.get("status") == "complete"
+        )
+        if (
+            stage_id != spec.stage_id
+            or row.get("contract_id") != contract.contract_id
+            or row.get("model_id") != spec.model_id
+            or row.get("arm_id") != spec.arm_id
+            or row.get("environment_seed") != spec.environment_seed
+            or row.get("scientific_eligible") is not expected_scientific_eligible
+        ):
+            raise PilotEvidenceError(
+                "V2.10.1 prerequisite row differs from its registered "
+                "eligibility boundary"
+            )
+        observed[run_id] = row
+    if set(observed) != set(expected_specs):
+        raise PilotEvidenceError("V2.10.1 prerequisite denominator is incomplete")
+
+    classifications = {
+        "parent-import": {
+            "origin": "immutable-v2.10-no-go-lineage-plus-exact-v2.9-source",
+            "evidence_scope": "operational-prerequisite",
+        },
+        "q-ref-resolution": {
+            "origin": "schema-verified-v2.9-q-ref-import",
+            "evidence_scope": "q-ref-calibration-prerequisite",
+        },
+        "stage0-calibration": {
+            "origin": "hash-verified-v2.9-stage0-import",
+            "evidence_scope": "stage0-baseline-calibration",
+        },
+    }
+    by_stage: dict[str, Any] = {}
+    for stage_id, stage_count in _V210_PREREQUISITE_COUNTS.items():
+        stage_rows = [
+            row for row in observed.values() if row.get("stage_id") == stage_id
+        ]
+        statuses: dict[str, int] = {}
+        for row in stage_rows:
+            status = str(row.get("status"))
+            statuses[status] = statuses.get(status, 0) + 1
+        by_stage[stage_id] = {
+            **classifications[stage_id],
+            "execution": "hash-verified-import-no-provider-dispatch",
+            "registered_cells": stage_count,
+            "observed_cells": len(stage_rows),
+            "status_counts": dict(sorted(statuses.items())),
+            "all_complete": statuses == {"complete": stage_count},
+            "scientific_eligible_cells": sum(
+                row.get("scientific_eligible") is True for row in stage_rows
+            ),
+            "used_in_a_d_effect_gates": False,
+            "treatment_effect_evidence": False,
+        }
+    all_prerequisites_complete = all(
+        stage["all_complete"] for stage in by_stage.values()
+    )
+    complete_prerequisite_cells = sum(
+        row.get("status") == "complete" for row in observed.values()
+    )
+    fresh_a_d_complete_cells = sum(
+        row.get("stage_id") not in _V210_PREREQUISITE_COUNTS
+        and row.get("status") == "complete"
+        for row in rows
+    )
+    claim_boundary = (
+        "the 16 V2.9-derived parent, q-ref, and Stage-0 cells are "
+        "reverified through the immutable V2.10 no-go lineage and "
+        "excluded from all V2.10.1 A-D gates; all 195 V2.10.1 A-D "
+        "cells must be fresh"
+        if all_prerequisites_complete
+        else (
+            "the 16 V2.9-derived parent, q-ref, and Stage-0 identities "
+            "remain registered, but incomplete prerequisites are not "
+            "described as reverified; the 195 V2.10.1 A-D identities "
+            "remain registered fresh-only identities"
+            + (
+                " and no V2.10.1 A-D outcome was generated"
+                if fresh_a_d_complete_cells == 0
+                else (
+                    f", with {fresh_a_d_complete_cells} completed fresh "
+                    "A-D cells reported only according to their terminal rows"
+                )
+            )
+        )
+    )
+    return {
+        "source_contract_id": PILOT_V29_CONTRACT_ID,
+        "terminal_parent_contract_id": PILOT_V210_CONTRACT_ID,
+        "registered_cells": 16,
+        "observed_cells": len(observed),
+        "complete_prerequisite_cells": complete_prerequisite_cells,
+        "all_prerequisites_complete": all_prerequisites_complete,
+        "stages": by_stage,
+        "import_provider_accounting": {
+            "provider_construction": False,
+            "provider_calls": 0,
+            "hosted_cost_usd": 0.0,
+        },
+        "stage0_imported_cells": 14,
+        "fresh_a_d_cells_required": 195,
+        "fresh_a_d_complete_cells": fresh_a_d_complete_cells,
+        "imported_a_d_effect_cells": 0,
+        "a_d_treatment_effect_evidence": False,
+        "used_in_a_d_effect_gates": False,
+        "claim_boundary": claim_boundary,
+    }
+
+
 def _v210_itt_row_preservation(
     contract: PilotContract,
     rows: Sequence[Mapping[str, Any]],
     *,
     denominator: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    """Retain all 211 V2.10 identities and bind the 16/195 split."""
+    """Retain all 211 V2.10-family identities and bind the 16/195 split."""
 
-    if contract.contract_id != PILOT_V210_CONTRACT_ID:
+    if contract.contract_id not in _V210_FAMILY_CONTRACT_IDS:
         return None
+    version_label = _contract_version_label(contract)
     expected = {spec.run_id: spec.to_dict() for spec in contract.expand()}
     expected_effect = {
         run_id: spec
@@ -1677,22 +2026,28 @@ def _v210_itt_row_preservation(
         if spec["stage_id"] not in _V210_PREREQUISITE_COUNTS
     }
     if len(expected) != 211 or len(expected_effect) != 195:
-        raise PilotEvidenceError("V2.10 registered ITT matrix is not 16 + 195 cells")
+        raise PilotEvidenceError(
+            f"{version_label} registered ITT matrix is not 16 + 195 cells"
+        )
     observed: dict[str, Mapping[str, Any]] = {}
     for row in rows:
         run_id = str(row.get("run_id"))
         spec = expected.get(run_id)
         if spec is None or run_id in observed:
             raise PilotEvidenceError(
-                "V2.10 evidence rows contain an unknown or duplicate ITT identity"
+                f"{version_label} evidence rows contain an unknown or "
+                "duplicate ITT identity"
             )
         if any(row.get(field) != value for field, value in spec.items()):
             raise PilotEvidenceError(
-                "V2.10 evidence row differs from its registered ITT identity"
+                f"{version_label} evidence row differs from its registered "
+                "ITT identity"
             )
         observed[run_id] = row
     if set(observed) != set(expected):
-        raise PilotEvidenceError("V2.10 evidence does not retain all 211 ITT rows")
+        raise PilotEvidenceError(
+            f"{version_label} evidence does not retain all 211 ITT rows"
+        )
     status_counts: dict[str, int] = {}
     for row in rows:
         status = str(row.get("status"))
@@ -1704,7 +2059,7 @@ def _v210_itt_row_preservation(
         or denominator.get("status_counts") != status_counts
     ):
         raise PilotEvidenceError(
-            "V2.10 denominator does not match the retained 211 ITT rows"
+            f"{version_label} denominator does not match the retained " "211 ITT rows"
         )
     return {
         "registered_rows": 211,
@@ -1827,6 +2182,143 @@ def _v210_inherited_budget_boundary(
     }
 
 
+def _v2101_inherited_budget_boundary(
+    contract: PilotContract,
+    *,
+    denominator: Mapping[str, Any],
+    release_controls: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Debit the complete V2.10 lineage before V2.10.1 dispatch."""
+
+    if contract.contract_id != PILOT_V2101_CONTRACT_ID:
+        return None
+    amendment = _v2101_amendment(contract)
+    carry = amendment.get("budget_carry_forward")
+    if not isinstance(carry, Mapping):
+        raise PilotEvidenceError("V2.10.1 cumulative budget boundary is malformed")
+    expected = carry.get("cumulative_prior")
+    v210_incremental = carry.get("v2_10_incremental")
+    budget = release_controls.get("budget_ledger")
+    if not all(
+        isinstance(value, Mapping) for value in (expected, v210_incremental, budget)
+    ):
+        raise PilotEvidenceError("V2.10.1 budget evidence lacks cumulative accounting")
+    checks = budget.get("checks")
+    totals = budget.get("actual_totals")
+    stage_cost = budget.get("actual_stage_cost_usd")
+    if not all(isinstance(value, Mapping) for value in (checks, totals, stage_cost)):
+        raise PilotEvidenceError("V2.10.1 budget evidence lacks exact debit accounting")
+
+    def number(value: Any, name: str) -> float:
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) < 0
+        ):
+            raise PilotEvidenceError(f"V2.10.1 budget {name} is invalid")
+        return float(value)
+
+    expected_cost = number(expected.get("cost_usd"), "prior cost")
+    expected_completions = number(
+        expected.get("hosted_completions"),
+        "prior completions",
+    )
+    expected_storage = number(
+        expected.get("storage_bytes"),
+        "prior storage",
+    )
+    observed_cost = number(totals.get("cost_usd"), "actual cost")
+    observed_completions = number(
+        totals.get("completions"),
+        "actual completions",
+    )
+    observed_storage = number(
+        totals.get("storage_bytes"),
+        "actual storage",
+    )
+    total_cap = number(carry.get("total_cap_usd"), "total cap")
+    contract_cap = number(
+        contract.budgets.get("total_usd"),
+        "contract total cap",
+    )
+    inherited_stage_cost = number(
+        stage_cost.get(str(expected.get("stage_bucket"))),
+        "inherited stage cost",
+    )
+    binding_checks = {
+        "denominator_exact": (
+            denominator.get("expected_count") == 211
+            and denominator.get("observed_ledger_count") == 211
+        ),
+        "parent_debit_exact": checks.get("parent_debit_exact") is True,
+        "parent_stage_cost_exact": math.isclose(
+            inherited_stage_cost,
+            expected_cost,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ),
+        "cumulative_prior_exact": (
+            math.isclose(
+                expected_cost,
+                3.212770875,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+            and expected_completions == 184
+            and expected_storage == 70_035_938
+            and expected.get("record_sha256")
+            == "4837821a5f059714ef8fa6f8b22522bc693c8adb0edc7603367823a870e94510"
+        ),
+        "cumulative_cost_not_reset": observed_cost >= expected_cost,
+        "cumulative_completions_not_reset": (
+            observed_completions >= expected_completions
+        ),
+        "cumulative_storage_not_reset": (observed_storage >= expected_storage),
+        "total_cap_is_500": (
+            math.isclose(
+                total_cap,
+                500.0,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+            and math.isclose(
+                contract_cap,
+                500.0,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+        ),
+        "v2_10_incremental_zero_hosted": (
+            v210_incremental.get("cost_usd") == 0.0
+            and v210_incremental.get("hosted_completions") == 0
+        ),
+        "budget_not_reset": carry.get("budget_reset") is False,
+        "reserve_not_automatic": (carry.get("manual_reserve_automatic_use") is False),
+    }
+    if not all(binding_checks.values()):
+        raise PilotEvidenceError(
+            "V2.10.1 evidence does not preserve its inherited " "debit/denominator"
+        )
+    return {
+        "source_contract_id": PILOT_V210_CONTRACT_ID,
+        "total_cap_usd": total_cap,
+        "expected_cumulative_prior": _json_copy(dict(expected)),
+        "observed_cumulative_totals": {
+            "cost_usd": observed_cost,
+            "hosted_completions": observed_completions,
+            "storage_bytes": observed_storage,
+        },
+        "v2_10_incremental": _json_copy(dict(v210_incremental)),
+        "automatically_dispatchable_usd_before_v2_10_1": (
+            total_cap - expected_cost - 1.0
+        ),
+        "manual_reserve_usd": 1.0,
+        "checks": binding_checks,
+        "pass": True,
+    }
+
+
 def _paired_stage_gate(
     rows: Sequence[Mapping[str, Any]],
     *,
@@ -1908,9 +2400,7 @@ def _validated_v210_sensitivity_controls(
     release_controls: Mapping[str, Any],
 ) -> dict[str, dict[str, Any]]:
     raw = release_controls.get("experiment_c_rule_sensitivities")
-    if not isinstance(raw, Mapping) or set(raw) != set(
-        _V210_C_SENSITIVITY_FILES
-    ):
+    if not isinstance(raw, Mapping) or set(raw) != set(_V210_C_SENSITIVITY_FILES):
         raise PilotEvidenceError(
             "V2.10 release controls require both lane-specific Experiment C "
             "rule sensitivities"
@@ -1984,12 +2474,12 @@ def _validated_v210_experiment_c_sensitivities(
     common_commit: str | None,
     source_repo_root: Path | None = None,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
-    """Recompute and bind both V2.10 lane-specific zero-API C controls."""
+    """Recompute and bind both V2.10-family zero-API C controls."""
 
-    if contract.contract_id != PILOT_V210_CONTRACT_ID:
+    if contract.contract_id not in _V210_FAMILY_CONTRACT_IDS:
         raise PilotEvidenceError(
-            "V2.10 Experiment C sensitivity validation requested for another "
-            "contract"
+            "V2.10-family Experiment C sensitivity validation requested "
+            "for another contract"
         )
     from .pilot_orchestrator import (  # pylint: disable=import-outside-toplevel
         _load_verified_experiment_c_sensitivity,
@@ -1997,9 +2487,7 @@ def _validated_v210_experiment_c_sensitivities(
 
     payloads: dict[str, dict[str, Any]] = {}
     controls: dict[str, dict[str, Any]] = {}
-    sensitivity_contract = contract.stop_go["experiment_c"][
-        "zero_api_sensitivity"
-    ]
+    sensitivity_contract = contract.stop_go["experiment_c"]["zero_api_sensitivity"]
     expected_weights = list(sensitivity_contract["alternative_success_weights"])
     expected_outcomes = list(sensitivity_contract["outcome_definitions"])
     expected_grid = {
@@ -2013,20 +2501,16 @@ def _validated_v210_experiment_c_sensitivities(
             definition = _v210_sensitivity_lane_definition(lane_id)
             stage_id = definition["stage_id"]
             model_id = definition["model_id"]
-            stage_specs = tuple(
-                contract.expand(stage=stage_id, model=model_id)
-            )
+            stage_specs = tuple(contract.expand(stage=stage_id, model=model_id))
             expected_stage_ids = {spec.run_id for spec in stage_specs}
             stage_rows = [
                 row
                 for row in rows
-                if row.get("stage_id") == stage_id
-                and row.get("model_id") == model_id
+                if row.get("stage_id") == stage_id and row.get("model_id") == model_id
             ]
             stage_complete = bool(stage_specs) and bool(
                 len(stage_rows) == len(stage_specs)
-                and {str(row.get("run_id")) for row in stage_rows}
-                == expected_stage_ids
+                and {str(row.get("run_id")) for row in stage_rows} == expected_stage_ids
                 and all(
                     row.get("status") == "complete"
                     and row.get("scientific_eligible") is True
@@ -2082,8 +2566,7 @@ def _validated_v210_experiment_c_sensitivities(
                     for cell in cells
                     if isinstance(cell, Mapping)
                 }
-                if isinstance(cells, Sequence)
-                and not isinstance(cells, (str, bytes))
+                if isinstance(cells, Sequence) and not isinstance(cells, (str, bytes))
                 else set()
             )
             source_specs = tuple(
@@ -2127,8 +2610,7 @@ def _validated_v210_experiment_c_sensitivities(
                 != PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION
                 or value.get("status") != "pass"
                 or value.get("terminal") is not True
-                or value.get("control_kind")
-                != "zero-api-offline-rule-sensitivity"
+                or value.get("control_kind") != "zero-api-offline-rule-sensitivity"
                 or value.get("provider_calls") != 0
                 or value.get("descriptive_only") is not True
                 or value.get("effectiveness_gate") is not False
@@ -2644,7 +3126,7 @@ def aggregate_v24_evidence(
     version_label = _contract_version_label(contract)
     schema_version = _evidence_schema_version(contract)
     v210_sensitivity_controls: dict[str, dict[str, Any]] | None = None
-    if contract.contract_id == PILOT_V210_CONTRACT_ID:
+    if contract.contract_id in _V210_FAMILY_CONTRACT_IDS:
         v210_sensitivity_controls = _validated_v210_sensitivity_controls(
             release_controls
         )
@@ -2654,10 +3136,7 @@ def aggregate_v24_evidence(
         )
         effective_release_controls["pass"] = bool(
             release_controls.get("pass") is True
-            and all(
-                control["pass"]
-                for control in v210_sensitivity_controls.values()
-            )
+            and all(control["pass"] for control in v210_sensitivity_controls.values())
         )
         release_controls = effective_release_controls
     imported_prerequisites = _v27_imported_prerequisite_summary(
@@ -2686,11 +3165,15 @@ def aggregate_v24_evidence(
         prerequisites = _v29_prerequisite_summary(contract, rows)
     if prerequisites is None:
         prerequisites = _v210_prerequisite_summary(contract, rows)
+    if prerequisites is None:
+        prerequisites = _v2101_prerequisite_summary(contract, rows)
     parent_evidence_lineage = _v28_parent_evidence_lineage(contract)
     if parent_evidence_lineage is None:
         parent_evidence_lineage = _v29_parent_evidence_lineage(contract)
     if parent_evidence_lineage is None:
         parent_evidence_lineage = _v210_parent_evidence_lineage(contract)
+    if parent_evidence_lineage is None:
+        parent_evidence_lineage = _v2101_parent_evidence_lineage(contract)
     inherited_budget_boundary = _v27_inherited_budget_boundary(
         contract,
         denominator=denominator,
@@ -2714,6 +3197,12 @@ def aggregate_v24_evidence(
             denominator=denominator,
             release_controls=release_controls,
         )
+    if inherited_budget_boundary is None:
+        inherited_budget_boundary = _v2101_inherited_budget_boundary(
+            contract,
+            denominator=denominator,
+            release_controls=release_controls,
+        )
     prerequisite_stage_ids: set[str] = set()
     if contract.contract_id == PILOT_V27_CONTRACT_ID:
         prerequisite_stage_ids = set(_V27_IMPORTED_PREREQUISITE_COUNTS)
@@ -2722,6 +3211,8 @@ def aggregate_v24_evidence(
     elif contract.contract_id == PILOT_V29_CONTRACT_ID:
         prerequisite_stage_ids = set(_V29_PREREQUISITE_COUNTS)
     elif contract.contract_id == PILOT_V210_CONTRACT_ID:
+        prerequisite_stage_ids = set(_V210_PREREQUISITE_COUNTS)
+    elif contract.contract_id == PILOT_V2101_CONTRACT_ID:
         prerequisite_stage_ids = set(_V210_PREREQUISITE_COUNTS)
     effect_rows = (
         [row for row in rows if row.get("stage_id") not in prerequisite_stage_ids]
@@ -2757,11 +3248,7 @@ def aggregate_v24_evidence(
                         "replayed from five full-control seeds"
                     ),
                     "artifact": control["package_path"],
-                    "status": (
-                        "complete-descriptive"
-                        if control["pass"]
-                        else "no-go"
-                    ),
+                    "status": ("complete-descriptive" if control["pass"] else "no-go"),
                     "boundary": (
                         "descriptive sensitivity over natural proposals only; "
                         "it cannot rescue a failed Experiment C effectiveness "
@@ -2794,25 +3281,43 @@ def aggregate_v24_evidence(
             PILOT_V28_CONTRACT_ID: "V2.7",
             PILOT_V29_CONTRACT_ID: "V2.8",
             PILOT_V210_CONTRACT_ID: "V2.9",
+            PILOT_V2101_CONTRACT_ID: "V2.10",
         }[contract.contract_id]
-        prerequisite_claim = (
-            f"{version_label} imports the exact parent, q-ref, and Stage-0 "
-            "prerequisites without provider dispatch"
-            if contract.contract_id == PILOT_V210_CONTRACT_ID
-            else (
-                f"{version_label} parent authority, fresh scripted q-ref, and "
-                "imported Stage-0 inputs are complete prerequisites"
-            )
+        v2101_prerequisite_no_go = (
+            contract.contract_id == PILOT_V2101_CONTRACT_ID
+            and prerequisites["all_prerequisites_complete"] is not True
         )
-        prerequisite_metric = (
-            "16 registered imported prerequisite cells; 0 provider calls "
-            "during import; 195 fresh A-D cells required"
-            if contract.contract_id == PILOT_V210_CONTRACT_ID
-            else (
-                "16 registered prerequisite cells; q-ref 0 hosted / "
-                "48 scripted diagnostic calls; 14 imported Stage-0 cells"
+        if v2101_prerequisite_no_go:
+            prerequisite_claim = (
+                "V2.10.1 retains all 16 registered prerequisite identities "
+                "without relabelling incomplete cells as reverified"
             )
-        )
+            prerequisite_metric = (
+                f"{prerequisites['complete_prerequisite_cells']}/16 "
+                "prerequisites complete; 0 provider calls during import; "
+                "195 A-D identities remain registered fresh-only; "
+                f"{prerequisites['fresh_a_d_complete_cells']} completed fresh "
+                "A-D cells"
+            )
+        else:
+            prerequisite_claim = (
+                f"{version_label} imports the exact parent, q-ref, and Stage-0 "
+                "prerequisites without provider dispatch"
+                if contract.contract_id in _V210_FAMILY_CONTRACT_IDS
+                else (
+                    f"{version_label} parent authority, fresh scripted q-ref, and "
+                    "imported Stage-0 inputs are complete prerequisites"
+                )
+            )
+            prerequisite_metric = (
+                "16 registered imported prerequisite cells; 0 provider calls "
+                "during import; 195 fresh A-D cells required"
+                if contract.contract_id in _V210_FAMILY_CONTRACT_IDS
+                else (
+                    "16 registered prerequisite cells; q-ref 0 hosted / "
+                    "48 scripted diagnostic calls; 14 imported Stage-0 cells"
+                )
+            )
         claims.extend(
             [
                 {
@@ -2923,6 +3428,7 @@ def aggregate_v24_evidence(
                 PILOT_V28_CONTRACT_ID: "v2_8_a_d_cells_only",
                 PILOT_V29_CONTRACT_ID: "v2_9_a_d_cells_only",
                 PILOT_V210_CONTRACT_ID: "fresh_v2_10_a_d_cells_only",
+                PILOT_V2101_CONTRACT_ID: ("fresh_v2_10_1_a_d_cells_only"),
             }[contract.contract_id]: True,
         }
     if itt_row_preservation is not None:
@@ -2932,9 +3438,7 @@ def aggregate_v24_evidence(
     if inherited_budget_boundary is not None:
         aggregate["inherited_budget_boundary"] = inherited_budget_boundary
     if v210_sensitivity_controls is not None:
-        aggregate["experiment_c_rule_sensitivities"] = (
-            v210_sensitivity_controls
-        )
+        aggregate["experiment_c_rule_sensitivities"] = v210_sensitivity_controls
     return aggregate
 
 
@@ -3153,6 +3657,7 @@ def _report_markdown(
         PILOT_V28_CONTRACT_ID,
         PILOT_V29_CONTRACT_ID,
         PILOT_V210_CONTRACT_ID,
+        PILOT_V2101_CONTRACT_ID,
     }:
         lineage = aggregate["parent_evidence_lineage"]
         prerequisites = aggregate["prerequisites"]
@@ -3162,17 +3667,49 @@ def _report_markdown(
             PILOT_V28_CONTRACT_ID: "V2.7",
             PILOT_V29_CONTRACT_ID: "V2.8",
             PILOT_V210_CONTRACT_ID: "V2.9",
+            PILOT_V2101_CONTRACT_ID: "V2.10",
         }[aggregate["contract_id"]]
-        prerequisite_description = (
-            "The 16 hash-verified V2.9 parent/q-ref/Stage-0 prerequisites "
-            "used 0 provider calls during V2.10 import and are excluded from "
-            "all A-D gates; every one of the 195 V2.10 A-D cells is fresh."
-            if aggregate["contract_id"] == PILOT_V210_CONTRACT_ID
-            else (
-                "Parent authority, fresh scripted q-ref, and 14 imported "
-                "Stage-0 cells are excluded from every A-D treatment-effect gate."
+        if aggregate["contract_id"] == PILOT_V2101_CONTRACT_ID:
+            if prerequisites["all_prerequisites_complete"] is True:
+                prerequisite_description = (
+                    "The 16 schema- and hash-verified V2.9 "
+                    "parent/q-ref/Stage-0 prerequisites are reverified through "
+                    "the immutable V2.10 no-go, use 0 provider calls during "
+                    "V2.10.1 import, and are excluded from all A-D gates; every "
+                    "one of the 195 V2.10.1 A-D cells is fresh."
+                )
+            else:
+                fresh_complete = prerequisites["fresh_a_d_complete_cells"]
+                fresh_outcome_boundary = (
+                    "no V2.10.1 A-D outcome was generated"
+                    if fresh_complete == 0
+                    else (
+                        f"{fresh_complete} fresh A-D cells completed and are "
+                        "reported only according to their terminal rows"
+                    )
+                )
+                prerequisite_description = (
+                    "All 16 V2.9-derived prerequisite identities remain in the "
+                    "V2.10.1 denominator, but only "
+                    f"{prerequisites['complete_prerequisite_cells']}/16 "
+                    "completed; incomplete cells are not described as "
+                    "reverified. The 195 A-D identities remain registered "
+                    "fresh-only identities, not imported outcomes, and "
+                    f"{fresh_outcome_boundary}."
+                )
+        else:
+            prerequisite_description = (
+                "The 16 hash-verified V2.9 parent/q-ref/Stage-0 prerequisites "
+                "used 0 provider calls during V2.10 import and are excluded "
+                "from all A-D gates; every one of the 195 V2.10 A-D cells is "
+                "fresh."
+                if aggregate["contract_id"] == PILOT_V210_CONTRACT_ID
+                else (
+                    "Parent authority, fresh scripted q-ref, and 14 imported "
+                    "Stage-0 cells are excluded from every A-D treatment-effect "
+                    "gate."
+                )
             )
-        )
         lines.extend(
             [
                 "",
@@ -3195,14 +3732,20 @@ def _report_markdown(
                 f"hosted completions, under the `${inherited_budget['total_cap_usd']}` "
                 "hard cap.",
                 (
-                    "- Parent outcome boundary: V2.9 generated no actor "
-                    "treatment-effect outcome; its 10 offline "
-                    "candidate-admission outcomes are disclosed but are not "
-                    "V2.10 effect evidence."
-                    if aggregate["contract_id"] == PILOT_V210_CONTRACT_ID
+                    "- Parent outcome boundary: V2.10 generated no actor or "
+                    "A-D treatment-effect outcome; its one completed "
+                    "parent-import prerequisite is not V2.10.1 effect evidence."
+                    if aggregate["contract_id"] == PILOT_V2101_CONTRACT_ID
                     else (
-                        "- Fresh q-ref accounting: `0` hosted provider calls, "
-                        "`$0` hosted cost, and `48` scripted diagnostic calls."
+                        "- Parent outcome boundary: V2.9 generated no actor "
+                        "treatment-effect outcome; its 10 offline "
+                        "candidate-admission outcomes are disclosed but are not "
+                        "V2.10 effect evidence."
+                        if aggregate["contract_id"] == PILOT_V210_CONTRACT_ID
+                        else (
+                            "- Fresh q-ref accounting: `0` hosted provider calls, "
+                            "`$0` hosted cost, and `48` scripted diagnostic calls."
+                        )
                     )
                 ),
                 f"- Prerequisite classification: {prerequisite_description}",
@@ -3818,6 +4361,96 @@ def _validated_v210_parent_evidence_reference(
     }
 
 
+def _validated_v2101_parent_evidence_reference(
+    contract: PilotContract,
+    *,
+    contract_path: Path,
+) -> dict[str, Any] | None:
+    """Revalidate V2.10's immutable terminal no-go without copying it."""
+
+    lineage = _v2101_parent_evidence_lineage(contract)
+    if lineage is None:
+        return None
+    repository_root = contract_path.resolve().parent.parent
+    namespace = str(lineage["source_evidence_namespace"])
+    if namespace != "evidence/current_v2/pilot-v2.10":
+        raise PilotEvidenceError("V2.10.1 parent evidence namespace drifted")
+
+    from . import (  # pylint: disable=import-outside-toplevel
+        pilot_v2101_parent_import as parent_import,
+    )
+
+    parent_repository_root = repository_root.parent / "finevo-pilot-v2-10-science"
+    try:
+        audit = parent_import.verify_v210_terminal_lineage(
+            parent_repo_root=parent_repository_root,
+            evidence_repo_root=repository_root,
+        )
+    except parent_import.PilotV2101ParentImportError as exc:
+        raise PilotEvidenceError(
+            "V2.10.1 immutable V2.10 parent evidence verification failed"
+        ) from exc
+
+    source_contract = audit.get("source_contract")
+    evidence = audit.get("evidence")
+    qref_failure = audit.get("qref_failure_receipt")
+    if (
+        not isinstance(evidence, Mapping)
+        or not isinstance(qref_failure, Mapping)
+        or getattr(source_contract, "contract_id", None) != PILOT_V210_CONTRACT_ID
+        or getattr(source_contract, "canonical_hash", None)
+        != lineage["source_contract_sha256"]
+        or evidence.get("publication_commit") != _PILOT_V210_EVIDENCE_PUBLICATION_COMMIT
+        or evidence.get("merge_commit") != _PILOT_V210_EVIDENCE_MERGE_COMMIT
+        or evidence.get("root") != namespace
+        or evidence.get("package_manifest_file_sha256")
+        != _PILOT_V210_EVIDENCE_PACKAGE_MANIFEST_SHA256
+        or evidence.get("checksums_file_sha256")
+        != _PILOT_V210_EVIDENCE_CHECKSUMS_SHA256
+        or evidence.get("terminal_status") != "complete-with-no-go"
+        or evidence.get("status_counts") != {"complete": 1, "integrity-stopped": 210}
+        or evidence.get("v2_10_hosted_completions") != 0
+        or evidence.get("v2_10_hosted_stage_cost_usd") != 0.0
+        or evidence.get("scientific_claim_gates_supported") is not False
+        or qref_failure.get("status") != "integrity-stopped"
+        or qref_failure.get("integrity", {}).get("content_sha256")
+        != ("48ae5807da2c3175b3fd427cc023796e7" "bd81c5b77695789a900474e023da098")
+        or audit.get("provider_construction_during_import") is not False
+        or audit.get("provider_calls_during_import") != 0
+        or audit.get("hosted_provider_calls_during_import") != 0
+        or audit.get("hosted_cost_usd_during_import") != 0.0
+    ):
+        raise PilotEvidenceError(
+            "V2.10.1 immutable V2.10 parent evidence semantic binding mismatch"
+        )
+    raw_inventory = audit.get("raw_inventory")
+    if (
+        not isinstance(raw_inventory, Mapping)
+        or raw_inventory.get("file_count") != 637
+        or raw_inventory.get("storage_bytes") != 20_126_496
+        or raw_inventory.get("inventory_sha256")
+        != "d8964a15abed0d77598d2c2cf80136e438b67559796cc93f8566dca17e584baa"
+    ):
+        raise PilotEvidenceError("V2.10.1 immutable V2.10 parent raw inventory drifted")
+    return {
+        **lineage,
+        "reference_kind": "immutable-external-package-reference",
+        "source_package_path": namespace,
+        "source_package_copied": False,
+        "inventory_verified": True,
+        "semantic_binding_verified": True,
+        "implementation_no_go_verified": True,
+        "qref_failure_verified": True,
+        "provider_boundary_verified": True,
+        "checksum_entry_count": 18,
+        "raw_inventory": {
+            "file_count": raw_inventory["file_count"],
+            "storage_bytes": raw_inventory["storage_bytes"],
+            "inventory_sha256": raw_inventory["inventory_sha256"],
+        },
+    }
+
+
 def _v210_source_manifest_amendment_chain(
     contract: PilotContract,
 ) -> tuple[tuple[Mapping[str, Any] | None, str], ...]:
@@ -3828,6 +4461,47 @@ def _v210_source_manifest_amendment_chain(
             "V2.10 source-manifest chain requested for another contract"
         )
     return (
+        (
+            contract.p95_runner_binding_retry_amendment,
+            "pilot_v2_10_source_manifest.json",
+        ),
+        (
+            contract.qref_summary_equivalence_amendment,
+            "pilot_v2_9_source_manifest.json",
+        ),
+        (
+            contract.qref_identity_retry_amendment,
+            "pilot_v2_8_source_manifest.json",
+        ),
+        (
+            contract.stage0_evaluator_retry_amendment,
+            "pilot_v2_7_source_manifest.json",
+        ),
+        (
+            contract.p95_authority_retry_amendment,
+            "pilot_v2_6_source_manifest.json",
+        ),
+        (
+            contract.parent_import_retry_amendment,
+            "pilot_v2_5_source_manifest.json",
+        ),
+    )
+
+
+def _v2101_source_manifest_amendment_chain(
+    contract: PilotContract,
+) -> tuple[tuple[Mapping[str, Any] | None, str], ...]:
+    """Return V2.10.1's complete newest-to-oldest source-manifest chain."""
+
+    if contract.contract_id != PILOT_V2101_CONTRACT_ID:
+        raise PilotEvidenceError(
+            "V2.10.1 source-manifest chain requested for another contract"
+        )
+    return (
+        (
+            contract.qref_receipt_verifier_retry_amendment,
+            "pilot_v2_10_1_source_manifest.json",
+        ),
         (
             contract.p95_runner_binding_retry_amendment,
             "pilot_v2_10_source_manifest.json",
@@ -3916,6 +4590,7 @@ def _write_v24_package(
     deep_ancestral_retry_manifest_name: str | None = None
     deepest_ancestral_retry_binding: dict[str, Any] | None = None
     deepest_ancestral_retry_manifest_name: str | None = None
+    lineage_source_manifest_entries: list[dict[str, Any]] = []
     base_binding: dict[str, Any] | None = None
     base_contract_name: str | None = None
     if contract.contract_id == PILOT_V25_CONTRACT_ID:
@@ -3976,10 +4651,14 @@ def _write_v24_package(
         PILOT_V28_CONTRACT_ID,
         PILOT_V29_CONTRACT_ID,
         PILOT_V210_CONTRACT_ID,
+        PILOT_V2101_CONTRACT_ID,
     }:
         is_v29 = contract.contract_id == PILOT_V29_CONTRACT_ID
         is_v210 = contract.contract_id == PILOT_V210_CONTRACT_ID
-        if is_v210:
+        is_v2101 = contract.contract_id == PILOT_V2101_CONTRACT_ID
+        if is_v2101:
+            lineage_bindings = _v2101_source_manifest_amendment_chain(contract)
+        elif is_v210:
             lineage_bindings = _v210_source_manifest_amendment_chain(contract)
         else:
             lineage_bindings = (
@@ -4057,6 +4736,12 @@ def _write_v24_package(
                     f"{manifest_name}"
                 )
             copied_bindings.append(binding)
+            lineage_source_manifest_entries.append(
+                {
+                    **binding,
+                    "package_path": f"contract/{manifest_name}",
+                }
+            )
         (
             retry_binding,
             inherited_retry_binding,
@@ -4079,29 +4764,35 @@ def _write_v24_package(
             deepest_ancestral_retry_manifest_name = deep_manifest_names[1]
 
         failure = (
-            _v210_amendment(contract)
-            if is_v210
-            else _v29_amendment(contract)
-            if is_v29
-            else _v28_amendment(contract)
+            _v2101_amendment(contract)
+            if is_v2101
+            else (
+                _v210_amendment(contract)
+                if is_v210
+                else _v29_amendment(contract) if is_v29 else _v28_amendment(contract)
+            )
         ).get("failure_classification")
         if not isinstance(failure, Mapping):
             raise PilotEvidenceError(
                 f"{version_label} parent contract binding is malformed"
             )
         base_contract_name = (
-            "pilot_v2_9.yaml"
-            if is_v210
-            else "pilot_v2_8.yaml"
-            if is_v29
-            else "pilot_v2_7.yaml"
+            "pilot_v2_10.yaml"
+            if is_v2101
+            else (
+                "pilot_v2_9.yaml"
+                if is_v210
+                else "pilot_v2_8.yaml" if is_v29 else "pilot_v2_7.yaml"
+            )
         )
         parent_contract_id = (
-            PILOT_V29_CONTRACT_ID
-            if is_v210
-            else PILOT_V28_CONTRACT_ID
-            if is_v29
-            else PILOT_V27_CONTRACT_ID
+            PILOT_V210_CONTRACT_ID
+            if is_v2101
+            else (
+                PILOT_V29_CONTRACT_ID
+                if is_v210
+                else PILOT_V28_CONTRACT_ID if is_v29 else PILOT_V27_CONTRACT_ID
+            )
         )
         base_binding = {
             "path": base_contract_name,
@@ -4317,6 +5008,11 @@ def _write_v24_package(
             contract,
             contract_path=contract_path,
         )
+    if parent_evidence_reference is None:
+        parent_evidence_reference = _validated_v2101_parent_evidence_reference(
+            contract,
+            contract_path=contract_path,
+        )
     if parent_evidence_reference is not None:
         parent_reference_schema = {
             PILOT_V28_CONTRACT_ID: (
@@ -4327,6 +5023,9 @@ def _write_v24_package(
             ),
             PILOT_V210_CONTRACT_ID: (
                 "finevo-pilot-v2.10-parent-evidence-reference-v1"
+            ),
+            PILOT_V2101_CONTRACT_ID: (
+                "finevo-pilot-v2.10.1-parent-evidence-reference-v1"
             ),
         }[contract.contract_id]
         _atomic_bytes(
@@ -4343,7 +5042,7 @@ def _write_v24_package(
 
     sensitivity_published_files: list[str] = []
     sensitivity_manifest: dict[str, dict[str, Any]] | None = None
-    if contract.contract_id == PILOT_V210_CONTRACT_ID:
+    if contract.contract_id in _V210_FAMILY_CONTRACT_IDS:
         controls_raw = aggregate.get("experiment_c_rule_sensitivities")
         if not isinstance(controls_raw, Mapping):
             raise PilotEvidenceError(
@@ -4507,53 +5206,67 @@ def _write_v24_package(
         _report_markdown(aggregate_payload).encode("utf-8"),
     )
     published_files = sorted(
-        [
-            "aggregate.csv",
-            "aggregate.json",
-            "claim_metric_artifact.json",
-            "claim_narrowing.json",
-            f"contract/{contract_path.name}",
-            f"contract/{parent_manifest_name}",
-            "failure_ledger.json",
-            "method_differences_scaffold.json",
-            "reviewer_report.md",
-        ]
-        + sensitivity_published_files
-        + (
-            [f"contract/{retry_manifest_name}"]
-            if retry_manifest_name is not None
-            else []
-        )
-        + (
-            [f"contract/{inherited_retry_manifest_name}"]
-            if inherited_retry_manifest_name is not None
-            else []
-        )
-        + (
-            [f"contract/{ancestral_retry_manifest_name}"]
-            if ancestral_retry_manifest_name is not None
-            else []
-        )
-        + (
-            [f"contract/{great_ancestral_retry_manifest_name}"]
-            if great_ancestral_retry_manifest_name is not None
-            else []
-        )
-        + (
-            [f"contract/{deep_ancestral_retry_manifest_name}"]
-            if deep_ancestral_retry_manifest_name is not None
-            else []
-        )
-        + (
-            [f"contract/{deepest_ancestral_retry_manifest_name}"]
-            if deepest_ancestral_retry_manifest_name is not None
-            else []
-        )
-        + ([f"contract/{base_contract_name}"] if base_contract_name is not None else [])
-        + (
-            ["parent_evidence_reference.json"]
-            if parent_evidence_reference is not None
-            else []
+        set(
+            [
+                "aggregate.csv",
+                "aggregate.json",
+                "claim_metric_artifact.json",
+                "claim_narrowing.json",
+                f"contract/{contract_path.name}",
+                f"contract/{parent_manifest_name}",
+                "failure_ledger.json",
+                "method_differences_scaffold.json",
+                "reviewer_report.md",
+            ]
+            + sensitivity_published_files
+            + (
+                [f"contract/{retry_manifest_name}"]
+                if retry_manifest_name is not None
+                else []
+            )
+            + (
+                [f"contract/{inherited_retry_manifest_name}"]
+                if inherited_retry_manifest_name is not None
+                else []
+            )
+            + (
+                [f"contract/{ancestral_retry_manifest_name}"]
+                if ancestral_retry_manifest_name is not None
+                else []
+            )
+            + (
+                [f"contract/{great_ancestral_retry_manifest_name}"]
+                if great_ancestral_retry_manifest_name is not None
+                else []
+            )
+            + (
+                [f"contract/{deep_ancestral_retry_manifest_name}"]
+                if deep_ancestral_retry_manifest_name is not None
+                else []
+            )
+            + (
+                [f"contract/{deepest_ancestral_retry_manifest_name}"]
+                if deepest_ancestral_retry_manifest_name is not None
+                else []
+            )
+            + (
+                [f"contract/{base_contract_name}"]
+                if base_contract_name is not None
+                else []
+            )
+            + (
+                ["parent_evidence_reference.json"]
+                if parent_evidence_reference is not None
+                else []
+            )
+            + (
+                [
+                    str(entry["package_path"])
+                    for entry in lineage_source_manifest_entries
+                ]
+                if contract.contract_id == PILOT_V2101_CONTRACT_ID
+                else []
+            )
         )
     )
     manifest = {
@@ -4587,22 +5300,34 @@ def _write_v24_package(
         + (
             [
                 (
-                    "V2.9 offline candidate-admission outcomes as V2.10 "
-                    "treatment-effect evidence"
-                    if contract.contract_id == PILOT_V210_CONTRACT_ID
-                    else "V2.8 treatment-effect outcomes"
-                    if contract.contract_id == PILOT_V29_CONTRACT_ID
-                    else "V2.7 treatment-effect outcomes"
+                    "V2.10 terminal no-go rows as V2.10.1 treatment-effect " "evidence"
+                    if contract.contract_id == PILOT_V2101_CONTRACT_ID
+                    else (
+                        "V2.9 offline candidate-admission outcomes as V2.10 "
+                        "treatment-effect evidence"
+                        if contract.contract_id == PILOT_V210_CONTRACT_ID
+                        else (
+                            "V2.8 treatment-effect outcomes"
+                            if contract.contract_id == PILOT_V29_CONTRACT_ID
+                            else "V2.7 treatment-effect outcomes"
+                        )
+                    )
                 )
             ]
             if contract.contract_id == PILOT_V28_CONTRACT_ID
             or contract.contract_id == PILOT_V29_CONTRACT_ID
             or contract.contract_id == PILOT_V210_CONTRACT_ID
+            or contract.contract_id == PILOT_V2101_CONTRACT_ID
             else []
         ),
     }
     if sensitivity_manifest is not None:
         manifest["experiment_c_rule_sensitivities"] = sensitivity_manifest
+    if (
+        contract.contract_id == PILOT_V2101_CONTRACT_ID
+        and lineage_source_manifest_entries
+    ):
+        manifest["source_manifest_chain"] = _json_copy(lineage_source_manifest_entries)
     if retry_binding is not None and retry_manifest_name is not None:
         manifest["retry_source_manifest"] = {
             **retry_binding,
@@ -4748,7 +5473,7 @@ def build_pilot_v24_evidence_package(
         source_repo_root=source_root,
     )
     experiment_c_sensitivities: dict[str, dict[str, Any]] = {}
-    if contract.contract_id == PILOT_V210_CONTRACT_ID:
+    if contract.contract_id in _V210_FAMILY_CONTRACT_IDS:
         (
             experiment_c_sensitivities,
             sensitivity_controls,
@@ -4815,7 +5540,7 @@ def build_pilot_v24_evidence_package(
                         aggregate["experiment_c_rule_sensitivities"]
                     )
                 }
-                if contract.contract_id == PILOT_V210_CONTRACT_ID
+                if contract.contract_id in _V210_FAMILY_CONTRACT_IDS
                 else {}
             ),
         },
@@ -4844,6 +5569,8 @@ __all__ = [
     "PILOT_V29_EVIDENCE_SCHEMA_VERSION",
     "PILOT_V210_CONTRACT_ID",
     "PILOT_V210_EVIDENCE_SCHEMA_VERSION",
+    "PILOT_V2101_CONTRACT_ID",
+    "PILOT_V2101_EVIDENCE_SCHEMA_VERSION",
     "aggregate_lane_separated_evidence",
     "aggregate_v24_evidence",
     "build_lane_separated_evidence_package",

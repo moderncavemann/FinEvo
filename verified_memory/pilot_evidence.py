@@ -215,6 +215,41 @@ def _is_v210_contract(contract: PilotContract) -> bool:
     return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.10"
 
 
+def _is_v2101_contract(contract: PilotContract) -> bool:
+    return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.10.1"
+
+
+def _is_v210_prerequisite_family_contract(contract: PilotContract) -> bool:
+    """Return whether V2.10's imported-prerequisite wire schema applies."""
+
+    return _is_v210_contract(contract) or _is_v2101_contract(contract)
+
+
+def _v210_prerequisite_wire_identity(
+    contract: PilotContract,
+) -> tuple[str, str]:
+    """Return the exact q-ref schema and disposition for one release.
+
+    V2.10.1 deliberately uses a new producer schema and a distinct reseal
+    disposition.  Treating the two releases as a union would let a wrapper
+    from one denominator masquerade as an artifact from the other.
+    """
+
+    if _is_v210_contract(contract):
+        return (
+            "finevo-pilot-v2.10-imported-qref-resolution-v1",
+            "immutable-v2.9-prerequisite-import-offline-reseal",
+        )
+    if _is_v2101_contract(contract):
+        return (
+            "finevo-pilot-v2.10.1-imported-qref-resolution-v1",
+            "immutable-v2.9-prerequisite-import-offline-v2.10.1-reseal",
+        )
+    raise PilotEvidenceError(
+        "V2.10 prerequisite wire identity requested for another contract"
+    )
+
+
 def _is_lane_separated_contract(contract: PilotContract) -> bool:
     """Return whether the contract uses the fixed V2.4 211-cell lane matrix."""
 
@@ -225,7 +260,7 @@ def _is_lane_separated_contract(contract: PilotContract) -> bool:
         or _is_v27_contract(contract)
         or _is_v28_contract(contract)
         or _is_v29_contract(contract)
-        or _is_v210_contract(contract)
+        or _is_v210_prerequisite_family_contract(contract)
     )
 
 
@@ -246,7 +281,7 @@ def _is_imported_stage0_spec(
             _is_v27_contract(contract)
             or _is_v28_contract(contract)
             or _is_v29_contract(contract)
-            or _is_v210_contract(contract)
+            or _is_v210_prerequisite_family_contract(contract)
         )
         and spec.get("stage_id") == "stage0-calibration"
         and spec.get("execution_mode") == "actor_run"
@@ -284,7 +319,7 @@ def _evidence_namespace(contract: PilotContract) -> str:
     """Derive a safe, versioned package namespace from the contract ID."""
 
     match = re.fullmatch(
-        r"finevo-(pilot-v[1-9][0-9]*(?:\.[1-9][0-9]*)?)",
+        r"finevo-(pilot-v[1-9][0-9]*(?:\.[1-9][0-9]*)*)",
         contract.contract_id,
     )
     if match is None:
@@ -2784,6 +2819,159 @@ def _validate_v29_qref_resolution_artifact(
         )
 
 
+def _validate_v210_family_qref_terminal_marker(
+    contract: PilotContract,
+    marker: Mapping[str, Any],
+    gate: Mapping[str, Any],
+    payload: Mapping[str, Any],
+    *,
+    raw_root: Path,
+    source_repo_root: Path | None,
+) -> None:
+    """Validate the exact V2.10-family imported q-ref wrapper shape.
+
+    V2.10 stopped using the legacy ``source_manifest`` terminal marker.  Its
+    terminal binds the copied V2.9 resolution through ``source_resolution``
+    and separately binds the current-contract reseal.  Dispatch by contract
+    family instead of accepting a union of both shapes: mixed legacy/current
+    markers must remain invalid.
+    """
+
+    expected_marker_keys = {
+        "q_ref",
+        "row_count",
+        "source_resolution",
+        "source_resolution_sha256",
+        "resolution_artifact",
+    }
+    expected_gate_keys = {
+        "status",
+        "execution_disposition",
+        "q_ref_resolution",
+        "provider_calls_current_attempt",
+    }
+    expected_schema, expected_disposition = _v210_prerequisite_wire_identity(contract)
+    if (
+        set(marker) != expected_marker_keys
+        or set(gate) != expected_gate_keys
+        or not _is_finite_scalar(marker.get("q_ref"))
+        or float(marker["q_ref"]) <= 0
+        or not isinstance(marker.get("row_count"), int)
+        or isinstance(marker.get("row_count"), bool)
+        or marker["row_count"] <= 0
+        or not isinstance(marker.get("source_resolution"), str)
+        or not marker["source_resolution"]
+        or not _is_sha256(marker.get("source_resolution_sha256"))
+        or not isinstance(marker.get("resolution_artifact"), str)
+        or not marker["resolution_artifact"]
+        or gate.get("status") != "pass"
+        or gate.get("execution_disposition") != expected_disposition
+        or gate.get("provider_calls_current_attempt") != 0
+        or payload.get("provider_calls") != 0
+    ):
+        raise PilotEvidenceError(
+            "V2.10-family q_ref terminal marker shape or zero-call "
+            "disposition drifted"
+        )
+
+    current_binding = _mapping(
+        gate.get("q_ref_resolution"),
+        "V2.10-family current q_ref resolution binding",
+    )
+    if set(current_binding) != {
+        "path",
+        "file_sha256",
+        "content_sha256",
+    }:
+        raise PilotEvidenceError(
+            "V2.10-family current q_ref resolution binding fields drifted"
+        )
+
+    current_path = _resolve_artifact(
+        raw_root,
+        marker["resolution_artifact"],
+    )
+    declared_current_path = _resolve_artifact(
+        raw_root,
+        current_binding.get("path"),
+    )
+    expected_current_path = (
+        raw_root / "q-ref-resolution" / "q_ref_resolution.json"
+    ).resolve(strict=True)
+    source_path = _resolve_artifact(
+        raw_root,
+        marker["source_resolution"],
+    )
+    if (
+        current_path != declared_current_path
+        or current_path != expected_current_path
+        or current_binding.get("path") != marker["resolution_artifact"]
+        or _sha256_file(current_path) != current_binding.get("file_sha256")
+        or _sha256_file(source_path) != marker.get("source_resolution_sha256")
+    ):
+        raise PilotEvidenceError("V2.10-family q_ref terminal file bindings drifted")
+
+    try:
+        from .pilot_orchestrator import (  # pylint: disable=import-outside-toplevel
+            PilotOrchestrationError,
+            _load_verified_q_ref,
+        )
+
+        verified = _load_verified_q_ref(
+            contract,
+            raw_root=raw_root,
+            paid=None,
+            authority_repo_root=source_repo_root,
+        )
+    except (
+        OSError,
+        TypeError,
+        ValueError,
+        KeyError,
+        PilotOrchestrationError,
+    ) as exc:
+        raise PilotEvidenceError(
+            "V2.10-family q_ref resolution failed exact imported-source "
+            f"replay: {exc}"
+        ) from exc
+
+    integrity = _mapping(
+        verified.get("integrity"),
+        "V2.10-family q_ref resolution integrity",
+    )
+    source_import = _mapping(
+        verified.get("source_import"),
+        "V2.10-family q_ref source import",
+    )
+    source_artifacts = _mapping(
+        source_import.get("source_artifacts"),
+        "V2.10-family q_ref source artifacts",
+    )
+    source_resolution = _mapping(
+        source_artifacts.get("q_ref_resolution"),
+        "V2.10-family source q_ref resolution",
+    )
+    if (
+        verified.get("schema_version") != expected_schema
+        or verified.get("contract_id") != contract.contract_id
+        or verified.get("contract_sha256") != contract.canonical_hash
+        or verified.get("scientific_evidence") is not False
+        or verified.get("provider_calls_current_attempt") != 0
+        or verified.get("hosted_provider_calls_current_attempt") != 0
+        or verified.get("provider_construction_current_attempt") is not False
+        or verified.get("q_ref") != marker["q_ref"]
+        or verified.get("row_count") != marker["row_count"]
+        or integrity.get("canonicalization") != "json-sort-keys-utf8-v1"
+        or integrity.get("content_sha256") != _bound_artifact_hash(verified)
+        or integrity.get("content_sha256") != current_binding.get("content_sha256")
+        or source_resolution.get("snapshot_path") != marker["source_resolution"]
+        or source_resolution.get("file_sha256") != marker["source_resolution_sha256"]
+    ):
+        raise PilotEvidenceError(
+            "V2.10-family q_ref terminal differs from its exact resealed " "resolution"
+        )
+
+
 def _validate_terminal_payload_marker(
     contract: PilotContract,
     spec: Mapping[str, Any],
@@ -2890,6 +3078,28 @@ def _validate_terminal_payload_marker(
                     )
 
                 parent_import_receipt_verifier = verify_v210_receipt
+        elif _is_v2101_contract(contract):
+            version_label = "V2.10.1"
+            if parent_import_receipt_verifier is None:
+                from .pilot_v2101_parent_import import (  # pylint: disable=import-outside-toplevel
+                    verify_v2101_parent_import_receipt,
+                )
+
+                def verify_v2101_receipt(
+                    receipt_path: str,
+                    *,
+                    repo_root: Path,
+                    contract: PilotContract,
+                    expected_git_commit: str,
+                ) -> Mapping[str, Any]:
+                    return verify_v2101_parent_import_receipt(
+                        receipt_path=receipt_path,
+                        child_repo_root=repo_root,
+                        contract=contract,
+                        expected_git_commit=expected_git_commit,
+                    )
+
+                parent_import_receipt_verifier = verify_v2101_receipt
         else:
             raise PilotEvidenceError(
                 "parent-authority import is unsupported for this contract"
@@ -2900,7 +3110,7 @@ def _validate_terminal_payload_marker(
             if (
                 _is_v28_contract(contract)
                 or _is_v29_contract(contract)
-                or _is_v210_contract(contract)
+                or _is_v210_prerequisite_family_contract(contract)
             )
             else "provider_calls"
         )
@@ -3047,6 +3257,16 @@ def _validate_terminal_payload_marker(
             payload.get("q_ref_resolution"),
             "q_ref_resolution payload",
         )
+        if _is_v210_prerequisite_family_contract(contract):
+            _validate_v210_family_qref_terminal_marker(
+                contract,
+                resolution,
+                gate,
+                payload,
+                raw_root=raw_root,
+                source_repo_root=source_repo_root,
+            )
+            return
         if (
             not _is_finite_scalar(resolution.get("q_ref"))
             or float(resolution["q_ref"]) <= 0
@@ -3553,7 +3773,7 @@ def _load_terminal_summary(
                     source_repo_root is not None
                     and (
                         _is_v29_contract(contract)
-                        or _is_v210_contract(contract)
+                        or _is_v210_prerequisite_family_contract(contract)
                     )
                     and source_repo_root.resolve()
                     != Path(__file__).resolve().parents[1]
@@ -3571,8 +3791,7 @@ def _load_terminal_summary(
             )
         except (OSError, TypeError, ValueError, PilotOrchestrationError) as exc:
             raise PilotEvidenceError(
-                "imported Stage-0 envelope failed exact replay "
-                f"verification: {exc}"
+                "imported Stage-0 envelope failed exact replay " f"verification: {exc}"
             ) from exc
     else:
         _validate_terminal_payload_marker(
@@ -4748,8 +4967,11 @@ def _expected_parent_budget_debit(
     from .pilot_v28_stage0_import import parent_budget_debit_for_v28
     from .pilot_v29_stage0_import import parent_budget_debit_for_v29
     from .pilot_v210_parent_import import parent_budget_debit_for_v210
+    from .pilot_v2101_parent_import import parent_budget_debit_for_v2101
 
-    debit = parent_budget_debit_for_v210(contract)
+    debit = parent_budget_debit_for_v2101(contract)
+    if debit is None:
+        debit = parent_budget_debit_for_v210(contract)
     if debit is None:
         debit = parent_budget_debit_for_v29(contract)
     if debit is None:
@@ -4842,7 +5064,7 @@ def _validated_imported_stage0_source_row(
     common_commit: str | None,
     source_repo_root: Path | None = None,
 ) -> bool:
-    """Validate one V2.7--V2.9 imported Stage-0 source end to end.
+    """Validate one version-dispatched imported Stage-0 source end to end.
 
     These contracts do not claim that their imported Stage-0 actor cells were
     executed again.  Their aggregate artifact is a current terminal summary
@@ -4852,7 +5074,8 @@ def _validated_imported_stage0_source_row(
     contracts are not relaxed.
     """
 
-    expected_source_keys = {
+    v210_family = _is_v210_prerequisite_family_contract(contract)
+    common_source_keys = {
         "run_id",
         "utility_profile_id",
         "environment_seed",
@@ -4864,17 +5087,23 @@ def _validated_imported_stage0_source_row(
         "terminal_summary_file_sha256",
         "terminal_summary_content_sha256",
         "source_run_id",
-        "source_manifest_sha256",
         "provider_calls_current_attempt",
     }
+    expected_source_keys = common_source_keys | {
+        "source_terminal_file_sha256" if v210_family else "source_manifest_sha256"
+    }
+    expected_disposition = (
+        _v210_prerequisite_wire_identity(contract)[1]
+        if v210_family
+        else "immutable-parent-import-offline-resummary"
+    )
     if (
         common_commit is None
         or set(source) != expected_source_keys
         or source.get("run_id") != spec.run_id
         or source.get("utility_profile_id") != spec.utility_profile_id
         or source.get("environment_seed") != spec.environment_seed
-        or source.get("execution_disposition")
-        != "immutable-parent-import-offline-resummary"
+        or source.get("execution_disposition") != expected_disposition
         or source.get("provider_calls_current_attempt") != 0
         or row.get("status") != "complete"
         or row.get("artifact_kind") != "imported-stage0-run-envelope"
@@ -4901,14 +5130,22 @@ def _validated_imported_stage0_source_row(
             envelope.get("source_import"),
             "imported Stage-0 envelope source import",
         )
-        source_artifacts = _mapping(
-            source_import.get("source_artifacts"),
-            "imported Stage-0 envelope source artifacts",
-        )
-        source_manifest = _mapping(
-            source_artifacts.get("manifest"),
-            "imported Stage-0 source manifest",
-        )
+        if v210_family:
+            source_terminal = _mapping(
+                source_import.get("source_terminal"),
+                "V2.10-family imported Stage-0 source terminal",
+            )
+            source_manifest = None
+        else:
+            source_artifacts = _mapping(
+                source_import.get("source_artifacts"),
+                "imported Stage-0 envelope source artifacts",
+            )
+            source_manifest = _mapping(
+                source_artifacts.get("manifest"),
+                "imported Stage-0 source manifest",
+            )
+            source_terminal = None
         terminal_payload = _mapping(
             terminal.get("payload"),
             "imported Stage-0 terminal payload",
@@ -4937,10 +5174,9 @@ def _validated_imported_stage0_source_row(
                 source_repo_root is not None
                 and (
                     _is_v29_contract(contract)
-                    or _is_v210_contract(contract)
+                    or _is_v210_prerequisite_family_contract(contract)
                 )
-                and source_repo_root.resolve()
-                != Path(__file__).resolve().parents[1]
+                and source_repo_root.resolve() != Path(__file__).resolve().parents[1]
             )
             else {}
         )
@@ -4971,12 +5207,29 @@ def _validated_imported_stage0_source_row(
     ):
         return False
 
+    source_lineage_valid = (
+        bool(
+            _is_sha256(source.get("source_terminal_file_sha256"))
+            and source_import.get("source_run_id") == source.get("source_run_id")
+            and source_terminal is not None
+            and source_terminal.get("file_sha256")
+            == source.get("source_terminal_file_sha256")
+        )
+        if v210_family
+        else bool(
+            _is_sha256(source.get("source_manifest_sha256"))
+            and source_import.get("source_run_id") == source.get("source_run_id")
+            and source_manifest is not None
+            and source_manifest.get("file_sha256")
+            == source.get("source_manifest_sha256")
+        )
+    )
     return bool(
         _is_sha256(source.get("envelope_file_sha256"))
         and _is_sha256(source.get("envelope_content_sha256"))
         and _is_sha256(source.get("terminal_summary_file_sha256"))
         and _is_sha256(source.get("terminal_summary_content_sha256"))
-        and _is_sha256(source.get("source_manifest_sha256"))
+        and source_lineage_valid
         and _sha256_file(envelope_path) == source.get("envelope_file_sha256")
         and envelope_integrity.get("content_sha256")
         == source.get("envelope_content_sha256")
@@ -4984,8 +5237,6 @@ def _validated_imported_stage0_source_row(
         and terminal_integrity.get("content_sha256")
         == source.get("terminal_summary_content_sha256")
         and row.get("artifact_sha256") == source.get("terminal_summary_file_sha256")
-        and source_import.get("source_run_id") == source.get("source_run_id")
-        and source_manifest.get("file_sha256") == source.get("source_manifest_sha256")
         and verified.get("execution_disposition") == source.get("execution_disposition")
         and verified.get("provider_calls_current_attempt") == 0
         and verified.get("scientific_evidence") is True
@@ -5112,12 +5363,10 @@ def _validated_release_controls(
             _is_v27_contract(contract)
             or _is_v28_contract(contract)
             or _is_v29_contract(contract)
-            or _is_v210_contract(contract)
+            or _is_v210_prerequisite_family_contract(contract)
         )
         source_rows = bindings.get(
-            "source_envelopes"
-            if imported_stage0_contract
-            else "source_manifests"
+            "source_envelopes" if imported_stage0_contract else "source_manifests"
         )
         expected_specs = {
             spec.run_id: spec for spec in contract.expand(stage="stage0-calibration")
@@ -5210,7 +5459,7 @@ def _validated_release_controls(
                         source_repo_root is not None
                         and (
                             _is_v29_contract(contract)
-                            or _is_v210_contract(contract)
+                            or _is_v210_prerequisite_family_contract(contract)
                         )
                         and source_repo_root.resolve()
                         != Path(__file__).resolve().parents[1]
@@ -5333,7 +5582,7 @@ def _validated_release_controls(
                 _is_v27_contract(contract)
                 or _is_v28_contract(contract)
                 or _is_v29_contract(contract)
-                or _is_v210_contract(contract)
+                or _is_v210_prerequisite_family_contract(contract)
             )
             else set()
         )
@@ -5345,7 +5594,7 @@ def _validated_release_controls(
             _is_v27_contract(contract)
             or _is_v28_contract(contract)
             or _is_v29_contract(contract)
-            or _is_v210_contract(contract)
+            or _is_v210_prerequisite_family_contract(contract)
         ):
             required_import_budget_ids.update(expected_parent_ids)
             for stage_id in (
@@ -5462,7 +5711,7 @@ def _validated_release_controls(
                     _is_v27_contract(contract)
                     or _is_v28_contract(contract)
                     or _is_v29_contract(contract)
-                    or _is_v210_contract(contract)
+                    or _is_v210_prerequisite_family_contract(contract)
                 )
                 and row["execution_mode"] == "parent_authority_import"
                 and row.get("artifact_kind") is not None
