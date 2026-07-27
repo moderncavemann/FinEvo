@@ -5,6 +5,9 @@ Examples:
     python run_pilot.py --contract experiments/pilot_v2_4.yaml \
         --stage parent-import \
         --parent-repo-root ../finevo-pilot-v2-3-release --resume
+    python run_pilot.py --contract experiments/pilot_v2_5.yaml \
+        --stage parent-import \
+        --parent-repo-root ../finevo-pilot-v2-3-release --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
         --stage capability-gate --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
@@ -21,6 +24,8 @@ denominator and adds the contract-bound capability-usage bootstrap needed to
 measure the closed-loop preflight p95 before normal scientific dispatch.
 Pilot-v2.4 is a prospective local-first matrix amendment.  Its zero-call
 parent-import revalidates V2.3 without reopening any terminal V2.3 cell.
+Pilot-v2.5 is the outcome-blind operational retry of that one failed import;
+it preserves the terminal V2.4 no-go and uses a fresh raw namespace.
 """
 
 from __future__ import annotations
@@ -36,6 +41,7 @@ from verified_memory.pilot_v24_evidence import (
     PILOT_V24_CONTRACT_ID,
     build_pilot_v24_evidence_package,
 )
+from verified_memory.pilot_v25_parent_import import V25_CONTRACT_ID
 from verified_memory.pilot_orchestrator import (
     PilotOrchestrationError,
     execute_stage,
@@ -87,7 +93,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help=(
-            "read-only V2.3 source/raw checkout required only by the V2.4 "
+            "read-only V2.3 source/raw checkout required only by the V2.4/V2.5 "
             "zero-provider parent-import stage"
         ),
     )
@@ -110,7 +116,7 @@ def execute(args: argparse.Namespace) -> dict:
     parent_repo_root = getattr(args, "parent_repo_root", None)
     if parent_repo_root is not None and args.stage != "parent-import":
         raise PilotOrchestrationError(
-            "--parent-repo-root is accepted only for the V2.4 parent-import stage"
+            "--parent-repo-root is accepted only for a parent-import stage"
         )
     raw_root = (
         args.raw_root
@@ -135,7 +141,8 @@ def execute(args: argparse.Namespace) -> dict:
         contract = load_pilot_contract(args.contract)
         builder = (
             build_pilot_v24_evidence_package
-            if contract.contract_id == PILOT_V24_CONTRACT_ID
+            if contract.contract_id
+            in {PILOT_V24_CONTRACT_ID, V25_CONTRACT_ID}
             else build_pilot_evidence_package
         )
         package = builder(

@@ -26,6 +26,7 @@ runner/checkpoint import cycle.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import hashlib
 import json
 import os
@@ -80,6 +81,21 @@ _V23_CONTRACT_PATH = PurePosixPath("experiments/pilot_v2_3.yaml")
 
 class ObservedP95AuthorityError(RuntimeError):
     """Raised before a source-backed reservation can be released."""
+
+
+@dataclass(frozen=True)
+class HistoricalCheckpointVerificationPolicy:
+    """Explicit opt-in for replaying a checkpoint from an older release.
+
+    The policy is verification context only.  It is deliberately excluded
+    from the observed-p95 authority receipt so a successful historical replay
+    reproduces the byte-for-structure parent receipt.
+    """
+
+    source_repo_root: str | Path
+    source_annotated_tag: str
+    expected_tag_object: str
+    expected_peeled_commit: str
 
 
 def _json_copy(value: Any) -> Any:
@@ -718,6 +734,9 @@ def _build_receipt(
     raw_root_relative: PurePosixPath,
     model_id: str,
     expected_git_commit: str,
+    historical_checkpoint_policy: (
+        HistoricalCheckpointVerificationPolicy | None
+    ) = None,
 ) -> dict[str, Any]:
     if _COMMIT_RE.fullmatch(expected_git_commit) is None:
         raise ObservedP95AuthorityError(
@@ -728,6 +747,23 @@ def _build_receipt(
         contract_relative,
     )
     git_tag = str(contract.implementation["required_git_tag"])
+    if historical_checkpoint_policy is not None:
+        if not isinstance(
+            historical_checkpoint_policy,
+            HistoricalCheckpointVerificationPolicy,
+        ):
+            raise ObservedP95AuthorityError(
+                "historical checkpoint policy has an unsupported type"
+            )
+        if (
+            historical_checkpoint_policy.source_annotated_tag != git_tag
+            or historical_checkpoint_policy.expected_peeled_commit
+            != expected_git_commit
+        ):
+            raise ObservedP95AuthorityError(
+                "historical checkpoint policy differs from source "
+                "contract/tag/commit"
+            )
     preflight_stage = _preflight_stage_for_model(contract, model_id)
     capability_stage = _capability_source_stage(
         contract,
@@ -920,18 +956,76 @@ def _build_receipt(
             "projection bootstrap/control hash binding mismatch"
         )
 
+    # Validate the complete frozen exactness wrapper and its self-hash before
+    # either the same-release or historical replay path consumes its inner
+    # ``exactness`` value.
+    exactness = source_values["checkpoint_exactness"]
+    if set(exactness) != {
+        "schema_version",
+        "bindings",
+        "exactness",
+        "integrity",
+    }:
+        raise ObservedP95AuthorityError(
+            "checkpoint exactness top-level shape drifted"
+        )
+    _verify_bound_payload(
+        exactness,
+        schema_version=PREFLIGHT_CHECKPOINT_EXACTNESS_SCHEMA_VERSION,
+        contract_hash=contract.canonical_hash,
+        git_tag=git_tag,
+        git_commit=expected_git_commit,
+        name="checkpoint exactness receipt",
+    )
+    exactness_bindings = exactness.get("bindings")
+    if not isinstance(exactness_bindings, Mapping) or set(
+        exactness_bindings
+    ) != {
+        "contract_sha256",
+        "git_tag",
+        "git_commit",
+        "checkpoint_path",
+        "checkpoint_file_sha256",
+        "checkpoint_hash",
+    }:
+        raise ObservedP95AuthorityError(
+            "checkpoint exactness bindings drifted"
+        )
+
     # Checkpoint construction and exact replay are intentionally lazy imports.
     from .pilot_checkpoint import (
         PilotCheckpoint,
         PilotCheckpointError,
         verify_closed_loop_preflight_checkpoint,
+        verify_historical_closed_loop_preflight_checkpoint,
     )
 
     try:
         checkpoint = PilotCheckpoint(source_values["checkpoint"])
-        recomputed_exactness = verify_closed_loop_preflight_checkpoint(
-            checkpoint
-        )
+        if historical_checkpoint_policy is None:
+            recomputed_exactness = (
+                verify_closed_loop_preflight_checkpoint(checkpoint)
+            )
+        else:
+            historical_verification = (
+                verify_historical_closed_loop_preflight_checkpoint(
+                    checkpoint,
+                    source_repo_root=(
+                        historical_checkpoint_policy.source_repo_root
+                    ),
+                    source_annotated_tag=(
+                        historical_checkpoint_policy.source_annotated_tag
+                    ),
+                    expected_tag_object=(
+                        historical_checkpoint_policy.expected_tag_object
+                    ),
+                    expected_peeled_commit=(
+                        historical_checkpoint_policy.expected_peeled_commit
+                    ),
+                    frozen_exactness_receipt=exactness["exactness"],
+                )
+            )
+            recomputed_exactness = historical_verification["exactness"]
     except PilotCheckpointError as exc:
         raise ObservedP95AuthorityError(
             f"closed-loop checkpoint failed exact restore: {exc}"
@@ -975,38 +1069,6 @@ def _build_receipt(
             "checkpoint runner/bootstrap authority binding mismatch"
         )
 
-    exactness = source_values["checkpoint_exactness"]
-    if set(exactness) != {
-        "schema_version",
-        "bindings",
-        "exactness",
-        "integrity",
-    }:
-        raise ObservedP95AuthorityError(
-            "checkpoint exactness top-level shape drifted"
-        )
-    _verify_bound_payload(
-        exactness,
-        schema_version=PREFLIGHT_CHECKPOINT_EXACTNESS_SCHEMA_VERSION,
-        contract_hash=contract.canonical_hash,
-        git_tag=git_tag,
-        git_commit=expected_git_commit,
-        name="checkpoint exactness receipt",
-    )
-    exactness_bindings = exactness.get("bindings")
-    if not isinstance(exactness_bindings, Mapping) or set(
-        exactness_bindings
-    ) != {
-        "contract_sha256",
-        "git_tag",
-        "git_commit",
-        "checkpoint_path",
-        "checkpoint_file_sha256",
-        "checkpoint_hash",
-    }:
-        raise ObservedP95AuthorityError(
-            "checkpoint exactness bindings drifted"
-        )
     checkpoint_file_sha256 = _sha256_bytes(source_raw["checkpoint"])
     exactness_content_sha256 = exactness["integrity"]["content_sha256"]
     if (
@@ -1389,6 +1451,9 @@ def build_observed_p95_authority_receipt(
     raw_root: str | Path,
     model_id: str,
     expected_git_commit: str,
+    historical_checkpoint_policy: (
+        HistoricalCheckpointVerificationPolicy | None
+    ) = None,
 ) -> dict[str, Any]:
     """Rebuild and serialize one model's source-backed p95 authority.
 
@@ -1429,6 +1494,7 @@ def build_observed_p95_authority_receipt(
         raw_root_relative=raw_root_relative,
         model_id=model_id,
         expected_git_commit=expected_git_commit,
+        historical_checkpoint_policy=historical_checkpoint_policy,
     )
 
 
@@ -1466,6 +1532,9 @@ def _verify_receipt_value(
     *,
     repo_root: Path,
     expected_git_commit: str,
+    historical_checkpoint_policy: (
+        HistoricalCheckpointVerificationPolicy | None
+    ) = None,
 ) -> dict[str, dict[str, dict[str, Any]]]:
     # V2.4 has no new provider preflight.  Its child receipt is instead
     # rebuilt from an exact, tracked-hash copy of the fully reverified V2.3
@@ -1481,6 +1550,11 @@ def _verify_receipt_value(
         receipt.get("schema_version")
         == V24_INHERITED_P95_RECEIPT_SCHEMA_VERSION
     ):
+        if historical_checkpoint_policy is not None:
+            raise ObservedP95AuthorityError(
+                "historical checkpoint policy applies only to the "
+                "source V2.3 authority receipt"
+            )
         try:
             return verify_v24_inherited_p95_receipt(
                 receipt,
@@ -1583,6 +1657,7 @@ def _verify_receipt_value(
         raw_root_relative=raw_root_relative,
         model_id=str(model_binding.get("model_id")),
         expected_git_commit=expected_git_commit,
+        historical_checkpoint_policy=historical_checkpoint_policy,
     )
     if receipt != expected:
         raise ObservedP95AuthorityError(
@@ -1601,6 +1676,9 @@ def verify_observed_p95_authority_receipt(
     *,
     repo_root: str | Path,
     expected_git_commit: str,
+    historical_checkpoint_policy: (
+        HistoricalCheckpointVerificationPolicy | None
+    ) = None,
 ) -> dict[str, dict[str, dict[str, Any]]]:
     """Verify a receipt and return runner-compatible action/semantic rows.
 
@@ -1619,6 +1697,7 @@ def verify_observed_p95_authority_receipt(
         receipt,
         repo_root=root,
         expected_git_commit=expected_git_commit,
+        historical_checkpoint_policy=historical_checkpoint_policy,
     )
 
 
@@ -1627,6 +1706,9 @@ def verified_observed_p95_authority_binding(
     *,
     repo_root: str | Path,
     expected_git_commit: str,
+    historical_checkpoint_policy: (
+        HistoricalCheckpointVerificationPolicy | None
+    ) = None,
 ) -> dict[str, Any]:
     """Return a guarded receipt binding plus its verified reservations.
 
@@ -1650,6 +1732,7 @@ def verified_observed_p95_authority_binding(
         receipt,
         repo_root=root,
         expected_git_commit=expected_git_commit,
+        historical_checkpoint_policy=historical_checkpoint_policy,
     )
     integrity = receipt["integrity"]
     return {
@@ -1666,6 +1749,9 @@ def validate_observed_p95_authority_receipt(
     *,
     repo_root: str | Path,
     expected_git_commit: str,
+    historical_checkpoint_policy: (
+        HistoricalCheckpointVerificationPolicy | None
+    ) = None,
 ) -> None:
     """Validate the complete source chain without returning reservations."""
 
@@ -1673,6 +1759,7 @@ def validate_observed_p95_authority_receipt(
         value_or_path,
         repo_root=repo_root,
         expected_git_commit=expected_git_commit,
+        historical_checkpoint_policy=historical_checkpoint_policy,
     )
 
 
@@ -1683,6 +1770,7 @@ __all__ = [
     "OBSERVED_P95_AUTHORITY_RECEIPT_SCHEMA_VERSION",
     "OBSERVED_P95_PROJECTION_SCHEMA_VERSION",
     "OBSERVED_P95_SOURCE_KIND",
+    "HistoricalCheckpointVerificationPolicy",
     "ObservedP95AuthorityError",
     "build_observed_p95_authority_receipt",
     "validate_observed_p95_authority_receipt",

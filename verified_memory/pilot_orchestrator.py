@@ -157,6 +157,17 @@ from .pilot_v24_parent_import import (
     persist_v24_parent_import,
     verify_v24_parent_import_receipt,
 )
+from .pilot_v25_parent_import import (
+    V25_ALLOWED_P95_PROFILES,
+    V25_CONTRACT_ID,
+    PilotV25ParentImportError,
+    inherited_p95_receipt_path as inherited_v25_p95_receipt_path,
+    inherited_projection_path as inherited_v25_projection_path,
+    parent_budget_debit_for_v25,
+    persist_v25_parent_import,
+    verified_v25_inherited_p95_binding,
+    verify_v25_parent_import_receipt,
+)
 from .runner import (
     OBSERVED_P95_AUTHORITY_ID,
     OBSERVED_P95_PROJECTION_SCHEMA_VERSION,
@@ -202,6 +213,7 @@ SCIENTIFIC_STAGE_IDS = (
 )
 
 CAPABILITY_EXECUTION_MODES = frozenset({"capability_probe", "closed_loop_preflight"})
+PARENT_IMPORT_CONTRACT_IDS = frozenset({V24_CONTRACT_ID, V25_CONTRACT_ID})
 
 
 def _core_stage_family(stage_id: str) -> str | None:
@@ -240,12 +252,12 @@ def _materializes_legacy_amendment_controls(
 ) -> bool:
     """Whether the contract still executes its V2.1--V2.3 raw amendments.
 
-    V2.4 retains those objects only as immutable contract lineage. Its new
-    parent-import receipt is the sole runtime authority for the cumulative
-    debit and inherited p95 reservations.
+    V2.4 and its outcome-blind V2.5 operational retry retain those objects only
+    as immutable contract lineage. Their parent-import receipt is the sole
+    runtime authority for the cumulative debit and inherited p95 reservations.
     """
 
-    return contract.contract_id != V24_CONTRACT_ID
+    return contract.contract_id not in PARENT_IMPORT_CONTRACT_IDS
 
 
 DEFAULT_RAW_ROOT = (
@@ -1093,6 +1105,9 @@ def _budget_caps(contract: PilotContract) -> PilotBudgetCaps:
 
 
 def _parent_budget_debit(contract: PilotContract):
+    v25_debit = parent_budget_debit_for_v25(contract)
+    if v25_debit is not None:
+        return v25_debit
     v24_debit = parent_budget_debit_for_v24(contract)
     if v24_debit is not None:
         return v24_debit
@@ -1718,6 +1733,12 @@ def _observed_p95_authority_receipt_path(
                 f"{model_id} has no V2.4 inherited dispatch authority"
             )
         return inherited_p95_receipt_path(raw_root, model_id)
+    if contract.contract_id == V25_CONTRACT_ID:
+        if model_id not in V25_ALLOWED_P95_PROFILES:
+            raise PilotOrchestrationError(
+                f"{model_id} has no V2.5 inherited dispatch authority"
+            )
+        return inherited_v25_p95_receipt_path(raw_root, model_id)
     preflight_stage = _preflight_stage_for_model(contract, model_id)
     specs = contract.expand(stage=preflight_stage, model=model_id)
     if len(specs) != 1:
@@ -1750,16 +1771,28 @@ def _verified_observed_p95_binding(
         required_top="experiment_results",
         name="observed p95 authority receipt",
     )
-    try:
-        binding = verified_observed_p95_authority_binding(
-            relative,
-            repo_root=Path(__file__).resolve().parents[1],
-            expected_git_commit=paid.head_commit,
-        )
-    except ObservedP95AuthorityError as exc:
-        raise PilotOrchestrationError(
-            f"observed p95 source authority failed validation: {exc}"
-        ) from exc
+    if contract.contract_id == V25_CONTRACT_ID:
+        try:
+            binding = verified_v25_inherited_p95_binding(
+                relative,
+                repo_root=Path(__file__).resolve().parents[1],
+                expected_git_commit=paid.head_commit,
+            )
+        except PilotV25ParentImportError as exc:
+            raise PilotOrchestrationError(
+                f"V2.5 observed p95 source authority failed validation: {exc}"
+            ) from exc
+    else:
+        try:
+            binding = verified_observed_p95_authority_binding(
+                relative,
+                repo_root=Path(__file__).resolve().parents[1],
+                expected_git_commit=paid.head_commit,
+            )
+        except ObservedP95AuthorityError as exc:
+            raise PilotOrchestrationError(
+                f"observed p95 source authority failed validation: {exc}"
+            ) from exc
     if (
         binding.get("receipt_path") != relative
         or binding.get("git_commit") != paid.head_commit
@@ -1777,9 +1810,9 @@ def _persist_observed_p95_authority_receipt(
     raw_root: Path,
     paid: GitProvenance,
 ) -> tuple[Path, dict[str, Any]]:
-    if contract.contract_id == V24_CONTRACT_ID:
+    if contract.contract_id in PARENT_IMPORT_CONTRACT_IDS:
         raise PilotOrchestrationError(
-            "V2.4 observed p95 receipts are created only by the zero-call "
+            f"{contract.contract_id} observed p95 receipts are created only by the zero-call "
             "parent-import stage"
         )
     repo_root = Path(__file__).resolve().parents[1]
@@ -3857,6 +3890,87 @@ def _load_v24_inherited_projection(
     return payload, path
 
 
+def _load_v25_inherited_projection(
+    contract: PilotContract,
+    model_id: str,
+    *,
+    raw_root: Path,
+    paid: GitProvenance | None,
+) -> tuple[dict[str, Any], Path]:
+    if paid is None:
+        raise PilotOrchestrationError(
+            "V2.5 inherited p95 projection requires paid release provenance"
+        )
+    if model_id not in V25_ALLOWED_P95_PROFILES:
+        raise PilotOrchestrationError(
+            f"{model_id} is not an allowed V2.5 inherited p95 profile"
+        )
+    import_path = raw_root / "parent-import" / "parent_import_receipt.json"
+    try:
+        verify_v25_parent_import_receipt(
+            import_path,
+            repo_root=Path(__file__).resolve().parents[1],
+            contract=contract,
+            expected_git_commit=paid.head_commit,
+        )
+    except PilotV25ParentImportError as exc:
+        raise PilotOrchestrationError(
+            f"V2.5 parent import failed validation: {exc}"
+        ) from exc
+    path = inherited_v25_projection_path(raw_root, model_id)
+    payload = _read_json(path)
+    _verify_bound_payload(
+        payload,
+        contract=contract,
+        schema_version=PILOT_PROJECTION_SCHEMA_VERSION,
+        paid=paid,
+        artifact_name=f"{model_id} V2.5 inherited p95 projection",
+    )
+    profile = contract.provider_profiles[model_id]
+    if (
+        payload.get("model_id") != model_id
+        or payload.get("served_model") != profile.served_model
+    ):
+        raise PilotOrchestrationError(
+            "V2.5 inherited p95 projection model identity mismatch"
+        )
+    receipt_path = inherited_v25_p95_receipt_path(raw_root, model_id)
+    bindings = payload.get("bindings")
+    if (
+        not isinstance(bindings, Mapping)
+        or bindings.get("source_kind")
+        != "v2.3-historical-parent-import-v2.5"
+        or bindings.get("source_authority_receipt") != str(receipt_path)
+    ):
+        raise PilotOrchestrationError(
+            "V2.5 inherited p95 projection source binding mismatch"
+        )
+    receipt_binding = _verified_observed_p95_binding(
+        contract,
+        model_id,
+        raw_root=raw_root,
+        paid=paid,
+    )
+    runtime_model = _runtime_model_for_profile(profile)
+    reservations = receipt_binding.get("reservations")
+    projection = payload.get("projection")
+    if (
+        not isinstance(reservations, Mapping)
+        or set(reservations) != {runtime_model}
+        or not isinstance(reservations[runtime_model], Mapping)
+        or not isinstance(projection, Mapping)
+        or any(
+            reservations[runtime_model].get(call_kind, {}).get("reservation")
+            != projection.get(f"{profile.served_model}::{call_kind}")
+            for call_kind in ("action", "semantic")
+        )
+    ):
+        raise PilotOrchestrationError(
+            "V2.5 inherited p95 receipt differs from its child projection"
+        )
+    return payload, path
+
+
 def _load_verified_projection(
     contract: PilotContract,
     model_id: str,
@@ -3866,6 +3980,13 @@ def _load_verified_projection(
 ) -> tuple[dict[str, Any], Path]:
     if contract.contract_id == V24_CONTRACT_ID:
         return _load_v24_inherited_projection(
+            contract,
+            model_id,
+            raw_root=raw_root,
+            paid=paid,
+        )
+    if contract.contract_id == V25_CONTRACT_ID:
+        return _load_v25_inherited_projection(
             contract,
             model_id,
             raw_root=raw_root,
@@ -4589,14 +4710,14 @@ def _scientific_stage_ids(contract: PilotContract) -> tuple[str, ...]:
 def _cross_model_science_stage_ids(
     contract: PilotContract,
 ) -> tuple[str, ...]:
-    if contract.contract_id == V24_CONTRACT_ID:
-        # V2.4 registers the local Llama lane as a controlled second
+    if contract.contract_id in PARENT_IMPORT_CONTRACT_IDS:
+        # V2.4/V2.5 register the local Llama lane as a controlled second
         # mechanism matrix, not as the legacy cross-model sentinel stage.
         # Treating every ``controlled_second`` stage as a sentinel would
         # duplicate Stage-0/local A--D projections and then require a
-        # capability-preflight cell that V2.4 deliberately replaces with the
+        # capability-preflight cell that these contracts replace with the
         # zero-call parent p95 import.  New cross-model calls are explicitly
-        # deferred by the V2.4 amendment.
+        # deferred by the local-first amendment.
         return ()
     if not contract.model_roles:
         return tuple(
@@ -5152,22 +5273,35 @@ def _v2_control_gate_ok(
     if stage_id == "parent-import":
         if paid is None:
             raise PilotOrchestrationError(
-                "V2.4 parent import control requires paid provenance"
+                "parent import control requires paid provenance"
             )
         path = raw_root / stage_id / "parent_import_receipt.json"
         if not path.exists():
             return False
-        try:
-            verify_v24_parent_import_receipt(
-                path,
-                repo_root=Path(__file__).resolve().parents[1],
-                contract=contract,
-                expected_git_commit=paid.head_commit,
-            )
-        except PilotV24ParentImportError as exc:
-            raise PilotOrchestrationError(
-                f"V2.4 parent import receipt failed validation: {exc}"
-            ) from exc
+        if contract.contract_id == V25_CONTRACT_ID:
+            try:
+                verify_v25_parent_import_receipt(
+                    path,
+                    repo_root=Path(__file__).resolve().parents[1],
+                    contract=contract,
+                    expected_git_commit=paid.head_commit,
+                )
+            except PilotV25ParentImportError as exc:
+                raise PilotOrchestrationError(
+                    f"V2.5 parent import receipt failed validation: {exc}"
+                ) from exc
+        else:
+            try:
+                verify_v24_parent_import_receipt(
+                    path,
+                    repo_root=Path(__file__).resolve().parents[1],
+                    contract=contract,
+                    expected_git_commit=paid.head_commit,
+                )
+            except PilotV24ParentImportError as exc:
+                raise PilotOrchestrationError(
+                    f"V2.4 parent import receipt failed validation: {exc}"
+                ) from exc
         return True
     if stage_id == "q-ref-resolution":
         try:
@@ -7415,27 +7549,38 @@ def _execute_v24_parent_import_stage(
     paid: GitProvenance,
     run_ledger: PilotRunLedger,
 ) -> dict[str, Any]:
+    if contract.contract_id == V25_CONTRACT_ID:
+        contract_label = "V2.5"
+        persist_parent_import = persist_v25_parent_import
+        failure_schema = "finevo-pilot-v2.5-parent-import-failure-v1"
+    elif contract.contract_id == V24_CONTRACT_ID:
+        contract_label = "V2.4"
+        persist_parent_import = persist_v24_parent_import
+        failure_schema = "finevo-pilot-v2.4-parent-import-failure-v1"
+    else:
+        raise PilotOrchestrationError(
+            "parent import is available only to the V2.4/V2.5 contracts"
+        )
     if (
-        contract.contract_id != V24_CONTRACT_ID
-        or len(specs) != 1
+        len(specs) != 1
         or specs[0].stage_id != "parent-import"
         or specs[0].execution_mode != "parent_authority_import"
     ):
         raise PilotOrchestrationError(
-            "V2.4 parent import requires one exact zero-call contract cell"
+            f"{contract_label} parent import requires one exact zero-call contract cell"
         )
     spec = specs[0]
     if parent_repo_root is None:
         raise PilotOrchestrationError(
-            "V2.4 parent-import requires --parent-repo-root pointing to the "
+            f"{contract_label} parent-import requires --parent-repo-root pointing to the "
             "immutable V2.3 raw/source checkout"
         )
     if run_ledger.is_terminal(spec.run_id):
         if run_ledger.status(spec.run_id) != "complete":
             raise PilotOrchestrationError(
-                "V2.4 parent-import is already terminal with no dispatch authority"
+                f"{contract_label} parent-import is already terminal with no dispatch authority"
             )
-        result = persist_v24_parent_import(
+        result = persist_parent_import(
             contract=contract,
             repo_root=repo_root,
             raw_root=raw_root,
@@ -7454,7 +7599,7 @@ def _execute_v24_parent_import_stage(
         )
         return _read_json(receipt)
     try:
-        result = persist_v24_parent_import(
+        result = persist_parent_import(
             contract=contract,
             repo_root=repo_root,
             raw_root=raw_root,
@@ -7476,7 +7621,7 @@ def _execute_v24_parent_import_stage(
                 "gate_evidence": result,
                 "provider_calls": 0,
                 "claim_boundary": (
-                    "Parent budget and p95 authority only; no V2.4 "
+                    f"Parent budget and p95 authority only; no {contract_label} "
                     "treatment-effect evidence."
                 ),
             },
@@ -7506,7 +7651,7 @@ def _execute_v24_parent_import_stage(
         _atomic_json(
             failure_path,
             {
-                "schema_version": "finevo-pilot-v2.4-parent-import-failure-v1",
+                "schema_version": failure_schema,
                 "contract_sha256": contract.canonical_hash,
                 "provider_calls": 0,
                 "scientific_evidence": False,
@@ -7537,7 +7682,7 @@ def _execute_v24_parent_import_stage(
             paid=paid,
         )
         raise PilotOrchestrationError(
-            f"V2.4 parent import failed; receipt={receipt}"
+            f"{contract_label} parent import failed; receipt={receipt}"
         ) from exc
 
 
@@ -8527,7 +8672,7 @@ def run_development_fake_matrix(
     selected: list[PilotRunSpec] = []
     development_stages = (
         _contract_core_stage_ids(contract)
-        if contract.contract_id == V24_CONTRACT_ID
+        if contract.contract_id in PARENT_IMPORT_CONTRACT_IDS
         else (
             "experiment-a",
             "experiment-b",

@@ -197,12 +197,25 @@ def _is_v24_contract(contract: PilotContract) -> bool:
     )
 
 
+def _is_v25_contract(contract: PilotContract) -> bool:
+    return (
+        _is_v2_contract(contract)
+        and contract.contract_id == "finevo-pilot-v2.5"
+    )
+
+
+def _is_lane_separated_contract(contract: PilotContract) -> bool:
+    """Return whether the contract uses the fixed V2.4 211-cell lane matrix."""
+
+    return _is_v24_contract(contract) or _is_v25_contract(contract)
+
+
 def _stage_sets(
     contract: PilotContract,
 ) -> tuple[frozenset[str], frozenset[str]]:
     """Return the exact gating/scientific stage partition for this contract."""
 
-    if _is_v24_contract(contract):
+    if _is_lane_separated_contract(contract):
         non_scientific = V24_NON_SCIENTIFIC_STAGES
         scientific = V24_SCIENTIFIC_STAGES
     elif _is_v2_contract(contract):
@@ -2356,6 +2369,7 @@ def _validate_terminal_payload_marker(
     *,
     raw_root: Path,
     resolved_git_commit: str | None = None,
+    parent_import_receipt_verifier: Any | None = None,
 ) -> None:
     """Enforce the execution-mode-specific terminal-summary contract."""
 
@@ -2368,14 +2382,30 @@ def _validate_terminal_payload_marker(
     metrics = _mapping(payload.get("metrics", {}), "terminal metrics")
     gate = _mapping(payload.get("gate_evidence", {}), "terminal gate_evidence")
     if mode == "parent_authority_import":
-        from .pilot_v24_parent_import import (  # pylint: disable=import-outside-toplevel
-            verify_v24_parent_import_receipt,
-        )
+        version_label: str
+        if _is_v24_contract(contract):
+            version_label = "V2.4"
+            if parent_import_receipt_verifier is None:
+                from .pilot_v24_parent_import import (  # pylint: disable=import-outside-toplevel
+                    verify_v24_parent_import_receipt,
+                )
 
+                parent_import_receipt_verifier = verify_v24_parent_import_receipt
+        elif _is_v25_contract(contract):
+            version_label = "V2.5"
+            if parent_import_receipt_verifier is None:
+                from .pilot_v25_parent_import import (  # pylint: disable=import-outside-toplevel
+                    verify_v25_parent_import_receipt,
+                )
+
+                parent_import_receipt_verifier = verify_v25_parent_import_receipt
+        else:
+            raise PilotEvidenceError(
+                "parent-authority import is unsupported for this contract"
+            )
         receipt_path = gate.get("receipt")
         if (
-            not _is_v24_contract(contract)
-            or metrics
+            metrics
             or payload.get("provider_calls") != 0
             or gate.get("provider_calls") != 0
             or gate.get("scientific_evidence") is not False
@@ -2386,10 +2416,11 @@ def _validate_terminal_payload_marker(
             or not resolved_git_commit
         ):
             raise PilotEvidenceError(
-                "V2.4 parent-authority import lacks its exact zero-call marker"
+                f"{version_label} parent-authority import lacks its exact "
+                "zero-call marker"
             )
         try:
-            receipt = verify_v24_parent_import_receipt(
+            receipt = parent_import_receipt_verifier(
                 receipt_path,
                 repo_root=Path(__file__).resolve().parents[1],
                 contract=contract,
@@ -2397,14 +2428,15 @@ def _validate_terminal_payload_marker(
             )
         except Exception as exc:
             raise PilotEvidenceError(
-                f"V2.4 parent-authority receipt failed revalidation: {exc}"
+                f"{version_label} parent-authority receipt failed "
+                f"revalidation: {exc}"
             ) from exc
         if (
             receipt.get("integrity", {}).get("content_sha256")
             != gate["receipt_content_sha256"]
         ):
             raise PilotEvidenceError(
-                "V2.4 parent-authority receipt content hash drifted"
+                f"{version_label} parent-authority receipt content hash drifted"
             )
         return
     if mode in {"capability_probe", "closed_loop_preflight"}:
