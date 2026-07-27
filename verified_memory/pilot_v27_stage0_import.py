@@ -15,10 +15,13 @@ rewritten or relabelled as V2.7 treatment outcomes.
 from __future__ import annotations
 
 from collections import Counter
+import errno
 import hashlib
 import json
+import os
 from pathlib import Path, PurePosixPath
 import re
+import stat
 from typing import Any, Mapping, Sequence
 
 from .artifacts import verify_manifest
@@ -27,7 +30,6 @@ from .pilot_contract import PilotContract, PilotRunSpec, load_pilot_contract
 from .pilot_v24_parent_import import (
     CANONICALIZATION,
     PilotV24ParentImportError,
-    _atomic_exact_bytes,
     _atomic_exact_json,
     _git,
     _guarded_file,
@@ -287,6 +289,185 @@ def _strict_file(
     if expected_sha256 is not None and _sha256(raw) != expected_sha256:
         raise PilotV27Stage0ImportError(f"{name} file hash drifted")
     return path, raw, value
+
+
+def _atomic_exact_bytes_no_follow(
+    *,
+    repo_root: Path,
+    path: Path,
+    raw: bytes,
+) -> None:
+    """Create-or-compare one immutable file through a no-follow dir-fd walk."""
+
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY"):
+        raise PilotV27Stage0ImportError(
+            "V2.7 immutable writes require O_NOFOLLOW and O_DIRECTORY"
+        )
+    try:
+        root = _real_root(
+            repo_root,
+            name="immutable write repository root",
+        )
+    except PilotV24ParentImportError as exc:
+        raise _translate(exc) from exc
+    target = path.absolute()
+    try:
+        relative = target.relative_to(root)
+    except ValueError as exc:
+        raise PilotV27Stage0ImportError(
+            "immutable V2.7 artifact escaped the repository"
+        ) from exc
+    if (
+        not relative.parts
+        or any(part in {"", ".", ".."} for part in relative.parts)
+    ):
+        raise PilotV27Stage0ImportError(
+            "immutable V2.7 artifact path is malformed"
+        )
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    try:
+        descriptor = os.open(root, directory_flags)
+    except OSError as exc:
+        raise PilotV27Stage0ImportError(
+            "immutable write repository root cannot be opened safely"
+        ) from exc
+    created_file = False
+    final_descriptor: int | None = None
+    try:
+        for part in relative.parts[:-1]:
+            try:
+                next_descriptor = os.open(
+                    part,
+                    directory_flags,
+                    dir_fd=descriptor,
+                )
+            except FileNotFoundError:
+                try:
+                    os.mkdir(part, 0o700, dir_fd=descriptor)
+                except FileExistsError:
+                    pass
+                except OSError as exc:
+                    raise PilotV27Stage0ImportError(
+                        "immutable V2.7 artifact parent cannot be created "
+                        "safely"
+                    ) from exc
+                try:
+                    next_descriptor = os.open(
+                        part,
+                        directory_flags,
+                        dir_fd=descriptor,
+                    )
+                except OSError as exc:
+                    raise PilotV27Stage0ImportError(
+                        "immutable V2.7 artifact parent cannot be opened "
+                        "without following symlinks"
+                    ) from exc
+            except OSError as exc:
+                raise PilotV27Stage0ImportError(
+                    "immutable V2.7 artifact parent cannot be opened "
+                    "without following symlinks"
+                ) from exc
+            os.close(descriptor)
+            descriptor = next_descriptor
+
+        final_name = relative.parts[-1]
+        write_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
+        try:
+            final_descriptor = os.open(
+                final_name,
+                write_flags,
+                0o600,
+                dir_fd=descriptor,
+            )
+            created_file = True
+        except OSError as exc:
+            if exc.errno != errno.EEXIST:
+                raise PilotV27Stage0ImportError(
+                    "immutable V2.7 artifact cannot be created safely"
+                ) from exc
+            try:
+                final_descriptor = os.open(
+                    final_name,
+                    os.O_RDONLY | os.O_NOFOLLOW,
+                    dir_fd=descriptor,
+                )
+            except OSError as read_exc:
+                raise PilotV27Stage0ImportError(
+                    "immutable V2.7 resume artifact cannot be opened safely"
+                ) from read_exc
+            before = os.fstat(final_descriptor)
+            if not stat.S_ISREG(before.st_mode):
+                raise PilotV27Stage0ImportError(
+                    "immutable V2.7 resume artifact is not a regular file"
+                )
+            chunks: list[bytes] = []
+            while True:
+                chunk = os.read(final_descriptor, 1024 * 1024)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            after = os.fstat(final_descriptor)
+            if (
+                before.st_dev,
+                before.st_ino,
+                before.st_size,
+                before.st_mtime_ns,
+            ) != (
+                after.st_dev,
+                after.st_ino,
+                after.st_size,
+                after.st_mtime_ns,
+            ):
+                raise PilotV27Stage0ImportError(
+                    "immutable V2.7 resume artifact changed during read"
+                )
+            if b"".join(chunks) != raw:
+                raise PilotV27Stage0ImportError(
+                    "immutable parent-import artifact differs on resume"
+                )
+            return
+
+        offset = 0
+        while offset < len(raw):
+            written = os.write(final_descriptor, raw[offset:])
+            if written <= 0:  # pragma: no cover - OS write contract
+                raise OSError("short immutable artifact write")
+            offset += written
+        os.fsync(final_descriptor)
+    except Exception:
+        if created_file:
+            try:
+                os.unlink(relative.parts[-1], dir_fd=descriptor)
+            except OSError:
+                pass
+        raise
+    finally:
+        if final_descriptor is not None:
+            os.close(final_descriptor)
+        os.close(descriptor)
+
+
+def _atomic_exact_json_no_follow(
+    *,
+    repo_root: Path,
+    path: Path,
+    value: Mapping[str, Any],
+) -> None:
+    raw = (
+        json.dumps(
+            value,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+    _atomic_exact_bytes_no_follow(
+        repo_root=repo_root,
+        path=path,
+        raw=raw,
+    )
 
 
 def _sealed_file(
@@ -1244,6 +1425,7 @@ def _copy_exact_snapshot(
     *,
     source_root: Path,
     destination_root: Path,
+    destination_guard_root: Path,
     inventory: Sequence[Mapping[str, Any]],
 ) -> None:
     for row in inventory:
@@ -1256,7 +1438,11 @@ def _copy_exact_snapshot(
             _, raw = _guarded_file(
                 source_root, relative, name=f"V2.6 raw {relative.as_posix()}"
             )
-            _atomic_exact_bytes(destination_root.joinpath(*relative.parts), raw)
+            _atomic_exact_bytes_no_follow(
+                repo_root=destination_guard_root,
+                path=destination_root.joinpath(*relative.parts),
+                raw=raw,
+            )
         except PilotV24ParentImportError as exc:
             raise _translate(exc) from exc
         if (
@@ -1628,8 +1814,16 @@ def _materialize_v27_resealed_p95(
             )
             receipt_path = Path(built["receipt_path"])
             projection_path = Path(built["projection_path"])
-            _atomic_exact_json(receipt_path, built["receipt"])
-            _atomic_exact_json(projection_path, built["projection"])
+            _atomic_exact_json_no_follow(
+                repo_root=child_root,
+                path=receipt_path,
+                value=built["receipt"],
+            )
+            _atomic_exact_json_no_follow(
+                repo_root=child_root,
+                path=projection_path,
+                value=built["projection"],
+            )
             reservations = verify_v27_resealed_observed_p95_authority(
                 receipt_path,
                 repo_root=child_root,
@@ -1722,6 +1916,7 @@ def persist_v27_parent_import(
     _copy_exact_snapshot(
         source_root=source_raw,
         destination_root=snapshot,
+        destination_guard_root=child_root,
         inventory=inventory,
     )
     receipt = _build_v27_parent_import_receipt(
@@ -1731,10 +1926,11 @@ def persist_v27_parent_import(
         manifest=manifest,
     )
     receipt_path = child_raw / "parent-import/parent_import_receipt.json"
-    try:
-        _atomic_exact_json(receipt_path, receipt)
-    except PilotV24ParentImportError as exc:
-        raise _translate(exc) from exc
+    _atomic_exact_json_no_follow(
+        repo_root=child_root,
+        path=receipt_path,
+        value=receipt,
+    )
     resealed_p95 = _materialize_v27_resealed_p95(
         child_root=child_root,
         child_raw=child_raw,

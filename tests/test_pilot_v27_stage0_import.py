@@ -183,11 +183,13 @@ def test_exact_snapshot_copy_is_idempotent_and_rejects_tamper(
     v27._copy_exact_snapshot(
         source_root=source,
         destination_root=destination,
+        destination_guard_root=tmp_path,
         inventory=rows,
     )
     v27._copy_exact_snapshot(
         source_root=source,
         destination_root=destination,
+        destination_guard_root=tmp_path,
         inventory=rows,
     )
     assert (destination / "one.bin").read_bytes() == payload
@@ -200,8 +202,64 @@ def test_exact_snapshot_copy_is_idempotent_and_rejects_tamper(
         v27._copy_exact_snapshot(
             source_root=source,
             destination_root=destination,
+            destination_guard_root=tmp_path,
             inventory=rows,
         )
+
+
+def test_exact_snapshot_copy_rejects_symlinked_parent_without_outside_writes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "source"
+    repo = tmp_path / "repo"
+    outside = tmp_path / "outside"
+    source.mkdir()
+    repo.mkdir()
+    outside.mkdir()
+    payload = b"immutable-v2.6"
+    (source / "one.bin").write_bytes(payload)
+    sentinel = outside / "sentinel.txt"
+    sentinel.write_bytes(b"must-not-change")
+    outside_before = {
+        path.relative_to(outside).as_posix(): (
+            path.lstat().st_mode,
+            path.read_bytes() if path.is_file() else None,
+        )
+        for path in outside.rglob("*")
+    }
+    rows, summary = v27._inventory(source)
+    monkeypatch.setattr(v27, "V26_RAW_FILE_COUNT", 1)
+    monkeypatch.setattr(v27, "V26_RAW_STORAGE_BYTES", len(payload))
+    monkeypatch.setattr(
+        v27, "V26_RAW_INVENTORY_SHA256", summary["inventory_sha256"]
+    )
+
+    raw_root = repo / "experiment_results/pilot-v2.7/raw"
+    raw_root.mkdir(parents=True)
+    (raw_root / "parent-import").symlink_to(outside, target_is_directory=True)
+    destination = raw_root / "parent-import/v2_6_raw_snapshot"
+
+    with pytest.raises(
+        v27.PilotV27Stage0ImportError,
+        match="parent cannot be opened without following symlinks",
+    ):
+        v27._copy_exact_snapshot(
+            source_root=source,
+            destination_root=destination,
+            destination_guard_root=repo,
+            inventory=rows,
+        )
+
+    outside_after = {
+        path.relative_to(outside).as_posix(): (
+            path.lstat().st_mode,
+            path.read_bytes() if path.is_file() else None,
+        )
+        for path in outside.rglob("*")
+    }
+    assert outside_after == outside_before
+    assert sentinel.read_bytes() == b"must-not-change"
 
 
 def test_parent_import_receipt_verifier_rebuilds_and_rejects_resealed_tamper(
