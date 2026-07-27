@@ -46,6 +46,9 @@ PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_7 = (
 PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_8 = (
     "finevo-pilot-contract-v2.8-qref-identity-retry-overlay-v1"
 )
+PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_9 = (
+    "finevo-pilot-contract-v2.9-qref-summary-equivalence-overlay-v1"
+)
 # Backward-compatible public name.  V1 artifacts remain immutable/readable;
 # callers that need the science contract should use the explicit V2 constant.
 PILOT_CONTRACT_SCHEMA_VERSION = PILOT_CONTRACT_SCHEMA_VERSION_V1
@@ -60,6 +63,7 @@ PILOT_CONTRACT_ID_V2_5 = "finevo-pilot-v2.5"
 PILOT_CONTRACT_ID_V2_6 = "finevo-pilot-v2.6"
 PILOT_CONTRACT_ID_V2_7 = "finevo-pilot-v2.7"
 PILOT_CONTRACT_ID_V2_8 = "finevo-pilot-v2.8"
+PILOT_CONTRACT_ID_V2_9 = "finevo-pilot-v2.9"
 PILOT_CONTRACT_TAG_V2 = "pilot-v2-science"
 PILOT_CONTRACT_TAG_V2_1 = "pilot-v2.1-science"
 PILOT_CONTRACT_TAG_V2_2 = "pilot-v2.2-science"
@@ -69,6 +73,7 @@ PILOT_CONTRACT_TAG_V2_5 = "pilot-v2.5-science"
 PILOT_CONTRACT_TAG_V2_6 = "pilot-v2.6-science"
 PILOT_CONTRACT_TAG_V2_7 = "pilot-v2.7-science"
 PILOT_CONTRACT_TAG_V2_8 = "pilot-v2.8-science"
+PILOT_CONTRACT_TAG_V2_9 = "pilot-v2.9-science"
 _PILOT_V2_4_AUTHORIZED_HARD_CAP_USD = 500.0
 _PILOT_V2_4_HOSTED_STAGE_CAP_USD = 495.787229125
 _PILOT_V2_4_HARD_CAP_STATUS = "authorized-explicit-user-2026-07-27"
@@ -115,6 +120,33 @@ PILOT_CONTRACT_V2_7_CANONICAL_SHA256: Optional[str] = (
 # Linux/macOS CI, and annotated tag.
 PILOT_CONTRACT_V2_8_CANONICAL_SHA256: Optional[str] = (
     "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19"
+)
+# V2.9 is frozen against the terminal V2.8 evidence package, immutable source
+# manifest, and the final implementation/test inventories. Paid provenance
+# still requires the matching merged commit, independent Linux/macOS CI, and
+# annotated tag before any dispatch.
+PILOT_CONTRACT_V2_9_CANONICAL_SHA256: Optional[str] = (
+    "0b07881aaceeb020dc5943ede647a665f9e9bf786a1cac109ab720e05d81d361"
+)
+PILOT_V2_9_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = (
+    "9e228bcf3f6a1d636bca7aeef5ab0daab1ce3b3667d0b91f6722388876676eb4"
+)
+PILOT_V2_9_SOURCE_MANIFEST_CONTENT_SHA256: Optional[str] = (
+    "d0e0aaf9da4c2d7fb64521250305eec2433b8866792d273d0c9b5678041b8760"
+)
+# Filled only after the V2.8 no-go package is committed and merged.  A draft
+# V2.9 amendment may carry null evidence bindings but cannot be frozen.
+PILOT_V2_8_EVIDENCE_COMMIT: Optional[str] = (
+    "00cc7142ae7af603f7989804a43c4d509456bad2"
+)
+PILOT_V2_8_EVIDENCE_MERGE_COMMIT: Optional[str] = (
+    "981e2af20372c0413600f2bbd1b732f2d643593e"
+)
+PILOT_V2_8_EVIDENCE_PACKAGE_FILE_SHA256: Optional[str] = (
+    "90580f8471b02ad4d156a6e39ce09676e5cccbeadb6a4d21ad54ff88a3867ef6"
+)
+PILOT_V2_8_EVIDENCE_CHECKSUMS_FILE_SHA256: Optional[str] = (
+    "1cc99291ba0bc9582c36414fce2bdc815d3cad0e753bdbb440140ad9f61127a9"
 )
 PILOT_V2_8_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = (
     "1e95025be3466faa38936a3c4617ace0c625fa198eb506f1431a0b6401c4e1f8"
@@ -981,6 +1013,7 @@ class ReleaseRequirements:
             PILOT_CONTRACT_TAG_V2_6,
             PILOT_CONTRACT_TAG_V2_7,
             PILOT_CONTRACT_TAG_V2_8,
+            PILOT_CONTRACT_TAG_V2_9,
         }:
             raise PilotContractError(
                 "V2 release tag must be a registered annotated science tag"
@@ -3860,6 +3893,341 @@ def _validate_v2_8_qref_identity_retry_amendment(
     return _freeze_json(amendment)
 
 
+def _v2_9_expected_qref_summary_equivalence_amendment(
+    *,
+    status: str,
+) -> dict[str, Any]:
+    """Return the only accepted V2.9 deterministic-summary amendment."""
+
+    if status not in {"draft", "frozen"}:
+        raise PilotContractError("V2.9 status must be draft or frozen")
+    source_file_sha256 = (
+        None if status == "draft" else PILOT_V2_9_SOURCE_MANIFEST_FILE_SHA256
+    )
+    source_content_sha256 = (
+        None if status == "draft" else PILOT_V2_9_SOURCE_MANIFEST_CONTENT_SHA256
+    )
+    evidence_commit = (
+        None if status == "draft" else PILOT_V2_8_EVIDENCE_COMMIT
+    )
+    evidence_merge_commit = (
+        None if status == "draft" else PILOT_V2_8_EVIDENCE_MERGE_COMMIT
+    )
+    evidence_package_sha256 = (
+        None
+        if status == "draft"
+        else PILOT_V2_8_EVIDENCE_PACKAGE_FILE_SHA256
+    )
+    evidence_checksums_sha256 = (
+        None
+        if status == "draft"
+        else PILOT_V2_8_EVIDENCE_CHECKSUMS_FILE_SHA256
+    )
+    if status == "frozen" and any(
+        item is None
+        for item in (
+            source_file_sha256,
+            source_content_sha256,
+            evidence_commit,
+            evidence_merge_commit,
+            evidence_package_sha256,
+            evidence_checksums_sha256,
+        )
+    ):
+        raise PilotContractError(
+            "V2.9 cannot be frozen before its source and parent-evidence "
+            "bindings"
+        )
+
+    return {
+        "schema_version": (
+            "finevo-pilot-qref-summary-equivalence-retry-amendment-v1"
+        ),
+        "amendment_id": (
+            "finevo-pilot-v2.9-qref-summary-equivalence-retry-1"
+        ),
+        "source_manifest": {
+            "path": "experiments/pilot_v2_9_source_manifest.json",
+            "schema_version": "finevo-pilot-v2.9-source-manifest-v1",
+            "file_sha256": source_file_sha256,
+            "content_sha256": source_content_sha256,
+        },
+        "failure_classification": {
+            "parent_contract_id": PILOT_CONTRACT_ID_V2_8,
+            "parent_contract_sha256": PILOT_CONTRACT_V2_8_CANONICAL_SHA256,
+            "parent_release_tag": PILOT_CONTRACT_TAG_V2_8,
+            "parent_release_commit": (
+                "1988f10b5a06c3b9b3093b969c99593676721a09"
+            ),
+            "parent_evidence_commit": evidence_commit,
+            "parent_evidence_merge_commit": evidence_merge_commit,
+            "failed_stage_id": "q-ref-resolution",
+            "terminal_status": "complete-with-no-go",
+            "registered_cells": 211,
+            "scientific_cells": 209,
+            "status_counts": {
+                "complete": 1,
+                "failed": 1,
+                "integrity-stopped": 209,
+            },
+            "completed_cell_breakdown": {
+                "parent-import": 1,
+                "q-ref-resolution": 0,
+                "stage0-calibration": 0,
+            },
+            "scripted_diagnostic_calls": 48,
+            "scripted_diagnostic_total_tokens": 15_905,
+            "hosted_provider_calls": 0,
+            "incremental_cost_usd": 0.0,
+            "incremental_hosted_completions": 0,
+            "q_ref_verified_run_artifacts_available": True,
+            "q_ref_resolution_artifact_available": False,
+            "stage0_calibration_artifacts_available_in_v2_8": False,
+            "a_d_treatment_effect_outcomes_generated": False,
+            "a_d_treatment_effect_outcomes_available": False,
+            "a_d_treatment_effect_outcomes_inspected": False,
+            "root_cause_code": (
+                "qref-raw-summary-equivalence-included-identity-and-"
+                "monotonic-time"
+            ),
+            "root_cause_message": (
+                "V2.8 fresh q-ref differs from its audit reference: "
+                "['run_summary_exact']"
+            ),
+            "failure_message_sha256": (
+                "713b1d429fd939e74b2007d78d3c3789ce10376ee0ba970e1cfe1359503c246a"
+            ),
+            "run_ledger_internal_sha256": (
+                "9b5f4bd1acdc5a525fb58b04b02ba29e31b05b594bfc411863e7baf3eb11f0d9"
+            ),
+            "budget_ledger_internal_sha256": (
+                "07c936d61a7c38e6a7877ffaeeaf6c8ecb7fd4f495dbe8ed012a9a2861004b8f"
+            ),
+            "q_ref_failure_stage_receipt_file_sha256": (
+                "7f386e0423866f03f8eedf9106200c1c24dd262c9263853625d7a1eaa6b69d72"
+            ),
+            "q_ref_failure_manifest_file_sha256": (
+                "332eb6390c62a417d6ed1dc7c7c335a75ad732bea090418d6a08d8a6bcf2b92e"
+            ),
+            "evidence_package_manifest_file_sha256": (
+                evidence_package_sha256
+            ),
+            "evidence_checksums_file_sha256": evidence_checksums_sha256,
+        },
+        "observation_boundary": {
+            "q_ref_summary_equivalence_failure_observed_before_amendment": True,
+            "q_ref_action_utility_and_shock_streams_observed": True,
+            "q_ref_is_prerequisite_not_treatment_effect_evidence": True,
+            "stage0_calibration_selection_observed_before_amendment": True,
+            "stage0_guardrail_outputs_may_have_been_inspected": True,
+            "stage0_candidate_winner_may_have_been_observed": True,
+            "a_d_treatment_effect_outcomes_generated": False,
+            "a_d_treatment_effect_outcomes_observed": False,
+            "amendment_is_outcome_blind_with_respect_to_a_d_effects": True,
+            "calibration_thresholds_unchanged": True,
+            "calibration_tiebreak_order_unchanged": True,
+            "calibration_seed_set_unchanged": True,
+            "calibration_candidate_profiles_unchanged": True,
+            "calibration_model_and_actions_unchanged": True,
+            "failed_seed_replacement": "forbidden",
+        },
+        "source_lineage": {
+            "amendment_parent_contract_id": PILOT_CONTRACT_ID_V2_8,
+            "amendment_parent_contract_sha256": (
+                PILOT_CONTRACT_V2_8_CANONICAL_SHA256
+            ),
+            "amendment_parent_raw_namespace": (
+                "experiment_results/pilot-v2.8/raw"
+            ),
+            "nested_stage0_source_contract_id": PILOT_CONTRACT_ID_V2_6,
+            "nested_stage0_source_contract_sha256": (
+                PILOT_CONTRACT_V2_6_CANONICAL_SHA256
+            ),
+            "nested_stage0_snapshot_namespace": (
+                "experiment_results/pilot-v2.8/raw/parent-import/"
+                "v2_7_raw_snapshot/parent-import/v2_6_raw_snapshot"
+            ),
+            "child_raw_namespace": "experiment_results/pilot-v2.9/raw",
+            "shared_namespace": False,
+            "exact_parent_inventory_required": True,
+            "exact_nested_source_inventory_required": True,
+            "source_artifacts_rewritten": False,
+            "parent_terminal_no_go_preserved": True,
+            "parent_denominator_reclassified": False,
+            "parent_evidence_package_required": True,
+        },
+        "q_ref_regeneration": {
+            "execution_mode": "q_ref_resolution",
+            "source_result_reuse": "forbidden",
+            "fresh_zero_hosted_provider_regeneration": True,
+            "hosted_provider_construction_during_regeneration": False,
+            "scripted_diagnostic_provider_required": True,
+            "scripted_diagnostic_calls": 48,
+            "hosted_provider_calls": 0,
+            "hosted_cost_usd": 0.0,
+            "config_run_id_policy": (
+                "must-equal-current-contract-cell-run-id"
+            ),
+            "contract_cell_run_id_policy": (
+                "fresh-finevo-pilot-v2.9-itt-identity"
+            ),
+            "scripted_action_schedule_unchanged": True,
+            "baseline_shock_schedule_unchanged": True,
+            "environment_source_hash_reverification_required": True,
+            "q_ref_scalar_reverification_required": True,
+            "full_source_core_validation_required": True,
+            "audit_reference_contract_id": PILOT_CONTRACT_ID_V2_8,
+            "audit_reference_is_failed_prerequisite_artifact": True,
+        },
+        "run_summary_equivalence": {
+            "policy_id": "finevo-pilot-v2.9-qref-run-summary-projection-v1",
+            "comparison_mode": (
+                "identity-bound-allowlist-normalization-then-exact"
+            ),
+            "raw_summary_hashes_required": True,
+            "projected_summary_hashes_required": True,
+            "projected_summary_exact_match_required": True,
+            "unexpected_difference_policy": "stop-before-stage0",
+            "identity_paths": [
+                "$.run_id",
+                "$.api.budget_id",
+                "$.api.completions[*].budget_id",
+            ],
+            "monotonic_time_paths": [
+                "$.api.elapsed_seconds",
+                "$.api.completions[*].started_elapsed_seconds",
+                "$.api.completions[*].finished_elapsed_seconds",
+                "$.api.completions[*].elapsed_seconds",
+            ],
+            "expected_completion_rows": 48,
+            "expected_observed_scalar_paths": 1002,
+            "expected_allowed_difference_paths": 195,
+            "identity_relation_validation_required": True,
+            "finite_nonnegative_timer_validation_required": True,
+            "completion_interval_validation_required": True,
+            "tokens_cost_models_labels_tags_retained_exactly": True,
+            "actions_utility_shocks_remain_separate_exact_checks": True,
+        },
+        "stage0_import": {
+            "source_contract_id": PILOT_CONTRACT_ID_V2_6,
+            "source_contract_sha256": PILOT_CONTRACT_V2_6_CANONICAL_SHA256,
+            "source_via_v2_8_nested_snapshot": True,
+            "imported_complete_cells": 14,
+            "imported_cell_breakdown": {
+                "stage0-calibration": 14,
+            },
+            "exact_file_and_content_hashes_required": True,
+            "stage0_manifest_reverification_required": True,
+            "provider_construction_during_import": False,
+            "provider_redispatch_for_imported_cells": "forbidden",
+            "decoded_completion_reuse_beyond_imported_stage0": "forbidden",
+            "child_artifacts_resealed_to_current_contract_tag_and_head": True,
+            "missing_or_malformed_source_policy": "stop-before-dispatch",
+        },
+        "fresh_science_dispatch": {
+            "a_d_cells": 195,
+            "a_d_provider_dispatch": "fresh-only",
+            "imported_a_d_completions": 0,
+            "decoded_completion_reuse": "forbidden",
+            "downstream_dispatch_requires_q_ref_and_stage0_success": True,
+        },
+        "retry_policy": {
+            "new_contract_required": True,
+            "new_211_cell_denominator_required": True,
+            "preserve_parent_denominator": True,
+            "v2_8_raw_resume": "forbidden",
+            "v2_8_terminal_cell_reclassification": "forbidden",
+            "v2_8_status_counts_rewrite": "forbidden",
+            "failed_seed_replacement": "forbidden",
+            "matrix_shrink": "forbidden",
+            "q_ref_provider_redispatch": "forbidden",
+            "stage0_provider_redispatch": "forbidden",
+            "a_d_outcome_blind": True,
+        },
+        "budget_carry_forward": {
+            "total_cap_usd": _PILOT_V2_4_AUTHORIZED_HARD_CAP_USD,
+            "max_provider_completions": 7500,
+            "max_storage_bytes": 5_000_000_000,
+            "cumulative_prior": {
+                "stage_bucket": "parent_v23",
+                "cost_usd": 3.212770875,
+                "hosted_completions": 184,
+                "parent_contract_sha256": (
+                    PILOT_CONTRACT_V2_8_CANONICAL_SHA256
+                ),
+                "parent_run_ledger_sha256": (
+                    "9b5f4bd1acdc5a525fb58b04b02ba29e31b05b594bfc411863e7baf3eb11f0d9"
+                ),
+                "parent_budget_ledger_sha256": (
+                    "07c936d61a7c38e6a7877ffaeeaf6c8ecb7fd4f495dbe8ed012a9a2861004b8f"
+                ),
+                "storage_bytes": 32_158_175,
+                "record_sha256": (
+                    "0944138d9b47f7cf720681eb0ea8feda0b612a912992d78434c6bbda0d560fd0"
+                ),
+            },
+            "v2_8_incremental": {
+                "cost_usd": 0.0,
+                "hosted_completions": 0,
+                "scripted_diagnostic_calls": 48,
+            },
+            "budget_reset": False,
+            "debit_before_new_dispatch": True,
+            "manual_reserve_automatic_use": False,
+            "projection_reserve_multiplier": 1.25,
+            "whole_remaining_matrix_projection_required": True,
+            "unknown_price_policy": "stop-before-dispatch",
+        },
+        "science_design_invariance": {
+            "source_contract_id": PILOT_CONTRACT_ID_V2_8,
+            "source_science_design_sha256": (
+                PILOT_CONTRACT_V2_4_SCIENCE_DESIGN_SHA256
+            ),
+            "registered_cells": 211,
+            "scientific_cells": 209,
+            "matrix_profile_id": (
+                "local-llama-full-ad-gpt52-fixed-confirmatory-cadb-v1"
+            ),
+            "seeds_arms_models_stage_order_unchanged": True,
+            "provider_profiles_unchanged": True,
+            "shock_utility_stop_go_unchanged": True,
+            "budget_envelope_unchanged": True,
+            "p95_authority_basis_unchanged": True,
+        },
+        "evidence_lineage": {
+            "parent_evidence_namespace": "evidence/current_v2/pilot-v2.8",
+            "parent_evidence_status": "complete-with-no-go",
+            "parent_evidence_commit": evidence_commit,
+            "parent_evidence_merge_commit": evidence_merge_commit,
+            "parent_evidence_rewrite": "forbidden",
+            "parent_claim_reclassification": "forbidden",
+            "v2_9_effect_aggregation_uses_only_v2_9_a_d_cells": True,
+            "q_ref_and_stage0_are_prerequisites_not_effect_evidence": True,
+        },
+    }
+
+
+def _validate_v2_9_qref_summary_equivalence_amendment(
+    value: Any,
+    *,
+    status: str,
+) -> Mapping[str, Any]:
+    amendment = _mapping(value, "qref_summary_equivalence_amendment")
+    expected = _v2_9_expected_qref_summary_equivalence_amendment(
+        status=status
+    )
+    _strict_keys(
+        amendment,
+        required=set(expected),
+        name="qref_summary_equivalence_amendment",
+    )
+    if _json_copy(amendment) != expected:
+        raise PilotContractError(
+            "V2.9 q-ref summary-equivalence amendment drifted"
+        )
+    return _freeze_json(amendment)
+
+
 @dataclass(frozen=True, slots=True)
 class PilotContract:
     schema_version: str
@@ -3888,6 +4256,7 @@ class PilotContract:
     p95_authority_retry_amendment: Optional[Mapping[str, Any]]
     stage0_evaluator_retry_amendment: Optional[Mapping[str, Any]]
     qref_identity_retry_amendment: Optional[Mapping[str, Any]]
+    qref_summary_equivalence_amendment: Optional[Mapping[str, Any]]
     non_claims: tuple[str, ...]
     canonicalization: str
     declared_sha256: str
@@ -3931,6 +4300,7 @@ class PilotContract:
             is_v2_6 = False
             is_v2_7 = False
             is_v2_8 = False
+            is_v2_9 = False
         elif schema_version == PILOT_CONTRACT_SCHEMA_VERSION_V2:
             fields = base_fields | v2_fields
             is_v2 = True
@@ -3943,6 +4313,7 @@ class PilotContract:
             is_v2_6 = contract_id == PILOT_CONTRACT_ID_V2_6
             is_v2_7 = contract_id == PILOT_CONTRACT_ID_V2_7
             is_v2_8 = contract_id == PILOT_CONTRACT_ID_V2_8
+            is_v2_9 = contract_id == PILOT_CONTRACT_ID_V2_9
             if is_v2_1:
                 fields = fields | {"operational_amendment"}
             elif is_v2_2:
@@ -4001,6 +4372,18 @@ class PilotContract:
                     "stage0_evaluator_retry_amendment",
                     "qref_identity_retry_amendment",
                 }
+            elif is_v2_9:
+                fields = fields | {
+                    "operational_amendment",
+                    "evaluator_amendment",
+                    "preflight_bootstrap_amendment",
+                    "matrix_amendment",
+                    "parent_import_retry_amendment",
+                    "p95_authority_retry_amendment",
+                    "stage0_evaluator_retry_amendment",
+                    "qref_identity_retry_amendment",
+                    "qref_summary_equivalence_amendment",
+                }
         else:
             raise PilotContractError("unsupported pilot contract schema")
         _strict_keys(value, required=fields, name="pilot contract")
@@ -4014,6 +4397,7 @@ class PilotContract:
                 or is_v2_6
                 or is_v2_7
                 or is_v2_8
+                or is_v2_9
             )
             and value["status"] == "draft"
         ):
@@ -4060,6 +4444,14 @@ class PilotContract:
             raise PilotContractError(
                 "V2.8 cannot be frozen before its canonical hash and CI inventory"
             )
+        if (
+            is_v2_9
+            and value["status"] == "frozen"
+            and PILOT_CONTRACT_V2_9_CANONICAL_SHA256 is None
+        ):
+            raise PilotContractError(
+                "V2.9 cannot be frozen before its canonical hash and CI inventory"
+            )
         if is_v2 and value["contract_id"] not in {
             PILOT_CONTRACT_ID_V2,
             PILOT_CONTRACT_ID_V2_1,
@@ -4070,6 +4462,7 @@ class PilotContract:
             PILOT_CONTRACT_ID_V2_6,
             PILOT_CONTRACT_ID_V2_7,
             PILOT_CONTRACT_ID_V2_8,
+            PILOT_CONTRACT_ID_V2_9,
         }:
             raise PilotContractError("unsupported V2 contract_id")
         if (
@@ -4081,7 +4474,7 @@ class PilotContract:
                 f"{value['contract_id']} science-design fieldset differs from frozen V2"
             )
         if (
-            (is_v2_5 or is_v2_6 or is_v2_7 or is_v2_8)
+            (is_v2_5 or is_v2_6 or is_v2_7 or is_v2_8 or is_v2_9)
             and science_design_sha256(value)
             != PILOT_CONTRACT_V2_4_SCIENCE_DESIGN_SHA256
         ):
@@ -4113,30 +4506,34 @@ class PilotContract:
         _boolean(implementation["require_clean_worktree"], "require_clean_worktree")
         if is_v2:
             expected_tag = (
-                PILOT_CONTRACT_TAG_V2_8
-                if is_v2_8
+                PILOT_CONTRACT_TAG_V2_9
+                if is_v2_9
                 else (
-                    PILOT_CONTRACT_TAG_V2_7
-                    if is_v2_7
+                    PILOT_CONTRACT_TAG_V2_8
+                    if is_v2_8
                     else (
-                        PILOT_CONTRACT_TAG_V2_6
-                        if is_v2_6
+                        PILOT_CONTRACT_TAG_V2_7
+                        if is_v2_7
                         else (
-                            PILOT_CONTRACT_TAG_V2_5
-                            if is_v2_5
+                            PILOT_CONTRACT_TAG_V2_6
+                            if is_v2_6
                             else (
-                                PILOT_CONTRACT_TAG_V2_4
-                                if is_v2_4
+                                PILOT_CONTRACT_TAG_V2_5
+                                if is_v2_5
                                 else (
-                                    PILOT_CONTRACT_TAG_V2_3
-                                    if is_v2_3
+                                    PILOT_CONTRACT_TAG_V2_4
+                                    if is_v2_4
                                     else (
-                                        PILOT_CONTRACT_TAG_V2_2
-                                        if is_v2_2
+                                        PILOT_CONTRACT_TAG_V2_3
+                                        if is_v2_3
                                         else (
-                                            PILOT_CONTRACT_TAG_V2_1
-                                            if is_v2_1
-                                            else PILOT_CONTRACT_TAG_V2
+                                            PILOT_CONTRACT_TAG_V2_2
+                                            if is_v2_2
+                                            else (
+                                                PILOT_CONTRACT_TAG_V2_1
+                                                if is_v2_1
+                                                else PILOT_CONTRACT_TAG_V2
+                                            )
                                         )
                                     )
                                 )
@@ -4172,6 +4569,7 @@ class PilotContract:
         p95_authority_retry_amendment: Optional[Mapping[str, Any]] = None
         stage0_evaluator_retry_amendment: Optional[Mapping[str, Any]] = None
         qref_identity_retry_amendment: Optional[Mapping[str, Any]] = None
+        qref_summary_equivalence_amendment: Optional[Mapping[str, Any]] = None
         if is_v2:
             parameter_dispatch_policy = ParameterDispatchPolicy.from_dict(
                 _mapping(
@@ -4212,30 +4610,34 @@ class PilotContract:
                 _mapping(value["release_requirements"], "release_requirements")
             )
             expected_tag = (
-                PILOT_CONTRACT_TAG_V2_8
-                if is_v2_8
+                PILOT_CONTRACT_TAG_V2_9
+                if is_v2_9
                 else (
-                    PILOT_CONTRACT_TAG_V2_7
-                    if is_v2_7
+                    PILOT_CONTRACT_TAG_V2_8
+                    if is_v2_8
                     else (
-                        PILOT_CONTRACT_TAG_V2_6
-                        if is_v2_6
+                        PILOT_CONTRACT_TAG_V2_7
+                        if is_v2_7
                         else (
-                            PILOT_CONTRACT_TAG_V2_5
-                            if is_v2_5
+                            PILOT_CONTRACT_TAG_V2_6
+                            if is_v2_6
                             else (
-                                PILOT_CONTRACT_TAG_V2_4
-                                if is_v2_4
+                                PILOT_CONTRACT_TAG_V2_5
+                                if is_v2_5
                                 else (
-                                    PILOT_CONTRACT_TAG_V2_3
-                                    if is_v2_3
+                                    PILOT_CONTRACT_TAG_V2_4
+                                    if is_v2_4
                                     else (
-                                        PILOT_CONTRACT_TAG_V2_2
-                                        if is_v2_2
+                                        PILOT_CONTRACT_TAG_V2_3
+                                        if is_v2_3
                                         else (
-                                            PILOT_CONTRACT_TAG_V2_1
-                                            if is_v2_1
-                                            else PILOT_CONTRACT_TAG_V2
+                                            PILOT_CONTRACT_TAG_V2_2
+                                            if is_v2_2
+                                            else (
+                                                PILOT_CONTRACT_TAG_V2_1
+                                                if is_v2_1
+                                                else PILOT_CONTRACT_TAG_V2
+                                            )
                                         )
                                     )
                                 )
@@ -4251,6 +4653,55 @@ class PilotContract:
             if is_v2_1:
                 operational_amendment = _validate_v2_1_operational_amendment(
                     value["operational_amendment"]
+                )
+                _validate_v2_1_expected_ci_state(
+                    release_requirements.expected_ci,
+                    status=str(value["status"]),
+                    name="release expected_ci",
+                )
+            elif is_v2_9:
+                operational_amendment = _validate_v2_1_operational_amendment(
+                    value["operational_amendment"]
+                )
+                evaluator_amendment = _validate_v2_2_evaluator_amendment(
+                    value["evaluator_amendment"]
+                )
+                preflight_bootstrap_amendment = (
+                    _validate_v2_3_preflight_bootstrap_amendment(
+                        value["preflight_bootstrap_amendment"]
+                    )
+                )
+                matrix_amendment = _validate_v2_4_matrix_amendment(
+                    value["matrix_amendment"]
+                )
+                parent_import_retry_amendment = (
+                    _validate_v2_5_parent_import_retry_amendment(
+                        value["parent_import_retry_amendment"]
+                    )
+                )
+                p95_authority_retry_amendment = (
+                    _validate_v2_6_p95_authority_retry_amendment(
+                        value["p95_authority_retry_amendment"],
+                        status="frozen",
+                    )
+                )
+                stage0_evaluator_retry_amendment = (
+                    _validate_v2_7_stage0_evaluator_retry_amendment(
+                        value["stage0_evaluator_retry_amendment"],
+                        status="frozen",
+                    )
+                )
+                qref_identity_retry_amendment = (
+                    _validate_v2_8_qref_identity_retry_amendment(
+                        value["qref_identity_retry_amendment"],
+                        status="frozen",
+                    )
+                )
+                qref_summary_equivalence_amendment = (
+                    _validate_v2_9_qref_summary_equivalence_amendment(
+                        value["qref_summary_equivalence_amendment"],
+                        status=str(value["status"]),
+                    )
                 )
                 _validate_v2_1_expected_ci_state(
                     release_requirements.expected_ci,
@@ -4485,6 +4936,7 @@ class PilotContract:
                 or is_v2_6
                 or is_v2_7
                 or is_v2_8
+                or is_v2_9
             ):
                 opus = profiles.get("opus48_no_go")
                 opus_role = model_roles.get("opus48_no_go")
@@ -4757,6 +5209,7 @@ class PilotContract:
                         or is_v2_6
                         or is_v2_7
                         or is_v2_8
+                        or is_v2_9
                     )
                     else 25.0
                 ),
@@ -4781,6 +5234,7 @@ class PilotContract:
                     or is_v2_6
                     or is_v2_7
                     or is_v2_8
+                    or is_v2_9
                 )
                 else
                 {
@@ -5252,15 +5706,22 @@ class PilotContract:
         stage_ids = tuple(stage.stage_id for stage in stages)
         if len(stage_ids) != len(set(stage_ids)):
             raise PilotContractError("stage IDs must be unique")
-        if is_v2_4 or is_v2_5 or is_v2_6 or is_v2_7 or is_v2_8:
+        if (
+            is_v2_4
+            or is_v2_5
+            or is_v2_6
+            or is_v2_7
+            or is_v2_8
+            or is_v2_9
+        ):
             if [stage.to_dict() for stage in stages] != _v2_4_expected_stages():
                 raise PilotContractError(
-                    "V2.4-V2.8 stages differ from the 211-cell matrix"
+                    "V2.4-V2.9 stages differ from the 211-cell matrix"
                 )
             if {
                 key: role.to_dict() for key, role in model_roles.items()
             } != _v2_4_expected_model_roles():
-                raise PilotContractError("V2.4-V2.8 active model roles drifted")
+                raise PilotContractError("V2.4-V2.9 active model roles drifted")
             for role in model_roles.values():
                 if not set(role.allowed_stages) <= set(stage_ids):
                     raise PilotContractError(
@@ -5277,7 +5738,12 @@ class PilotContract:
                         f"model role {role.profile_id} references an unknown call role"
                     )
         if is_v2 and not (
-            is_v2_4 or is_v2_5 or is_v2_6 or is_v2_7 or is_v2_8
+            is_v2_4
+            or is_v2_5
+            or is_v2_6
+            or is_v2_7
+            or is_v2_8
+            or is_v2_9
         ):
             expected_stage_order = (
                 "capability-gate",
@@ -5457,21 +5923,28 @@ class PilotContract:
                                 f"roles in stage {stage.stage_id}"
                             )
 
-        if is_v2_4 or is_v2_5 or is_v2_6 or is_v2_7 or is_v2_8:
+        if (
+            is_v2_4
+            or is_v2_5
+            or is_v2_6
+            or is_v2_7
+            or is_v2_8
+            or is_v2_9
+        ):
             if set(profiles) != {
                 "gpt52_main",
                 "llama33_local_controlled",
                 "qref_scripted",
             }:
                 raise PilotContractError(
-                    "V2.4-V2.8 active provider profiles drifted"
+                    "V2.4-V2.9 active provider profiles drifted"
                 )
             if _json_copy(arms.get("parent-import")) != (
                 _v2_4_expected_parent_import_arm()
             ):
-                raise PilotContractError("V2.4-V2.8 parent-import arm drifted")
+                raise PilotContractError("V2.4-V2.9 parent-import arm drifted")
             if list(value["non_claims"]) != _v2_4_expected_non_claims():
-                raise PilotContractError("V2.4-V2.8 non-claim boundary drifted")
+                raise PilotContractError("V2.4-V2.9 non-claim boundary drifted")
             registered_cells = sum(
                 len(normalized_seed_sets[stage.seed_set])
                 * len(stage.utility_profiles)
@@ -5531,6 +6004,12 @@ class PilotContract:
             and actual != PILOT_CONTRACT_V2_8_CANONICAL_SHA256
         ):
             raise PilotContractError("V2.8 frozen canonical hash drifted")
+        if (
+            is_v2_9
+            and value["status"] == "frozen"
+            and actual != PILOT_CONTRACT_V2_9_CANONICAL_SHA256
+        ):
+            raise PilotContractError("V2.9 frozen canonical hash drifted")
 
         non_claims = _string_tuple(value["non_claims"], "non_claims")
         return cls(
@@ -5570,6 +6049,9 @@ class PilotContract:
             ),
             qref_identity_retry_amendment=(
                 qref_identity_retry_amendment
+            ),
+            qref_summary_equivalence_amendment=(
+                qref_summary_equivalence_amendment
             ),
             non_claims=non_claims,
             canonicalization=integrity["canonicalization"],
@@ -5712,6 +6194,7 @@ class PilotContract:
             PILOT_CONTRACT_ID_V2_6,
             PILOT_CONTRACT_ID_V2_7,
             PILOT_CONTRACT_ID_V2_8,
+            PILOT_CONTRACT_ID_V2_9,
         }:
             if self.release_requirements is None:  # pragma: no cover - parser
                 raise PilotContractError(
@@ -5970,6 +6453,48 @@ class PilotContract:
                         "V2.7 contract cannot carry a q-ref identity retry "
                         "amendment"
                     )
+            elif self.contract_id == PILOT_CONTRACT_ID_V2_9:
+                if (
+                    self.operational_amendment is None
+                    or self.evaluator_amendment is None
+                    or self.preflight_bootstrap_amendment is None
+                    or self.matrix_amendment is None
+                    or self.parent_import_retry_amendment is None
+                    or self.p95_authority_retry_amendment is None
+                    or self.stage0_evaluator_retry_amendment is None
+                    or self.qref_identity_retry_amendment is None
+                    or self.qref_summary_equivalence_amendment is None
+                ):
+                    raise PilotContractError(
+                        "V2.9 contract lacks its parent amendment chain"
+                    )
+                result["operational_amendment"] = _thaw_json(
+                    self.operational_amendment
+                )
+                result["evaluator_amendment"] = _thaw_json(
+                    self.evaluator_amendment
+                )
+                result["preflight_bootstrap_amendment"] = _thaw_json(
+                    self.preflight_bootstrap_amendment
+                )
+                result["matrix_amendment"] = _thaw_json(
+                    self.matrix_amendment
+                )
+                result["parent_import_retry_amendment"] = _thaw_json(
+                    self.parent_import_retry_amendment
+                )
+                result["p95_authority_retry_amendment"] = _thaw_json(
+                    self.p95_authority_retry_amendment
+                )
+                result["stage0_evaluator_retry_amendment"] = _thaw_json(
+                    self.stage0_evaluator_retry_amendment
+                )
+                result["qref_identity_retry_amendment"] = _thaw_json(
+                    self.qref_identity_retry_amendment
+                )
+                result["qref_summary_equivalence_amendment"] = _thaw_json(
+                    self.qref_summary_equivalence_amendment
+                )
             elif self.contract_id == PILOT_CONTRACT_ID_V2_8:
                 if (
                     self.operational_amendment is None
@@ -6040,6 +6565,11 @@ class PilotContract:
                 raise PilotContractError(
                     "original V2 contract cannot carry a q-ref identity retry "
                     "amendment"
+                )
+            elif self.qref_summary_equivalence_amendment is not None:
+                raise PilotContractError(
+                    "original V2 contract cannot carry a q-ref summary "
+                    "equivalence amendment"
                 )
         return result
 
@@ -8129,6 +8659,258 @@ def _expand_v2_8_overlay(
     return expanded
 
 
+def _assert_v2_9_base_equivalence(
+    base: Mapping[str, Any],
+    expanded: Mapping[str, Any],
+    *,
+    overlay_status: str,
+) -> None:
+    """Allow only V2.9 release identity and summary-equivalence metadata."""
+
+    for field in _V2_1_SCIENCE_DESIGN_FIELDS:
+        if _json_copy(expanded[field]) != _json_copy(base[field]):
+            raise PilotContractError(
+                f"V2.9 science-critical field {field!r} differs from V2.8"
+            )
+    for field in (
+        "budgets",
+        "operational_amendment",
+        "evaluator_amendment",
+        "preflight_bootstrap_amendment",
+        "matrix_amendment",
+        "parent_import_retry_amendment",
+        "p95_authority_retry_amendment",
+        "stage0_evaluator_retry_amendment",
+        "qref_identity_retry_amendment",
+    ):
+        if _json_copy(expanded[field]) != _json_copy(base[field]):
+            raise PilotContractError(
+                f"V2.9 inherited field {field!r} differs from V2.8"
+            )
+
+    base_denominator = _json_copy(base["denominator_policy"])
+    expanded_denominator = _json_copy(expanded["denominator_policy"])
+    base_denominator.pop("policy_id")
+    expanded_denominator.pop("policy_id")
+    if expanded_denominator != base_denominator:
+        raise PilotContractError(
+            "V2.9 denominator differs beyond its policy identifier"
+        )
+
+    base_implementation = _json_copy(base["implementation"])
+    expanded_implementation = _json_copy(expanded["implementation"])
+    base_implementation.pop("required_git_tag")
+    expanded_implementation.pop("required_git_tag")
+    if expanded_implementation != base_implementation:
+        raise PilotContractError(
+            "V2.9 implementation differs beyond its release tag"
+        )
+
+    base_release = _json_copy(base["release_requirements"])
+    expanded_release = _json_copy(expanded["release_requirements"])
+    for release in (base_release, expanded_release):
+        release.pop("tag")
+        release.pop("expected_ci")
+    if expanded_release != base_release:
+        raise PilotContractError(
+            "V2.9 release requirements differ beyond tag/CI identity"
+        )
+
+    expected_ci = expanded["release_requirements"]["expected_ci"]
+    _validate_v2_1_expected_ci_state(
+        expected_ci,
+        status=overlay_status,
+        name="V2.9 expanded release expected_ci",
+    )
+    if (
+        expanded["schema_version"] != base["schema_version"]
+        or expanded["status"] != overlay_status
+        or expanded["contract_id"] != PILOT_CONTRACT_ID_V2_9
+        or expanded["implementation"]["required_git_tag"]
+        != PILOT_CONTRACT_TAG_V2_9
+        or expanded["release_requirements"]["tag"]
+        != PILOT_CONTRACT_TAG_V2_9
+        or expanded["denominator_policy"]["policy_id"]
+        != "finevo-pilot-v2.9-itt"
+        or set(expected_ci) != _V2_1_EXPECTED_CI_FIELDS
+    ):
+        raise PilotContractError("V2.9 identifier/CI amendment drifted")
+    if (
+        science_design_sha256(expanded)
+        != PILOT_CONTRACT_V2_4_SCIENCE_DESIGN_SHA256
+    ):
+        raise PilotContractError("V2.9 science-design hash differs from V2.8")
+    if _json_copy(expanded["qref_summary_equivalence_amendment"]) != (
+        _v2_9_expected_qref_summary_equivalence_amendment(
+            status=overlay_status,
+        )
+    ):
+        raise PilotContractError(
+            "V2.9 q-ref summary-equivalence amendment drifted"
+        )
+
+
+def _expand_v2_9_overlay(
+    value: Mapping[str, Any],
+    *,
+    source: Path,
+) -> Mapping[str, Any]:
+    """Expand the V2.9 deterministic-summary retry over terminal V2.8."""
+
+    _strict_keys(
+        value,
+        required={
+            "schema_version",
+            "contract_id",
+            "status",
+            "base_contract",
+            "changes",
+            "qref_summary_equivalence_amendment",
+            "integrity",
+        },
+        name="V2.9 q-ref summary-equivalence overlay",
+    )
+    if (
+        value["schema_version"] != PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_9
+        or value["contract_id"] != PILOT_CONTRACT_ID_V2_9
+        or value["status"] not in {"draft", "frozen"}
+    ):
+        raise PilotContractError("V2.9 retry overlay identity drifted")
+    if (
+        value["status"] == "frozen"
+        and PILOT_CONTRACT_V2_9_CANONICAL_SHA256 is None
+    ):
+        raise PilotContractError(
+            "V2.9 cannot be frozen before its canonical hash and CI inventory"
+        )
+
+    integrity = _mapping(value["integrity"], "V2.9 overlay integrity")
+    _strict_keys(
+        integrity,
+        required={"canonicalization", "declared_sha256"},
+        name="V2.9 overlay integrity",
+    )
+    if integrity["canonicalization"] != PILOT_CONTRACT_CANONICALIZATION:
+        raise PilotContractError("unsupported V2.9 overlay canonicalization")
+    declared = _sha256(
+        integrity["declared_sha256"],
+        "V2.9 overlay declared_sha256",
+    )
+    actual = canonical_contract_sha256(value)
+    if declared != actual:
+        raise PilotContractError(
+            f"V2.9 overlay hash mismatch: declared {declared}, actual {actual}"
+        )
+
+    base_binding = _mapping(value["base_contract"], "V2.9 base_contract")
+    _strict_keys(
+        base_binding,
+        required={
+            "path",
+            "schema_version",
+            "contract_id",
+            "canonical_sha256",
+        },
+        name="V2.9 base_contract",
+    )
+    if _json_copy(base_binding) != {
+        "path": "pilot_v2_8.yaml",
+        "schema_version": PILOT_CONTRACT_SCHEMA_VERSION_V2,
+        "contract_id": PILOT_CONTRACT_ID_V2_8,
+        "canonical_sha256": PILOT_CONTRACT_V2_8_CANONICAL_SHA256,
+    }:
+        raise PilotContractError("V2.9 base contract binding drifted")
+    base_path = source.parent / str(base_binding["path"])
+    if (
+        base_path.name != "pilot_v2_8.yaml"
+        or base_path.resolve().parent != source.parent.resolve()
+    ):
+        raise PilotContractError(
+            "V2.9 base contract must be the sibling pilot_v2_8.yaml"
+        )
+    base_contract = load_pilot_contract(base_path)
+    if (
+        base_contract.schema_version != PILOT_CONTRACT_SCHEMA_VERSION_V2
+        or base_contract.contract_id != PILOT_CONTRACT_ID_V2_8
+        or base_contract.canonical_hash != PILOT_CONTRACT_V2_8_CANONICAL_SHA256
+    ):
+        raise PilotContractError("V2.9 resolved base contract identity drifted")
+
+    changes = _mapping(value["changes"], "V2.9 changes")
+    _strict_keys(
+        changes,
+        required={
+            "implementation",
+            "release_requirements",
+            "denominator_policy",
+        },
+        name="V2.9 changes",
+    )
+    if _json_copy(changes["implementation"]) != {
+        "required_git_tag": PILOT_CONTRACT_TAG_V2_9
+    }:
+        raise PilotContractError("V2.9 implementation tag drifted")
+
+    release_change = _mapping(
+        changes["release_requirements"],
+        "V2.9 changes.release_requirements",
+    )
+    _strict_keys(
+        release_change,
+        required={"tag", "expected_ci"},
+        name="V2.9 changes.release_requirements",
+    )
+    expected_ci = _mapping(
+        release_change["expected_ci"],
+        "V2.9 changes.release_requirements.expected_ci",
+    )
+    _strict_keys(
+        expected_ci,
+        required=_V2_1_EXPECTED_CI_FIELDS,
+        name="V2.9 changes.release_requirements.expected_ci",
+    )
+    if release_change["tag"] != PILOT_CONTRACT_TAG_V2_9:
+        raise PilotContractError("V2.9 release tag drifted")
+    _validate_v2_1_expected_ci_state(
+        expected_ci,
+        status=str(value["status"]),
+        name="V2.9 changes.release_requirements.expected_ci",
+    )
+    if _json_copy(changes["denominator_policy"]) != {
+        "policy_id": "finevo-pilot-v2.9-itt"
+    }:
+        raise PilotContractError("V2.9 denominator identifier drifted")
+
+    amendment = _validate_v2_9_qref_summary_equivalence_amendment(
+        value["qref_summary_equivalence_amendment"],
+        status=str(value["status"]),
+    )
+    expanded = base_contract.to_dict()
+    expanded["status"] = value["status"]
+    expanded["contract_id"] = PILOT_CONTRACT_ID_V2_9
+    expanded["implementation"]["required_git_tag"] = PILOT_CONTRACT_TAG_V2_9
+    expanded["release_requirements"]["tag"] = PILOT_CONTRACT_TAG_V2_9
+    expanded["release_requirements"]["expected_ci"] = _json_copy(expected_ci)
+    expanded["denominator_policy"]["policy_id"] = "finevo-pilot-v2.9-itt"
+    expanded["qref_summary_equivalence_amendment"] = _thaw_json(amendment)
+    expanded["integrity"]["declared_sha256"] = "0" * 64
+    expanded["integrity"]["declared_sha256"] = canonical_contract_sha256(
+        expanded
+    )
+    _assert_v2_9_base_equivalence(
+        base_contract.to_dict(),
+        expanded,
+        overlay_status=str(value["status"]),
+    )
+    if (
+        value["status"] == "frozen"
+        and expanded["integrity"]["declared_sha256"]
+        != PILOT_CONTRACT_V2_9_CANONICAL_SHA256
+    ):
+        raise PilotContractError("V2.9 frozen canonical hash drifted")
+    return expanded
+
+
 def _validate_v2_4_parent_source_manifest_file(
     source: Path,
     amendment: Mapping[str, Any],
@@ -8509,6 +9291,68 @@ def _validate_v2_8_source_manifest_file(
         raise PilotContractError("V2.8 source manifest content hash drifted")
 
 
+def _validate_v2_9_source_manifest_file(
+    source: Path,
+    amendment: Mapping[str, Any],
+    *,
+    status: str,
+) -> None:
+    binding = _mapping(
+        amendment.get("source_manifest"),
+        "qref_summary_equivalence_amendment.source_manifest",
+    )
+    expected_binding = _v2_9_expected_qref_summary_equivalence_amendment(
+        status=status,
+    )["source_manifest"]
+    if _thaw_json(binding) != expected_binding:
+        raise PilotContractError("V2.9 source manifest binding drifted")
+    if status == "draft":
+        if (
+            binding.get("file_sha256") is not None
+            or binding.get("content_sha256") is not None
+        ):
+            raise PilotContractError(
+                "V2.9 draft source-manifest hashes must be null"
+            )
+        return
+
+    manifest_path = source.parent / "pilot_v2_9_source_manifest.json"
+    if (
+        manifest_path.name != "pilot_v2_9_source_manifest.json"
+        or manifest_path.resolve().parent != source.parent.resolve()
+        or not manifest_path.is_file()
+    ):
+        raise PilotContractError(
+            "V2.9 source manifest must be the tracked sibling file"
+        )
+    payload = manifest_path.read_bytes()
+    if hashlib.sha256(payload).hexdigest() != binding["file_sha256"]:
+        raise PilotContractError("V2.9 source manifest file hash drifted")
+    try:
+        manifest = _mapping(
+            json.loads(payload.decode("utf-8")),
+            "V2.9 source manifest",
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PilotContractError(
+            "V2.9 source manifest is not canonical JSON"
+        ) from exc
+    integrity = _mapping(
+        manifest.get("integrity"),
+        "V2.9 source manifest integrity",
+    )
+    if (
+        manifest.get("schema_version") != binding["schema_version"]
+        or integrity.get("canonicalization") != PILOT_CONTRACT_CANONICALIZATION
+        or integrity.get("content_sha256") != binding["content_sha256"]
+    ):
+        raise PilotContractError("V2.9 source manifest identity drifted")
+    content_payload = _json_copy(manifest)
+    content_payload["integrity"].pop("content_sha256")
+    if canonical_sha256(content_payload) != binding["content_sha256"]:
+        raise PilotContractError("V2.9 source manifest content hash drifted")
+
+
 def load_pilot_contract(path: str | Path) -> PilotContract:
     """Load a JSON-compatible YAML pilot contract and verify its declared hash."""
 
@@ -8582,6 +9426,11 @@ def load_pilot_contract(path: str | Path) -> PilotContract:
         == PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_8
     ):
         document = _expand_v2_8_overlay(document, source=source)
+    elif (
+        document.get("schema_version")
+        == PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_9
+    ):
+        document = _expand_v2_9_overlay(document, source=source)
     contract = PilotContract.from_dict(document)
     if contract.contract_id == PILOT_CONTRACT_ID_V2_4:
         if contract.matrix_amendment is None:  # pragma: no cover - parser guard
@@ -8682,6 +9531,44 @@ def load_pilot_contract(path: str | Path) -> PilotContract:
             contract.qref_identity_retry_amendment,
             status=contract.status,
         )
+    elif contract.contract_id == PILOT_CONTRACT_ID_V2_9:
+        if (
+            contract.matrix_amendment is None
+            or contract.parent_import_retry_amendment is None
+            or contract.p95_authority_retry_amendment is None
+            or contract.stage0_evaluator_retry_amendment is None
+            or contract.qref_identity_retry_amendment is None
+            or contract.qref_summary_equivalence_amendment is None
+        ):  # pragma: no cover - parser guard
+            raise PilotContractError("V2.9 contract lacks its amendment chain")
+        _validate_v2_4_parent_source_manifest_file(
+            source,
+            contract.matrix_amendment,
+        )
+        _validate_v2_5_source_manifest_file(
+            source,
+            contract.parent_import_retry_amendment,
+        )
+        _validate_v2_6_source_manifest_file(
+            source,
+            contract.p95_authority_retry_amendment,
+            status="frozen",
+        )
+        _validate_v2_7_source_manifest_file(
+            source,
+            contract.stage0_evaluator_retry_amendment,
+            status="frozen",
+        )
+        _validate_v2_8_source_manifest_file(
+            source,
+            contract.qref_identity_retry_amendment,
+            status="frozen",
+        )
+        _validate_v2_9_source_manifest_file(
+            source,
+            contract.qref_summary_equivalence_amendment,
+            status=contract.status,
+        )
     return contract
 
 
@@ -8698,6 +9585,7 @@ __all__ = [
     "PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_6",
     "PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_7",
     "PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_8",
+    "PILOT_CONTRACT_OVERLAY_SCHEMA_VERSION_V2_9",
     "PILOT_CONTRACT_ID_V2",
     "PILOT_CONTRACT_ID_V2_1",
     "PILOT_CONTRACT_ID_V2_2",
@@ -8707,6 +9595,7 @@ __all__ = [
     "PILOT_CONTRACT_ID_V2_6",
     "PILOT_CONTRACT_ID_V2_7",
     "PILOT_CONTRACT_ID_V2_8",
+    "PILOT_CONTRACT_ID_V2_9",
     "PILOT_CONTRACT_TAG_V2",
     "PILOT_CONTRACT_TAG_V2_1",
     "PILOT_CONTRACT_TAG_V2_2",
@@ -8716,6 +9605,7 @@ __all__ = [
     "PILOT_CONTRACT_TAG_V2_6",
     "PILOT_CONTRACT_TAG_V2_7",
     "PILOT_CONTRACT_TAG_V2_8",
+    "PILOT_CONTRACT_TAG_V2_9",
     "PILOT_CONTRACT_V2_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_1_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_2_CANONICAL_SHA256",
@@ -8725,6 +9615,13 @@ __all__ = [
     "PILOT_CONTRACT_V2_6_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_7_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_8_CANONICAL_SHA256",
+    "PILOT_CONTRACT_V2_9_CANONICAL_SHA256",
+    "PILOT_V2_9_SOURCE_MANIFEST_FILE_SHA256",
+    "PILOT_V2_9_SOURCE_MANIFEST_CONTENT_SHA256",
+    "PILOT_V2_8_EVIDENCE_COMMIT",
+    "PILOT_V2_8_EVIDENCE_MERGE_COMMIT",
+    "PILOT_V2_8_EVIDENCE_PACKAGE_FILE_SHA256",
+    "PILOT_V2_8_EVIDENCE_CHECKSUMS_FILE_SHA256",
     "PILOT_V2_8_SOURCE_MANIFEST_FILE_SHA256",
     "PILOT_V2_8_SOURCE_MANIFEST_CONTENT_SHA256",
     "PILOT_CONTRACT_V2_4_SCIENCE_DESIGN_SHA256",

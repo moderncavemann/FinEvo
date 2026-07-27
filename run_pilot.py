@@ -17,6 +17,8 @@ Examples:
     python run_pilot.py --contract experiments/pilot_v2_8.yaml \
         --stage parent-import \
         --parent-repo-root ../finevo-pilot-v2-7-science --resume
+    python run_pilot.py --contract experiments/pilot_v2_9.yaml \
+        --stage publish-evidence --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
         --stage capability-gate --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
@@ -43,6 +45,9 @@ the dedicated baseline-only Stage-0 evaluator before any new A--D dispatch.
 Pilot-v2.8 preserves V2.7 as an immutable no-go, regenerates q-ref through the
 fresh local scripted path, and imports exactly the fourteen nested V2.6
 Stage-0 cells without provider construction or redispatch.
+Pilot-v2.9 preserves V2.8 as an immutable no-go and retries only q-ref's
+deterministic run-summary equivalence under an identity-bound, allowlisted
+projection; only fresh V2.9 A--D cells may enter treatment-effect gates.
 """
 
 from __future__ import annotations
@@ -56,6 +61,7 @@ from verified_memory.pilot_contract import load_pilot_contract
 from verified_memory.pilot_evidence import build_pilot_evidence_package
 from verified_memory.pilot_v24_evidence import (
     PILOT_V24_CONTRACT_ID,
+    PILOT_V29_CONTRACT_ID,
     build_pilot_v24_evidence_package,
 )
 from verified_memory.pilot_v25_parent_import import V25_CONTRACT_ID
@@ -114,7 +120,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "read-only parent source/raw checkout required only by the "
-            "V2.4/V2.5/V2.6/V2.7/V2.8 zero-provider parent-import stage"
+            "V2.4/V2.5/V2.6/V2.7/V2.8/V2.9 zero-provider parent-import stage"
         ),
     )
     parser.add_argument(
@@ -183,6 +189,7 @@ def execute(args: argparse.Namespace) -> dict:
                 V26_CONTRACT_ID,
                 V27_CONTRACT_ID,
                 V28_CONTRACT_ID,
+                PILOT_V29_CONTRACT_ID,
             }
             else build_pilot_evidence_package
         )
@@ -197,9 +204,7 @@ def execute(args: argparse.Namespace) -> dict:
         package = builder(**build_kwargs)
         return {
             "status": (
-                "complete"
-                if package.scientific_complete
-                else "complete-with-no-go"
+                "complete" if package.scientific_complete else "complete-with-no-go"
             ),
             "provider_calls": 0,
             "package_dir": str(package.package_dir),
@@ -238,7 +243,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
-    return 0 if result.get("status") in {"pass", "complete", "complete-with-no-go"} else 2
+    return (
+        0 if result.get("status") in {"pass", "complete", "complete-with-no-go"} else 2
+    )
 
 
 if __name__ == "__main__":
