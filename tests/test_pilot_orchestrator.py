@@ -11,6 +11,7 @@ import pytest
 from llm_providers import MultiModelLLM
 from verified_memory.artifacts import verify_manifest
 from verified_memory.budget import BudgetLimits, RunBudget, UsageRecord
+from verified_memory.pilot_calibration import canonical_hash
 from verified_memory.pilot_budget import PilotBudgetLedger, RunProjection
 from verified_memory.pilot_contract import load_pilot_contract
 from verified_memory.pilot_evidence import PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION
@@ -454,7 +455,7 @@ def test_real_qref_offline_and_d_cells_point_to_sealed_terminal_summaries(
             "completion_tokens": 100_000,
         },
     )
-    qref_terminal, _, _ = _execute_q_ref(
+    qref_terminal, _, qref_resolution = _execute_q_ref(
         contract,
         qref_spec,
         raw_root=raw,
@@ -471,6 +472,25 @@ def test_real_qref_offline_and_d_cells_point_to_sealed_terminal_summaries(
         / "manifest.json"
     )
     assert verify_manifest(qref_manifest.parent).valid is True
+    qref_config = json.loads(
+        (qref_manifest.parent / "config.json").read_text(encoding="utf-8")
+    )
+    qref_provenance = json.loads(
+        (qref_manifest.parent / "provenance.json").read_text(encoding="utf-8")
+    )
+    assert qref_manifest.parent.name == qref_spec.run_id
+    assert qref_config["run_id"] == qref_spec.run_id
+    assert (
+        qref_provenance["details"]["run_spec"]["run_id"]
+        == qref_spec.run_id
+    )
+    assert qref_resolution["source"]["config"]["run_id"] == qref_spec.run_id
+    assert qref_resolution["bindings"]["source_config_hash"] == canonical_hash(
+        qref_config
+    )
+    assert qref_resolution["bindings"]["source_manifest_sha256"] == (
+        hashlib.sha256(qref_manifest.read_bytes()).hexdigest()
+    )
 
     offline_spec = next(
         spec

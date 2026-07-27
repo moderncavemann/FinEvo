@@ -44,6 +44,7 @@ Q_REF_WORK_FRACTION_CYCLE = (0.25, 0.50, 0.75, 0.50)
 Q_REF_CONSUMPTION_FRACTION_CYCLE = (0.30, 0.35, 0.30, 0.25)
 Q_REF_LEDGER_FIELD = "realized_consumption_quantity"
 Q_REF_AGGREGATION = "median"
+Q_REF_STANDALONE_RUN_ID = f"q-ref-resolution-s{Q_REF_SEED}"
 
 STAGE0_PROFILE_ORDER = (
     "center",
@@ -128,11 +129,16 @@ def stable_baseline_shock_schedule() -> tuple[ShockEvent, ...]:
     )
 
 
-def q_ref_run_config() -> VerifiedRunConfig:
-    """Return the exact deterministic runner configuration for q-ref."""
+def q_ref_run_config(*, run_id: str) -> VerifiedRunConfig:
+    """Return the exact deterministic runner configuration for one q-ref cell."""
+
+    if not isinstance(run_id, str):
+        raise TypeError("run_id must be a string")
+    if not run_id.strip():
+        raise ValueError("run_id must be non-empty")
 
     return VerifiedRunConfig(
-        run_id=f"q-ref-resolution-s{Q_REF_SEED}",
+        run_id=run_id,
         seed=Q_REF_SEED,
         num_agents=Q_REF_NUM_AGENTS,
         episode_length=Q_REF_EPISODE_LENGTH,
@@ -320,7 +326,7 @@ def resolve_q_ref(
 ) -> dict[str, Any]:
     """Run the frozen no-network q-ref fixture and return its sealed resolution."""
 
-    config = q_ref_run_config()
+    config = q_ref_run_config(run_id=Q_REF_STANDALONE_RUN_ID)
     result = run_verified_experiment(
         config,
         llm=MultiModelLLM(
