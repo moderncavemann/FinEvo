@@ -152,6 +152,24 @@ def test_v25_uses_the_exact_v24_lane_stage_partition() -> None:
     assert core_evidence._evidence_namespace(v25) == "current_v2/pilot-v2.5"
 
 
+def test_v25_budget_control_dispatches_to_the_v25_cumulative_debit() -> None:
+    contract = load_pilot_contract(V25_CONTRACT_PATH)
+
+    debit = core_evidence._expected_parent_budget_debit(contract)
+
+    assert debit is not None
+    assert debit["stage_bucket"] == "parent_v23"
+    assert debit["cost_usd"] == 3.212770875
+    assert debit["hosted_completions"] == 184
+    assert debit["storage_bytes"] == 4_714_322
+    assert debit["parent_run_ledger_sha256"] == (
+        "6ef976205f37fe675169b05fcec8806c16085aceffdafeaa4a471a002f194fd1"
+    )
+    assert debit["record_sha256"] == (
+        "002d0c224af866a2f0f26b5685c22ee850e2a78402012957fe31813d44f00ed9"
+    )
+
+
 def test_v25_aggregate_keeps_matrix_but_uses_v25_identity(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

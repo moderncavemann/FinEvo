@@ -1538,18 +1538,16 @@ def _verify_receipt_value(
 ) -> dict[str, dict[str, dict[str, Any]]]:
     # V2.4 has no new provider preflight.  Its child receipt is instead
     # rebuilt from an exact, tracked-hash copy of the fully reverified V2.3
-    # source receipt.  Keep the legacy V2.3 verifier below unchanged and
-    # dispatch only the explicitly versioned inherited schema here.
-    from .pilot_v24_parent_import import (
-        V24_INHERITED_P95_RECEIPT_SCHEMA_VERSION,
-        PilotV24ParentImportError,
-        verify_v24_inherited_p95_receipt,
-    )
+    # source receipt.  V2.5 reseals the reverified authority under its own
+    # child schema.  Keep the legacy V2.3 verifier below unchanged and dispatch
+    # only these explicitly versioned inherited schemas here.
+    schema_version = receipt.get("schema_version")
+    if schema_version == "finevo-inherited-observed-p95-authority-receipt-v1":
+        from .pilot_v24_parent_import import (
+            PilotV24ParentImportError,
+            verify_v24_inherited_p95_receipt,
+        )
 
-    if (
-        receipt.get("schema_version")
-        == V24_INHERITED_P95_RECEIPT_SCHEMA_VERSION
-    ):
         if historical_checkpoint_policy is not None:
             raise ObservedP95AuthorityError(
                 "historical checkpoint policy applies only to the "
@@ -1564,6 +1562,56 @@ def _verify_receipt_value(
         except PilotV24ParentImportError as exc:
             raise ObservedP95AuthorityError(
                 f"V2.4 inherited observed-p95 receipt failed validation: {exc}"
+            ) from exc
+
+    if (
+        schema_version
+        == "finevo-pilot-v2.5-inherited-observed-p95-authority-v1"
+    ):
+        from .pilot_v25_parent_import import (
+            PilotV25ParentImportError,
+            verify_v25_inherited_p95_receipt,
+        )
+
+        if historical_checkpoint_policy is not None:
+            raise ObservedP95AuthorityError(
+                "historical checkpoint policy applies only to the "
+                "source V2.3 authority receipt"
+            )
+        try:
+            return verify_v25_inherited_p95_receipt(
+                receipt,
+                repo_root=repo_root,
+                expected_git_commit=expected_git_commit,
+            )
+        except PilotV25ParentImportError as exc:
+            raise ObservedP95AuthorityError(
+                f"V2.5 inherited observed-p95 receipt failed validation: {exc}"
+            ) from exc
+
+    if (
+        schema_version
+        == "finevo-pilot-v2.6-inherited-observed-p95-authority-v1"
+    ):
+        from .pilot_v26_parent_import import (
+            PilotV26ParentImportError,
+            verify_v26_inherited_p95_receipt,
+        )
+
+        if historical_checkpoint_policy is not None:
+            raise ObservedP95AuthorityError(
+                "historical checkpoint policy applies only to the "
+                "source V2.3 authority receipt"
+            )
+        try:
+            return verify_v26_inherited_p95_receipt(
+                receipt,
+                repo_root=repo_root,
+                expected_git_commit=expected_git_commit,
+            )
+        except PilotV26ParentImportError as exc:
+            raise ObservedP95AuthorityError(
+                f"V2.6 inherited observed-p95 receipt failed validation: {exc}"
             ) from exc
 
     expected_keys = {

@@ -204,10 +204,21 @@ def _is_v25_contract(contract: PilotContract) -> bool:
     )
 
 
+def _is_v26_contract(contract: PilotContract) -> bool:
+    return (
+        _is_v2_contract(contract)
+        and contract.contract_id == "finevo-pilot-v2.6"
+    )
+
+
 def _is_lane_separated_contract(contract: PilotContract) -> bool:
     """Return whether the contract uses the fixed V2.4 211-cell lane matrix."""
 
-    return _is_v24_contract(contract) or _is_v25_contract(contract)
+    return (
+        _is_v24_contract(contract)
+        or _is_v25_contract(contract)
+        or _is_v26_contract(contract)
+    )
 
 
 def _stage_sets(
@@ -2399,6 +2410,14 @@ def _validate_terminal_payload_marker(
                 )
 
                 parent_import_receipt_verifier = verify_v25_parent_import_receipt
+        elif _is_v26_contract(contract):
+            version_label = "V2.6"
+            if parent_import_receipt_verifier is None:
+                from .pilot_v26_parent_import import (  # pylint: disable=import-outside-toplevel
+                    verify_v26_parent_import_receipt,
+                )
+
+                parent_import_receipt_verifier = verify_v26_parent_import_receipt
         else:
             raise PilotEvidenceError(
                 "parent-authority import is unsupported for this contract"
@@ -4255,8 +4274,14 @@ def _expected_parent_budget_debit(
         parent_budget_debit_for_preflight_amendment,
     )
     from .pilot_v24_parent_import import parent_budget_debit_for_v24
+    from .pilot_v25_parent_import import parent_budget_debit_for_v25
+    from .pilot_v26_parent_import import parent_budget_debit_for_v26
 
-    debit = parent_budget_debit_for_v24(contract)
+    debit = parent_budget_debit_for_v26(contract)
+    if debit is None:
+        debit = parent_budget_debit_for_v25(contract)
+    if debit is None:
+        debit = parent_budget_debit_for_v24(contract)
     if debit is None:
         debit = parent_budget_debit_for_preflight_amendment(contract)
     if debit is None:

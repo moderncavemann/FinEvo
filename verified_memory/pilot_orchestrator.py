@@ -168,6 +168,17 @@ from .pilot_v25_parent_import import (
     verified_v25_inherited_p95_binding,
     verify_v25_parent_import_receipt,
 )
+from .pilot_v26_parent_import import (
+    V26_ALLOWED_P95_PROFILES,
+    V26_CONTRACT_ID,
+    PilotV26ParentImportError,
+    inherited_p95_receipt_path as inherited_v26_p95_receipt_path,
+    inherited_projection_path as inherited_v26_projection_path,
+    parent_budget_debit_for_v26,
+    persist_v26_parent_import,
+    verified_v26_inherited_p95_binding,
+    verify_v26_parent_import_receipt,
+)
 from .runner import (
     OBSERVED_P95_AUTHORITY_ID,
     OBSERVED_P95_PROJECTION_SCHEMA_VERSION,
@@ -213,7 +224,9 @@ SCIENTIFIC_STAGE_IDS = (
 )
 
 CAPABILITY_EXECUTION_MODES = frozenset({"capability_probe", "closed_loop_preflight"})
-PARENT_IMPORT_CONTRACT_IDS = frozenset({V24_CONTRACT_ID, V25_CONTRACT_ID})
+PARENT_IMPORT_CONTRACT_IDS = frozenset(
+    {V24_CONTRACT_ID, V25_CONTRACT_ID, V26_CONTRACT_ID}
+)
 
 
 def _core_stage_family(stage_id: str) -> str | None:
@@ -252,9 +265,10 @@ def _materializes_legacy_amendment_controls(
 ) -> bool:
     """Whether the contract still executes its V2.1--V2.3 raw amendments.
 
-    V2.4 and its outcome-blind V2.5 operational retry retain those objects only
-    as immutable contract lineage. Their parent-import receipt is the sole
-    runtime authority for the cumulative debit and inherited p95 reservations.
+    V2.4 and its outcome-blind V2.5/V2.6 operational retries retain those
+    objects only as immutable contract lineage. Their parent-import receipt is
+    the sole runtime authority for the cumulative debit and inherited p95
+    reservations.
     """
 
     return contract.contract_id not in PARENT_IMPORT_CONTRACT_IDS
@@ -1105,6 +1119,9 @@ def _budget_caps(contract: PilotContract) -> PilotBudgetCaps:
 
 
 def _parent_budget_debit(contract: PilotContract):
+    v26_debit = parent_budget_debit_for_v26(contract)
+    if v26_debit is not None:
+        return v26_debit
     v25_debit = parent_budget_debit_for_v25(contract)
     if v25_debit is not None:
         return v25_debit
@@ -1739,6 +1756,12 @@ def _observed_p95_authority_receipt_path(
                 f"{model_id} has no V2.5 inherited dispatch authority"
             )
         return inherited_v25_p95_receipt_path(raw_root, model_id)
+    if contract.contract_id == V26_CONTRACT_ID:
+        if model_id not in V26_ALLOWED_P95_PROFILES:
+            raise PilotOrchestrationError(
+                f"{model_id} has no V2.6 inherited dispatch authority"
+            )
+        return inherited_v26_p95_receipt_path(raw_root, model_id)
     preflight_stage = _preflight_stage_for_model(contract, model_id)
     specs = contract.expand(stage=preflight_stage, model=model_id)
     if len(specs) != 1:
@@ -1771,7 +1794,18 @@ def _verified_observed_p95_binding(
         required_top="experiment_results",
         name="observed p95 authority receipt",
     )
-    if contract.contract_id == V25_CONTRACT_ID:
+    if contract.contract_id == V26_CONTRACT_ID:
+        try:
+            binding = verified_v26_inherited_p95_binding(
+                relative,
+                repo_root=Path(__file__).resolve().parents[1],
+                expected_git_commit=paid.head_commit,
+            )
+        except PilotV26ParentImportError as exc:
+            raise PilotOrchestrationError(
+                f"V2.6 observed p95 source authority failed validation: {exc}"
+            ) from exc
+    elif contract.contract_id == V25_CONTRACT_ID:
         try:
             binding = verified_v25_inherited_p95_binding(
                 relative,
@@ -3971,6 +4005,87 @@ def _load_v25_inherited_projection(
     return payload, path
 
 
+def _load_v26_inherited_projection(
+    contract: PilotContract,
+    model_id: str,
+    *,
+    raw_root: Path,
+    paid: GitProvenance | None,
+) -> tuple[dict[str, Any], Path]:
+    if paid is None:
+        raise PilotOrchestrationError(
+            "V2.6 inherited p95 projection requires paid release provenance"
+        )
+    if model_id not in V26_ALLOWED_P95_PROFILES:
+        raise PilotOrchestrationError(
+            f"{model_id} is not an allowed V2.6 inherited p95 profile"
+        )
+    import_path = raw_root / "parent-import" / "parent_import_receipt.json"
+    try:
+        verify_v26_parent_import_receipt(
+            import_path,
+            repo_root=Path(__file__).resolve().parents[1],
+            contract=contract,
+            expected_git_commit=paid.head_commit,
+        )
+    except PilotV26ParentImportError as exc:
+        raise PilotOrchestrationError(
+            f"V2.6 parent import failed validation: {exc}"
+        ) from exc
+    path = inherited_v26_projection_path(raw_root, model_id)
+    payload = _read_json(path)
+    _verify_bound_payload(
+        payload,
+        contract=contract,
+        schema_version=PILOT_PROJECTION_SCHEMA_VERSION,
+        paid=paid,
+        artifact_name=f"{model_id} V2.6 inherited p95 projection",
+    )
+    profile = contract.provider_profiles[model_id]
+    if (
+        payload.get("model_id") != model_id
+        or payload.get("served_model") != profile.served_model
+    ):
+        raise PilotOrchestrationError(
+            "V2.6 inherited p95 projection model identity mismatch"
+        )
+    receipt_path = inherited_v26_p95_receipt_path(raw_root, model_id)
+    bindings = payload.get("bindings")
+    if (
+        not isinstance(bindings, Mapping)
+        or bindings.get("source_kind")
+        != "v2.5-terminal-parent-import-v2.6"
+        or bindings.get("source_authority_receipt") != str(receipt_path)
+    ):
+        raise PilotOrchestrationError(
+            "V2.6 inherited p95 projection source binding mismatch"
+        )
+    receipt_binding = _verified_observed_p95_binding(
+        contract,
+        model_id,
+        raw_root=raw_root,
+        paid=paid,
+    )
+    runtime_model = _runtime_model_for_profile(profile)
+    reservations = receipt_binding.get("reservations")
+    projection = payload.get("projection")
+    if (
+        not isinstance(reservations, Mapping)
+        or set(reservations) != {runtime_model}
+        or not isinstance(reservations[runtime_model], Mapping)
+        or not isinstance(projection, Mapping)
+        or any(
+            reservations[runtime_model].get(call_kind, {}).get("reservation")
+            != projection.get(f"{profile.served_model}::{call_kind}")
+            for call_kind in ("action", "semantic")
+        )
+    ):
+        raise PilotOrchestrationError(
+            "V2.6 inherited p95 receipt differs from its child projection"
+        )
+    return payload, path
+
+
 def _load_verified_projection(
     contract: PilotContract,
     model_id: str,
@@ -3987,6 +4102,13 @@ def _load_verified_projection(
         )
     if contract.contract_id == V25_CONTRACT_ID:
         return _load_v25_inherited_projection(
+            contract,
+            model_id,
+            raw_root=raw_root,
+            paid=paid,
+        )
+    if contract.contract_id == V26_CONTRACT_ID:
+        return _load_v26_inherited_projection(
             contract,
             model_id,
             raw_root=raw_root,
@@ -4711,7 +4833,7 @@ def _cross_model_science_stage_ids(
     contract: PilotContract,
 ) -> tuple[str, ...]:
     if contract.contract_id in PARENT_IMPORT_CONTRACT_IDS:
-        # V2.4/V2.5 register the local Llama lane as a controlled second
+        # V2.4/V2.5/V2.6 register the local Llama lane as a controlled second
         # mechanism matrix, not as the legacy cross-model sentinel stage.
         # Treating every ``controlled_second`` stage as a sentinel would
         # duplicate Stage-0/local A--D projections and then require a
@@ -5278,7 +5400,19 @@ def _v2_control_gate_ok(
         path = raw_root / stage_id / "parent_import_receipt.json"
         if not path.exists():
             return False
-        if contract.contract_id == V25_CONTRACT_ID:
+        if contract.contract_id == V26_CONTRACT_ID:
+            try:
+                verify_v26_parent_import_receipt(
+                    path,
+                    repo_root=Path(__file__).resolve().parents[1],
+                    contract=contract,
+                    expected_git_commit=paid.head_commit,
+                )
+            except PilotV26ParentImportError as exc:
+                raise PilotOrchestrationError(
+                    f"V2.6 parent import receipt failed validation: {exc}"
+                ) from exc
+        elif contract.contract_id == V25_CONTRACT_ID:
             try:
                 verify_v25_parent_import_receipt(
                     path,
@@ -7549,7 +7683,11 @@ def _execute_v24_parent_import_stage(
     paid: GitProvenance,
     run_ledger: PilotRunLedger,
 ) -> dict[str, Any]:
-    if contract.contract_id == V25_CONTRACT_ID:
+    if contract.contract_id == V26_CONTRACT_ID:
+        contract_label = "V2.6"
+        persist_parent_import = persist_v26_parent_import
+        failure_schema = "finevo-pilot-v2.6-parent-import-failure-v1"
+    elif contract.contract_id == V25_CONTRACT_ID:
         contract_label = "V2.5"
         persist_parent_import = persist_v25_parent_import
         failure_schema = "finevo-pilot-v2.5-parent-import-failure-v1"
@@ -7559,7 +7697,7 @@ def _execute_v24_parent_import_stage(
         failure_schema = "finevo-pilot-v2.4-parent-import-failure-v1"
     else:
         raise PilotOrchestrationError(
-            "parent import is available only to the V2.4/V2.5 contracts"
+            "parent import is available only to the V2.4/V2.5/V2.6 contracts"
         )
     if (
         len(specs) != 1
@@ -7572,8 +7710,8 @@ def _execute_v24_parent_import_stage(
     spec = specs[0]
     if parent_repo_root is None:
         raise PilotOrchestrationError(
-            f"{contract_label} parent-import requires --parent-repo-root pointing to the "
-            "immutable V2.3 raw/source checkout"
+            f"{contract_label} parent-import requires --parent-repo-root "
+            "pointing to its immutable raw/source checkout"
         )
     if run_ledger.is_terminal(spec.run_id):
         if run_ledger.status(spec.run_id) != "complete":
