@@ -25,6 +25,9 @@ Examples:
     python run_pilot.py --contract experiments/pilot_v2_10_1.yaml \
         --stage parent-import \
         --parent-repo-root ../finevo-pilot-v2-10-science --resume
+    python run_pilot.py --contract experiments/pilot_v2_10_2.yaml \
+        --stage parent-import \
+        --parent-repo-root ../finevo-pilot-v2-10-1-science --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
         --stage capability-gate --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
@@ -61,6 +64,9 @@ dispatches every one of its 195 A--D cells under a new denominator.
 Pilot-v2.10.1 preserves V2.10's terminal q-ref interface no-go, verifies its
 published lineage, then imports the exact nested V2.9 prerequisites and
 reseals them under a fresh current-release authority before any provider work.
+Pilot-v2.10.2 preserves V2.10.1's terminal consumer-adapter no-go, imports
+only the same sixteen nested V2.9 prerequisites, and reruns all 195 A--D cells
+under the repaired current-release observed-p95 consumer boundary.
 """
 
 from __future__ import annotations
@@ -83,6 +89,7 @@ from verified_memory.pilot_v25_parent_import import V25_CONTRACT_ID
 from verified_memory.pilot_v26_parent_import import V26_CONTRACT_ID
 from verified_memory.pilot_v27_stage0_import import V27_CONTRACT_ID
 from verified_memory.pilot_v28_stage0_import import V28_CONTRACT_ID
+from verified_memory.pilot_v2102_parent_import import V2102_CONTRACT_ID
 from verified_memory.pilot_orchestrator import (
     PilotOrchestrationError,
     execute_stage,
@@ -135,7 +142,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "read-only parent source/raw checkout required only by the "
-            "V2.4/V2.5/V2.6/V2.7/V2.8/V2.9/V2.10/V2.10.1 zero-provider "
+            "V2.4/V2.5/V2.6/V2.7/V2.8/V2.9/V2.10/V2.10.1/V2.10.2 "
+            "zero-provider "
             "parent-import stage"
         ),
     )
@@ -208,6 +216,7 @@ def execute(args: argparse.Namespace) -> dict:
                 PILOT_V29_CONTRACT_ID,
                 PILOT_V210_CONTRACT_ID,
                 PILOT_V2101_CONTRACT_ID,
+                V2102_CONTRACT_ID,
             }
             else build_pilot_evidence_package
         )

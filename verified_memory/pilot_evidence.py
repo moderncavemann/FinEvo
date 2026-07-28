@@ -219,10 +219,18 @@ def _is_v2101_contract(contract: PilotContract) -> bool:
     return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.10.1"
 
 
+def _is_v2102_contract(contract: PilotContract) -> bool:
+    return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.10.2"
+
+
 def _is_v210_prerequisite_family_contract(contract: PilotContract) -> bool:
     """Return whether V2.10's imported-prerequisite wire schema applies."""
 
-    return _is_v210_contract(contract) or _is_v2101_contract(contract)
+    return (
+        _is_v210_contract(contract)
+        or _is_v2101_contract(contract)
+        or _is_v2102_contract(contract)
+    )
 
 
 def _v210_prerequisite_wire_identity(
@@ -244,6 +252,11 @@ def _v210_prerequisite_wire_identity(
         return (
             "finevo-pilot-v2.10.1-imported-qref-resolution-v1",
             "immutable-v2.9-prerequisite-import-offline-v2.10.1-reseal",
+        )
+    if _is_v2102_contract(contract):
+        return (
+            "finevo-pilot-v2.10.2-imported-qref-resolution-v1",
+            "immutable-v2.9-prerequisite-import-offline-v2.10.2-reseal",
         )
     raise PilotEvidenceError(
         "V2.10 prerequisite wire identity requested for another contract"
@@ -3100,6 +3113,28 @@ def _validate_terminal_payload_marker(
                     )
 
                 parent_import_receipt_verifier = verify_v2101_receipt
+        elif _is_v2102_contract(contract):
+            version_label = "V2.10.2"
+            if parent_import_receipt_verifier is None:
+                from .pilot_v2102_parent_import import (  # pylint: disable=import-outside-toplevel
+                    verify_v2102_parent_import_receipt,
+                )
+
+                def verify_v2102_receipt(
+                    receipt_path: str,
+                    *,
+                    repo_root: Path,
+                    contract: PilotContract,
+                    expected_git_commit: str,
+                ) -> Mapping[str, Any]:
+                    return verify_v2102_parent_import_receipt(
+                        receipt_path=receipt_path,
+                        child_repo_root=repo_root,
+                        contract=contract,
+                        expected_git_commit=expected_git_commit,
+                    )
+
+                parent_import_receipt_verifier = verify_v2102_receipt
         else:
             raise PilotEvidenceError(
                 "parent-authority import is unsupported for this contract"
@@ -4968,8 +5003,11 @@ def _expected_parent_budget_debit(
     from .pilot_v29_stage0_import import parent_budget_debit_for_v29
     from .pilot_v210_parent_import import parent_budget_debit_for_v210
     from .pilot_v2101_parent_import import parent_budget_debit_for_v2101
+    from .pilot_v2102_parent_import import parent_budget_debit_for_v2102
 
-    debit = parent_budget_debit_for_v2101(contract)
+    debit = parent_budget_debit_for_v2102(contract)
+    if debit is None:
+        debit = parent_budget_debit_for_v2101(contract)
     if debit is None:
         debit = parent_budget_debit_for_v210(contract)
     if debit is None:
