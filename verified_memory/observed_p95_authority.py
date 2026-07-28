@@ -65,6 +65,9 @@ DEDICATED_OBSERVED_P95_BINDING_SCHEMA_REGISTRY: Mapping[str, str] = (
             "finevo-pilot-v2.10.1-resealed-observed-p95-authority-v1": (
                 "v2.10.1-resealed-with-sibling-projection"
             ),
+            "finevo-pilot-v2.10.2-resealed-observed-p95-authority-v1": (
+                "v2.10.2-resealed-with-sibling-projection"
+            ),
         }
     )
 )
@@ -2457,6 +2460,65 @@ def _verified_dedicated_observed_p95_binding(
         except PilotV2101ParentImportError as exc:
             raise ObservedP95AuthorityError(
                 "V2.10.1 resealed observed-p95 pair failed validation: "
+                f"{exc}"
+            ) from exc
+    elif adapter_id == "v2.10.2-resealed-with-sibling-projection":
+        from .pilot_v2102_parent_import import (
+            PilotV2102ParentImportError,
+            V2102_RAW_ROOT,
+            V2102_RESEALED_P95_AUTHORITY_SCHEMA_VERSION,
+            v2102_observed_p95_receipt_path,
+            verified_v2102_observed_p95_authority_binding,
+            verify_v2102_resealed_observed_p95_projection,
+        )
+
+        if schema_version != V2102_RESEALED_P95_AUTHORITY_SCHEMA_VERSION:
+            raise ObservedP95AuthorityError(
+                "V2.10.2 observed-p95 producer/consumer schema registry drifted"
+            )
+        frozen_raw_root = repo_root.joinpath(*V2102_RAW_ROOT.parts)
+        model = receipt.get("model")
+        if not isinstance(model, Mapping):
+            raise ObservedP95AuthorityError(
+                "V2.10.2 observed-p95 receipt model binding is malformed"
+            )
+        try:
+            expected_receipt = v2102_observed_p95_receipt_path(
+                frozen_raw_root,
+                str(model.get("model_id")),
+            )
+            expected_relative = PurePosixPath(
+                expected_receipt.relative_to(repo_root).as_posix()
+            )
+            if relative != expected_relative:
+                raise ObservedP95AuthorityError(
+                    "V2.10.2 observed-p95 receipt is outside its exact "
+                    "frozen current-release path"
+                )
+            projection_relative = relative.with_name("projection_p95.json")
+            projection, _ = _read_json_source(
+                repo_root,
+                projection_relative,
+                name="V2.10.2 observed-p95 projection",
+            )
+            binding = verified_v2102_observed_p95_authority_binding(
+                relative,
+                repo_root=repo_root,
+                raw_root=frozen_raw_root,
+                expected_git_commit=expected_git_commit,
+            )
+            verified_projection = (
+                verify_v2102_resealed_observed_p95_projection(
+                    projection,
+                    receipt=receipt,
+                    repo_root=repo_root,
+                    raw_root=frozen_raw_root,
+                    expected_git_commit=expected_git_commit,
+                )
+            )
+        except PilotV2102ParentImportError as exc:
+            raise ObservedP95AuthorityError(
+                "V2.10.2 resealed observed-p95 pair failed validation: "
                 f"{exc}"
             ) from exc
     else:  # pragma: no cover - registry and dispatch change together

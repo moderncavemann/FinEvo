@@ -11,7 +11,7 @@ import pytest
 
 from verified_memory import observed_p95_authority as authority
 from verified_memory import pilot_orchestrator as orchestrator
-from verified_memory import pilot_v2101_parent_import as parent_import
+from verified_memory import pilot_v2102_parent_import as parent_import
 from verified_memory import pilot_v210_parent_import as v210_parent_import
 from verified_memory.pilot_checkpoint import config_from_dict
 from verified_memory.pilot_contract import load_pilot_contract
@@ -154,7 +154,7 @@ def _v29_source_binding(contract: Any, profile_id: str) -> dict[str, Any]:
     )
     return {
         "source_path_kind": (
-            "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot"
+            "byte-exact-v2.9-raw-inside-v2.10.1-terminal-snapshot"
         ),
         "v2_9_terminal_parent": {
             "contract_id": parent_import.V29_CONTRACT_ID,
@@ -214,7 +214,7 @@ def current_release_pair(
     shutil.copytree(ROOT / "experiments", repo_root / "experiments")
     contract_path = (
         repo_root
-        / parent_import.V2101_EXPANDED_CONTRACT_PATH.as_posix()
+        / parent_import.V2102_EXPANDED_CONTRACT_PATH.as_posix()
     )
     contract = load_pilot_contract(contract_path)
 
@@ -232,14 +232,29 @@ def current_release_pair(
         repo_root,
         "tag",
         "-a",
-        parent_import.V2101_SCIENCE_TAG,
+        parent_import.V2102_SCIENCE_TAG,
         "-m",
         "fixture science tag",
     )
 
+    monkeypatch.setattr(
+        parent_import,
+        "_validate_target_contract",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        parent_import,
+        "_verify_release_identity",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        parent_import,
+        "_load_current_contract",
+        lambda _root, _selected=None: contract,
+    )
     source = _v29_source_binding(contract, profile_id)
-    raw_root = repo_root.joinpath(*parent_import.V2101_RAW_ROOT.parts)
-    built = parent_import.build_v2101_resealed_observed_p95_authority(
+    raw_root = repo_root.joinpath(*parent_import.V2102_RAW_ROOT.parts)
+    built = parent_import.build_v2102_resealed_observed_p95_authority(
         repo_root=repo_root,
         contract=contract,
         raw_root=raw_root,
@@ -247,11 +262,11 @@ def current_release_pair(
         expected_git_commit=commit,
         verified_v2_9_source_binding=source,
     )
-    receipt_path = parent_import.v2101_observed_p95_receipt_path(
+    receipt_path = parent_import.v2102_observed_p95_receipt_path(
         raw_root,
         profile_id,
     )
-    projection_path = parent_import.v2101_observed_p95_projection_path(
+    projection_path = parent_import.v2102_observed_p95_projection_path(
         raw_root,
         profile_id,
     )
@@ -261,7 +276,7 @@ def current_release_pair(
 
     monkeypatch.setattr(
         parent_import,
-        "v2_9_p95_source_binding_v2101",
+        "v2_9_p95_source_binding_v2102",
         lambda **kwargs: (
             deepcopy(source)
             if kwargs
@@ -285,17 +300,22 @@ def current_release_pair(
     }
 
 
-def test_v2101_producer_schema_is_registered_by_generic_consumer() -> None:
-    assert authority.DEDICATED_OBSERVED_P95_BINDING_SCHEMA_REGISTRY[
-        parent_import.V2101_RESEALED_P95_AUTHORITY_SCHEMA_VERSION
-    ] == "v2.10.1-resealed-with-sibling-projection"
+def test_v2102_producer_schema_is_registered_by_generic_consumer() -> None:
+    assert authority.DEDICATED_OBSERVED_P95_BINDING_SCHEMA_REGISTRY == {
+        "finevo-pilot-v2.10.1-resealed-observed-p95-authority-v1": (
+            "v2.10.1-resealed-with-sibling-projection"
+        ),
+        parent_import.V2102_RESEALED_P95_AUTHORITY_SCHEMA_VERSION: (
+            "v2.10.2-resealed-with-sibling-projection"
+        )
+    }
 
 
-def test_v2101_producer_pair_reaches_generic_binding(
+def test_v2102_producer_pair_reaches_generic_binding(
     current_release_pair: dict[str, Any],
 ) -> None:
     case = current_release_pair
-    dedicated = parent_import.verified_v2101_observed_p95_authority_binding(
+    dedicated = parent_import.verified_v2102_observed_p95_authority_binding(
         case["receipt_relative"],
         repo_root=case["repo_root"],
         raw_root=case["raw_root"],
@@ -367,7 +387,7 @@ def _scientific_runner_config(
         ),
         scientific_scope="preregistered_mechanism_micro_pilot",
         pilot_contract_hash=case["contract"].canonical_hash,
-        pilot_tag=parent_import.V2101_SCIENCE_TAG,
+        pilot_tag=parent_import.V2102_SCIENCE_TAG,
         allow_scientific_scope=True,
         preflight_p95_reservations=_runner_reservations(binding),
     )
@@ -401,7 +421,7 @@ def _install_provider_constructor_sentinels(
     return provider_constructions
 
 
-def test_v2101_producer_pair_reaches_runner_public_consumers_before_provider(
+def test_v2102_producer_pair_reaches_runner_public_consumers_before_provider(
     current_release_pair: dict[str, Any],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -437,7 +457,7 @@ def test_v2101_producer_pair_reaches_runner_public_consumers_before_provider(
     assert provider_constructions == []
 
 
-def test_v2101_generic_binding_rejects_sibling_projection_tamper(
+def test_v2102_generic_binding_rejects_sibling_projection_tamper(
     current_release_pair: dict[str, Any],
 ) -> None:
     case = current_release_pair
@@ -457,7 +477,7 @@ def test_v2101_generic_binding_rejects_sibling_projection_tamper(
         )
 
 
-def test_v2101_mapping_only_verification_fails_closed_without_projection(
+def test_v2102_mapping_only_verification_fails_closed_without_projection(
     current_release_pair: dict[str, Any],
 ) -> None:
     case = current_release_pair
@@ -483,7 +503,7 @@ def test_unknown_dedicated_schema_fails_closed_before_provider(
     )
     unknown = deepcopy(case["built"]["receipt"])
     unknown["schema_version"] = (
-        "finevo-pilot-v2.10.1-unknown-observed-p95-authority-v1"
+        "finevo-pilot-v2.10.2-unknown-observed-p95-authority-v1"
     )
     unknown = parent_import._seal(unknown)
     _write_json(case["receipt_path"], unknown)
@@ -500,7 +520,7 @@ def test_unknown_dedicated_schema_fails_closed_before_provider(
     assert provider_constructions == []
 
 
-def test_v2101_generic_binding_rejects_pair_copied_outside_frozen_path(
+def test_v2102_generic_binding_rejects_pair_copied_outside_frozen_path(
     current_release_pair: dict[str, Any],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -534,7 +554,7 @@ def test_v2101_generic_binding_rejects_pair_copied_outside_frozen_path(
     assert provider_constructions == []
 
 
-def test_v2101_generic_binding_rejects_symlinked_sibling_projection(
+def test_v2102_generic_binding_rejects_symlinked_sibling_projection(
     current_release_pair: dict[str, Any],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -560,7 +580,7 @@ def test_v2101_generic_binding_rejects_symlinked_sibling_projection(
     assert provider_constructions == []
 
 
-def test_v2101_guarded_projection_snapshot_blocks_transient_valid_swap(
+def test_v2102_guarded_projection_snapshot_blocks_transient_valid_swap(
     current_release_pair: dict[str, Any],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -588,7 +608,7 @@ def test_v2101_guarded_projection_snapshot_blocks_transient_valid_swap(
             relative,
             name=name,
         )
-        if name == "V2.10.1 observed-p95 projection":
+        if name == "V2.10.2 observed-p95 projection":
             case["projection_path"].write_bytes(valid_projection)
             swaps.append(relative.as_posix())
         return result
