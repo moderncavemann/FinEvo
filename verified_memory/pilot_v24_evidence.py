@@ -28,7 +28,7 @@ import sys
 import tempfile
 from typing import Any, Mapping, Sequence
 
-from .pilot_contract import PilotContract, load_pilot_contract
+from .pilot_contract import PilotContract, canonical_sha256, load_pilot_contract
 from .pilot_evidence import (
     HISTORICAL_SCOPE,
     PILOT_CHECKSUM_SCHEMA_VERSION,
@@ -73,6 +73,12 @@ PILOT_V2101_CONTRACT_ID = "finevo-pilot-v2.10.1"
 PILOT_V29_IMPLEMENTATION_FAILURE_SCHEMA_VERSION = (
     "finevo-pilot-v2.9-implementation-failure-summary-v1"
 )
+PILOT_V2101_IMPLEMENTATION_FAILURE_SCHEMA_VERSION = (
+    "finevo-pilot-v2.10.1-implementation-failure-summary-v1"
+)
+PILOT_V2101_FAILURE_RECEIPT_CONTROL_SCHEMA_VERSION = (
+    "finevo-pilot-v2.10.1-failure-receipt-control-v1"
+)
 _PILOT_V29_RELEASE_COMMIT = "2349ccd41560383965da8880744cf4df366c9ee5"
 _PILOT_V29_EVIDENCE_PUBLICATION_COMMIT = (
     "51525614e138e5b7ac498d15b409048d5110b753"
@@ -88,6 +94,14 @@ _PILOT_V29_EVIDENCE_CHECKSUMS_SHA256 = (
 )
 _PILOT_V29_RECEIPT_PATH_FAILURE_SHA256 = (
     "d4b516ad7a51dc7a09dcad56e2abe7f7f5236cc49523014fc7b8b8c3fdf2870e"
+)
+_PILOT_V2101_RELEASE_COMMIT = "b5bfa9b86d3cdb706cea5be707597bef8ac85aed"
+_PILOT_V2101_P95_SCHEMA_FAILURE_MESSAGE = (
+    "source-backed observed p95 receipt verification failed: "
+    "observed-p95 receipt top-level shape or schema drifted"
+)
+_PILOT_V2101_P95_SCHEMA_FAILURE_SHA256 = (
+    "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7"
 )
 _PILOT_V210_RELEASE_COMMIT = "1584629a5f8fd60f42bba878d2a0fcb0eca4bdcf"
 _PILOT_V210_CONTRACT_SHA256 = (
@@ -110,6 +124,21 @@ _PILOT_V29_FAILURE_STAGE_COUNTS = {
     "local-experiment-b": 25,
     "local-experiment-c": 20,
     "local-experiment-d": 35,
+}
+_PILOT_V2101_FAILURE_STAGE_COUNTS = dict(_PILOT_V29_FAILURE_STAGE_COUNTS)
+_PILOT_V2101_OFFLINE_CANDIDATE_STAGE_COUNTS = {
+    "experiment-c": 5,
+    "local-experiment-c": 5,
+}
+_PILOT_V2101_FAILURE_RECEIPT_STAGE_COUNTS = {
+    "experiment-a": 20,
+    "experiment-b": 15,
+    "experiment-c": 20,
+    "experiment-d": 5,
+    "local-experiment-a": 20,
+    "local-experiment-b": 25,
+    "local-experiment-c": 20,
+    "local-experiment-d": 5,
 }
 _PILOT_V29_SOURCE_AUDIT = {
     "producer": {
@@ -3492,6 +3521,591 @@ def _sanitized_rows(
     return [{field: _json_copy(row.get(field)) for field in fields} for row in rows]
 
 
+def _v2101_canonical_failure_bytes(value: Mapping[str, Any]) -> bytes:
+    return (
+        json.dumps(
+            dict(value),
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
+def _v2101_guarded_raw_file(
+    raw_root: Path,
+    value: Any,
+    *,
+    name: str,
+) -> Path:
+    if not isinstance(value, str) or not value.strip():
+        raise PilotEvidenceError(f"V2.10.1 {name} path is missing")
+    root = raw_root.resolve(strict=True)
+    candidate = Path(value)
+    if not candidate.is_absolute():
+        candidate = root / candidate
+    candidate = candidate.absolute()
+    try:
+        relative = candidate.relative_to(root)
+    except ValueError as exc:
+        raise PilotEvidenceError(
+            f"V2.10.1 {name} escapes the raw root"
+        ) from exc
+    if any(part in {"", ".", ".."} for part in relative.parts):
+        raise PilotEvidenceError(f"V2.10.1 {name} path is not normalized")
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise PilotEvidenceError(f"V2.10.1 {name} uses a symlink")
+    if not candidate.is_file():
+        raise PilotEvidenceError(f"V2.10.1 {name} is not a regular file")
+    resolved = candidate.resolve(strict=True)
+    if not resolved.is_relative_to(root):
+        raise PilotEvidenceError(f"V2.10.1 {name} resolves outside raw")
+    return resolved
+
+
+def _v2101_read_canonical_failure_json(
+    path: Path,
+    *,
+    name: str,
+    max_bytes: int,
+) -> tuple[dict[str, Any], bytes]:
+    raw = path.read_bytes()
+    if not raw or len(raw) > max_bytes:
+        raise PilotEvidenceError(f"V2.10.1 {name} size is invalid")
+    try:
+        value = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PilotEvidenceError(f"V2.10.1 {name} is not JSON") from exc
+    if (
+        not isinstance(value, dict)
+        or raw != _v2101_canonical_failure_bytes(value)
+    ):
+        raise PilotEvidenceError(
+            f"V2.10.1 {name} is not canonical object JSON"
+        )
+    return value, raw
+
+
+def _validated_v2101_failure_receipt_control(
+    contract: PilotContract,
+    *,
+    ledger: Mapping[str, Any],
+    raw_root: Path,
+    rows: Sequence[Mapping[str, Any]],
+    resolved_git_commit: str | None,
+    release_controls: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Verify every failed V2.10.1 cell against its raw failure receipt."""
+
+    if contract.contract_id != PILOT_V2101_CONTRACT_ID:
+        return None
+    failures = [row for row in rows if row.get("status") == "failed"]
+    completed = [row for row in rows if row.get("status") == "complete"]
+    target_signature_present = any(
+        isinstance(row.get("failure"), Mapping)
+        and (
+            row["failure"].get("message_sha256")
+            == _PILOT_V2101_P95_SCHEMA_FAILURE_SHA256
+            or row["failure"].get("message")
+            == _PILOT_V2101_P95_SCHEMA_FAILURE_MESSAGE
+        )
+        for row in failures
+    )
+    if (
+        (len(failures), len(completed)) != (185, 26)
+        and not target_signature_present
+    ):
+        return None
+    if resolved_git_commit != _PILOT_V2101_RELEASE_COMMIT:
+        raise PilotEvidenceError(
+            "V2.10.1 failure receipts do not resolve to the science commit"
+        )
+
+    ledger_runs = ledger.get("runs")
+    if not isinstance(ledger_runs, Mapping):
+        raise PilotEvidenceError("V2.10.1 failure receipt ledger is malformed")
+    expected_specs = {spec.run_id: spec.to_dict() for spec in contract.expand()}
+    failed_rows_by_id = {
+        str(row.get("run_id")): row
+        for row in failures
+        if isinstance(row.get("run_id"), str)
+    }
+    if len(failed_rows_by_id) != 185:
+        raise PilotEvidenceError(
+            "V2.10.1 failure receipt control lacks 185 unique failed cells"
+        )
+
+    root = raw_root.resolve(strict=True)
+    release_control = release_controls.get("release_attestation")
+    release_checks = (
+        release_control.get("checks")
+        if isinstance(release_control, Mapping)
+        else None
+    )
+    if (
+        not isinstance(release_control, Mapping)
+        or release_control.get("pass") is not True
+        or not isinstance(release_checks, Mapping)
+        or not release_checks
+        or not all(value is True for value in release_checks.values())
+    ):
+        raise PilotEvidenceError(
+            "V2.10.1 failure receipts require the verified release attestation"
+        )
+    release_path = _v2101_guarded_raw_file(
+        root,
+        release_control.get("path"),
+        name="release attestation",
+    )
+    if release_path != root / "release_attestation.json":
+        raise PilotEvidenceError(
+            "V2.10.1 release attestation path differs from the raw root"
+        )
+    release_attestation = _strict_json_load(release_path)
+    release_attestation_file_sha256 = _sha256_file(release_path)
+    groups: dict[str, list[str]] = {}
+    manifest_paths: dict[str, Path] = {}
+    for run_id, row in failed_rows_by_id.items():
+        source = ledger_runs.get(run_id)
+        expected_spec = expected_specs.get(run_id)
+        if (
+            not isinstance(source, Mapping)
+            or not isinstance(expected_spec, Mapping)
+            or source.get("status") != "failed"
+            or source.get("spec") != expected_spec
+            or source.get("failure") != row.get("failure")
+        ):
+            raise PilotEvidenceError(
+                "V2.10.1 failed ledger cell/spec/status binding drifted"
+            )
+        manifest_path = _v2101_guarded_raw_file(
+            root,
+            source.get("artifact"),
+            name=f"{run_id} failure manifest",
+        )
+        if (
+            manifest_path.name != "failure_manifest.json"
+            or manifest_path.parent.name != "failure_receipt"
+        ):
+            raise PilotEvidenceError(
+                "V2.10.1 failed ledger artifact is not an isolated "
+                "failure manifest"
+            )
+        relative = manifest_path.relative_to(root).as_posix()
+        groups.setdefault(relative, []).append(run_id)
+        manifest_paths[relative] = manifest_path
+
+    zero_usage = {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "cost_usd": 0.0,
+    }
+    paid_binding = contract.validate_provenance(
+        _PILOT_V2101_RELEASE_COMMIT,
+        str(contract.implementation["required_git_tag"]),
+    )
+    mapping_entries: list[dict[str, Any]] = []
+    receipt_entries: list[dict[str, Any]] = []
+    unique_stage_counts: dict[str, int] = {}
+
+    for relative in sorted(groups):
+        manifest_path = manifest_paths[relative]
+        run_ids = sorted(groups[relative])
+        receipt_dir = manifest_path.parent
+        if {
+            path.name for path in receipt_dir.iterdir()
+        } != {"failure.json", "failure_manifest.json"}:
+            raise PilotEvidenceError(
+                "V2.10.1 failure receipt directory contains extra artifacts"
+            )
+        manifest, manifest_bytes = _v2101_read_canonical_failure_json(
+            manifest_path,
+            name=f"{relative} manifest",
+            max_bytes=16_384,
+        )
+        expected_manifest_keys = {
+            "schema_version",
+            "status",
+            "failure_file",
+            "failure_sha256",
+            "failure_size_bytes",
+            "manifest_sha256",
+        }
+        manifest_unsigned = dict(manifest)
+        manifest_self_hash = manifest_unsigned.pop("manifest_sha256", None)
+        if (
+            set(manifest) != expected_manifest_keys
+            or manifest.get("schema_version") != "verified-failure-receipt-v1"
+            or manifest.get("status") != "failed"
+            or manifest.get("failure_file") != "failure.json"
+            or manifest_self_hash != canonical_sha256(manifest_unsigned)
+            or not isinstance(manifest.get("failure_size_bytes"), int)
+            or isinstance(manifest.get("failure_size_bytes"), bool)
+            or manifest["failure_size_bytes"] <= 0
+        ):
+            raise PilotEvidenceError(
+                "V2.10.1 failure manifest schema/self-hash drifted"
+            )
+
+        receipt_path = _v2101_guarded_raw_file(
+            root,
+            str(receipt_dir / "failure.json"),
+            name=f"{relative} receipt",
+        )
+        receipt, receipt_bytes = _v2101_read_canonical_failure_json(
+            receipt_path,
+            name=f"{relative} receipt",
+            max_bytes=1_048_576,
+        )
+        if (
+            hashlib.sha256(receipt_bytes).hexdigest()
+            != manifest.get("failure_sha256")
+            or len(receipt_bytes) != manifest.get("failure_size_bytes")
+        ):
+            raise PilotEvidenceError(
+                "V2.10.1 failure receipt differs from its manifest"
+            )
+        expected_receipt_keys = {
+            "schema_version",
+            "status",
+            "scope",
+            "error",
+            "budget_snapshot",
+            "config",
+            "provenance",
+            "git",
+            "partial_streams_persisted",
+            "created_at_utc",
+        }
+        error = receipt.get("error")
+        budget = receipt.get("budget_snapshot")
+        config = receipt.get("config")
+        provenance = receipt.get("provenance")
+        git_binding = receipt.get("git")
+        if (
+            set(receipt) != expected_receipt_keys
+            or receipt.get("schema_version") != "verified-failure-receipt-v1"
+            or receipt.get("status") != "failed"
+            or not isinstance(receipt.get("scope"), str)
+            or not isinstance(receipt.get("created_at_utc"), str)
+            or receipt.get("partial_streams_persisted") is not False
+            or not isinstance(error, Mapping)
+            or set(error)
+            != {
+                "type",
+                "message",
+                "message_bytes",
+                "message_sha256",
+                "message_truncated",
+            }
+            or error.get("type") != "ValueError"
+            or error.get("message") != _PILOT_V2101_P95_SCHEMA_FAILURE_MESSAGE
+            or error.get("message_bytes") != 110
+            or error.get("message_sha256")
+            != _PILOT_V2101_P95_SCHEMA_FAILURE_SHA256
+            or error.get("message_truncated") is not False
+        ):
+            raise PilotEvidenceError(
+                "V2.10.1 failure receipt schema/error boundary drifted"
+            )
+
+        expected_budget_keys = {
+            "budget_id",
+            "limits",
+            "accounted_usage",
+            "reserved_usage",
+            "effective_usage",
+            "completed_calls",
+            "active_calls",
+            "rolled_back_calls",
+            "elapsed_seconds",
+            "stopped",
+            "stop_reasons",
+            "active_reservations",
+            "completions",
+        }
+        if (
+            not isinstance(budget, Mapping)
+            or set(budget) != expected_budget_keys
+            or not isinstance(budget.get("budget_id"), str)
+            or not isinstance(budget.get("limits"), Mapping)
+            or budget.get("accounted_usage") != zero_usage
+            or budget.get("reserved_usage") != zero_usage
+            or budget.get("effective_usage") != zero_usage
+            or budget.get("completed_calls") != 0
+            or budget.get("active_calls") != 0
+            or budget.get("rolled_back_calls") != 0
+            or budget.get("stopped") is not False
+            or budget.get("stop_reasons") != []
+            or budget.get("active_reservations") != []
+            or budget.get("completions") != []
+            or isinstance(budget.get("elapsed_seconds"), bool)
+            or not isinstance(budget.get("elapsed_seconds"), (int, float))
+            or not math.isfinite(float(budget["elapsed_seconds"]))
+            or float(budget["elapsed_seconds"]) < 0
+        ):
+            raise PilotEvidenceError(
+                "V2.10.1 failure receipt budget is not exact zero-call usage"
+            )
+
+        expected_config_keys = {
+            "schema_version",
+            "contract_id",
+            "contract_sha256",
+            "projection",
+            "run_specs",
+            "provider_request_profiles",
+            "provider_call_journals",
+        }
+        if (
+            not isinstance(config, Mapping)
+            or set(config) != expected_config_keys
+            or config.get("schema_version") != "finevo-pilot-failure-config-v1"
+            or config.get("contract_id") != contract.contract_id
+            or config.get("contract_sha256") != contract.canonical_hash
+            or config.get("provider_call_journals") != []
+        ):
+            raise PilotEvidenceError(
+                "V2.10.1 failure receipt config/provider journals drifted"
+            )
+        supplied_specs = config.get("run_specs")
+        if (
+            not isinstance(supplied_specs, list)
+            or len(supplied_specs) != len(run_ids)
+            or {
+                str(item.get("run_id")): item
+                for item in supplied_specs
+                if isinstance(item, Mapping)
+            }
+            != {run_id: expected_specs[run_id] for run_id in run_ids}
+        ):
+            raise PilotEvidenceError(
+                "V2.10.1 failure receipt run-spec group differs from ledger"
+            )
+        stage_ids = {str(expected_specs[run_id]["stage_id"]) for run_id in run_ids}
+        model_ids = {str(expected_specs[run_id]["model_id"]) for run_id in run_ids}
+        budget_buckets = {
+            str(expected_specs[run_id]["budget_bucket"]) for run_id in run_ids
+        }
+        if len(stage_ids) != 1 or len(model_ids) != 1 or len(budget_buckets) != 1:
+            raise PilotEvidenceError(
+                "V2.10.1 shared failure receipt crosses stage/model/budget"
+            )
+        stage_id = next(iter(stage_ids))
+        if stage_id.endswith("experiment-d"):
+            seed_values = {
+                int(expected_specs[run_id]["environment_seed"])
+                for run_id in run_ids
+            }
+            expected_group = {
+                candidate_id
+                for candidate_id, candidate in expected_specs.items()
+                if candidate_id in failed_rows_by_id
+                and candidate["stage_id"] == stage_id
+                and int(candidate["environment_seed"]) in seed_values
+            }
+            expected_size = 7 if stage_id == "local-experiment-d" else 6
+            if (
+                len(seed_values) != 1
+                or len(run_ids) != expected_size
+                or set(run_ids) != expected_group
+                or receipt.get("scope")
+                != f"finevo-pilot/{stage_id}/shared-checkpoint-group"
+            ):
+                raise PilotEvidenceError(
+                    "V2.10.1 Experiment D shared failure grouping drifted"
+                )
+            projection_run_id = (
+                f"{contract.contract_id}--{stage_id}--"
+                f"{next(iter(model_ids))}--checkpoint-group--"
+                f"s{next(iter(seed_values))}"
+            )
+        elif (
+            len(run_ids) != 1
+            or receipt.get("scope")
+            != (
+                f"finevo-pilot/{stage_id}/"
+                f"{expected_specs[run_ids[0]]['execution_mode']}"
+            )
+        ):
+            raise PilotEvidenceError(
+                "V2.10.1 non-D failure receipt is not one exact actor cell"
+            )
+        else:
+            projection_run_id = run_ids[0]
+
+        projection = config.get("projection")
+        if (
+            not isinstance(projection, Mapping)
+            or set(projection)
+            != {
+                "run_id",
+                "stage_bucket",
+                "cost_usd",
+                "completions",
+                "storage_bytes",
+                "basis",
+            }
+            or projection.get("run_id") != projection_run_id
+            or projection.get("stage_bucket") != next(iter(budget_buckets))
+            or not isinstance(projection.get("basis"), Mapping)
+            or budget.get("budget_id") != f"{projection_run_id}-budget"
+        ):
+            raise PilotEvidenceError(
+                "V2.10.1 failure receipt projection binding drifted"
+            )
+        expected_profiles = {
+            model_id: contract.provider_profiles[model_id].to_dict()
+            for model_id in model_ids
+        }
+        if config.get("provider_request_profiles") != expected_profiles:
+            raise PilotEvidenceError(
+                "V2.10.1 failure receipt provider profile binding drifted"
+            )
+
+        expected_paid_keys = {
+            "git_tag",
+            "head_commit",
+            "tag_commit",
+            "tag_object_type",
+            "worktree_clean",
+            "contract_binding",
+            "release_attestation",
+        }
+        paid = (
+            provenance.get("paid_provenance")
+            if isinstance(provenance, Mapping)
+            else None
+        )
+        if (
+            not isinstance(provenance, Mapping)
+            or set(provenance)
+            != {
+                "contract_id",
+                "contract_sha256",
+                "paid_provenance",
+                "diagnostic_only",
+                "scientific_evidence",
+                "evidence_use",
+            }
+            or provenance.get("contract_id") != contract.contract_id
+            or provenance.get("contract_sha256") != contract.canonical_hash
+            or provenance.get("diagnostic_only") is not False
+            or provenance.get("scientific_evidence") is not False
+            or provenance.get("evidence_use")
+            != "failure denominator and audit only"
+            or not isinstance(paid, Mapping)
+            or set(paid) != expected_paid_keys
+            or paid.get("git_tag")
+            != contract.implementation["required_git_tag"]
+            or paid.get("head_commit") != _PILOT_V2101_RELEASE_COMMIT
+            or paid.get("tag_commit") != _PILOT_V2101_RELEASE_COMMIT
+            or paid.get("tag_object_type") != "tag"
+            or paid.get("worktree_clean") is not True
+            or paid.get("contract_binding") != paid_binding
+            or paid.get("release_attestation") != release_attestation
+            or git_binding
+            != {"commit": _PILOT_V2101_RELEASE_COMMIT, "dirty": False}
+        ):
+            raise PilotEvidenceError(
+                "V2.10.1 failure receipt contract/release provenance drifted"
+            )
+
+        for run_id in run_ids:
+            for kind in ("actor", "preflight"):
+                journal = (
+                    root
+                    / stage_id
+                    / "provider_call_journals"
+                    / f"{run_id}--{kind}.json"
+                )
+                if journal.exists() or journal.is_symlink():
+                    raise PilotEvidenceError(
+                        "V2.10.1 failure receipt has an undeclared provider "
+                        "journal"
+                    )
+
+        manifest_file_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
+        failure_file_sha256 = hashlib.sha256(receipt_bytes).hexdigest()
+        unique_stage_counts[stage_id] = unique_stage_counts.get(stage_id, 0) + 1
+        receipt_entries.append(
+            {
+                "stage_id": stage_id,
+                "path": relative,
+                "manifest_file_sha256": manifest_file_sha256,
+                "manifest_content_sha256": manifest["manifest_sha256"],
+                "failure_file_sha256": failure_file_sha256,
+                "failure_size_bytes": len(receipt_bytes),
+                "run_ids": run_ids,
+            }
+        )
+        for run_id in run_ids:
+            mapping_entries.append(
+                {
+                    "run_id": run_id,
+                    "stage_id": stage_id,
+                    "receipt_path": relative,
+                    "manifest_file_sha256": manifest_file_sha256,
+                    "failure_file_sha256": failure_file_sha256,
+                }
+            )
+
+    failed_stage_counts = {
+        stage_id: sum(row.get("stage_id") == stage_id for row in failures)
+        for stage_id in _PILOT_V2101_FAILURE_STAGE_COUNTS
+    }
+    if (
+        len(mapping_entries) != 185
+        or len(receipt_entries) != 130
+        or failed_stage_counts != _PILOT_V2101_FAILURE_STAGE_COUNTS
+        or unique_stage_counts != _PILOT_V2101_FAILURE_RECEIPT_STAGE_COUNTS
+    ):
+        raise PilotEvidenceError(
+            "V2.10.1 failure receipt cell/unique-receipt inventory drifted"
+        )
+    checks = {
+        "ledger_artifact_mapping_exact": True,
+        "receipt_manifest_schema_and_self_hash": True,
+        "receipt_payload_schema_and_file_hash": True,
+        "contract_run_spec_release_exact": True,
+        "provider_journals_empty": True,
+        "zero_budget_snapshots": True,
+        "partial_actor_streams_absent": True,
+        "unique_receipt_grouping_exact": True,
+    }
+    return {
+        "schema_version": PILOT_V2101_FAILURE_RECEIPT_CONTROL_SCHEMA_VERSION,
+        "contract_id": contract.contract_id,
+        "contract_sha256": contract.canonical_hash,
+        "release_commit": _PILOT_V2101_RELEASE_COMMIT,
+        "failed_cell_count": 185,
+        "failed_stage_counts": dict(sorted(failed_stage_counts.items())),
+        "unique_receipt_count": 130,
+        "unique_receipt_stage_counts": dict(sorted(unique_stage_counts.items())),
+        "failed_run_ids_sha256": canonical_sha256(sorted(failed_rows_by_id)),
+        "cell_to_receipt_mapping_sha256": canonical_sha256(
+            sorted(mapping_entries, key=lambda item: item["run_id"])
+        ),
+        "unique_receipt_inventory_sha256": canonical_sha256(
+            sorted(receipt_entries, key=lambda item: item["path"])
+        ),
+        "release_attestation_file_sha256": release_attestation_file_sha256,
+        "provider_boundary": {
+            "fresh_actor_provider_calls": 0,
+            "accounted_reserved_effective_usage_zero": True,
+            "provider_journals_present": 0,
+            "partial_actor_streams_persisted": False,
+        },
+        "checks": checks,
+        "pass": True,
+    }
+
+
 def _v29_implementation_failure_summary(
     aggregate: Mapping[str, Any],
     rows: Sequence[Mapping[str, Any]],
@@ -3599,17 +4213,562 @@ def _v29_implementation_failure_summary(
     }
 
 
+def _v2101_implementation_failure_summary(
+    aggregate: Mapping[str, Any],
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    resolved_git_commit: str | None,
+) -> dict[str, Any] | None:
+    """Describe the terminal V2.10.1 p95 consumer failure from sealed rows.
+
+    The ten offline candidate-admission cells are deliberately retained as
+    generated descriptive outcomes.  They neither turn the 185 pre-provider
+    actor failures into model evidence nor make the A--D treatment matrix
+    complete.
+    """
+
+    if aggregate.get("contract_id") != PILOT_V2101_CONTRACT_ID:
+        return None
+
+    failures = [row for row in rows if row.get("status") == "failed"]
+    completed = [row for row in rows if row.get("status") == "complete"]
+    stage_counts: dict[str, int] = {}
+    for row in failures:
+        stage_id = row.get("stage_id")
+        if not isinstance(stage_id, str):
+            raise PilotEvidenceError("V2.10.1 failed row lacks a stage identity")
+        stage_counts[stage_id] = stage_counts.get(stage_id, 0) + 1
+
+    failure_records = [
+        row.get("failure")
+        for row in failures
+        if isinstance(row.get("failure"), Mapping)
+    ]
+    failure_signatures = {
+        (
+            failure.get("error_type"),
+            failure.get("message"),
+            failure.get("message_bytes"),
+            failure.get("message_sha256"),
+            failure.get("message_truncated"),
+        )
+        for failure in failure_records
+    }
+    expected_signature = {
+        (
+            "ValueError",
+            _PILOT_V2101_P95_SCHEMA_FAILURE_MESSAGE,
+            110,
+            _PILOT_V2101_P95_SCHEMA_FAILURE_SHA256,
+            False,
+        )
+    }
+
+    offline_candidates = [
+        row
+        for row in completed
+        if row.get("arm_id") == "verified-error-candidate"
+        and row.get("stage_id") in _PILOT_V2101_OFFLINE_CANDIDATE_STAGE_COUNTS
+    ]
+    offline_stage_counts: dict[str, int] = {}
+    offline_zero_provider = True
+    for row in offline_candidates:
+        stage_id = str(row.get("stage_id"))
+        offline_stage_counts[stage_id] = offline_stage_counts.get(stage_id, 0) + 1
+        metrics = row.get("metrics")
+        reliability = (
+            metrics.get("rule_reliability")
+            if isinstance(metrics, Mapping)
+            else None
+        )
+        if (
+            not isinstance(reliability, Mapping)
+            or reliability.get("provider_calls") != 0
+            or row.get("gate_evidence") != reliability
+        ):
+            offline_zero_provider = False
+
+    prerequisite_counts = {
+        stage_id: sum(
+            row.get("status") == "complete" and row.get("stage_id") == stage_id
+            for row in rows
+        )
+        for stage_id in _V210_PREREQUISITE_COUNTS
+    }
+    expected_completed_run_ids = {
+        str(row.get("run_id"))
+        for row in rows
+        if row.get("stage_id") in _V210_PREREQUISITE_COUNTS
+        or (
+            row.get("arm_id") == "verified-error-candidate"
+            and row.get("stage_id") in _PILOT_V2101_OFFLINE_CANDIDATE_STAGE_COUNTS
+        )
+    }
+    actual_completed_run_ids = {str(row.get("run_id")) for row in completed}
+
+    no_actor_outputs = all(
+        row.get("scientific_eligible") is False
+        and row.get("artifact_kind") is None
+        and row.get("artifact_sha256") is None
+        and row.get("metrics") == {}
+        and row.get("gate_evidence") == {}
+        and row.get("capability") == {}
+        and row.get("narrative") == {}
+        for row in failures
+    )
+    all_rows_current_contract = all(
+        row.get("contract_id") == PILOT_V2101_CONTRACT_ID for row in rows
+    )
+
+    denominator = aggregate.get("denominator")
+    budget = aggregate.get("budget")
+    inherited = aggregate.get("inherited_budget_boundary")
+    release_controls = aggregate.get("release_controls")
+    failure_receipt_control = (
+        release_controls.get("v2_10_1_failure_receipts")
+        if isinstance(release_controls, Mapping)
+        else None
+    )
+    totals = budget.get("actual_totals") if isinstance(budget, Mapping) else None
+    stage_costs = (
+        budget.get("actual_stage_cost_usd") if isinstance(budget, Mapping) else None
+    )
+    budget_checks = budget.get("checks") if isinstance(budget, Mapping) else None
+    inherited_checks = (
+        inherited.get("checks") if isinstance(inherited, Mapping) else None
+    )
+    release_attestation_control = (
+        release_controls.get("release_attestation")
+        if isinstance(release_controls, Mapping)
+        else None
+    )
+    stage0_control = (
+        release_controls.get("stage0_selection")
+        if isinstance(release_controls, Mapping)
+        else None
+    )
+    sensitivity_controls = (
+        release_controls.get("experiment_c_rule_sensitivities")
+        if isinstance(release_controls, Mapping)
+        else None
+    )
+    release_attestation_checks = (
+        release_attestation_control.get("checks")
+        if isinstance(release_attestation_control, Mapping)
+        else None
+    )
+    stage0_checks = (
+        stage0_control.get("checks")
+        if isinstance(stage0_control, Mapping)
+        else None
+    )
+    expected_budget_check_keys = {
+        "schema_and_contract",
+        "self_hash_and_event_chain",
+        "exact_frozen_caps",
+        "parent_debit_exact",
+        "valid_finalized_dispatch_units",
+        "all_artifact_backed_dispatches_accounted",
+        "actual_totals_within_caps",
+    }
+    expected_inherited_check_keys = {
+        "denominator_exact",
+        "parent_debit_exact",
+        "parent_stage_cost_exact",
+        "cumulative_prior_exact",
+        "cumulative_cost_not_reset",
+        "cumulative_completions_not_reset",
+        "cumulative_storage_not_reset",
+        "total_cap_is_500",
+        "v2_10_incremental_zero_hosted",
+        "budget_not_reset",
+        "reserve_not_automatic",
+    }
+    expected_release_attestation_check_keys = {
+        "schema_and_hash",
+        "static_release_requirements_frozen",
+        "release_requirements_exact",
+        "commit_and_annotated_tag_bound",
+        "workflow_exact",
+        "ci_selection_exact",
+        "ci_run_success",
+        "exact_linux_macos_ci_jobs",
+        "ci_receipt_hash_chain",
+        "ci_measurements_exact",
+        "contract_and_policy_hashes",
+        "sealed_manifest_inventory_hash",
+    }
+    expected_stage0_check_keys = {
+        "sealed_selection",
+        "complete_source_matrix",
+        "stage_receipt_go",
+        "selection_semantic_replay",
+        "selection_uses_no_a_d_treatment_outcome_fields",
+    }
+    expected_unavailable_sensitivities = {
+        lane_id: {
+            **_v210_sensitivity_lane_definition(lane_id),
+            "provider_calls": 0,
+            "descriptive_only": True,
+            "effectiveness_gate": False,
+            "pass": False,
+            "available": False,
+            "reason": (
+                f"{_v210_sensitivity_lane_definition(lane_id)['stage_id']} "
+                "ITT cells are not all complete and scientifically eligible"
+            ),
+        }
+        for lane_id in _V210_C_SENSITIVITY_FILES
+    }
+    exact_release_boundary = bool(
+        isinstance(release_controls, Mapping)
+        and set(release_controls)
+        == {
+            "pass",
+            "release_attestation",
+            "stage0_selection",
+            "budget_ledger",
+            "experiment_c_rule_sensitivities",
+            "v2_10_1_failure_receipts",
+        }
+        # Historical V2.10-family semantics fold unavailable C sensitivity
+        # artifacts into this top-level flag.  Both lanes are expected to be
+        # unavailable after the terminal pre-provider implementation failure.
+        and release_controls.get("pass") is False
+        and isinstance(release_attestation_control, Mapping)
+        and release_attestation_control.get("pass") is True
+        and isinstance(release_attestation_checks, Mapping)
+        and set(release_attestation_checks)
+        == expected_release_attestation_check_keys
+        and all(
+            value is True for value in release_attestation_checks.values()
+        )
+        and isinstance(stage0_control, Mapping)
+        and stage0_control.get("pass") is True
+        and isinstance(stage0_checks, Mapping)
+        and set(stage0_checks) == expected_stage0_check_keys
+        and all(value is True for value in stage0_checks.values())
+        and release_controls.get("budget_ledger") == budget
+        and sensitivity_controls == expected_unavailable_sensitivities
+    )
+    expected_prior = (
+        inherited.get("expected_cumulative_prior")
+        if isinstance(inherited, Mapping)
+        else None
+    )
+    observed_prior = (
+        inherited.get("observed_cumulative_totals")
+        if isinstance(inherited, Mapping)
+        else None
+    )
+    exact_budget_boundary = bool(
+        isinstance(totals, Mapping)
+        and isinstance(stage_costs, Mapping)
+        and budget.get("pass") is True
+        and isinstance(budget_checks, Mapping)
+        and set(budget_checks) == expected_budget_check_keys
+        and all(value is True for value in budget_checks.values())
+        and isinstance(expected_prior, Mapping)
+        and isinstance(observed_prior, Mapping)
+        and inherited.get("pass") is True
+        and isinstance(inherited_checks, Mapping)
+        and set(inherited_checks) == expected_inherited_check_keys
+        and all(value is True for value in inherited_checks.values())
+        and totals.get("cost_usd") == 3.212770875
+        and totals.get("completions") == 184
+        and expected_prior.get("cost_usd") == 3.212770875
+        and expected_prior.get("hosted_completions") == 184
+        and expected_prior.get("storage_bytes") == 70_035_938
+        and observed_prior.get("cost_usd") == totals.get("cost_usd")
+        and observed_prior.get("hosted_completions") == totals.get("completions")
+        and observed_prior.get("storage_bytes") == totals.get("storage_bytes")
+        and isinstance(totals.get("storage_bytes"), int)
+        and not isinstance(totals.get("storage_bytes"), bool)
+        and totals["storage_bytes"] >= 70_035_938
+        and stage_costs.get("local") == 0.0
+        and stage_costs.get("hosted_confirmatory") == 0.0
+    )
+    expected_control_keys = {
+        "schema_version",
+        "contract_id",
+        "contract_sha256",
+        "release_commit",
+        "failed_cell_count",
+        "failed_stage_counts",
+        "unique_receipt_count",
+        "unique_receipt_stage_counts",
+        "failed_run_ids_sha256",
+        "cell_to_receipt_mapping_sha256",
+        "unique_receipt_inventory_sha256",
+        "release_attestation_file_sha256",
+        "provider_boundary",
+        "checks",
+        "pass",
+    }
+    control_checks = (
+        failure_receipt_control.get("checks")
+        if isinstance(failure_receipt_control, Mapping)
+        else None
+    )
+    exact_failure_receipt_control = bool(
+        isinstance(failure_receipt_control, Mapping)
+        and set(failure_receipt_control) == expected_control_keys
+        and failure_receipt_control.get("schema_version")
+        == PILOT_V2101_FAILURE_RECEIPT_CONTROL_SCHEMA_VERSION
+        and failure_receipt_control.get("contract_id")
+        == PILOT_V2101_CONTRACT_ID
+        and failure_receipt_control.get("contract_sha256")
+        == aggregate.get("contract_sha256")
+        and failure_receipt_control.get("release_commit")
+        == _PILOT_V2101_RELEASE_COMMIT
+        and failure_receipt_control.get("failed_cell_count") == 185
+        and failure_receipt_control.get("failed_stage_counts")
+        == _PILOT_V2101_FAILURE_STAGE_COUNTS
+        and failure_receipt_control.get("unique_receipt_count") == 130
+        and failure_receipt_control.get("unique_receipt_stage_counts")
+        == _PILOT_V2101_FAILURE_RECEIPT_STAGE_COUNTS
+        and all(
+            isinstance(failure_receipt_control.get(name), str)
+            and len(str(failure_receipt_control[name])) == 64
+            and all(
+                character in "0123456789abcdef"
+                for character in str(failure_receipt_control[name])
+            )
+            for name in (
+                "failed_run_ids_sha256",
+                "cell_to_receipt_mapping_sha256",
+                "unique_receipt_inventory_sha256",
+                "release_attestation_file_sha256",
+            )
+        )
+        and failure_receipt_control.get("provider_boundary")
+        == {
+            "fresh_actor_provider_calls": 0,
+            "accounted_reserved_effective_usage_zero": True,
+            "provider_journals_present": 0,
+            "partial_actor_streams_persisted": False,
+        }
+        and isinstance(control_checks, Mapping)
+        and set(control_checks)
+        == {
+            "ledger_artifact_mapping_exact",
+            "receipt_manifest_schema_and_self_hash",
+            "receipt_payload_schema_and_file_hash",
+            "contract_run_spec_release_exact",
+            "provider_journals_empty",
+            "zero_budget_snapshots",
+            "partial_actor_streams_absent",
+            "unique_receipt_grouping_exact",
+        }
+        and all(value is True for value in control_checks.values())
+        and failure_receipt_control.get("pass") is True
+    )
+
+    if (
+        resolved_git_commit != _PILOT_V2101_RELEASE_COMMIT
+        or len(rows) != 211
+        or len(failures) != 185
+        or len(completed) != 26
+        or stage_counts != _PILOT_V2101_FAILURE_STAGE_COUNTS
+        or len(failure_records) != 185
+        or failure_signatures != expected_signature
+        or len(offline_candidates) != 10
+        or offline_stage_counts != _PILOT_V2101_OFFLINE_CANDIDATE_STAGE_COUNTS
+        or not offline_zero_provider
+        or prerequisite_counts != _V210_PREREQUISITE_COUNTS
+        or actual_completed_run_ids != expected_completed_run_ids
+        or not no_actor_outputs
+        or not all_rows_current_contract
+        or not exact_budget_boundary
+        or not exact_release_boundary
+        or not exact_failure_receipt_control
+        or not isinstance(denominator, Mapping)
+        or denominator.get("expected_count") != 211
+        or denominator.get("observed_ledger_count") != 211
+        or denominator.get("status_counts") != {"complete": 26, "failed": 185}
+        or denominator.get("pass") is not True
+        or aggregate.get("publication_status") != "complete-with-no-go"
+        or aggregate.get("scientific_matrix_complete") is not False
+        or aggregate.get("scientific_claim_gates_supported") is not False
+        or aggregate.get("scientific_complete") is not False
+    ):
+        raise PilotEvidenceError(
+            "V2.10.1 implementation-failure summary differs from the sealed "
+            "denominator, budget ledger, release source, or outcome boundary"
+        )
+
+    return {
+        "schema_version": PILOT_V2101_IMPLEMENTATION_FAILURE_SCHEMA_VERSION,
+        "classification": "implementation-interface-no-go",
+        "root_cause_code": "observed-p95-consumer-schema-dispatch-gap",
+        "resolved_git_commit": resolved_git_commit,
+        "observed_failure": {
+            "error_type": "ValueError",
+            "message": _PILOT_V2101_P95_SCHEMA_FAILURE_MESSAGE,
+            "message_bytes": 110,
+            "message_sha256": _PILOT_V2101_P95_SCHEMA_FAILURE_SHA256,
+            "message_truncated": False,
+            "failed_cell_count": 185,
+            "failed_stage_counts": dict(sorted(stage_counts.items())),
+        },
+        "provider_boundary": {
+            "failure_phase": "before-provider-construction-and-dispatch",
+            "v2_10_1_incremental_local_stage_cost_usd": 0.0,
+            "v2_10_1_incremental_hosted_stage_cost_usd": 0.0,
+            "v2_10_1_incremental_hosted_cost_usd": 0.0,
+            "v2_10_1_incremental_hosted_completions": 0,
+            "v2_10_1_fresh_provider_calls": 0,
+            "v2_10_1_fresh_actor_provider_calls": 0,
+            "v2_10_1_offline_candidate_provider_calls": 0,
+            "partial_actor_streams_persisted": False,
+        },
+        "raw_failure_receipt_control": {
+            "failed_cell_count": failure_receipt_control["failed_cell_count"],
+            "unique_receipt_count": failure_receipt_control[
+                "unique_receipt_count"
+            ],
+            "failed_run_ids_sha256": failure_receipt_control[
+                "failed_run_ids_sha256"
+            ],
+            "cell_to_receipt_mapping_sha256": failure_receipt_control[
+                "cell_to_receipt_mapping_sha256"
+            ],
+            "unique_receipt_inventory_sha256": failure_receipt_control[
+                "unique_receipt_inventory_sha256"
+            ],
+            "release_attestation_file_sha256": failure_receipt_control[
+                "release_attestation_file_sha256"
+            ],
+            "checks": _json_copy(failure_receipt_control["checks"]),
+        },
+        "storage_accounting_boundary": {
+            "budget_ledger_actual_totals_storage_bytes": totals["storage_bytes"],
+            "canonical_raw_inventory_bound_here": False,
+            "canonical_raw_inventory_policy": (
+                "compute file_count/storage_bytes/inventory_sha256 separately "
+                "after all 211 cells are terminal and no stage process remains"
+            ),
+        },
+        "release_boundary": {
+            "base_controls_pass": {
+                "release_attestation": True,
+                "stage0_selection": True,
+                "budget_ledger": True,
+                "failure_receipts": True,
+            },
+            "top_level_release_controls_pass": False,
+            "experiment_c_rule_sensitivities": _json_copy(
+                expected_unavailable_sensitivities
+            ),
+            "interpretation": (
+                "The historical V2.10-family top-level release flag is false "
+                "only because both lane-specific Experiment C sensitivity "
+                "artifacts require complete scientific C runs and are "
+                "therefore unavailable in this implementation no-go."
+            ),
+        },
+        "outcome_boundary": {
+            "actor_action_utility_rule_exposure_outcomes_generated": False,
+            "actor_performance_treatment_outcome_blind": True,
+            "offline_candidate_admission_cells_generated": 10,
+            "offline_candidate_metrics_observed": True,
+            "offline_candidate_metrics_inspected": True,
+            "offline_candidate_admission_stage_counts": dict(
+                sorted(offline_stage_counts.items())
+            ),
+            "offline_candidate_scientific_use": "descriptive-only",
+            "offline_candidate_model_capability_evidence": False,
+            "offline_candidate_treatment_effect_evidence": False,
+            "global_a_d_outcome_blind": False,
+            "all_a_d_outcomes_unobserved": False,
+            "claim": (
+                "V2.10.1 produced no actor action, utility, rule-exposure, or "
+                "performance treatment-effect outcome. Its ten zero-provider "
+                "offline candidate-admission metrics were generated, observed, "
+                "and inspected, but remain descriptive records only."
+            ),
+        },
+        "retry_boundary": {
+            "successor_contract_id": "finevo-pilot-v2.10.2",
+            "offline_candidate_cells_imported": 0,
+            "fresh_a_d_cells_required": 195,
+            "offline_candidate_cells_fresh_rerun_required": 10,
+            "claim": (
+                "V2.10.1 offline candidate metrics are parent evidence only; "
+                "V2.10.2 must rerun all 195 A-D cells and cannot import them."
+            ),
+        },
+        "source_audit": {
+            "release_commit": _PILOT_V2101_RELEASE_COMMIT,
+            "producer": (
+                "verified_memory.pilot_v2101_parent_import."
+                "build_v2101_resealed_observed_p95_authority"
+            ),
+            "dedicated_verifier": (
+                "verified_memory.pilot_v2101_parent_import."
+                "verified_v2101_observed_p95_authority_binding"
+            ),
+            "consumer": (
+                "verified_memory.runner."
+                "_verify_source_backed_observed_p95_rows"
+            ),
+            "rejected_schema": (
+                "finevo-pilot-v2.10.1-resealed-observed-p95-authority-v1"
+            ),
+            "diagnosis": (
+                "The V2.10.1 producer and dedicated verifier accepted the "
+                "resealed receipt plus sibling projection, but the release "
+                "runner delegated that receipt to the legacy generic schema "
+                "consumer, which rejected it before provider construction."
+            ),
+        },
+        "evidence_use": (
+            "terminal implementation failure and amendment provenance only; "
+            "not model-capability, actor-reasoning, or A-D treatment-effect "
+            "evidence"
+        ),
+    }
+
+
 def _implementation_failure_summary_for_contract(
     aggregate: Mapping[str, Any],
     rows: Sequence[Mapping[str, Any]],
     *,
     resolved_git_commit: str | None,
 ) -> dict[str, Any] | None:
-    """Keep the terminal V2.9 implementation diagnosis scoped to V2.9."""
+    """Dispatch only exact terminal implementation-failure release shapes."""
 
-    if aggregate.get("contract_id") != PILOT_V29_CONTRACT_ID:
+    if aggregate.get("contract_id") == PILOT_V29_CONTRACT_ID:
+        return _v29_implementation_failure_summary(
+            aggregate,
+            rows,
+            resolved_git_commit=resolved_git_commit,
+        )
+    if aggregate.get("contract_id") != PILOT_V2101_CONTRACT_ID:
         return None
-    return _v29_implementation_failure_summary(
+
+    denominator = aggregate.get("denominator")
+    status_counts = (
+        denominator.get("status_counts")
+        if isinstance(denominator, Mapping)
+        else None
+    )
+    target_signature_present = any(
+        isinstance(row.get("failure"), Mapping)
+        and (
+            row["failure"].get("message_sha256")
+            == _PILOT_V2101_P95_SCHEMA_FAILURE_SHA256
+            or row["failure"].get("message")
+            == _PILOT_V2101_P95_SCHEMA_FAILURE_MESSAGE
+        )
+        for row in rows
+    )
+    if (
+        status_counts != {"complete": 26, "failed": 185}
+        and not target_signature_present
+    ):
+        return None
+    return _v2101_implementation_failure_summary(
         aggregate,
         rows,
         resolved_git_commit=resolved_git_commit,
@@ -3758,6 +4917,70 @@ def _report_markdown(
         observed = implementation_failure["observed_failure"]
         boundary = implementation_failure["provider_boundary"]
         outcome = implementation_failure["outcome_boundary"]
+        source_audit = implementation_failure["source_audit"]
+        is_v2101_failure = (
+            implementation_failure.get("schema_version")
+            == PILOT_V2101_IMPLEMENTATION_FAILURE_SCHEMA_VERSION
+        )
+        if is_v2101_failure:
+            storage = implementation_failure["storage_accounting_boundary"]
+            raw_control = implementation_failure["raw_failure_receipt_control"]
+            release_boundary = implementation_failure["release_boundary"]
+            retry = implementation_failure["retry_boundary"]
+            provider_line = (
+                f"- Provider boundary: `{boundary['failure_phase']}`; V2.10.1 "
+                "local and hosted incremental stage cost were both `$0`, with "
+                "`0` fresh hosted completions and `0` fresh actor provider "
+                "calls."
+            )
+            outcome_line = (
+                "- Outcome boundary: no actor action, utility, rule-exposure, "
+                "or performance treatment-effect outcome was generated, so "
+                "that actor/performance boundary remains outcome-blind. The "
+                f"`{outcome['offline_candidate_admission_cells_generated']}` "
+                "zero-provider offline candidate-admission outcomes were "
+                "generated, observed, and inspected, so the global A-D record "
+                "is not outcome-blind; those metrics remain descriptive-only."
+            )
+            storage_lines = [
+                "- Raw failure-receipt control: "
+                f"`{raw_control['failed_cell_count']}` failed cells map to "
+                f"`{raw_control['unique_receipt_count']}` unique strictly "
+                "verified receipts; cell mapping hash "
+                f"`{raw_control['cell_to_receipt_mapping_sha256']}`.",
+                "- Storage boundary: "
+                f"`{storage['budget_ledger_actual_totals_storage_bytes']}` "
+                "bytes is the budget-ledger actual total only. The canonical "
+                "raw `file_count/storage_bytes/inventory_sha256` is computed "
+                "separately after the 211-cell terminal tree is quiescent.",
+                "- Release boundary: release attestation, Stage-0, budget, and "
+                "failure-receipt base controls all pass. The historical "
+                "V2.10-family top-level release flag remains "
+                f"`{str(release_boundary['top_level_release_controls_pass']).lower()}` "
+                "because both lane-specific Experiment C sensitivity controls "
+                "are expectedly unavailable (`available=false`, `pass=false`) "
+                "after the pre-provider implementation no-go.",
+                "- Retry boundary: "
+                f"`{retry['offline_candidate_cells_imported']}` offline "
+                "candidate cells may be imported; V2.10.2 must freshly rerun "
+                f"all `{retry['fresh_a_d_cells_required']}` A-D cells, "
+                f"including its `{retry['offline_candidate_cells_fresh_rerun_required']}` "
+                "offline candidate cells.",
+            ]
+        else:
+            provider_line = (
+                f"- Provider boundary: `{boundary['failure_phase']}`; V2.9 "
+                "local and hosted stage cost were both `$0`, with `0` hosted "
+                "completions."
+            )
+            outcome_line = (
+                "- Outcome boundary: no actor action, utility, or rule-exposure "
+                "outcome was generated. The "
+                f"`{outcome['offline_candidate_admission_cells_generated']}` "
+                "offline candidate-admission outcomes were generated and "
+                "remain in the denominator."
+            )
+            storage_lines = []
         lines.extend(
             [
                 "",
@@ -3768,18 +4991,10 @@ def _report_markdown(
                 f"- All `{observed['failed_cell_count']}` failed A-D cells "
                 f"recorded `{observed['error_type']}: "
                 f"{observed['message']}`.",
-                "- Source audit: the imported-p95 producer returned nested "
-                "`authority.path/file_sha256/content_sha256` plus "
-                "`source_git_commit`, while `_runner_p95_reservations` "
-                "dereferenced the legacy flat receipt fields.",
-                f"- Provider boundary: `{boundary['failure_phase']}`; V2.9 "
-                "local and hosted stage cost were both `$0`, with `0` hosted "
-                "completions.",
-                "- Outcome boundary: no actor action, utility, or rule-exposure "
-                "outcome was generated. The "
-                f"`{outcome['offline_candidate_admission_cells_generated']}` "
-                "offline candidate-admission outcomes were generated and "
-                "remain in the denominator.",
+                f"- Source audit: {source_audit['diagnosis']}",
+                provider_line,
+                *storage_lines,
+                outcome_line,
                 "- Evidence use: implementation/amendment provenance only; "
                 "this is not a model-capability failure or a negative A-D "
                 "effect result.",
@@ -5472,6 +6687,16 @@ def build_pilot_v24_evidence_package(
         common_commit=common_commit,
         source_repo_root=source_root,
     )
+    v2101_failure_receipts = _validated_v2101_failure_receipt_control(
+        contract,
+        ledger=ledger,
+        raw_root=raw,
+        rows=rows,
+        resolved_git_commit=common_commit,
+        release_controls=release_controls,
+    )
+    if v2101_failure_receipts is not None:
+        release_controls["v2_10_1_failure_receipts"] = v2101_failure_receipts
     experiment_c_sensitivities: dict[str, dict[str, Any]] = {}
     if contract.contract_id in _V210_FAMILY_CONTRACT_IDS:
         (
@@ -5571,6 +6796,8 @@ __all__ = [
     "PILOT_V210_EVIDENCE_SCHEMA_VERSION",
     "PILOT_V2101_CONTRACT_ID",
     "PILOT_V2101_EVIDENCE_SCHEMA_VERSION",
+    "PILOT_V2101_FAILURE_RECEIPT_CONTROL_SCHEMA_VERSION",
+    "PILOT_V2101_IMPLEMENTATION_FAILURE_SCHEMA_VERSION",
     "aggregate_lane_separated_evidence",
     "aggregate_v24_evidence",
     "build_lane_separated_evidence_package",

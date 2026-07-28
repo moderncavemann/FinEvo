@@ -33,6 +33,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import stat
+from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
 from .pilot_budget import preflight_p95
@@ -58,6 +59,15 @@ V27_RESEALED_OBSERVED_P95_AUTHORITY_SCHEMA_VERSION = (
     "finevo-pilot-v2.7-inherited-observed-p95-authority-v1"
 )
 V27_RESEALED_OBSERVED_P95_SOURCE_KIND = "v2.6-terminal-stage0-import-v2.7"
+DEDICATED_OBSERVED_P95_BINDING_SCHEMA_REGISTRY: Mapping[str, str] = (
+    MappingProxyType(
+        {
+            "finevo-pilot-v2.10.1-resealed-observed-p95-authority-v1": (
+                "v2.10.1-resealed-with-sibling-projection"
+            ),
+        }
+    )
+)
 PREFLIGHT_CHECKPOINT_EXACTNESS_SCHEMA_VERSION = (
     "finevo-preflight-checkpoint-exactness-v1"
 )
@@ -2354,6 +2364,156 @@ def _verify_receipt_value(
     return _json_copy(reservations)
 
 
+def _verified_dedicated_observed_p95_binding(
+    receipt: Mapping[str, Any],
+    *,
+    relative: PurePosixPath | None,
+    raw: bytes | None,
+    repo_root: Path,
+    expected_git_commit: str,
+    historical_checkpoint_policy: HistoricalCheckpointVerificationPolicy | None,
+) -> dict[str, Any] | None:
+    """Route current-release schemas through their complete pair verifier.
+
+    These releases bind a receipt to a sibling projection.  The generic
+    legacy receipt verifier cannot reconstruct that pair, so a registered
+    schema must use its dedicated flat-binding verifier.  We compare the
+    dedicated verifier's receipt binding with the bytes already opened by
+    this module, making any replacement between the two guarded reads fail
+    closed.
+    """
+
+    schema_version = receipt.get("schema_version")
+    adapter_id = DEDICATED_OBSERVED_P95_BINDING_SCHEMA_REGISTRY.get(
+        str(schema_version)
+    )
+    if adapter_id is None:
+        return None
+    if relative is None or raw is None:
+        raise ObservedP95AuthorityError(
+            f"{adapter_id} verification requires a repository-relative "
+            "receipt path so its sibling projection can be verified"
+        )
+    if historical_checkpoint_policy is not None:
+        raise ObservedP95AuthorityError(
+            "historical checkpoint policy applies only to the source V2.3 "
+            "authority receipt"
+        )
+
+    if adapter_id == "v2.10.1-resealed-with-sibling-projection":
+        from .pilot_v2101_parent_import import (
+            PilotV2101ParentImportError,
+            V2101_RAW_ROOT,
+            V2101_RESEALED_P95_AUTHORITY_SCHEMA_VERSION,
+            v2101_observed_p95_receipt_path,
+            verified_v2101_observed_p95_authority_binding,
+            verify_v2101_resealed_observed_p95_projection,
+        )
+
+        if schema_version != V2101_RESEALED_P95_AUTHORITY_SCHEMA_VERSION:
+            raise ObservedP95AuthorityError(
+                "V2.10.1 observed-p95 producer/consumer schema registry drifted"
+            )
+        frozen_raw_root = repo_root.joinpath(*V2101_RAW_ROOT.parts)
+        model = receipt.get("model")
+        if not isinstance(model, Mapping):
+            raise ObservedP95AuthorityError(
+                "V2.10.1 observed-p95 receipt model binding is malformed"
+            )
+        try:
+            expected_receipt = v2101_observed_p95_receipt_path(
+                frozen_raw_root,
+                str(model.get("model_id")),
+            )
+            expected_relative = PurePosixPath(
+                expected_receipt.relative_to(repo_root).as_posix()
+            )
+            if relative != expected_relative:
+                raise ObservedP95AuthorityError(
+                    "V2.10.1 observed-p95 receipt is outside its exact "
+                    "frozen current-release path"
+                )
+            projection_relative = relative.with_name("projection_p95.json")
+            projection, _ = _read_json_source(
+                repo_root,
+                projection_relative,
+                name="V2.10.1 observed-p95 projection",
+            )
+            binding = verified_v2101_observed_p95_authority_binding(
+                relative,
+                repo_root=repo_root,
+                raw_root=frozen_raw_root,
+                expected_git_commit=expected_git_commit,
+            )
+            verified_projection = (
+                verify_v2101_resealed_observed_p95_projection(
+                    projection,
+                    receipt=receipt,
+                    repo_root=repo_root,
+                    raw_root=frozen_raw_root,
+                    expected_git_commit=expected_git_commit,
+                )
+            )
+        except PilotV2101ParentImportError as exc:
+            raise ObservedP95AuthorityError(
+                "V2.10.1 resealed observed-p95 pair failed validation: "
+                f"{exc}"
+            ) from exc
+    else:  # pragma: no cover - registry and dispatch change together
+        raise ObservedP95AuthorityError(
+            f"observed-p95 dedicated binding adapter is unavailable: {adapter_id}"
+        )
+
+    runtime_model = str(model.get("runtime_model"))
+    served_model = str(model.get("served_model"))
+    binding_reservations = binding.get("reservations")
+    projection_rows = verified_projection.get("projection")
+    if (
+        not isinstance(binding_reservations, Mapping)
+        or set(binding_reservations) != {runtime_model}
+        or not isinstance(binding_reservations.get(runtime_model), Mapping)
+        or not isinstance(projection_rows, Mapping)
+        or any(
+            binding_reservations[runtime_model].get(call_kind, {}).get(
+                "reservation"
+            )
+            != projection_rows.get(f"{served_model}::{call_kind}")
+            for call_kind in ("action", "semantic")
+        )
+    ):
+        raise ObservedP95AuthorityError(
+            f"{adapter_id} dedicated receipt binding differs from the "
+            "guarded sibling projection"
+        )
+
+    integrity = receipt.get("integrity")
+    expected_binding = {
+        "receipt_path": relative.as_posix(),
+        "receipt_file_sha256": _sha256_bytes(raw),
+        "receipt_content_sha256": (
+            str(integrity.get("content_sha256"))
+            if isinstance(integrity, Mapping)
+            else None
+        ),
+        "git_commit": expected_git_commit,
+    }
+    if (
+        not isinstance(binding, Mapping)
+        or set(binding) != {*expected_binding, "reservations"}
+        or {
+            name: binding.get(name)
+            for name in expected_binding
+        }
+        != expected_binding
+        or not isinstance(binding.get("reservations"), Mapping)
+    ):
+        raise ObservedP95AuthorityError(
+            f"{adapter_id} receipt bytes or flat binding changed during "
+            "dedicated verification"
+        )
+    return _json_copy(binding)
+
+
 def verify_observed_p95_authority_receipt(
     value_or_path: Mapping[str, Any] | str | Path,
     *,
@@ -2367,13 +2527,28 @@ def verify_observed_p95_authority_receipt(
     It reloads every repository-relative source, reruns the existing
     capability/bootstrap/checkpoint/journal validators, recomputes p95, and
     requires byte-for-structure equality with a newly built receipt.
+
+    Mapping-only input remains supported for legacy receipt-only schemas.
+    Registered current-release schemas bind a sibling projection and therefore
+    require a repository-relative receipt path so both files can be opened
+    through guarded readers.
     """
 
     root = _normalize_repo_root(repo_root)
-    receipt, _, _ = _read_receipt_input(
+    receipt, relative, raw = _read_receipt_input(
         value_or_path,
         repo_root=root,
     )
+    dedicated = _verified_dedicated_observed_p95_binding(
+        receipt,
+        relative=relative,
+        raw=raw,
+        repo_root=root,
+        expected_git_commit=expected_git_commit,
+        historical_checkpoint_policy=historical_checkpoint_policy,
+    )
+    if dedicated is not None:
+        return _json_copy(dedicated["reservations"])
     return _verify_receipt_value(
         receipt,
         repo_root=root,
@@ -2391,11 +2566,10 @@ def verified_observed_p95_authority_binding(
 ) -> dict[str, Any]:
     """Return a guarded receipt binding plus its verified reservations.
 
-    The receipt file is opened exactly once through the no-follow reader.
-    ``file_sha256`` is computed from those exact bytes; ``content_sha256`` is
-    taken from the self-hash that was checked on the same parsed bytes.  The
-    returned path/hash/content/commit tuple can therefore be copied into a
-    runner authority wrapper without a second, unguarded read.
+    Legacy receipts are opened exactly once through the no-follow reader.
+    Registered current-release receipts are re-opened by their dedicated
+    receipt+projection verifier; its binding must match the bytes from this
+    first guarded read exactly, so replacement between reads fails closed.
     """
 
     root = _normalize_repo_root(repo_root)
@@ -2407,6 +2581,16 @@ def verified_observed_p95_authority_binding(
         raise ObservedP95AuthorityError(
             "authority binding requires a repository-relative receipt path"
         )
+    dedicated = _verified_dedicated_observed_p95_binding(
+        receipt,
+        relative=relative,
+        raw=raw,
+        repo_root=root,
+        expected_git_commit=expected_git_commit,
+        historical_checkpoint_policy=historical_checkpoint_policy,
+    )
+    if dedicated is not None:
+        return dedicated
     reservations = _verify_receipt_value(
         receipt,
         repo_root=root,
@@ -2442,6 +2626,7 @@ def validate_observed_p95_authority_receipt(
 
 __all__ = [
     "CANONICALIZATION",
+    "DEDICATED_OBSERVED_P95_BINDING_SCHEMA_REGISTRY",
     "OBSERVED_P95_AUTHORITY_ID",
     "OBSERVED_P95_AUTHORITY_RECEIPT_FILENAME",
     "OBSERVED_P95_AUTHORITY_RECEIPT_SCHEMA_VERSION",

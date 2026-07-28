@@ -1,0 +1,59 @@
+{
+  "checks": {
+    "fresh_v2_10_1_effects_only": true,
+    "immutable_parent_evidence_bound": true,
+    "outcome_blind_amendment": true,
+    "parent_contract_id": true,
+    "parent_package_rewrite_forbidden": true,
+    "parent_status_preserved": true,
+    "qref_failure_preserved": true,
+    "repair_is_narrow": true
+  },
+  "checksum_entry_count": 18,
+  "checksums_file_sha256": "b117c3e9d2555af9582c22de08b6e39f1366876d9bc0c6a84b37728533748695",
+  "contract_id": "finevo-pilot-v2.10.1",
+  "contract_sha256": "1f9c642c155d5256815cb14a68335b65a25497523c14210c36f89070b3c8d996",
+  "implementation_no_go_verified": true,
+  "inventory_verified": true,
+  "package_manifest_file_sha256": "9aa7d07d1d813a5acdea39401e017d5cefe9d85f9127917b119d2453ff972806",
+  "parent_actor_treatment_effect_outcomes_generated": false,
+  "parent_completed_cell_breakdown": {
+    "a-d": 0,
+    "parent-import": 1,
+    "q-ref-resolution": 0,
+    "stage0-calibration": 0
+  },
+  "parent_package_rewritten": false,
+  "parent_registered_cells": 211,
+  "parent_rows_imported_into_v2_10_1_effect_aggregate": 0,
+  "parent_status_counts": {
+    "complete": 1,
+    "integrity-stopped": 210
+  },
+  "pass": true,
+  "provider_boundary_verified": true,
+  "qref_failure_verified": true,
+  "raw_inventory": {
+    "file_count": 637,
+    "inventory_sha256": "d8964a15abed0d77598d2c2cf80136e438b67559796cc93f8566dca17e584baa",
+    "storage_bytes": 20126496
+  },
+  "reference_kind": "immutable-external-package-reference",
+  "root_cause": {
+    "code": "qref-stage-receipt-schema-hash-domain-mismatch",
+    "failure_phase": "before-provider-construction-and-dispatch",
+    "message": "The finevo-pilot-stage-receipt-v2 producer hashes the artifact after removing the complete integrity object, while the imported-prerequisite verifier applied the generic self-hash convention."
+  },
+  "schema_version": "finevo-pilot-v2.10.1-parent-evidence-reference-v1",
+  "semantic_binding_verified": true,
+  "source_contract_id": "finevo-pilot-v2.10",
+  "source_contract_sha256": "d1b54c14d016c2b157db9e334d054ab9c7e86371d3fb9662a95fb94e50ce964b",
+  "source_evidence_commit": "1e96373fa847b44e3418a777c1ed74165ecf2bac",
+  "source_evidence_merge_commit": "2c4f4750d02c9c6b90051cfaa4f16b8ab16aa637",
+  "source_evidence_namespace": "evidence/current_v2/pilot-v2.10",
+  "source_evidence_status": "complete-with-no-go",
+  "source_package_copied": false,
+  "source_package_path": "evidence/current_v2/pilot-v2.10",
+  "source_release_commit": "1584629a5f8fd60f42bba878d2a0fcb0eca4bdcf",
+  "source_release_tag": "pilot-v2.10-science"
+}

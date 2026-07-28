@@ -1,0 +1,2985 @@
+{
+  "contract_sha256": "1f9c642c155d5256815cb14a68335b65a25497523c14210c36f89070b3c8d996",
+  "denominator": {
+    "all_completed_artifacts_validated": true,
+    "all_rows_present": true,
+    "all_rows_terminal": true,
+    "expected_count": 211,
+    "observed_ledger_count": 211,
+    "pass": true,
+    "status_counts": {
+      "complete": 26,
+      "failed": 185
+    }
+  },
+  "implementation_failure": {
+    "classification": "implementation-interface-no-go",
+    "evidence_use": "terminal implementation failure and amendment provenance only; not model-capability, actor-reasoning, or A-D treatment-effect evidence",
+    "observed_failure": {
+      "error_type": "ValueError",
+      "failed_cell_count": 185,
+      "failed_stage_counts": {
+        "experiment-a": 20,
+        "experiment-b": 15,
+        "experiment-c": 20,
+        "experiment-d": 30,
+        "local-experiment-a": 20,
+        "local-experiment-b": 25,
+        "local-experiment-c": 20,
+        "local-experiment-d": 35
+      },
+      "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+      "message_bytes": 110,
+      "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+      "message_truncated": false
+    },
+    "outcome_boundary": {
+      "actor_action_utility_rule_exposure_outcomes_generated": false,
+      "actor_performance_treatment_outcome_blind": true,
+      "all_a_d_outcomes_unobserved": false,
+      "claim": "V2.10.1 produced no actor action, utility, rule-exposure, or performance treatment-effect outcome. Its ten zero-provider offline candidate-admission metrics were generated, observed, and inspected, but remain descriptive records only.",
+      "global_a_d_outcome_blind": false,
+      "offline_candidate_admission_cells_generated": 10,
+      "offline_candidate_admission_stage_counts": {
+        "experiment-c": 5,
+        "local-experiment-c": 5
+      },
+      "offline_candidate_metrics_inspected": true,
+      "offline_candidate_metrics_observed": true,
+      "offline_candidate_model_capability_evidence": false,
+      "offline_candidate_scientific_use": "descriptive-only",
+      "offline_candidate_treatment_effect_evidence": false
+    },
+    "provider_boundary": {
+      "failure_phase": "before-provider-construction-and-dispatch",
+      "partial_actor_streams_persisted": false,
+      "v2_10_1_fresh_actor_provider_calls": 0,
+      "v2_10_1_fresh_provider_calls": 0,
+      "v2_10_1_incremental_hosted_completions": 0,
+      "v2_10_1_incremental_hosted_cost_usd": 0.0,
+      "v2_10_1_incremental_hosted_stage_cost_usd": 0.0,
+      "v2_10_1_incremental_local_stage_cost_usd": 0.0,
+      "v2_10_1_offline_candidate_provider_calls": 0
+    },
+    "raw_failure_receipt_control": {
+      "cell_to_receipt_mapping_sha256": "705d2f3a1f0a583f00a0d8c67a96dc49c3d7d285177e9f6fbacd046379b34dbe",
+      "checks": {
+        "contract_run_spec_release_exact": true,
+        "ledger_artifact_mapping_exact": true,
+        "partial_actor_streams_absent": true,
+        "provider_journals_empty": true,
+        "receipt_manifest_schema_and_self_hash": true,
+        "receipt_payload_schema_and_file_hash": true,
+        "unique_receipt_grouping_exact": true,
+        "zero_budget_snapshots": true
+      },
+      "failed_cell_count": 185,
+      "failed_run_ids_sha256": "3d897aa448ee99a8013b5b0bc3fa863ba637e72544293e2a448537a71d7c86bd",
+      "release_attestation_file_sha256": "d7ac625c787a0d7287eb6a20ca3172b251966487915dee376d391494b2670443",
+      "unique_receipt_count": 130,
+      "unique_receipt_inventory_sha256": "e9842a6bbedc9e80745e66dec021e4b600cd3f17f4eb93b2ea5cc180529835e2"
+    },
+    "release_boundary": {
+      "base_controls_pass": {
+        "budget_ledger": true,
+        "failure_receipts": true,
+        "release_attestation": true,
+        "stage0_selection": true
+      },
+      "experiment_c_rule_sensitivities": {
+        "gpt52": {
+          "available": false,
+          "descriptive_only": true,
+          "effectiveness_gate": false,
+          "lane_id": "gpt52",
+          "model_id": "gpt52_main",
+          "package_path": "experiment_c_rule_sensitivity.json",
+          "pass": false,
+          "provider_calls": 0,
+          "reason": "experiment-c ITT cells are not all complete and scientifically eligible",
+          "stage_id": "experiment-c"
+        },
+        "local": {
+          "available": false,
+          "descriptive_only": true,
+          "effectiveness_gate": false,
+          "lane_id": "local",
+          "model_id": "llama33_local_controlled",
+          "package_path": "local_experiment_c_rule_sensitivity.json",
+          "pass": false,
+          "provider_calls": 0,
+          "reason": "local-experiment-c ITT cells are not all complete and scientifically eligible",
+          "stage_id": "local-experiment-c"
+        }
+      },
+      "interpretation": "The historical V2.10-family top-level release flag is false only because both lane-specific Experiment C sensitivity artifacts require complete scientific C runs and are therefore unavailable in this implementation no-go.",
+      "top_level_release_controls_pass": false
+    },
+    "resolved_git_commit": "b5bfa9b86d3cdb706cea5be707597bef8ac85aed",
+    "retry_boundary": {
+      "claim": "V2.10.1 offline candidate metrics are parent evidence only; V2.10.2 must rerun all 195 A-D cells and cannot import them.",
+      "fresh_a_d_cells_required": 195,
+      "offline_candidate_cells_fresh_rerun_required": 10,
+      "offline_candidate_cells_imported": 0,
+      "successor_contract_id": "finevo-pilot-v2.10.2"
+    },
+    "root_cause_code": "observed-p95-consumer-schema-dispatch-gap",
+    "schema_version": "finevo-pilot-v2.10.1-implementation-failure-summary-v1",
+    "source_audit": {
+      "consumer": "verified_memory.runner._verify_source_backed_observed_p95_rows",
+      "dedicated_verifier": "verified_memory.pilot_v2101_parent_import.verified_v2101_observed_p95_authority_binding",
+      "diagnosis": "The V2.10.1 producer and dedicated verifier accepted the resealed receipt plus sibling projection, but the release runner delegated that receipt to the legacy generic schema consumer, which rejected it before provider construction.",
+      "producer": "verified_memory.pilot_v2101_parent_import.build_v2101_resealed_observed_p95_authority",
+      "rejected_schema": "finevo-pilot-v2.10.1-resealed-observed-p95-authority-v1",
+      "release_commit": "b5bfa9b86d3cdb706cea5be707597bef8ac85aed"
+    },
+    "storage_accounting_boundary": {
+      "budget_ledger_actual_totals_storage_bytes": 92541342,
+      "canonical_raw_inventory_bound_here": false,
+      "canonical_raw_inventory_policy": "compute file_count/storage_bytes/inventory_sha256 separately after all 211 cells are terminal and no stage process remains"
+    }
+  },
+  "rows": [
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--full--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--full--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--full--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--full--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--full--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--unverified-dual--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--unverified-dual--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--unverified-dual--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--unverified-dual--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--unverified-dual--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--verified-error-forced--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--verified-error-forced--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--verified-error-forced--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--verified-error-forced--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--verified-error-forced--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--unverified-error-forced--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--unverified-error-forced--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--unverified-error-forced--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--unverified-error-forced--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-c--llama33_local_controlled--unverified-error-forced--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--no-context--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--no-context--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--no-context--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--no-context--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--no-context--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--prompt-only--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--prompt-only--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--prompt-only--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--prompt-only--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--prompt-only--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--retrieval-only--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--retrieval-only--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--retrieval-only--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--retrieval-only--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--retrieval-only--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--full--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--full--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--full--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--full--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-a--llama33_local_controlled--full--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--matched-a--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--matched-a--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--matched-a--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--matched-a--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--matched-a--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--matched-b--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--matched-b--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--matched-b--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--matched-b--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--matched-b--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--no-memory--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--no-memory--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--shuffled-episodic--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--shuffled-episodic--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--shuffled-episodic--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--shuffled-episodic--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--shuffled-episodic--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--wrong-context--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--wrong-context--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--wrong-context--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--wrong-context--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--wrong-context--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--error-verified--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--error-verified--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--error-verified--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--error-verified--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--error-verified--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--error-unverified--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--error-unverified--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--error-unverified--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--error-unverified--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-d--llama33_local_controlled--error-unverified--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--no-memory--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--no-memory--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--episodic-only--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--episodic-only--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--episodic-only--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--episodic-only--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--episodic-only--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--semantic-only--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--semantic-only--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--semantic-only--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--semantic-only--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--semantic-only--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--unverified-dual--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--unverified-dual--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--unverified-dual--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--unverified-dual--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--unverified-dual--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--full--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--full--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--full--none--stage0-selected--s1769977770",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--full--none--stage0-selected--s959809858",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.1--local-experiment-b--llama33_local_controlled--full--none--stage0-selected--s617806385",
+      "stage_id": "local-experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--full--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--full--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--full--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--full--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--full--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--no-context--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--no-context--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--no-context--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--no-context--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--no-context--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--full--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--full--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--full--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-a--gpt52_main--full--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--matched-a--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--matched-a--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--matched-b--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--matched-b--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--no-memory--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--no-memory--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--error-verified--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--error-verified--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--full--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--full--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--full--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--full--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--full--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--no-memory--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.1--experiment-b--gpt52_main--no-memory--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    }
+  ],
+  "schema_version": "finevo-pilot-failure-ledger-v1"
+}
