@@ -68,6 +68,9 @@ DEDICATED_OBSERVED_P95_BINDING_SCHEMA_REGISTRY: Mapping[str, str] = (
             "finevo-pilot-v2.10.2-resealed-observed-p95-authority-v1": (
                 "v2.10.2-resealed-with-sibling-projection"
             ),
+            "finevo-pilot-v2.11-post-gate-authority-v1": (
+                "v2.11-post-gate-authority"
+            ),
         }
     )
 )
@@ -2521,6 +2524,50 @@ def _verified_dedicated_observed_p95_binding(
                 "V2.10.2 resealed observed-p95 pair failed validation: "
                 f"{exc}"
             ) from exc
+    elif adapter_id == "v2.11-post-gate-authority":
+        from .pilot_v211_gate import (
+            PilotV211GateError,
+            V211_GATE_SCHEMA_VERSION,
+            verified_v211_gate_authority_binding,
+        )
+
+        if schema_version != V211_GATE_SCHEMA_VERSION:
+            raise ObservedP95AuthorityError(
+                "V2.11 observed-p95 producer/consumer schema registry drifted"
+            )
+        try:
+            binding = verified_v211_gate_authority_binding(
+                relative.as_posix(),
+                repo_root=repo_root,
+                expected_git_commit=expected_git_commit,
+            )
+        except PilotV211GateError as exc:
+            raise ObservedP95AuthorityError(
+                "V2.11 post-gate observed-p95 authority failed validation: "
+                f"{exc}"
+            ) from exc
+
+        expected_binding = {
+            "receipt_path": relative.as_posix(),
+            "receipt_file_sha256": _sha256_bytes(raw),
+            "receipt_content_sha256": receipt.get("receipt_sha256"),
+            "git_commit": expected_git_commit,
+        }
+        if (
+            not isinstance(binding, Mapping)
+            or set(binding) != {*expected_binding, "reservations"}
+            or {
+                name: binding.get(name)
+                for name in expected_binding
+            }
+            != expected_binding
+            or not isinstance(binding.get("reservations"), Mapping)
+        ):
+            raise ObservedP95AuthorityError(
+                "v2.11-post-gate-authority receipt bytes or flat binding "
+                "changed during dedicated verification"
+            )
+        return _json_copy(binding)
     else:  # pragma: no cover - registry and dispatch change together
         raise ObservedP95AuthorityError(
             f"observed-p95 dedicated binding adapter is unavailable: {adapter_id}"

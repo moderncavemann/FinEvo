@@ -8,7 +8,6 @@ debug tag, and refuses to write into the immutable pilot-v1 namespace.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import replace
 from datetime import datetime, timezone
 import fcntl
 import importlib.metadata
@@ -36,7 +35,16 @@ from .pilot_contract import (
 )
 
 
-PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION = "finevo-provider-interface-probe-v1"
+LEGACY_PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION = (
+    "finevo-provider-interface-probe-v1"
+)
+PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION = "finevo-provider-interface-probe-v2"
+SUPPORTED_PROVIDER_INTERFACE_PROBE_SCHEMA_VERSIONS = frozenset(
+    {
+        LEGACY_PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION,
+        PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION,
+    }
+)
 PROVIDER_DIAGNOSTIC_BUDGET_SCHEMA_VERSION = (
     "finevo-provider-diagnostic-budget-v1"
 )
@@ -874,7 +882,7 @@ def verify_provider_interface_receipt(value: Mapping[str, Any]) -> None:
     if (
         not isinstance(value, Mapping)
         or value.get("schema_version")
-        != PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION
+        not in SUPPORTED_PROVIDER_INTERFACE_PROBE_SCHEMA_VERSIONS
     ):
         raise ProviderDiagnosticError(
             "provider interface receipt has an unsupported schema"
@@ -929,6 +937,167 @@ def verify_provider_interface_receipt(value: Mapping[str, Any]) -> None:
         raise ProviderDiagnosticError(
             "provider interface receipt violates its scientific boundary"
         )
+    if (
+        value.get("schema_version")
+        == LEGACY_PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION
+    ):
+        # Historical V1 receipts predate the distinction between provider
+        # usage and conservative budget accounting.  They remain immutable
+        # read-only inputs; do not reinterpret their completion ``usage``.
+        return
+
+    usage_accounting = value.get("usage_accounting")
+    if dispatch.get("provider_call_attempted") is False:
+        if usage_accounting is not None:
+            raise ProviderDiagnosticError(
+                "pre-dispatch receipt cannot contain provider usage accounting"
+            )
+        return
+    if not isinstance(usage_accounting, Mapping) or set(usage_accounting) != {
+        "provider_reported_usage",
+        "provider_reported_usage_available",
+        "budget_accounted_usage",
+        "accounting_basis",
+    }:
+        raise ProviderDiagnosticError(
+            "provider interface receipt lacks separated usage accounting"
+        )
+    reported = _verified_receipt_usage(
+        usage_accounting.get("provider_reported_usage"),
+        name="provider_reported_usage",
+    )
+    accounted = _verified_receipt_usage(
+        usage_accounting.get("budget_accounted_usage"),
+        name="budget_accounted_usage",
+    )
+    available = usage_accounting.get("provider_reported_usage_available")
+    if not isinstance(available, bool):
+        raise ProviderDiagnosticError(
+            "provider usage availability must be boolean"
+        )
+    if completion.get("usage") != reported:
+        raise ProviderDiagnosticError(
+            "completion usage differs from provider_reported_usage"
+        )
+    budget = value.get("budget")
+    budget_completions = (
+        budget.get("completions") if isinstance(budget, Mapping) else None
+    )
+    if (
+        isinstance(budget_completions, (str, bytes))
+        or not isinstance(budget_completions, Iterable)
+    ):
+        raise ProviderDiagnosticError(
+            "provider interface receipt lacks budget completion accounting"
+        )
+    budget_completions = list(budget_completions)
+    if (
+        len(budget_completions) != 1
+        or not isinstance(budget_completions[0], Mapping)
+        or budget_completions[0].get("usage") != accounted
+        or not isinstance(budget, Mapping)
+        or budget.get("accounted_usage") != accounted
+        or budget.get("effective_usage") != accounted
+    ):
+        raise ProviderDiagnosticError(
+            "budget ledger differs from budget_accounted_usage"
+        )
+
+    error_type = completion.get("error_type")
+    basis = usage_accounting.get("accounting_basis")
+    if error_type is None:
+        if (
+            basis != "provider_reported"
+            or available is not True
+            or accounted != reported
+        ):
+            raise ProviderDiagnosticError(
+                "successful provider usage accounting is inconsistent"
+            )
+        return
+
+    estimated = _verified_receipt_usage(
+        request.get("estimated_usage"),
+        name="estimated_usage",
+    )
+    expected_accounted = _componentwise_max_usage(reported, estimated)
+    expected_available = any(
+        (
+            int(reported["prompt_tokens"]) > 0,
+            int(reported["completion_tokens"]) > 0,
+            float(reported["cost_usd"]) > 0,
+        )
+    )
+    if (
+        basis
+        != "componentwise_max_of_provider_reported_and_pre_dispatch_reservation"
+        or available is not expected_available
+        or accounted != expected_accounted
+    ):
+        raise ProviderDiagnosticError(
+            "failed provider usage accounting is inconsistent"
+        )
+
+
+def _verified_receipt_usage(value: Any, *, name: str) -> dict[str, Any]:
+    if not isinstance(value, Mapping) or set(value) != {
+        "prompt_tokens",
+        "completion_tokens",
+        "total_tokens",
+        "cost_usd",
+    }:
+        raise ProviderDiagnosticError(f"{name} has an invalid usage schema")
+    prompt = value.get("prompt_tokens")
+    completion = value.get("completion_tokens")
+    total = value.get("total_tokens")
+    cost = value.get("cost_usd")
+    if any(
+        isinstance(item, bool) or not isinstance(item, int) or item < 0
+        for item in (prompt, completion, total)
+    ):
+        raise ProviderDiagnosticError(
+            f"{name} token counts must be non-negative integers"
+        )
+    if total != prompt + completion:
+        raise ProviderDiagnosticError(f"{name} total_tokens is inconsistent")
+    if (
+        isinstance(cost, bool)
+        or not isinstance(cost, (int, float))
+        or not math.isfinite(float(cost))
+        or float(cost) < 0
+    ):
+        raise ProviderDiagnosticError(
+            f"{name} cost_usd must be finite and non-negative"
+        )
+    return {
+        "prompt_tokens": prompt,
+        "completion_tokens": completion,
+        "total_tokens": total,
+        "cost_usd": float(cost),
+    }
+
+
+def _componentwise_max_usage(
+    reported: Mapping[str, Any],
+    estimated: Mapping[str, Any],
+) -> dict[str, Any]:
+    prompt_tokens = max(
+        int(reported["prompt_tokens"]),
+        int(estimated["prompt_tokens"]),
+    )
+    completion_tokens = max(
+        int(reported["completion_tokens"]),
+        int(estimated["completion_tokens"]),
+    )
+    return {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": prompt_tokens + completion_tokens,
+        "cost_usd": max(
+            float(reported["cost_usd"]),
+            float(estimated["cost_usd"]),
+        ),
+    }
 
 
 def _build_probe_receipt(
@@ -948,6 +1117,8 @@ def _build_probe_receipt(
     checks: Mapping[str, bool],
     budget_overage_reasons: Iterable[str],
     completion: StructuredCompletion | None,
+    provider_reported_usage_available: bool | None,
+    budget_accounted_usage: UsageRecord | None,
     budget: RunBudget,
     provider_constructed: bool,
     provider_call_attempted: bool,
@@ -996,6 +1167,27 @@ def _build_probe_receipt(
         "completion": (
             completion.safe_audit_dict()
             if completion is not None
+            else None
+        ),
+        "usage_accounting": (
+            {
+                "provider_reported_usage": completion.usage.to_dict(),
+                "provider_reported_usage_available": (
+                    provider_reported_usage_available
+                ),
+                "budget_accounted_usage": budget_accounted_usage.to_dict(),
+                "accounting_basis": (
+                    "provider_reported"
+                    if completion.error_type is None
+                    else (
+                        "componentwise_max_of_provider_reported_and_"
+                        "pre_dispatch_reservation"
+                    )
+                ),
+            }
+            if completion is not None
+            and provider_reported_usage_available is not None
+            and budget_accounted_usage is not None
             else None
         ),
         "budget": budget.snapshot().to_dict(),
@@ -1171,6 +1363,8 @@ def run_provider_interface_probe(
             },
             budget_overage_reasons=(),
             completion=None,
+            provider_reported_usage_available=None,
+            budget_accounted_usage=None,
             budget=budget,
             provider_constructed=provider_constructed,
             provider_call_attempted=False,
@@ -1188,6 +1382,7 @@ def run_provider_interface_probe(
 
     if provider is None or reservation is None:  # pragma: no cover - guarded above
         raise AssertionError("provider dispatch reached an impossible state")
+    provider_reported_usage_available = True
     try:
         completion = provider.get_structured_completion(
             [{"role": "user", "content": _PROMPT}],
@@ -1201,11 +1396,16 @@ def run_provider_interface_probe(
             raise TypeError(
                 "provider structured API must return StructuredCompletion"
             )
+        provider_reported_usage_available = (
+            completion.error_type is None
+            or completion.usage != UsageRecord()
+        )
     except Exception as exc:
         sdk_name, sdk_version = _observed_sdk_identity(profile)
+        provider_reported_usage_available = False
         completion = StructuredCompletion(
             text="Error",
-            usage=estimate,
+            usage=UsageRecord(),
             model=profile.requested_model,
             provider=profile.transport,
             attempts=1,
@@ -1222,8 +1422,9 @@ def run_provider_interface_probe(
             provider_sdk_version=sdk_version,
             output_disposition="unavailable_due_to_provider_error",
         )
+    budget_accounted_usage = completion.usage
     if completion.error_type is not None:
-        conservative = UsageRecord(
+        budget_accounted_usage = UsageRecord(
             prompt_tokens=max(
                 completion.usage.prompt_tokens,
                 estimate.prompt_tokens,
@@ -1237,11 +1438,9 @@ def run_provider_interface_probe(
                 float(estimate.cost_usd),
             ),
         )
-        if conservative != completion.usage:
-            completion = replace(completion, usage=conservative)
     budget_overage_reasons: list[str] = []
     try:
-        budget.complete_call(reservation, completion.usage)
+        budget.complete_call(reservation, budget_accounted_usage)
     except BudgetExceeded as exc:
         budget_overage_reasons = [reason.value for reason in exc.reasons]
     strict_json_valid = _strict_probe_json(completion.text)
@@ -1271,6 +1470,10 @@ def run_provider_interface_probe(
         checks=checks,
         budget_overage_reasons=budget_overage_reasons,
         completion=completion,
+        provider_reported_usage_available=(
+            provider_reported_usage_available
+        ),
+        budget_accounted_usage=budget_accounted_usage,
         budget=budget,
         provider_constructed=True,
         provider_call_attempted=True,
@@ -1290,7 +1493,9 @@ def run_provider_interface_probe(
 
 
 __all__ = [
+    "LEGACY_PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION",
     "PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION",
+    "SUPPORTED_PROVIDER_INTERFACE_PROBE_SCHEMA_VERSIONS",
     "PROVIDER_DIAGNOSTIC_BUDGET_SCHEMA_VERSION",
     "DEFAULT_INTERFACE_PROBE_MAX_TOKENS",
     "ProviderDiagnosticError",

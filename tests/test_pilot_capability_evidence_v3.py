@@ -14,14 +14,18 @@ from test_pilot_capability import (
     ProviderFailureProvider,
     RecoveryProvider,
     WrongSemanticEvidenceProvider,
+    ZeroUsageProviderFailure,
     _contracts,
     _run_gate,
 )
+from verified_memory.budget import UsageRecord
 from verified_memory.pilot_contract import canonical_sha256, load_pilot_contract
 from verified_memory.pilot_evidence import (
+    CAPABILITY_V5_SCHEMA_VERSION,
     PilotEvidenceError,
     _validate_capability_v3,
     _validate_capability_v4,
+    _validate_capability_v5,
     _validate_terminal_payload_marker,
 )
 from verified_memory.pilot_evaluation_amendment import (
@@ -75,6 +79,12 @@ def _valid_v4() -> dict:
         budget_id="capability-v4-evidence",
         contracts=_contracts(),
     )
+    result["schema_version"] = "finevo-capability-gate-v4"
+    for row in result["rows"]:
+        row["schema_version"] = "finevo-capability-gate-v4"
+        row.pop("provider_reported_usage")
+        row.pop("provider_reported_usage_available")
+        row.pop("budget_accounted_usage")
     _validate_capability_v4(result)
     return result
 
@@ -91,6 +101,9 @@ def _historical_v3_semantic_no_go() -> dict:
     ]
     for row in result["rows"]:
         row["schema_version"] = "finevo-capability-gate-v3"
+        row.pop("provider_reported_usage")
+        row.pop("provider_reported_usage_available")
+        row.pop("budget_accounted_usage")
     for row in proposal_rows:
         assert row["semantic_candidate_accepted"] is True
         assert row["semantic_match"] is False
@@ -156,11 +169,94 @@ class _InvalidFinishProvider(CapabilityFixtureProvider):
 
 
 def _pre_response_failure_v4() -> dict:
-    return _run_gate(
+    result = _run_gate(
         _PreResponseFailureProvider(),
         budget_id="capability-v4-pre-response-failure",
         contracts=_contracts(),
     )
+    result["schema_version"] = "finevo-capability-gate-v4"
+    for row in result["rows"]:
+        row["schema_version"] = "finevo-capability-gate-v4"
+        row.pop("provider_reported_usage")
+        row.pop("provider_reported_usage_available")
+        row.pop("budget_accounted_usage")
+    return result
+
+
+def _separated_failure_v5() -> dict:
+    """Upgrade a synthetic V4 failure without changing its ITT denominator."""
+
+    result = _pre_response_failure_v4()
+    result["schema_version"] = CAPABILITY_V5_SCHEMA_VERSION
+    completion_by_task = {
+        completion["label"].removeprefix("capability:"): completion
+        for completion in result["budget"]["completions"]
+    }
+    for row in result["rows"]:
+        row["schema_version"] = CAPABILITY_V5_SCHEMA_VERSION
+        completion = completion_by_task[row["task_id"]]
+        row["provider_reported_usage"] = deepcopy(row["usage"])
+        row["provider_reported_usage_available"] = (
+            row["provider_error"] is None
+            or any(
+                (
+                    row["usage"]["prompt_tokens"] > 0,
+                    row["usage"]["completion_tokens"] > 0,
+                    row["usage"]["cost_usd"] > 0,
+                )
+            )
+        )
+        row["budget_accounted_usage"] = deepcopy(completion["usage"])
+
+    failed = _row(result, "action-01")
+    failed_completion = completion_by_task["action-01"]
+    failed_completion["estimated_usage"] = {
+        "prompt_tokens": 200,
+        "completion_tokens": 512,
+        "total_tokens": 712,
+        "cost_usd": 0.01,
+    }
+    accounted = {
+        "prompt_tokens": max(
+            failed["usage"]["prompt_tokens"],
+            failed_completion["estimated_usage"]["prompt_tokens"],
+        ),
+        "completion_tokens": max(
+            failed["usage"]["completion_tokens"],
+            failed_completion["estimated_usage"]["completion_tokens"],
+        ),
+        "cost_usd": max(
+            failed["usage"]["cost_usd"],
+            failed_completion["estimated_usage"]["cost_usd"],
+        ),
+    }
+    accounted["total_tokens"] = (
+        accounted["prompt_tokens"] + accounted["completion_tokens"]
+    )
+    failed["budget_accounted_usage"] = deepcopy(accounted)
+    failed_completion["usage"] = deepcopy(accounted)
+
+    prompt_total = sum(
+        completion["usage"]["prompt_tokens"]
+        for completion in result["budget"]["completions"]
+    )
+    completion_total = sum(
+        completion["usage"]["completion_tokens"]
+        for completion in result["budget"]["completions"]
+    )
+    cost_total = sum(
+        completion["usage"]["cost_usd"]
+        for completion in result["budget"]["completions"]
+    )
+    total_usage = {
+        "prompt_tokens": prompt_total,
+        "completion_tokens": completion_total,
+        "total_tokens": prompt_total + completion_total,
+        "cost_usd": cost_total,
+    }
+    result["budget"]["accounted_usage"] = deepcopy(total_usage)
+    result["budget"]["effective_usage"] = deepcopy(total_usage)
+    return result
 
 
 def _valid_v2() -> dict:
@@ -239,13 +335,18 @@ def test_historical_v3_semantic_mismatch_remains_a_valid_no_go() -> None:
     _validate_capability_v3(result)
 
 
-def test_terminal_capability_entry_routes_v2_v3_and_v4_readers(
+def test_terminal_capability_entry_routes_v2_v3_v4_and_v5_readers(
     tmp_path: Path,
 ) -> None:
     contract = load_pilot_contract(CONTRACT_PATH)
     spec = contract.expand(stage="capability-preflight")[0]
 
-    for capability in (_valid_v2(), _historical_v3_semantic_no_go(), _valid_v4()):
+    for capability in (
+        _valid_v2(),
+        _historical_v3_semantic_no_go(),
+        _valid_v4(),
+        _separated_failure_v5(),
+    ):
         capability["preflight_go"] = True
         _validate_terminal_payload_marker(
             contract,
@@ -558,13 +659,103 @@ def test_v4_validator_rejects_row_and_aggregate_tampering(
         _validate_capability_v4(result)
 
 
+def test_v5_validator_separates_failed_provider_and_budget_usage() -> None:
+    # The historical V4 reader remains strict and unchanged.
+    historical = _pre_response_failure_v4()
+    _validate_capability_v4(historical)
+    assert "provider_reported_usage" not in _row(historical, "action-01")
+
+    result = _separated_failure_v5()
+    failed = _row(result, "action-01")
+
+    assert failed["provider_reported_usage"] == failed["usage"]
+    assert failed["provider_reported_usage_available"] is True
+    assert (
+        failed["budget_accounted_usage"]["completion_tokens"]
+        == 512
+        > failed["provider_reported_usage"]["completion_tokens"]
+    )
+    assert failed["budget_accounted_usage"] == next(
+        completion["usage"]
+        for completion in result["budget"]["completions"]
+        if completion["label"] == "capability:action-01"
+    )
+    _validate_capability_v5(result)
+
+
+def test_v5_validator_accepts_explicitly_unavailable_zero_provider_usage() -> None:
+    result = _run_gate(
+        ZeroUsageProviderFailure(),
+        budget_id="capability-v5-zero-provider-usage-evidence",
+        contracts=_contracts(),
+    )
+    failed = _row(result, "action-01")
+
+    assert failed["provider_reported_usage"] == UsageRecord().to_dict()
+    assert failed["provider_reported_usage_available"] is False
+    _validate_capability_v5(result)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("upper_bound_method", "unregistered-tokenizer"),
+        ("ceiling_tokens", 1),
+        ("maximum_upper_bound_tokens", 1),
+        ("passed", False),
+    ),
+)
+def test_v5_validator_recomputes_prompt_tier_gate(
+    field: str,
+    value,
+) -> None:
+    result = _run_gate(
+        CapabilityFixtureProvider(),
+        budget_id=f"capability-v5-prompt-tier-{field}",
+        contracts=_contracts(),
+    )
+    result["prompt_tier_gate"][field] = value
+
+    with pytest.raises(PilotEvidenceError, match="prompt-tier"):
+        _validate_capability_v5(result)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("reported-alias", "availability", "accounted-row", "accounted-ledger"),
+)
+def test_v5_validator_rejects_usage_semantics_tampering(mutation: str) -> None:
+    result = _separated_failure_v5()
+    failed = _row(result, "action-01")
+    completion = next(
+        item
+        for item in result["budget"]["completions"]
+        if item["label"] == "capability:action-01"
+    )
+    if mutation == "reported-alias":
+        failed["provider_reported_usage"] = UsageRecord(
+            prompt_tokens=1,
+            completion_tokens=1,
+            cost_usd=0.0,
+        ).to_dict()
+    elif mutation == "availability":
+        failed["provider_reported_usage_available"] = False
+    elif mutation == "accounted-row":
+        failed["budget_accounted_usage"] = deepcopy(failed["usage"])
+    else:
+        completion["usage"] = deepcopy(failed["usage"])
+
+    with pytest.raises(PilotEvidenceError, match="capability v[35]"):
+        _validate_capability_v5(result)
+
+
 def test_recovered_json_is_reportable_but_cannot_be_promoted_to_success() -> None:
     result = _run_gate(
         RecoveryProvider(),
         budget_id="capability-v4-recovery-evidence",
         contracts=_contracts(),
     )
-    _validate_capability_v4(result)
+    _validate_capability_v5(result)
 
     recovered = _row(result, "action-01")
     assert recovered["parse_mode"] == "fenced_recovery"
@@ -573,7 +764,7 @@ def test_recovered_json_is_reportable_but_cannot_be_promoted_to_success() -> Non
 
     recovered["correct"] = True
     with pytest.raises(PilotEvidenceError, match="success is inconsistent"):
-        _validate_capability_v4(result)
+        _validate_capability_v5(result)
 
 
 def test_pre_response_failure_allows_null_served_model_and_keeps_itt() -> None:
@@ -628,7 +819,7 @@ def test_non_provider_failure_requires_served_model(provider_factory) -> None:
     _row(result, "action-01")["served_model"] = None
 
     with pytest.raises(PilotEvidenceError, match="lacks served_model"):
-        _validate_capability_v4(result)
+        _validate_capability_v5(result)
 
 
 def test_provider_failure_requires_explicit_served_model_field() -> None:
@@ -670,7 +861,7 @@ def test_proposal_admission_and_grounding_cannot_be_forged(
         _validate_capability_v4(result)
 
 
-def test_v4_validator_accepts_legal_hidden_semantic_mismatch() -> None:
+def test_v5_validator_accepts_legal_hidden_semantic_mismatch() -> None:
     result = _run_gate(
         EquivalentConditionToleranceProvider(),
         budget_id="capability-v4-equivalent-tolerance-evidence",
@@ -683,10 +874,10 @@ def test_v4_validator_accepts_legal_hidden_semantic_mismatch() -> None:
     assert all(row["semantic_match"] is False for row in proposals)
     assert all(row["legal"] is True for row in proposals)
     assert all(row["correct"] is True for row in proposals)
-    _validate_capability_v4(result)
+    _validate_capability_v5(result)
 
 
-def test_v4_validator_preserves_verifier_rejected_evidence_as_illegal() -> None:
+def test_v5_validator_preserves_verifier_rejected_evidence_as_illegal() -> None:
     result = _run_gate(
         WrongSemanticEvidenceProvider("episode_id"),
         budget_id="capability-v4-rejected-evidence-validator",
@@ -698,4 +889,4 @@ def test_v4_validator_preserves_verifier_rejected_evidence_as_illegal() -> None:
     assert proposal["candidate_status"] == "rejected"
     assert proposal["legal"] is False
     assert proposal["correct"] is False
-    _validate_capability_v4(result)
+    _validate_capability_v5(result)

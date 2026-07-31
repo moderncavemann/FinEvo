@@ -15,6 +15,7 @@ from verified_memory.pilot_capability import (
     build_capability_tasks,
     run_capability_gate,
 )
+from verified_memory.runner import VerifiedRunError
 from verified_memory.scripted_provider import ScriptedDiagnosticProvider
 
 
@@ -241,6 +242,18 @@ class ProviderFailureProvider(CapabilityFixtureProvider):
         )
 
 
+class ZeroUsageProviderFailure(ProviderFailureProvider):
+    def mutate(self, task, completion):
+        failed = super().mutate(task, completion)
+        if task.task_id != "action-01":
+            return failed
+        return replace(
+            failed,
+            usage=UsageRecord(),
+            reasoning_tokens=0,
+        )
+
+
 def _contracts(
     *,
     actor_tokens: int = 512,
@@ -286,6 +299,34 @@ def _run_gate(
     )
 
 
+def test_capability_prompt_tier_gate_precedes_all_provider_dispatch() -> None:
+    provider = CapabilityFixtureProvider()
+    budget = RunBudget(
+        BudgetLimits(
+            max_calls=30,
+            max_completion_tokens=100_000,
+            max_cost_usd=0.1,
+        ),
+        budget_id="capability-prompt-tier",
+    )
+
+    with pytest.raises(
+        VerifiedRunError,
+        match="pricing-tier ceiling before provider dispatch",
+    ):
+        run_capability_gate(
+            llm=MultiModelLLM(provider, num_workers=4),
+            budget=budget,
+            seed=2010922376,
+            estimate_usage=lambda prompt, max_tokens: UsageRecord(),
+            task_output_contracts=_contracts(),
+            prompt_tier_ceiling_tokens=1,
+        )
+
+    assert provider.dispatched == []
+    assert budget.snapshot().completed_calls == 0
+
+
 def test_v4_taskset_uses_production_prompts_and_real_evidence() -> None:
     tasks = build_capability_tasks()
 
@@ -296,7 +337,7 @@ def test_v4_taskset_uses_production_prompts_and_real_evidence() -> None:
     assert [task.task_kind for task in tasks].count("action_generation") == 12
     assert [task.task_kind for task in tasks].count("rule_application") == 12
     assert [task.task_kind for task in tasks].count("rule_proposal") == 6
-    assert CAPABILITY_SCHEMA_VERSION == "finevo-capability-gate-v4"
+    assert CAPABILITY_SCHEMA_VERSION == "finevo-capability-gate-v5"
     assert len(CAPABILITY_TASKSET_SHA256) == 64
 
     action = tasks[0]
@@ -327,8 +368,17 @@ def test_scripted_production_capability_fixture_passes_30_call_gate() -> None:
         contracts=_contracts(actor_tokens=333, proposal_tokens=777),
     )
 
-    assert result["schema_version"] == "finevo-capability-gate-v4"
+    assert result["schema_version"] == "finevo-capability-gate-v5"
     assert result["pass"] is True
+    assert result["prompt_tier_gate"] == {
+        "upper_bound_method": "utf8-bytes-plus-256-v1",
+        "ceiling_tokens": None,
+        "maximum_upper_bound_tokens": max(
+            len(task.prompt.encode("utf-8")) + 256
+            for task in build_capability_tasks()
+        ),
+        "passed": True,
+    }
     assert result["interface_gate"] == {"pass": True, "failure_count": 0}
     assert result["strict_parse_count"] == 30
     assert result["recovered_parse_count"] == 0
@@ -343,6 +393,16 @@ def test_scripted_production_capability_fixture_passes_30_call_gate() -> None:
     assert all(row["reasoning_tokens"] == 4 for row in result["rows"])
     assert all(row["visible_completion_tokens"] == 20 for row in result["rows"])
     assert all(row["cost_usd"] == pytest.approx(0.0001) for row in result["rows"])
+    assert all(
+        row["provider_reported_usage"]
+        == row["budget_accounted_usage"]
+        == row["usage"]
+        for row in result["rows"]
+    )
+    assert all(
+        row["provider_reported_usage_available"] is True
+        for row in result["rows"]
+    )
     assert [cap for kind, cap in provider.dispatched if kind != "rule_proposal"] == [
         333
     ] * 24
@@ -490,6 +550,93 @@ def test_provider_failure_stays_in_registered_denominator() -> None:
     assert totals["evaluable_count"] == 11
     assert totals["interface_failure_count"] == 1
     assert result["pass"] is False
+
+
+def test_provider_failure_separates_reported_usage_from_budget_reserve() -> None:
+    result = run_capability_gate(
+        llm=MultiModelLLM(ProviderFailureProvider(), num_workers=4),
+        budget=RunBudget(
+            BudgetLimits(
+                max_calls=30,
+                max_completion_tokens=100_000,
+                max_cost_usd=1.0,
+            ),
+            budget_id="capability-v5-separated-failure-usage",
+        ),
+        seed=2010922376,
+        estimate_usage=lambda prompt, max_tokens: UsageRecord(
+            prompt_tokens=200,
+            completion_tokens=max_tokens,
+            cost_usd=0.001,
+        ),
+        task_output_contracts=_contracts(),
+    )
+    rows = {row["task_id"]: row for row in result["rows"]}
+    failed = rows["action-01"]
+    succeeded = rows["action-02"]
+
+    assert failed["provider_error"] == "ProviderUnavailableError"
+    assert failed["provider_reported_usage_available"] is True
+    assert failed["provider_reported_usage"] == failed["usage"]
+    assert failed["provider_reported_usage"] == {
+        "prompt_tokens": 120,
+        "completion_tokens": 24,
+        "total_tokens": 144,
+        "cost_usd": 0.0001,
+    }
+    assert failed["budget_accounted_usage"] == {
+        "prompt_tokens": 200,
+        "completion_tokens": 512,
+        "total_tokens": 712,
+        "cost_usd": 0.001,
+    }
+    assert (
+        succeeded["provider_reported_usage"]
+        == succeeded["budget_accounted_usage"]
+        == succeeded["usage"]
+    )
+    failed_completion = next(
+        completion
+        for completion in result["budget"]["completions"]
+        if completion["label"] == "capability:action-01"
+    )
+    assert (
+        failed_completion["usage"]
+        == failed["budget_accounted_usage"]
+    )
+
+
+def test_zero_usage_provider_failure_is_marked_unavailable() -> None:
+    result = run_capability_gate(
+        llm=MultiModelLLM(ZeroUsageProviderFailure(), num_workers=4),
+        budget=RunBudget(
+            BudgetLimits(
+                max_calls=30,
+                max_completion_tokens=100_000,
+                max_cost_usd=1.0,
+            ),
+            budget_id="capability-v5-zero-provider-usage",
+        ),
+        seed=2010922376,
+        estimate_usage=lambda prompt, max_tokens: UsageRecord(
+            prompt_tokens=200,
+            completion_tokens=max_tokens,
+            cost_usd=0.001,
+        ),
+        task_output_contracts=_contracts(),
+    )
+    failed = next(
+        row for row in result["rows"] if row["task_id"] == "action-01"
+    )
+
+    assert failed["provider_reported_usage"] == UsageRecord().to_dict()
+    assert failed["provider_reported_usage_available"] is False
+    assert failed["budget_accounted_usage"] == {
+        "prompt_tokens": 200,
+        "completion_tokens": 512,
+        "total_tokens": 712,
+        "cost_usd": 0.001,
+    }
 
 
 def test_v2_compatibility_defaults_and_caps_override_remain_bounded() -> None:

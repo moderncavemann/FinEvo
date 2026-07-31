@@ -23,9 +23,11 @@ from verified_memory.runner import (
     VerifiedRunConfig,
     VerifiedRunError,
     _provider_row,
+    conservative_prompt_token_upper_bound,
     preflight_p95_reservation_for_call,
     run_verified_experiment,
     serialized_has_sealed_observed_p95_authority,
+    validate_prompt_tier_for_dispatch,
 )
 
 
@@ -100,6 +102,52 @@ class _NeverDispatchProvider:
     def get_structured_completion(self, *args, **kwargs) -> StructuredCompletion:
         self.calls += 1
         raise AssertionError("scientific p95 validation must precede dispatch")
+
+
+def test_prompt_tier_ceiling_fails_before_any_provider_dispatch() -> None:
+    provider = _NeverDispatchProvider("diagnostic/scripted-v1")
+    budget = RunBudget(BudgetLimits(max_calls=10, max_cost_usd=1.0))
+    config = VerifiedRunConfig(
+        run_id="prompt-tier-pre-dispatch",
+        num_agents=2,
+        episode_length=1,
+        enable_semantic=False,
+        prompt_tier_ceiling_tokens=1,
+    )
+
+    with pytest.raises(
+        VerifiedRunError,
+        match="pricing-tier ceiling before provider dispatch",
+    ):
+        run_verified_experiment(
+            config,
+            llm=MultiModelLLM(provider),
+            budget=budget,
+            env_config_source=ROOT / "config.yaml",
+        )
+
+    assert provider.calls == 0
+    assert budget.snapshot().completed_calls == 0
+    assert budget.snapshot().active_calls == 0
+
+
+def test_prompt_tier_bound_is_utf8_conservative_and_exactly_bound() -> None:
+    prompt = "ASCII 与宏观"
+    upper_bound = conservative_prompt_token_upper_bound(prompt)
+    assert upper_bound == len(prompt.encode("utf-8")) + 256
+
+    accepted = VerifiedRunConfig(
+        run_id="prompt-tier-accepted",
+        prompt_tier_ceiling_tokens=upper_bound + 1,
+    )
+    assert validate_prompt_tier_for_dispatch(accepted, prompt) == upper_bound
+
+    rejected = replace(
+        accepted,
+        prompt_tier_ceiling_tokens=upper_bound,
+    )
+    with pytest.raises(VerifiedRunError, match="pricing-tier ceiling"):
+        validate_prompt_tier_for_dispatch(rejected, prompt)
 
 
 def test_scientific_unknown_model_cannot_fall_back_to_zero_cost_before_dispatch(

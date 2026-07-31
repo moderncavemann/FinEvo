@@ -1,11 +1,13 @@
 from copy import deepcopy
 from dataclasses import replace
+import hashlib
 import json
 from pathlib import Path
 
 import pytest
 
-from llm_providers import MultiModelLLM
+import verified_memory.pilot_checkpoint as pilot_checkpoint_module
+from llm_providers import MultiModelLLM, ProviderErrorDetails
 from verified_memory.budget import (
     BudgetExceeded,
     BudgetLimits,
@@ -14,11 +16,15 @@ from verified_memory.budget import (
 )
 from verified_memory.pilot_checkpoint import (
     CLOSED_LOOP_PREFLIGHT_CHECKPOINT_PURPOSE,
+    EXPERIMENT_D_SHARED_PREFIX_CHECKPOINT_PURPOSE,
     PILOT_CHECKPOINT_SCHEMA_VERSION,
     PILOT_CHECKPOINT_SCHEMA_VERSION_V2,
+    PILOT_CHECKPOINT_SCHEMA_VERSION_V3,
     PilotCheckpoint,
     PilotCheckpointError,
+    PilotCheckpointProviderFailure,
     build_closed_loop_preflight_checkpoint,
+    build_experiment_d_shared_prefix_checkpoint,
     build_pilot_checkpoint,
     canonical_hash,
     capture_environment_state,
@@ -28,12 +34,17 @@ from verified_memory.pilot_checkpoint import (
 from verified_memory.runner import (
     ShockEvent,
     VerifiedRunConfig,
+    VerifiedRunError,
     verify_provider_call_journal,
 )
 from verified_memory.scripted_provider import ScriptedDiagnosticProvider
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 class _CountingScriptedProvider(ScriptedDiagnosticProvider):
@@ -147,6 +158,68 @@ class _MalformedSemanticProvider(_CountingScriptedProvider):
         return result
 
 
+class _FailedFourthPrefixActionProvider(_CountingScriptedProvider):
+    def get_structured_completion(self, messages, **kwargs):
+        result = super().get_structured_completion(messages, **kwargs)
+        prompt = self._prompt(messages)
+        if "monthly decision t=0" in prompt and "agent 3," in prompt:
+            return replace(
+                result,
+                text="Error",
+                usage=UsageRecord(
+                    prompt_tokens=result.usage.prompt_tokens,
+                    completion_tokens=2048,
+                    cost_usd=0.001,
+                ),
+                error_type="IncompleteCompletionError",
+                reasoning_tokens=2048,
+                finish_reason="length",
+                native_finish_reason="length",
+                response_completed=False,
+                output_disposition="discarded_incomplete",
+                provider_error_details=ProviderErrorDetails(
+                    error_type="IncompleteCompletionError",
+                    stage="response_completion",
+                    sdk_name="fixture-openai-python",
+                    sdk_version="0.0.test",
+                    http_status=200,
+                    code="max_output_tokens",
+                    param="max_completion_tokens",
+                    request_id="req_checkpoint_failed_a3",
+                ),
+                request_id="req_checkpoint_failed_a3",
+            )
+        return result
+
+
+class _HostileFailureMetadataProvider(_FailedFourthPrefixActionProvider):
+    sentinel = "SENTINEL-provider-controlled-text"
+
+    def get_structured_completion(self, messages, **kwargs):
+        result = super().get_structured_completion(messages, **kwargs)
+        if result.error_type == "IncompleteCompletionError":
+            return replace(
+                result,
+                provider=self.sentinel,
+                model=self.sentinel,
+                finish_reason=self.sentinel,
+                native_finish_reason=self.sentinel,
+                output_disposition=self.sentinel,
+                provider_error_details=ProviderErrorDetails(
+                    error_type="IncompleteCompletionError",
+                    stage=self.sentinel,
+                    sdk_name=self.sentinel,
+                    sdk_version=self.sentinel,
+                    http_status=200,
+                    code="max_output_tokens",
+                    param="max_completion_tokens",
+                    request_id="req_checkpoint_hostile_a3",
+                ),
+                request_id="req_checkpoint_hostile_a3",
+            )
+        return result
+
+
 def _shock_schedule() -> tuple[ShockEvent, ...]:
     return tuple(
         ShockEvent(
@@ -223,6 +296,49 @@ def _build_preflight_checkpoint(
     return checkpoint, provider
 
 
+def _experiment_d_config(run_id: str) -> VerifiedRunConfig:
+    return VerifiedRunConfig(
+        run_id=run_id,
+        seed=29,
+        num_agents=4,
+        episode_length=12,
+        max_rule_proposals_per_agent=4,
+        freeze_new_proposals_after=6,
+        shock_schedule=_shock_schedule(),
+        action_max_tokens=4096,
+        rule_max_tokens=4096,
+        action_max_visible_json_bytes=1024,
+        rule_max_visible_json_bytes=4096,
+        accepted_action_parse_modes=("exact_json",),
+        accepted_semantic_parse_modes=("exact_json",),
+        semantic_parse_failure_policy="record-and-skip",
+    )
+
+
+def _build_experiment_d_checkpoint(
+    tmp_path: Path,
+    run_id: str,
+    *,
+    provider: _CountingScriptedProvider | None = None,
+    resume: bool = False,
+) -> tuple[PilotCheckpoint, _CountingScriptedProvider, RunBudget]:
+    provider = provider or _CountingScriptedProvider()
+    budget = RunBudget(
+        BudgetLimits(max_calls=40, max_cost_usd=0.02),
+        budget_id=f"{run_id}-budget",
+    )
+    checkpoint = build_experiment_d_shared_prefix_checkpoint(
+        _experiment_d_config(run_id),
+        llm=MultiModelLLM(provider, num_workers=4),
+        budget=budget,
+        env_config_source=ROOT / "config.yaml",
+        checkpoint_path=tmp_path / "checkpoint.json",
+        call_journal_path=tmp_path / "prefix-provider-calls.json",
+        resume=resume,
+    )
+    return checkpoint, provider, budget
+
+
 def _rehash_v2_rng_binding(payload: dict) -> None:
     payload["rng_binding_hash"] = canonical_hash(
         {
@@ -250,6 +366,43 @@ def _rehash_checkpoint(payload: dict) -> None:
     body = deepcopy(payload)
     body.pop("checkpoint_hash", None)
     payload["checkpoint_hash"] = canonical_hash(body)
+
+
+def test_v3_prompt_tier_gate_precedes_first_prefix_dispatch(
+    tmp_path: Path,
+) -> None:
+    provider = _CountingScriptedProvider()
+    budget = RunBudget(
+        BudgetLimits(max_calls=40, max_cost_usd=0.02),
+        budget_id="prompt-tier-prefix-budget",
+    )
+    checkpoint_path = tmp_path / "checkpoint.json"
+    journal_path = tmp_path / "prefix-provider-calls.json"
+    config = replace(
+        _experiment_d_config("prompt-tier-prefix"),
+        prompt_tier_ceiling_tokens=1,
+    )
+
+    with pytest.raises(
+        VerifiedRunError,
+        match="pricing-tier ceiling before provider dispatch",
+    ):
+        build_experiment_d_shared_prefix_checkpoint(
+            config,
+            llm=MultiModelLLM(provider, num_workers=4),
+            budget=budget,
+            env_config_source=ROOT / "config.yaml",
+            checkpoint_path=checkpoint_path,
+            call_journal_path=journal_path,
+        )
+
+    assert provider.prompts == []
+    assert budget.snapshot().completed_calls == 0
+    assert not checkpoint_path.exists()
+    assert not journal_path.exists()
+    assert pilot_checkpoint_module._experiment_d_run_intent_path(
+        checkpoint_path
+    ).exists()
 
 
 def test_checkpoint_round_trip_replays_exact_rng_environment_memory_and_ledger() -> None:
@@ -463,6 +616,433 @@ def test_v2_checkpoint_binds_complete_terminal_provider_journal(
     assert binding["event_count"] == 32
     assert checkpoint.payload["provider_call_journal_binding_hash"] == (
         canonical_hash(binding)
+    )
+
+
+def test_v3_experiment_d_prefix_binds_32_calls_and_resume_is_zero_dispatch(
+    tmp_path: Path,
+) -> None:
+    run_id = "experiment-d-shared-prefix-journal"
+    checkpoint, provider, budget = _build_experiment_d_checkpoint(
+        tmp_path,
+        run_id,
+    )
+
+    assert (
+        checkpoint.payload["schema_version"]
+        == PILOT_CHECKPOINT_SCHEMA_VERSION_V3
+    )
+    assert checkpoint.payload["checkpoint_purpose"] == (
+        EXPERIMENT_D_SHARED_PREFIX_CHECKPOINT_PURPOSE
+    )
+    assert len(provider.prompts) == 32
+    assert len(checkpoint.payload["provider_calls"]) == 32
+    assert checkpoint.payload["provider_denominator"] == {
+        "planned_calls": 32,
+        "observed_calls": 32,
+        "successful_terminal_calls": 32,
+        "failed_calls": 0,
+        "action_calls": 24,
+        "semantic_calls": 8,
+        "semantic_candidate_parse_failures": 0,
+    }
+    assert budget.snapshot().completed_calls == 32
+    assert not (
+        tmp_path / "checkpoint.json.run-intent.json"
+    ).exists()
+
+    journal_path = tmp_path / "prefix-provider-calls.json"
+    journal = verify_provider_call_journal(
+        journal_path,
+        expected_run_id=run_id,
+        expected_contract_hash=None,
+        require_terminal_dispositions=True,
+    )
+    assert len(journal["events"]) == 64
+    binding = checkpoint.payload["provider_call_journal_binding"]
+    assert binding == {
+        "enabled": True,
+        "journal_sha256": journal["journal_sha256"],
+        "event_count": 64,
+        "completion_event_count": 32,
+        "parse_disposition_event_count": 32,
+        "run_id": run_id,
+        "contract_hash": None,
+        "path_name": journal_path.name,
+    }
+
+    resumed, resumed_provider, resumed_budget = (
+        _build_experiment_d_checkpoint(
+            tmp_path,
+            run_id,
+            provider=provider,
+            resume=True,
+        )
+    )
+    assert resumed.checkpoint_hash == checkpoint.checkpoint_hash
+    assert resumed_provider is provider
+    assert len(provider.prompts) == 32
+    assert resumed_budget.snapshot().completed_calls == 0
+    restored = restore_pilot_checkpoint(resumed)
+    assert restored.next_decision_t == 6
+    assert len(provider.prompts) == 32
+
+
+def test_v3_experiment_d_failure_retains_safe_provider_cause_and_no_redispatch(
+    tmp_path: Path,
+) -> None:
+    run_id = "experiment-d-shared-prefix-failure"
+    provider = _FailedFourthPrefixActionProvider()
+    budget = RunBudget(
+        BudgetLimits(max_calls=40, max_cost_usd=0.02),
+        budget_id=f"{run_id}-budget",
+    )
+    kwargs = {
+        "config": _experiment_d_config(run_id),
+        "llm": MultiModelLLM(provider, num_workers=4),
+        "budget": budget,
+        "env_config_source": ROOT / "config.yaml",
+        "checkpoint_path": tmp_path / "checkpoint.json",
+        "call_journal_path": tmp_path / "prefix-provider-calls.json",
+    }
+    with pytest.raises(
+        PilotCheckpointError,
+        match="IncompleteCompletionError",
+    ) as caught:
+        build_experiment_d_shared_prefix_checkpoint(**kwargs)
+
+    assert len(provider.prompts) == 4
+    assert not (tmp_path / "checkpoint.json").exists()
+    failure = caught.value.failure
+    assert failure is not None
+    assert failure.to_dict() == {
+        "schema_version": "finevo-pilot-checkpoint-provider-failure-v1",
+        "error_stage": "shared-prefix-provider",
+        "call_kind": "action",
+        "decision_t": 0,
+        "agent_id": 3,
+        "error_type": "IncompleteCompletionError",
+        "finish_reason": "length",
+        "native_finish_reason": "length",
+        "reasoning_tokens": 2048,
+        "response_completed": False,
+        "output_disposition": "discarded_incomplete",
+        "provider_identity_sha256": _sha256_text("openai"),
+        "model_identity_sha256": _sha256_text(
+            "gpt-checkpoint-fixture"
+        ),
+        "attempts": 1,
+        "provider_error_summary": {
+            "schema_version": (
+                "finevo-checkpoint-provider-error-summary-v1"
+            ),
+            "error_type": "IncompleteCompletionError",
+            "http_status": 200,
+            "code_sha256": _sha256_text("max_output_tokens"),
+            "param_sha256": _sha256_text("max_completion_tokens"),
+            "request_id_sha256": _sha256_text(
+                "req_checkpoint_failed_a3"
+            ),
+            "stage_sha256": _sha256_text("response_completion"),
+            "sdk_name_sha256": _sha256_text(
+                "fixture-openai-python"
+            ),
+            "sdk_version_sha256": _sha256_text("0.0.test"),
+            "redaction_policy": "allowlist-and-digest-v1",
+        },
+    }
+
+    journal = verify_provider_call_journal(
+        tmp_path / "prefix-provider-calls.json",
+        expected_run_id=run_id,
+        expected_contract_hash=None,
+        require_terminal_dispositions=True,
+    )
+    completions = [
+        event["payload"]
+        for event in journal["events"]
+        if event["event_type"] == "completion_received"
+    ]
+    dispositions = [
+        event["payload"]
+        for event in journal["events"]
+        if event["event_type"] == "parse_disposition"
+    ]
+    assert len(completions) == len(dispositions) == 4
+    failed = next(row for row in completions if row["agent_id"] == 3)
+    assert failed["error_type"] == "IncompleteCompletionError"
+    assert failed["finish_reason"] == "length"
+    assert failed["reasoning_tokens"] == 2048
+    assert failed["response_completed"] is False
+    disposition_by_agent = {row["agent_id"]: row for row in dispositions}
+    assert set(disposition_by_agent) == {0, 1, 2, 3}
+    assert all(
+        disposition_by_agent[agent_id]["accepted"] is True
+        for agent_id in (0, 1, 2)
+    )
+    assert disposition_by_agent[3]["accepted"] is False
+    assert disposition_by_agent[3]["parse_status"] == "unavailable"
+
+    calls_before_resume = len(provider.prompts)
+    with pytest.raises(
+        PilotCheckpointError,
+        match="run intent exists without a sealed checkpoint",
+    ):
+        build_experiment_d_shared_prefix_checkpoint(
+            **kwargs,
+            resume=True,
+        )
+    assert len(provider.prompts) == calls_before_resume
+
+
+def test_v3_run_intent_closes_pre_journal_interrupt_window(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_id = "experiment-d-pre-journal-interrupt"
+    provider = _CountingScriptedProvider()
+    budget = RunBudget(
+        BudgetLimits(max_calls=40, max_cost_usd=0.02),
+        budget_id=f"{run_id}-budget",
+    )
+    checkpoint_path = tmp_path / "checkpoint.json"
+    journal_path = tmp_path / "prefix-provider-calls.json"
+    original_append = pilot_checkpoint_module._append_provider_call_journal
+
+    def interrupt_before_first_append(*args, **kwargs):
+        raise RuntimeError("fixture interrupt before first journal append")
+
+    monkeypatch.setattr(
+        pilot_checkpoint_module,
+        "_append_provider_call_journal",
+        interrupt_before_first_append,
+    )
+    kwargs = {
+        "config": _experiment_d_config(run_id),
+        "llm": MultiModelLLM(provider, num_workers=4),
+        "budget": budget,
+        "env_config_source": ROOT / "config.yaml",
+        "checkpoint_path": checkpoint_path,
+        "call_journal_path": journal_path,
+    }
+    with pytest.raises(
+        RuntimeError,
+        match="before first journal append",
+    ):
+        build_experiment_d_shared_prefix_checkpoint(**kwargs)
+
+    assert len(provider.prompts) == 4
+    assert not checkpoint_path.exists()
+    assert not journal_path.exists()
+    intent_path = tmp_path / "checkpoint.json.run-intent.json"
+    assert intent_path.exists()
+    intent = json.loads(intent_path.read_text(encoding="utf-8"))
+    unsigned = dict(intent)
+    claimed = unsigned.pop("intent_sha256")
+    assert claimed == canonical_hash(unsigned)
+    assert intent["run_id_sha256"] == _sha256_text(run_id)
+    assert intent["run_config_sha256"] == canonical_hash(
+        _experiment_d_config(run_id).to_dict()
+    )
+    assert intent["checkpoint_path_sha256"] == _sha256_text(
+        str(checkpoint_path.resolve())
+    )
+    assert intent["journal_path_sha256"] == _sha256_text(
+        str(journal_path.resolve())
+    )
+    serialized_intent = json.dumps(intent, sort_keys=True)
+    assert run_id not in serialized_intent
+    assert "gpt-checkpoint-fixture" not in serialized_intent
+    assert str(tmp_path) not in serialized_intent
+
+    monkeypatch.setattr(
+        pilot_checkpoint_module,
+        "_append_provider_call_journal",
+        original_append,
+    )
+    calls_before_resume = len(provider.prompts)
+    with pytest.raises(
+        PilotCheckpointError,
+        match="run intent exists without a sealed checkpoint",
+    ):
+        build_experiment_d_shared_prefix_checkpoint(
+            **kwargs,
+            resume=True,
+        )
+    assert len(provider.prompts) == calls_before_resume
+
+
+def test_v3_low_level_builder_cannot_bypass_run_intent(
+    tmp_path: Path,
+) -> None:
+    provider = _CountingScriptedProvider()
+    with pytest.raises(ValueError, match="requires a sealed run intent"):
+        build_pilot_checkpoint(
+            _experiment_d_config("experiment-d-intent-bypass"),
+            llm=MultiModelLLM(provider, num_workers=4),
+            budget=RunBudget(
+                BudgetLimits(max_calls=40, max_cost_usd=0.02),
+                budget_id="experiment-d-intent-bypass-budget",
+            ),
+            env_config_source=ROOT / "config.yaml",
+            _schema_version=PILOT_CHECKPOINT_SCHEMA_VERSION_V3,
+            _checkpoint_purpose=(
+                EXPERIMENT_D_SHARED_PREFIX_CHECKPOINT_PURPOSE
+            ),
+            _call_journal_path=tmp_path / "provider-calls.json",
+        )
+    assert provider.prompts == []
+    assert not (tmp_path / "provider-calls.json").exists()
+
+
+def test_v3_resume_recovers_checkpoint_sealed_before_intent_cleanup(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_id = "experiment-d-sealed-before-intent-cleanup"
+    provider = _CountingScriptedProvider()
+    config = _experiment_d_config(run_id)
+    checkpoint_path = tmp_path / "checkpoint.json"
+    journal_path = tmp_path / "prefix-provider-calls.json"
+    intent_path = tmp_path / "checkpoint.json.run-intent.json"
+    original_remove = (
+        pilot_checkpoint_module._remove_experiment_d_run_intent
+    )
+
+    def interrupt_cleanup(path):
+        raise OSError("fixture interrupt after checkpoint seal")
+
+    monkeypatch.setattr(
+        pilot_checkpoint_module,
+        "_remove_experiment_d_run_intent",
+        interrupt_cleanup,
+    )
+    with pytest.raises(OSError, match="after checkpoint seal"):
+        build_experiment_d_shared_prefix_checkpoint(
+            config,
+            llm=MultiModelLLM(provider, num_workers=4),
+            budget=RunBudget(
+                BudgetLimits(max_calls=40, max_cost_usd=0.02),
+                budget_id=f"{run_id}-initial-budget",
+            ),
+            env_config_source=ROOT / "config.yaml",
+            checkpoint_path=checkpoint_path,
+            call_journal_path=journal_path,
+        )
+
+    assert len(provider.prompts) == 32
+    assert checkpoint_path.exists()
+    assert journal_path.exists()
+    assert intent_path.exists()
+    monkeypatch.setattr(
+        pilot_checkpoint_module,
+        "_remove_experiment_d_run_intent",
+        original_remove,
+    )
+    resume_budget = RunBudget(
+        BudgetLimits(max_calls=40, max_cost_usd=0.02),
+        budget_id=f"{run_id}-resume-budget",
+    )
+    resumed = build_experiment_d_shared_prefix_checkpoint(
+        config,
+        llm=MultiModelLLM(provider, num_workers=4),
+        budget=resume_budget,
+        env_config_source=ROOT / "config.yaml",
+        checkpoint_path=checkpoint_path,
+        call_journal_path=journal_path,
+        resume=True,
+    )
+    assert resumed.payload["schema_version"] == (
+        PILOT_CHECKPOINT_SCHEMA_VERSION_V3
+    )
+    assert len(provider.prompts) == 32
+    assert resume_budget.snapshot().completed_calls == 0
+    assert not intent_path.exists()
+
+
+def test_v3_failure_sanitizes_hostile_metadata_and_validates_schema(
+    tmp_path: Path,
+) -> None:
+    run_id = "experiment-d-hostile-provider-metadata"
+    provider = _HostileFailureMetadataProvider()
+    with pytest.raises(PilotCheckpointError) as caught:
+        build_experiment_d_shared_prefix_checkpoint(
+            _experiment_d_config(run_id),
+            llm=MultiModelLLM(provider, num_workers=4),
+            budget=RunBudget(
+                BudgetLimits(max_calls=40, max_cost_usd=0.02),
+                budget_id=f"{run_id}-budget",
+            ),
+            env_config_source=ROOT / "config.yaml",
+            checkpoint_path=tmp_path / "checkpoint.json",
+            call_journal_path=tmp_path / "prefix-provider-calls.json",
+        )
+
+    failure = caught.value.failure
+    assert isinstance(failure, PilotCheckpointProviderFailure)
+    row = failure.to_dict()
+    serialized = json.dumps(row, sort_keys=True)
+    assert provider.sentinel not in serialized
+    assert row["finish_reason"] == "unknown"
+    assert row["native_finish_reason"] == "unknown"
+    assert row["output_disposition"] == "unknown"
+    assert row["provider_identity_sha256"] == _sha256_text(
+        provider.sentinel
+    )
+    assert row["model_identity_sha256"] == _sha256_text(
+        provider.sentinel
+    )
+    summary = row["provider_error_summary"]
+    assert summary["stage_sha256"] == _sha256_text(provider.sentinel)
+    assert summary["sdk_name_sha256"] == _sha256_text(provider.sentinel)
+    assert summary["sdk_version_sha256"] == _sha256_text(
+        provider.sentinel
+    )
+
+    for field, value in (
+        ("schema_version", "sentinel"),
+        ("error_stage", "sentinel"),
+        ("call_kind", "sentinel"),
+        ("finish_reason", "sentinel"),
+        ("native_finish_reason", "sentinel"),
+        ("output_disposition", "sentinel"),
+    ):
+        with pytest.raises(ValueError):
+            replace(failure, **{field: value})
+
+
+def test_frozen_v1_v2_json_remain_read_only_compatible() -> None:
+    v1 = _build_checkpoint("frozen-v1-read-only-compatibility")
+    v2, provider = _build_preflight_checkpoint(
+        "frozen-v2-read-only-compatibility"
+    )
+    provider_calls_before_restore = len(provider.prompts)
+
+    for checkpoint, schema_version in (
+        (v1, PILOT_CHECKPOINT_SCHEMA_VERSION),
+        (v2, PILOT_CHECKPOINT_SCHEMA_VERSION_V2),
+    ):
+        frozen_json = json.dumps(
+            checkpoint.to_dict(),
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        loaded = PilotCheckpoint.from_dict(json.loads(frozen_json))
+        assert loaded.payload["schema_version"] == schema_version
+        assert json.dumps(
+            loaded.to_dict(),
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ) == frozen_json
+        restored = restore_pilot_checkpoint(loaded)
+        assert restored.next_decision_t == 6
+
+    assert len(provider.prompts) == provider_calls_before_restore
+    assert "checkpoint_purpose" not in v1.payload
+    assert v2.payload["checkpoint_purpose"] == (
+        CLOSED_LOOP_PREFLIGHT_CHECKPOINT_PURPOSE
     )
 
 

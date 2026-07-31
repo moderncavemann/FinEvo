@@ -110,10 +110,12 @@ class StructuredStubProvider(LLMProvider):
         *,
         usage=UsageRecord(prompt_tokens=7, completion_tokens=3, cost_usd=0.01),
         error_type=None,
+        reasoning_tokens=0,
         delay=0.0,
     ):
         self.usage = usage
         self.error_type = error_type
+        self.reasoning_tokens = reasoning_tokens
         self.delay = delay
         self.calls = 0
         self.active = 0
@@ -154,6 +156,7 @@ class StructuredStubProvider(LLMProvider):
                 attempts=attempts,
                 latency_seconds=self.delay,
                 error_type=self.error_type,
+                reasoning_tokens=self.reasoning_tokens,
             )
         finally:
             with self._lock:
@@ -353,7 +356,7 @@ def test_unexpected_post_dispatch_exception_keeps_conservative_reservation() -> 
     assert result.text == "Error"
     assert result.error_type == "RuntimeError"
     assert result.provider == "exploding"
-    assert result.usage == estimate
+    assert result.usage == UsageRecord()
     assert provider.calls == 1
     snapshot = budget.snapshot()
     assert snapshot.completed_calls == 1
@@ -362,15 +365,21 @@ def test_unexpected_post_dispatch_exception_keeps_conservative_reservation() -> 
     assert snapshot.accounted_usage == estimate
 
 
-def test_returned_provider_error_uses_componentwise_conservative_usage() -> None:
+def test_returned_provider_error_separates_reported_and_accounted_usage() -> None:
+    reported = UsageRecord(
+        prompt_tokens=1138,
+        completion_tokens=2048,
+        cost_usd=0.01,
+    )
     provider = StructuredStubProvider(
-        usage=UsageRecord(prompt_tokens=20, completion_tokens=1, cost_usd=0.01),
+        usage=reported,
         error_type="StubProviderError",
+        reasoning_tokens=2048,
     )
     llm = MultiModelLLM(provider)
     estimate = UsageRecord(
-        prompt_tokens=10,
-        completion_tokens=8,
+        prompt_tokens=1000,
+        completion_tokens=2499,
         cost_usd=0.04,
     )
     budget = RunBudget(BudgetLimits(max_calls=1, max_cost_usd=0.10))
@@ -383,13 +392,64 @@ def test_returned_provider_error_uses_componentwise_conservative_usage() -> None
     )
 
     expected = UsageRecord(
-        prompt_tokens=20,
-        completion_tokens=8,
+        prompt_tokens=1138,
+        completion_tokens=2499,
         cost_usd=0.04,
     )
     assert result.error_type == "StubProviderError"
-    assert result.usage == expected
-    assert budget.snapshot().accounted_usage == expected
+    assert result.usage == reported
+    assert result.reasoning_tokens == 2048
+    assert max(result.usage.completion_tokens - result.reasoning_tokens, 0) == 0
+    snapshot = budget.snapshot()
+    assert snapshot.accounted_usage == expected
+    assert snapshot.completions[0].usage == expected
+
+
+def test_openai_length_error_does_not_turn_budget_reserve_into_visible_tokens() -> None:
+    response = SimpleNamespace(
+        usage=SimpleNamespace(
+            prompt_tokens=1138,
+            completion_tokens=2048,
+            completion_tokens_details=SimpleNamespace(reasoning_tokens=2048),
+        ),
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(content=""),
+                finish_reason="length",
+            )
+        ],
+        model="gpt-5.2-2025-12-11",
+    )
+    provider = OpenAIProvider.__new__(OpenAIProvider)
+    provider.model = "gpt-5.2"
+    provider.costs = {"prompt": 0.003, "completion": 0.012}
+    provider.max_retries = 1
+    provider.client = SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(create=lambda **_: response),
+        )
+    )
+    estimate = UsageRecord(
+        prompt_tokens=1138,
+        completion_tokens=2499,
+        cost_usd=0.05,
+    )
+    budget = RunBudget(BudgetLimits(max_calls=1, max_cost_usd=0.10))
+
+    result = MultiModelLLM(provider).get_structured_completion(
+        dialog(0),
+        budget=budget,
+        estimated_usage=estimate,
+        max_tokens=2048,
+        max_retries=1,
+    )
+
+    assert result.error_type == "IncompleteCompletionError"
+    assert result.finish_reason == "length"
+    assert result.usage.completion_tokens == 2048
+    assert result.reasoning_tokens == 2048
+    assert max(result.usage.completion_tokens - result.reasoning_tokens, 0) == 0
+    assert budget.snapshot().accounted_usage == estimate
 
 
 def test_builtin_exception_does_not_print_sensitive_text_and_keeps_reservation(
@@ -436,7 +496,7 @@ def test_builtin_exception_does_not_print_sensitive_text_and_keeps_reservation(
     assert result.provider_error_details.code is None
     assert result.provider_error_details.param is None
     assert result.provider_error_details.request_id is None
-    assert result.usage == estimate
+    assert result.usage == UsageRecord()
     assert budget.snapshot().accounted_usage == estimate
 
 
@@ -626,7 +686,7 @@ def test_safe_audit_dict_hashes_all_provider_controlled_metadata() -> None:
         ).hexdigest()
 
 
-def test_budget_usage_replace_preserves_sanitized_openai_error_details() -> None:
+def test_budget_accounting_preserves_reported_usage_and_error_details() -> None:
     error = _openai_bad_request(
         message="SECRET_REPLACE_MESSAGE",
         code="unsupported_parameter",
@@ -660,8 +720,8 @@ def test_budget_usage_replace_preserves_sanitized_openai_error_details() -> None
 
     pre_replace = returned["result"]
     assert pre_replace.usage == UsageRecord()
-    assert result.usage == estimate
-    assert result is not pre_replace
+    assert result.usage == UsageRecord()
+    assert result is pre_replace
     assert result.provider_error_details is pre_replace.provider_error_details
     assert result.provider_error_details is not None
     assert result.provider_error_details.to_dict() == {

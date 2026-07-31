@@ -50,8 +50,10 @@ from .pilot_contract import (
     load_pilot_contract,
 )
 from .runner import (
+    PROMPT_TIER_UPPER_BOUND_METHOD,
     RUNNER_SCHEMA_VERSION,
     VerifiedRunError,
+    conservative_prompt_token_upper_bound,
     observed_p95_authority_repo_context,
     verify_provider_call_journal,
 )
@@ -78,12 +80,14 @@ LEGACY_CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v1"
 CURRENT_CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v2"
 CAPABILITY_V3_SCHEMA_VERSION = "finevo-capability-gate-v3"
 CAPABILITY_V4_SCHEMA_VERSION = "finevo-capability-gate-v4"
+CAPABILITY_V5_SCHEMA_VERSION = "finevo-capability-gate-v5"
 SUPPORTED_CAPABILITY_SCHEMA_VERSIONS = frozenset(
     {
         LEGACY_CAPABILITY_SCHEMA_VERSION,
         CURRENT_CAPABILITY_SCHEMA_VERSION,
         CAPABILITY_V3_SCHEMA_VERSION,
         CAPABILITY_V4_SCHEMA_VERSION,
+        CAPABILITY_V5_SCHEMA_VERSION,
     }
 )
 EVIDENCE_NAMESPACE = "current_v2/pilot-v1"
@@ -1733,6 +1737,7 @@ def _validate_capability_v3(
     *,
     _schema_version: str = CAPABILITY_V3_SCHEMA_VERSION,
     _proposal_legality: Any = _capability_v3_proposal_legality,
+    _separated_usage_accounting: bool = False,
 ) -> None:
     """Recompute the production-shaped v3 gate before evidence admission.
 
@@ -1905,6 +1910,32 @@ def _validate_capability_v3(
         usage = _capability_v3_usage(
             row.get("usage"), f"capability v3 row {task_id} usage"
         )
+        budget_accounted_usage = usage
+        provider_reported_usage_available: bool | None = None
+        if _separated_usage_accounting:
+            provider_reported_usage = _capability_v3_usage(
+                row.get("provider_reported_usage"),
+                f"capability v5 row {task_id} provider_reported_usage",
+            )
+            _capability_v3_same_usage(
+                provider_reported_usage,
+                usage,
+                name=(
+                    f"capability v5 row {task_id} provider-reported alias"
+                ),
+            )
+            budget_accounted_usage = _capability_v3_usage(
+                row.get("budget_accounted_usage"),
+                f"capability v5 row {task_id} budget_accounted_usage",
+            )
+            provider_reported_usage_available = row.get(
+                "provider_reported_usage_available"
+            )
+            if not isinstance(provider_reported_usage_available, bool):
+                raise PilotEvidenceError(
+                    f"capability v5 row {task_id!r} lacks provider usage "
+                    "availability"
+                )
         reasoning = row.get("reasoning_tokens")
         visible = row.get("visible_completion_tokens")
         if (
@@ -2043,6 +2074,25 @@ def _validate_capability_v3(
             raise PilotEvidenceError(
                 f"capability v3 row {task_id!r} has invalid provider details"
             )
+        if _separated_usage_accounting:
+            expected_reported_usage_available = (
+                provider_error is None
+                or any(
+                    (
+                        int(usage["prompt_tokens"]) > 0,
+                        int(usage["completion_tokens"]) > 0,
+                        float(usage["cost_usd"]) > 0,
+                    )
+                )
+            )
+            if (
+                provider_reported_usage_available
+                is not expected_reported_usage_available
+            ):
+                raise PilotEvidenceError(
+                    f"capability v5 row {task_id!r} provider usage "
+                    "availability is inconsistent"
+                )
         truncation = (
             provider_error == "IncompleteCompletionError"
             or finish_reason == "length"
@@ -2109,6 +2159,7 @@ def _validate_capability_v3(
                 "task": task,
                 "row": row,
                 "usage": usage,
+                "budget_accounted_usage": budget_accounted_usage,
             }
         )
 
@@ -2289,14 +2340,49 @@ def _validate_capability_v3(
     for item in expected_rows:
         task = item["task"]
         row_usage = item["usage"]
+        row_accounted_usage = item["budget_accounted_usage"]
         completion = completion_by_task[task.task_id]
         completion_usage = _capability_v3_usage(
             completion.get("usage"),
             f"capability v3 budget call {task.task_id}",
         )
+        if _separated_usage_accounting:
+            estimated_usage = _capability_v3_usage(
+                completion.get("estimated_usage"),
+                f"capability v5 budget estimate {task.task_id}",
+            )
+            expected_accounted_usage = (
+                {
+                    "prompt_tokens": max(
+                        int(row_usage["prompt_tokens"]),
+                        int(estimated_usage["prompt_tokens"]),
+                    ),
+                    "completion_tokens": max(
+                        int(row_usage["completion_tokens"]),
+                        int(estimated_usage["completion_tokens"]),
+                    ),
+                    "cost_usd": max(
+                        float(row_usage["cost_usd"]),
+                        float(estimated_usage["cost_usd"]),
+                    ),
+                }
+                if item["row"].get("provider_error") is not None
+                else dict(row_usage)
+            )
+            expected_accounted_usage["total_tokens"] = (
+                int(expected_accounted_usage["prompt_tokens"])
+                + int(expected_accounted_usage["completion_tokens"])
+            )
+            _capability_v3_same_usage(
+                row_accounted_usage,
+                expected_accounted_usage,
+                name=(
+                    f"capability v5 row {task.task_id} budget accounting"
+                ),
+            )
         _capability_v3_same_usage(
             completion_usage,
-            row_usage,
+            row_accounted_usage,
             name=f"capability v3 budget call {task.task_id}",
         )
         tags = _mapping(
@@ -2312,9 +2398,9 @@ def _validate_capability_v3(
             raise PilotEvidenceError(
                 f"capability v3 budget call {task.task_id!r} tags are inconsistent"
             )
-        prompt_total += int(row_usage["prompt_tokens"])
-        completion_total += int(row_usage["completion_tokens"])
-        cost_total += float(row_usage["cost_usd"])
+        prompt_total += int(row_accounted_usage["prompt_tokens"])
+        completion_total += int(row_accounted_usage["completion_tokens"])
+        cost_total += float(row_accounted_usage["cost_usd"])
     expected_usage = {
         "prompt_tokens": prompt_total,
         "completion_tokens": completion_total,
@@ -2362,6 +2448,70 @@ def _validate_capability_v4(capability: Mapping[str, Any]) -> None:
         capability,
         _schema_version=CAPABILITY_V4_SCHEMA_VERSION,
         _proposal_legality=_capability_v4_proposal_legality,
+    )
+
+
+def _validate_capability_v5(capability: Mapping[str, Any]) -> None:
+    """Validate explicit provider-report versus budget-accounting semantics.
+
+    V3/V4 artifacts used one ``usage`` value for both concepts and remain
+    immutable read-only inputs.  V5 keeps ``usage`` as the provider-reported
+    compatibility alias, binds it to ``provider_reported_usage``, and checks
+    ``budget_accounted_usage`` against the exact budget completion record.
+    Only failed provider calls may use the componentwise conservative maximum
+    of reported usage and the pre-dispatch reservation.
+    """
+
+    if capability.get("schema_version") != CAPABILITY_V5_SCHEMA_VERSION:
+        raise PilotEvidenceError(
+            "capability v5 payload has an inconsistent schema version"
+        )
+    from .pilot_capability import (  # pylint: disable=import-outside-toplevel
+        build_capability_tasks,
+    )
+
+    prompt_tier_gate = _mapping(
+        capability.get("prompt_tier_gate"),
+        "capability v5 prompt_tier_gate",
+    )
+    if set(prompt_tier_gate) != {
+        "upper_bound_method",
+        "ceiling_tokens",
+        "maximum_upper_bound_tokens",
+        "passed",
+    }:
+        raise PilotEvidenceError(
+            "capability v5 prompt-tier gate schema is incomplete"
+        )
+    maximum_upper_bound = max(
+        conservative_prompt_token_upper_bound(task.prompt)
+        for task in build_capability_tasks()
+    )
+    ceiling = prompt_tier_gate.get("ceiling_tokens")
+    if ceiling is not None and (
+        isinstance(ceiling, bool)
+        or not isinstance(ceiling, int)
+        or ceiling < 1
+        or maximum_upper_bound >= ceiling
+    ):
+        raise PilotEvidenceError(
+            "capability v5 prompt-tier ceiling is invalid or reached"
+        )
+    if (
+        prompt_tier_gate.get("upper_bound_method")
+        != PROMPT_TIER_UPPER_BOUND_METHOD
+        or prompt_tier_gate.get("maximum_upper_bound_tokens")
+        != maximum_upper_bound
+        or prompt_tier_gate.get("passed") is not True
+    ):
+        raise PilotEvidenceError(
+            "capability v5 prompt-tier gate is inconsistent"
+        )
+    _validate_capability_v3(
+        capability,
+        _schema_version=CAPABILITY_V5_SCHEMA_VERSION,
+        _proposal_legality=_capability_v4_proposal_legality,
+        _separated_usage_accounting=True,
     )
 
 
@@ -3213,6 +3363,8 @@ def _validate_terminal_payload_marker(
             _validate_capability_v3(capability)
         elif schema_version == CAPABILITY_V4_SCHEMA_VERSION:
             _validate_capability_v4(capability)
+        elif schema_version == CAPABILITY_V5_SCHEMA_VERSION:
+            _validate_capability_v5(capability)
         elif is_capability_import:
             matching_specs = [
                 candidate

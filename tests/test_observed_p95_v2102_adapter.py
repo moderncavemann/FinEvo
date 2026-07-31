@@ -301,7 +301,7 @@ def current_release_pair(
 
 
 def test_v2102_producer_schema_is_registered_by_generic_consumer() -> None:
-    assert authority.DEDICATED_OBSERVED_P95_BINDING_SCHEMA_REGISTRY == {
+    historical = {
         "finevo-pilot-v2.10.1-resealed-observed-p95-authority-v1": (
             "v2.10.1-resealed-with-sibling-projection"
         ),
@@ -309,6 +309,10 @@ def test_v2102_producer_schema_is_registered_by_generic_consumer() -> None:
             "v2.10.2-resealed-with-sibling-projection"
         )
     }
+    assert {
+        schema: authority.DEDICATED_OBSERVED_P95_BINDING_SCHEMA_REGISTRY[schema]
+        for schema in historical
+    } == historical
 
 
 def test_v2102_producer_pair_reaches_generic_binding(

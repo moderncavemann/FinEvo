@@ -1,0 +1,140 @@
+{
+  "evidence_release": {
+    "aggregate_csv": {
+      "byte_size": 45928120,
+      "path": "evidence/current_v2/pilot-v2.10.2/aggregate.csv",
+      "sha256": "9a320b526b7b0ea43e2d37be7851ef68745c86940948039b12a9610b44e4f477"
+    },
+    "aggregate_json": {
+      "byte_size": 13429340,
+      "path": "evidence/current_v2/pilot-v2.10.2/aggregate.json",
+      "sha256": "4aad9e0030f8f7f66416fcb8471684e5ae1203eef645aa8060ca8838500d7869"
+    },
+    "checksums": {
+      "byte_size": 3589,
+      "files_canonical_sha256": "d27688de15fae4201685a726ce5a9fc34c674d8d292efdaa7ef1019b9f62647c",
+      "path": "evidence/current_v2/pilot-v2.10.2/checksums.json",
+      "sha256": "b511d610e7b7f9201d6078acaced66e11ce0096ae34a5bb0ff3e318c1c041e03"
+    },
+    "package_manifest": {
+      "byte_size": 12023,
+      "path": "evidence/current_v2/pilot-v2.10.2/package_manifest.json",
+      "sha256": "a46cfeafcaccae02d50c11a7ae5671b46a732b9760ce4915017e98d43e82dd79"
+    },
+    "root_hint": "../finevo-pilot-v2-10-2-evidence"
+  },
+  "import_allowlist": {
+    "effect_artifact_paths": [],
+    "effect_metrics_observed": false,
+    "imported_effect_cells": 0,
+    "imported_p95_authorities": [],
+    "provider_calls": 0,
+    "provider_construction": false,
+    "q_ref": 63.50397933257746,
+    "selected_utility_profile": {
+      "budget_tolerance": 1e-08,
+      "consumption_scale": 63.50397933257746,
+      "discount_factor": 0.99,
+      "inverse_frisch": 0.5,
+      "labor_weight": 2.0,
+      "max_labor_hours": 168.0,
+      "profile_id": "nu-0.5",
+      "rho": 1.0
+    },
+    "stage0_absolute_flow_utility_threshold": {
+      "aggregation": "median",
+      "field": "flow_utility",
+      "method": "selected-stage0-pooled-median-flow-utility-v1",
+      "row_count": 96,
+      "source_manifests": [
+        {
+          "environment_seed": 760687867,
+          "manifest_sha256": "e1cbd64e56bf83b36684f57e6c8b36f4419c304f1c0534ae5c1eb20ad448f9a8",
+          "row_count": 48,
+          "utility_ledger_sha256": "3317912f7414205b8f618836e50baa3a6e3c6b5767dba0725c7bfa4e3bf9d48a"
+        },
+        {
+          "environment_seed": 1942013315,
+          "manifest_sha256": "0b956e67c100ea0e4fd8ec811fc56cca43b33399ee7b5c2890ea5ed9246c6819",
+          "row_count": 48,
+          "utility_ledger_sha256": "41e7823bb8eac4c0aba1e1b68bcb810fc58d392a9520226f13c5019480871f2a"
+        }
+      ],
+      "source_matrix_sha256": "60339ca7d89734210c5111b636d0f05e8cf79005442b3025ed016b5d2676a2b7",
+      "source_profile": "nu-0.5",
+      "source_seeds": [
+        1942013315,
+        760687867
+      ],
+      "treatment_outcomes_inspected": false,
+      "value": 0.05617208967516696
+    }
+  },
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "content_sha256": "cea1a1b134f89b98ff515b4deead492f738a9df1b9aa8f2c9b891dce5afab48f"
+  },
+  "parent_cumulative_budget_debit": {
+    "cost_usd": 16.044922812500005,
+    "hosted_completions": 816,
+    "parent_budget_ledger_sha256": "73b1bac2a424147cbfa88bdb4e351d6c924b6e82847050f7cb1d254fe1ea4068",
+    "parent_contract_sha256": "b8de8cfb2560d894dad65d68df8ae9126527d12d3807bef045fa52f5e9d4159e",
+    "parent_run_ledger_sha256": "2219a832b9a7dfe235b32db882e126bddc36938f4f201a2ab84ddea6878bb809",
+    "stage_bucket": "parent_v2102",
+    "storage_bytes": 217010835
+  },
+  "parent_release": {
+    "contract_id": "finevo-pilot-v2.10.2",
+    "contract_sha256": "b8de8cfb2560d894dad65d68df8ae9126527d12d3807bef045fa52f5e9d4159e",
+    "publication_status": "complete-with-no-go",
+    "resolved_git_commit": "2dcc20f8dccc7a6a94a60a00d7f3750a9d61396d",
+    "science_tag": "pilot-v2.10.2-science",
+    "science_tag_object": "89b91c4646b6698386141fda8651111c0d2d1810"
+  },
+  "schema_version": "finevo-pilot-v2.11-source-manifest-v1",
+  "science_release": {
+    "budget_ledger": {
+      "byte_size": 409524,
+      "event_count": 314,
+      "event_head_sha256": "68134d1f479cda85d2e2c80733b1afd03838cccda0cf5b237e65c030c87cfb86",
+      "file_sha256": "71bf69ee6a6474ea58d45af88b7bd3507a6dadc3da199a19534f27708681b4cd",
+      "internal_sha256": "73b1bac2a424147cbfa88bdb4e351d6c924b6e82847050f7cb1d254fe1ea4068",
+      "path": "experiment_results/pilot-v2.10.2/raw/budget_ledger.json",
+      "run_count": 156
+    },
+    "contract": {
+      "byte_size": 132890,
+      "canonical_sha256": "b8de8cfb2560d894dad65d68df8ae9126527d12d3807bef045fa52f5e9d4159e",
+      "file_sha256": "39a199e5443e3cd5c7e8938c0741a57d5e732c778b4f004ee4b038f37c343e56",
+      "path": "experiments/pilot_v2_10_2.yaml"
+    },
+    "q_ref_resolution": {
+      "byte_size": 175749,
+      "content_sha256": "50d75c846c5e9d2b58fb92faf674da8a06ebb3b0ba7f21a6b1b2ad689034c40c",
+      "file_sha256": "bc0ce9c3e4319d88b255b49c4d124b23f6f85965675f3b8a8685b07316de390f",
+      "path": "experiment_results/pilot-v2.10.2/raw/q-ref-resolution/q_ref_resolution.json"
+    },
+    "root_hint": "../finevo-pilot-v2-10-2-science",
+    "run_ledger": {
+      "byte_size": 478499,
+      "event_count": 213,
+      "event_head_sha256": "8cecd1d2ebaa4535dacd302e549285714e3eb65ea0634fd174c43d580e315a4e",
+      "file_sha256": "1ab516be8a99eb612159843cfc94bb254e4e1d75d682321b84fb3ee10547c885",
+      "internal_sha256": "2219a832b9a7dfe235b32db882e126bddc36938f4f201a2ab84ddea6878bb809",
+      "path": "experiment_results/pilot-v2.10.2/raw/run_ledger.json",
+      "run_count": 211
+    },
+    "stage0_receipt": {
+      "byte_size": 16252,
+      "content_sha256": "cb93b97e74a5a8ee9de6a3ce0320c4ebd1f774fd1250586b31da3b93f7fc5718",
+      "file_sha256": "0b9f179ea4899da63acc6633e0e5bafefc4bddb7a23dfdfe8345eba8cdb2b0f1",
+      "path": "experiment_results/pilot-v2.10.2/raw/stage0-calibration/stage_receipt.json"
+    },
+    "stage0_selection": {
+      "byte_size": 30958,
+      "content_sha256": "68c810055fc38683d3a8a7d597c54ffed4fb2c6332c2c02e1964b3ebfb61743c",
+      "file_sha256": "701dff04abad00fb5e6d734168e6d4faeac6fd8b5ee4d8c1ed4aa0ce06bbc0eb",
+      "path": "experiment_results/pilot-v2.10.2/raw/stage0-calibration/stage0_selection.json"
+    }
+  }
+}
