@@ -36,6 +36,11 @@ def test_v211_development_fake_matrix_covers_all_25_diagnostic_cells(
 
     monkeypatch.setattr(orchestrator, "_provider_for_profile", forbidden)
     monkeypatch.setattr(orchestrator, "create_llm_provider", forbidden)
+    monkeypatch.setattr(
+        orchestrator,
+        "parent_budget_debit_for_v211",
+        forbidden,
+    )
 
     result = orchestrator.run_development_fake_matrix(
         contract_path=CONTRACT_PATH,

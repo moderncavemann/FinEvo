@@ -67,6 +67,7 @@ from .pilot_amendment import (
     persist_operational_failure_receipt,
 )
 from .pilot_budget import (
+    ParentBudgetDebit,
     PilotBudgetCaps,
     PilotBudgetError,
     PilotBudgetLedger,
@@ -18325,12 +18326,22 @@ def run_development_fake_matrix(
         run_ledger.status(spec.run_id) != "scheduled" for spec in selected
     ):
         raise PilotOrchestrationError("development matrix already exists; use --resume")
+    if contract.contract_id == V211_CONTRACT_ID:
+        if contract.v211_forward_boundary is None:  # pragma: no cover - parser
+            raise PilotOrchestrationError(
+                "V2.11 development matrix lacks its frozen parent debit"
+            )
+        development_parent_debit = ParentBudgetDebit.from_dict(
+            contract.v211_forward_boundary["parent_budget_debit"]
+        )
+    else:
+        development_parent_debit = _parent_budget_debit(contract)
     budget_ledger = PilotBudgetLedger(
         root / "budget_ledger.json",
         contract_hash=contract.canonical_hash,
         caps=_budget_caps(contract),
         tamper_evident=contract.schema_version.endswith("-v2"),
-        parent_debit=_parent_budget_debit(contract),
+        parent_debit=development_parent_debit,
     )
 
     d_specs = tuple(
