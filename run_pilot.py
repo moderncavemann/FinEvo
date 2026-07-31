@@ -34,6 +34,9 @@ Examples:
     python run_pilot.py --contract experiments/pilot_v2_11_1.yaml \
         --stage parent-import \
         --parent-repo-root ../finevo-pilot-v2-11-science --resume
+    python run_pilot.py --contract experiments/pilot_v2_11_2.yaml \
+        --stage parent-import \
+        --parent-repo-root ../finevo-pilot-v2-11-1-science --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
         --stage capability-gate --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
@@ -81,6 +84,10 @@ Pilot-v2.11.1 freezes V2.11's zero-dispatch preflight no-go, imports its two
 passed capability cells without new provider calls, and retries only the exact
 2x12 long-context preflight under a conservative contract-envelope bootstrap.
 All later science still requires the newly sealed observed-p95 authority.
+Pilot-v2.11.2 freezes V2.11.1's paid preflight no-go and its complete ITT
+denominator, imports only calibration and capability wrappers, repairs the
+active-rule hysteresis validator, and requires a wholly fresh 2x12 preflight.
+The old failed journals remain budget/failure audit evidence only.
 """
 
 from __future__ import annotations
@@ -93,6 +100,7 @@ import sys
 from verified_memory.pilot_contract import (
     PILOT_CONTRACT_ID_V2_11,
     PILOT_CONTRACT_ID_V2_11_1,
+    PILOT_CONTRACT_ID_V2_11_2,
     load_pilot_contract,
 )
 from verified_memory.pilot_evidence import build_pilot_evidence_package
@@ -108,6 +116,9 @@ from verified_memory.pilot_v26_parent_import import V26_CONTRACT_ID
 from verified_memory.pilot_v27_stage0_import import V27_CONTRACT_ID
 from verified_memory.pilot_v28_stage0_import import V28_CONTRACT_ID
 from verified_memory.pilot_v2102_parent_import import V2102_CONTRACT_ID
+from verified_memory.pilot_v2112_evidence import (
+    build_pilot_v2112_evidence_package,
+)
 from verified_memory.pilot_orchestrator import (
     PilotOrchestrationError,
     execute_stage,
@@ -161,10 +172,11 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "read-only parent source/raw checkout required only by the "
             "V2.4/V2.5/V2.6/V2.7/V2.8/V2.9/V2.10/V2.10.1/V2.10.2/V2.11 "
-            "or V2.11.1 zero-provider parent-import stage; for V2.11 this "
+            "V2.11.1, or V2.11.2 zero-provider parent-import stage; for V2.11 this "
             "is the immutable V2.10.2 science checkout, and for V2.11.1 "
             "this is the immutable V2.11 science checkout (the evidence "
-            "checkout remains source-manifest bound)"
+            "checkout remains source-manifest bound); for V2.11.2 this is "
+            "the immutable V2.11.1 science checkout"
         ),
     )
     parser.add_argument(
@@ -198,18 +210,23 @@ def execute(args: argparse.Namespace) -> dict:
         raise PilotOrchestrationError(
             "--parent-repo-root is accepted only for a parent-import stage"
         )
+    selected_contract = None
     if args.stage == "parent-import":
         selected_contract = load_pilot_contract(args.contract)
         if (
             selected_contract.contract_id
-            in {PILOT_CONTRACT_ID_V2_11, PILOT_CONTRACT_ID_V2_11_1}
+            in {
+                PILOT_CONTRACT_ID_V2_11,
+                PILOT_CONTRACT_ID_V2_11_1,
+                PILOT_CONTRACT_ID_V2_11_2,
+            }
             and parent_repo_root is None
         ):
-            contract_label = (
-                "V2.11"
-                if selected_contract.contract_id == PILOT_CONTRACT_ID_V2_11
-                else "V2.11.1"
-            )
+            contract_label = {
+                PILOT_CONTRACT_ID_V2_11: "V2.11",
+                PILOT_CONTRACT_ID_V2_11_1: "V2.11.1",
+                PILOT_CONTRACT_ID_V2_11_2: "V2.11.2",
+            }[selected_contract.contract_id]
             raise PilotOrchestrationError(
                 f"{contract_label} parent-import requires "
                 "--parent-repo-root pointing to its immutable parent science "
@@ -220,6 +237,21 @@ def execute(args: argparse.Namespace) -> dict:
         raise PilotOrchestrationError(
             "--source-repo-root is accepted only for publish-evidence"
         )
+    if args.stage == "development-a-d" and not args.development_fake:
+        raise PilotOrchestrationError(
+            "development-a-d requires the explicit --development-fake flag"
+        )
+    if not args.development_fake:
+        if selected_contract is None:
+            selected_contract = load_pilot_contract(args.contract)
+        if (
+            selected_contract.contract_id == PILOT_CONTRACT_ID_V2_11_2
+            and selected_contract.status != "frozen"
+        ):
+            raise PilotOrchestrationError(
+                "V2.11.2 real stages require a frozen contract; the draft "
+                "contract permits only development-a-d --development-fake"
+            )
     raw_root = (
         args.raw_root
         if args.raw_root is not None
@@ -235,27 +267,27 @@ def execute(args: argparse.Namespace) -> dict:
             resume=args.resume,
             raw_root=raw_root,
         )
-    if args.stage == "development-a-d":
-        raise PilotOrchestrationError(
-            "development-a-d requires the explicit --development-fake flag"
-        )
     if args.stage == "publish-evidence":
         contract = load_pilot_contract(args.contract)
         builder = (
-            build_pilot_v24_evidence_package
-            if contract.contract_id
-            in {
-                PILOT_V24_CONTRACT_ID,
-                V25_CONTRACT_ID,
-                V26_CONTRACT_ID,
-                V27_CONTRACT_ID,
-                V28_CONTRACT_ID,
-                PILOT_V29_CONTRACT_ID,
-                PILOT_V210_CONTRACT_ID,
-                PILOT_V2101_CONTRACT_ID,
-                V2102_CONTRACT_ID,
-            }
-            else build_pilot_evidence_package
+            build_pilot_v2112_evidence_package
+            if contract.contract_id == PILOT_CONTRACT_ID_V2_11_2
+            else (
+                build_pilot_v24_evidence_package
+                if contract.contract_id
+                in {
+                    PILOT_V24_CONTRACT_ID,
+                    V25_CONTRACT_ID,
+                    V26_CONTRACT_ID,
+                    V27_CONTRACT_ID,
+                    V28_CONTRACT_ID,
+                    PILOT_V29_CONTRACT_ID,
+                    PILOT_V210_CONTRACT_ID,
+                    PILOT_V2101_CONTRACT_ID,
+                    V2102_CONTRACT_ID,
+                }
+                else build_pilot_evidence_package
+            )
         )
         build_kwargs = {
             "contract_path": args.contract,

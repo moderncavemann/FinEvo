@@ -119,6 +119,7 @@ from .pilot_sensitivity import (
     replay_rule_sensitivity,
 )
 from .pilot_contract import (
+    PILOT_CONTRACT_ID_V2_11_2 as V2112_CONTRACT_ID,
     PILOT_CONTRACT_ID_V2_11_1 as V2111_CONTRACT_ID,
     PILOT_CONTRACT_ID_V2_11 as V211_CONTRACT_ID,
     PILOT_CONTRACT_ID_V2_10_2 as V2102_CONTRACT_ID,
@@ -346,6 +347,34 @@ from .pilot_v2111_gate import (
     verified_v2111_gate_authority_binding,
     verify_v2111_gate_receipt,
 )
+from .pilot_v2112_parent_import import (
+    V2112_CAPABILITY_WRAPPER_SCHEMA_VERSION,
+    V2112_SOURCE_MANIFEST_CONTENT_SHA256,
+    V2112_SOURCE_MANIFEST_FILE_SHA256,
+    PilotV2112ParentImportError,
+    calibration_wrapper_from_v2112_receipt,
+    capability_wrappers_from_v2112_receipt,
+    load_v2112_source_manifest,
+    parent_budget_debit_for_v2112,
+    persist_v2112_parent_import,
+    verified_v2112_capability_source,
+    verified_v2112_inherited_capability_binding,
+    verify_v2112_parent_import_receipt,
+)
+from .pilot_v2112_bootstrap import (
+    V2112_BOOTSTRAP_PROJECTION_FILENAME,
+    PilotV2112BootstrapError,
+    build_v2112_contract_envelope_bootstrap_projection,
+    runner_reservations_from_v2112_bootstrap_projection,
+    validate_v2112_contract_envelope_bootstrap_projection,
+)
+from .pilot_v2112_gate import (
+    PilotV2112GateError,
+    V2112_PREFLIGHT_EXACTNESS_SCHEMA_VERSION,
+    build_v2112_post_gate_authority,
+    verified_v2112_gate_authority_binding,
+    verify_v2112_gate_receipt,
+)
 from .runner import (
     OBSERVED_P95_AUTHORITY_ID,
     OBSERVED_P95_PROJECTION_SCHEMA_VERSION,
@@ -488,7 +517,7 @@ CAPABILITY_EXECUTION_MODES = frozenset(
     }
 )
 V211_FAMILY_CONTRACT_IDS = frozenset(
-    {V211_CONTRACT_ID, V2111_CONTRACT_ID}
+    {V211_CONTRACT_ID, V2111_CONTRACT_ID, V2112_CONTRACT_ID}
 )
 PARENT_IMPORT_CONTRACT_IDS = frozenset(
     {
@@ -503,6 +532,7 @@ PARENT_IMPORT_CONTRACT_IDS = frozenset(
         V2102_CONTRACT_ID,
         V211_CONTRACT_ID,
         V2111_CONTRACT_ID,
+        V2112_CONTRACT_ID,
     }
 )
 # V2.4--V2.10.2 imported the parent's observed-p95 authority and implemented
@@ -531,9 +561,7 @@ def _is_core_stage(stage_id: str) -> bool:
 
 def _contract_core_stage_ids(contract: PilotContract) -> tuple[str, ...]:
     return tuple(
-        stage_id
-        for stage_id in contract.stage_ids
-        if _is_core_stage(stage_id)
+        stage_id for stage_id in contract.stage_ids if _is_core_stage(stage_id)
     )
 
 
@@ -1109,11 +1137,9 @@ class PilotRunLedger:
                     )
                 for run_id, spec_sha256 in registered.items():
                     current = runs.get(run_id)
-                    if (
-                        not isinstance(current, Mapping)
-                        or spec_sha256
-                        != canonical_sha256(current.get("spec"))
-                    ):
+                    if not isinstance(
+                        current, Mapping
+                    ) or spec_sha256 != canonical_sha256(current.get("spec")):
                         raise PilotOrchestrationError(
                             "pilot run ledger registration event differs from rows"
                         )
@@ -1141,10 +1167,9 @@ class PilotRunLedger:
                 )
             previous = str(digest)
         last_payload = events[-1].get("payload")
-        if (
-            not isinstance(last_payload, Mapping)
-            or last_payload.get("runs_sha256") != canonical_sha256(runs)
-        ):
+        if not isinstance(last_payload, Mapping) or last_payload.get(
+            "runs_sha256"
+        ) != canonical_sha256(runs):
             raise PilotOrchestrationError(
                 "pilot run ledger event head does not bind the current rows"
             )
@@ -1275,9 +1300,7 @@ class PilotRunLedger:
                 "artifact",
                 "failure",
             }:
-                raise ValueError(
-                    f"run finalization {index} has an invalid shape"
-                )
+                raise ValueError(f"run finalization {index} has an invalid shape")
             run_id = str(value["run_id"])
             status = str(value["status"])
             if status not in TERMINAL_RUN_STATUSES:
@@ -1334,14 +1357,10 @@ class PilotRunLedger:
         if self.tamper_evident:
             events = next_state.get("events")
             if not isinstance(events, list):
-                raise PilotOrchestrationError(
-                    "pilot run ledger events are malformed"
-                )
+                raise PilotOrchestrationError("pilot run ledger events are malformed")
             runs_sha256 = canonical_sha256(next_state["runs"])
             for value in changed:
-                previous = (
-                    events[-1]["event_sha256"] if events else "0" * 64
-                )
+                previous = events[-1]["event_sha256"] if events else "0" * 64
                 event = {
                     "event_index": len(events),
                     "event_type": "run_finalized",
@@ -1409,6 +1428,22 @@ def _parent_budget_debit(
     repo_root: str | Path | None = None,
     parent_repo_root: str | Path | None = None,
 ):
+    if contract.contract_id == V2112_CONTRACT_ID:
+        release_root = (
+            Path(repo_root).resolve()
+            if repo_root is not None
+            else Path(__file__).resolve().parents[1]
+        )
+        try:
+            return parent_budget_debit_for_v2112(
+                contract,
+                repo_root=release_root,
+                parent_science_root=parent_repo_root,
+            )
+        except PilotV2112ParentImportError as exc:
+            raise PilotOrchestrationError(
+                f"V2.11.2 parent budget debit failed validation: {exc}"
+            ) from exc
     if contract.contract_id == V2111_CONTRACT_ID:
         release_root = (
             Path(repo_root).resolve()
@@ -1673,9 +1708,7 @@ def _v29_import_authority(
             repository.joinpath(*V29_SOURCE_MANIFEST_PATH.parts)
         )
         receipt = verify_v29_parent_import_receipt(
-            receipt_path=(
-                raw_root / "parent-import" / "parent_import_receipt.json"
-            ),
+            receipt_path=(raw_root / "parent-import" / "parent_import_receipt.json"),
             child_repo_root=repository,
             contract=contract,
             expected_git_commit=paid.head_commit,
@@ -1719,23 +1752,17 @@ def _v210_import_authority(
     """Revalidate V2.10's exact sixteen-cell V2.9 prerequisite import."""
 
     if contract.contract_id != V210_CONTRACT_ID:
-        raise PilotOrchestrationError(
-            "V2.10 import authority used by another contract"
-        )
+        raise PilotOrchestrationError("V2.10 import authority used by another contract")
     repository = (
         Path(__file__).resolve().parents[1]
         if authority_repo_root is None
         else Path(authority_repo_root).resolve(strict=True)
     )
-    source_manifest_path = repository.joinpath(
-        *V210_SOURCE_MANIFEST_PATH.parts
-    )
+    source_manifest_path = repository.joinpath(*V210_SOURCE_MANIFEST_PATH.parts)
     try:
         manifest = load_v210_source_manifest(source_manifest_path)
         receipt = verify_v210_parent_import_receipt(
-            receipt_path=(
-                raw_root / "parent-import" / "parent_import_receipt.json"
-            ),
+            receipt_path=(raw_root / "parent-import" / "parent_import_receipt.json"),
             child_repo_root=repository,
             contract=contract,
             expected_git_commit=paid.head_commit,
@@ -1746,11 +1773,11 @@ def _v210_import_authority(
         ) from exc
 
     rows = manifest.get("imported_complete_cells")
-    stage_counts = Counter(
-        row.get("stage_id")
-        for row in rows
-        if isinstance(row, Mapping)
-    ) if isinstance(rows, list) else Counter()
+    stage_counts = (
+        Counter(row.get("stage_id") for row in rows if isinstance(row, Mapping))
+        if isinstance(rows, list)
+        else Counter()
+    )
     source_parent = receipt.get("source_parent")
     imported_cells = receipt.get("imported_cells")
     p95_authorities = receipt.get("p95_current_release_authorities")
@@ -1780,8 +1807,7 @@ def _v210_import_authority(
         }
         or imported_cells.get("q_ref") != 63.50397933257746
         or imported_cells.get("stage0_selected_profile_id") != "nu-0.5"
-        or imported_cells.get("offline_candidate_admission_cells_imported")
-        != 0
+        or imported_cells.get("offline_candidate_admission_cells_imported") != 0
         or imported_cells.get("failed_actor_cells_imported") != 0
         or not isinstance(p95_authorities, Mapping)
         or set(p95_authorities) != set(V210_ALLOWED_P95_PROFILES)
@@ -1815,15 +1841,11 @@ def _v2101_import_authority(
         if authority_repo_root is None
         else Path(authority_repo_root).resolve(strict=True)
     )
-    source_manifest_path = repository.joinpath(
-        *V2101_SOURCE_MANIFEST_PATH.parts
-    )
+    source_manifest_path = repository.joinpath(*V2101_SOURCE_MANIFEST_PATH.parts)
     try:
         manifest = load_v2101_source_manifest(source_manifest_path)
         receipt = verify_v2101_parent_import_receipt(
-            receipt_path=(
-                raw_root / "parent-import" / "parent_import_receipt.json"
-            ),
+            receipt_path=(raw_root / "parent-import" / "parent_import_receipt.json"),
             child_repo_root=repository,
             contract=contract,
             expected_git_commit=paid.head_commit,
@@ -1834,11 +1856,11 @@ def _v2101_import_authority(
         ) from exc
 
     rows = manifest.get("imported_complete_cells")
-    stage_counts = Counter(
-        row.get("stage_id")
-        for row in rows
-        if isinstance(row, Mapping)
-    ) if isinstance(rows, list) else Counter()
+    stage_counts = (
+        Counter(row.get("stage_id") for row in rows if isinstance(row, Mapping))
+        if isinstance(rows, list)
+        else Counter()
+    )
     terminal_parent = receipt.get("terminal_parent")
     source_parent = receipt.get("source_parent")
     imported_cells = receipt.get("imported_cells")
@@ -1874,8 +1896,7 @@ def _v2101_import_authority(
         }
         or imported_cells.get("q_ref") != 63.50397933257746
         or imported_cells.get("stage0_selected_profile_id") != "nu-0.5"
-        or imported_cells.get("offline_candidate_admission_cells_imported")
-        != 0
+        or imported_cells.get("offline_candidate_admission_cells_imported") != 0
         or imported_cells.get("failed_actor_cells_imported") != 0
         or not isinstance(p95_authorities, Mapping)
         or set(p95_authorities) != set(V2101_ALLOWED_P95_PROFILES)
@@ -1909,15 +1930,11 @@ def _v2102_import_authority(
         if authority_repo_root is None
         else Path(authority_repo_root).resolve(strict=True)
     )
-    source_manifest_path = repository.joinpath(
-        *V2102_SOURCE_MANIFEST_PATH.parts
-    )
+    source_manifest_path = repository.joinpath(*V2102_SOURCE_MANIFEST_PATH.parts)
     try:
         manifest = load_v2102_source_manifest(source_manifest_path)
         receipt = verify_v2102_parent_import_receipt(
-            receipt_path=(
-                raw_root / "parent-import" / "parent_import_receipt.json"
-            ),
+            receipt_path=(raw_root / "parent-import" / "parent_import_receipt.json"),
             child_repo_root=repository,
             contract=contract,
             expected_git_commit=paid.head_commit,
@@ -1928,11 +1945,11 @@ def _v2102_import_authority(
         ) from exc
 
     rows = manifest.get("imported_complete_cells")
-    stage_counts = Counter(
-        row.get("stage_id")
-        for row in rows
-        if isinstance(row, Mapping)
-    ) if isinstance(rows, list) else Counter()
+    stage_counts = (
+        Counter(row.get("stage_id") for row in rows if isinstance(row, Mapping))
+        if isinstance(rows, list)
+        else Counter()
+    )
     terminal_parent = receipt.get("terminal_parent")
     source_parent = receipt.get("source_parent")
     imported_cells = receipt.get("imported_cells")
@@ -1950,14 +1967,11 @@ def _v2102_import_authority(
         or not isinstance(terminal_parent, Mapping)
         or terminal_parent.get("contract_id") != V2101_CONTRACT_ID
         or terminal_parent.get("terminal_status") != "complete-with-no-go"
-        or terminal_parent.get("status_counts")
-        != {"complete": 26, "failed": 185}
+        or terminal_parent.get("status_counts") != {"complete": 26, "failed": 185}
         or terminal_parent.get("implementation_root_cause")
         != "observed-p95-consumer-schema-dispatch-gap"
-        or terminal_parent.get("offline_candidate_admission_cells_observed")
-        != 10
-        or terminal_parent.get("actor_performance_treatment_outcome_blind")
-        is not True
+        or terminal_parent.get("offline_candidate_admission_cells_observed") != 10
+        or terminal_parent.get("actor_performance_treatment_outcome_blind") is not True
         or not isinstance(source_parent, Mapping)
         or source_parent.get("contract_id") != V29_CONTRACT_ID
         or source_parent.get("terminal_status") != "complete-with-no-go"
@@ -1974,8 +1988,7 @@ def _v2102_import_authority(
         }
         or imported_cells.get("q_ref") != 63.50397933257746
         or imported_cells.get("stage0_selected_profile_id") != "nu-0.5"
-        or imported_cells.get("offline_candidate_admission_cells_imported")
-        != 0
+        or imported_cells.get("offline_candidate_admission_cells_imported") != 0
         or imported_cells.get("failed_actor_cells_imported") != 0
         or not isinstance(p95_authorities, Mapping)
         or set(p95_authorities) != set(V2102_ALLOWED_P95_PROFILES)
@@ -2036,10 +2049,8 @@ def _load_v27_imported_result(
     manifest_path = run_dir / "manifest.json"
     if (
         not verification.valid
-        or verification.manifest_sha256
-        != declared_manifest.get("file_sha256")
-        or _file_sha256(manifest_path)
-        != declared_manifest.get("file_sha256")
+        or verification.manifest_sha256 != declared_manifest.get("file_sha256")
+        or _file_sha256(manifest_path) != declared_manifest.get("file_sha256")
     ):
         raise PilotOrchestrationError(
             f"{spec.run_id} imported verified-run manifest drifted"
@@ -2154,13 +2165,8 @@ def _load_v28_imported_stage0_result(
 ) -> tuple[VerifiedRunResult, dict[str, Any], Path]:
     """Load one exact nested V2.6 Stage-0 result admitted by V2.8."""
 
-    if (
-        contract.contract_id != V28_CONTRACT_ID
-        or spec.stage_id != "stage0-calibration"
-    ):
-        raise PilotOrchestrationError(
-            "V2.8 imported result reader is Stage-0-only"
-        )
+    if contract.contract_id != V28_CONTRACT_ID or spec.stage_id != "stage0-calibration":
+        raise PilotOrchestrationError("V2.8 imported result reader is Stage-0-only")
     manifest = (
         dict(source_manifest)
         if source_manifest is not None
@@ -2191,10 +2197,8 @@ def _load_v28_imported_stage0_result(
     config_path = run_dir / "config.json"
     if (
         not verification.valid
-        or verification.manifest_sha256
-        != declared_manifest.get("file_sha256")
-        or _file_sha256(manifest_path)
-        != declared_manifest.get("file_sha256")
+        or verification.manifest_sha256 != declared_manifest.get("file_sha256")
+        or _file_sha256(manifest_path) != declared_manifest.get("file_sha256")
         or _file_sha256(config_path) != declared_config.get("file_sha256")
     ):
         raise PilotOrchestrationError(
@@ -2215,8 +2219,7 @@ def _load_v28_imported_stage0_result(
         or run_dir.name != binding.get("source_run_id")
         or config.get("run_id") != binding.get("source_run_id")
         or details.get("run_spec") != source_spec
-        or details.get("contract_sha256")
-        != physical_contract.get("canonical_sha256")
+        or details.get("contract_sha256") != physical_contract.get("canonical_sha256")
         or manifest_value.get("result", {}).get("complete") is not True
         or manifest_value.get("validation_status", {}).get("status") != "pass"
     ):
@@ -2254,9 +2257,7 @@ def _load_v28_imported_stage0_result(
         journal = verify_provider_call_journal(
             journal_path,
             expected_run_id=str(binding["source_run_id"]),
-            expected_contract_hash=str(
-                physical_contract.get("canonical_sha256")
-            ),
+            expected_contract_hash=str(physical_contract.get("canonical_sha256")),
             require_terminal_dispositions=True,
         )
     except (PilotV28Stage0ImportError, ValueError) as exc:
@@ -2283,13 +2284,8 @@ def _load_v29_imported_stage0_result(
 ) -> tuple[VerifiedRunResult, dict[str, Any], Path]:
     """Load one exact nested V2.6 Stage-0 result admitted by V2.9."""
 
-    if (
-        contract.contract_id != V29_CONTRACT_ID
-        or spec.stage_id != "stage0-calibration"
-    ):
-        raise PilotOrchestrationError(
-            "V2.9 imported result reader is Stage-0-only"
-        )
+    if contract.contract_id != V29_CONTRACT_ID or spec.stage_id != "stage0-calibration":
+        raise PilotOrchestrationError("V2.9 imported result reader is Stage-0-only")
     manifest = (
         dict(source_manifest)
         if source_manifest is not None
@@ -2320,10 +2316,8 @@ def _load_v29_imported_stage0_result(
     config_path = run_dir / "config.json"
     if (
         not verification.valid
-        or verification.manifest_sha256
-        != declared_manifest.get("file_sha256")
-        or _file_sha256(manifest_path)
-        != declared_manifest.get("file_sha256")
+        or verification.manifest_sha256 != declared_manifest.get("file_sha256")
+        or _file_sha256(manifest_path) != declared_manifest.get("file_sha256")
         or _file_sha256(config_path) != declared_config.get("file_sha256")
     ):
         raise PilotOrchestrationError(
@@ -2344,8 +2338,7 @@ def _load_v29_imported_stage0_result(
         or run_dir.name != binding.get("source_run_id")
         or config.get("run_id") != binding.get("source_run_id")
         or details.get("run_spec") != source_spec
-        or details.get("contract_sha256")
-        != physical_contract.get("canonical_sha256")
+        or details.get("contract_sha256") != physical_contract.get("canonical_sha256")
         or manifest_value.get("result", {}).get("complete") is not True
         or manifest_value.get("validation_status", {}).get("status") != "pass"
     ):
@@ -2383,9 +2376,7 @@ def _load_v29_imported_stage0_result(
         journal = verify_provider_call_journal(
             journal_path,
             expected_run_id=str(binding["source_run_id"]),
-            expected_contract_hash=str(
-                physical_contract.get("canonical_sha256")
-            ),
+            expected_contract_hash=str(physical_contract.get("canonical_sha256")),
             require_terminal_dispositions=True,
         )
     except (PilotV29Stage0ImportError, ValueError) as exc:
@@ -2414,9 +2405,7 @@ def _v27_source_binding_payload(
         / "experiments"
         / "pilot_v2_7_source_manifest.json"
     )
-    parent_receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    parent_receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     parent_receipt = _read_json(parent_receipt_path)
     return {
         "source_manifest": {
@@ -2429,14 +2418,10 @@ def _v27_source_binding_payload(
         "parent_import_receipt": {
             "path": str(parent_receipt_path),
             "file_sha256": _file_sha256(parent_receipt_path),
-            "content_sha256": parent_receipt.get("integrity", {}).get(
-                "content_sha256"
-            ),
+            "content_sha256": parent_receipt.get("integrity", {}).get("content_sha256"),
         },
         "source_contract_id": "finevo-pilot-v2.6",
-        "source_contract_sha256": source_manifest.get(
-            "v2_6_terminal_parent", {}
-        )
+        "source_contract_sha256": source_manifest.get("v2_6_terminal_parent", {})
         .get("contract", {})
         .get("canonical_sha256"),
         "source_run_id": source_binding.get("source_run_id"),
@@ -2459,16 +2444,14 @@ def _v28_source_binding_payload(
         / "experiments"
         / "pilot_v2_8_source_manifest.json"
     )
-    parent_receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    parent_receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     parent_receipt = _read_json(parent_receipt_path)
-    nested_contract = source_manifest.get(
-        "nested_v2_6_stage0_source", {}
-    ).get("contract", {})
-    parent_contract = source_manifest.get(
-        "v2_7_terminal_parent", {}
-    ).get("contract", {})
+    nested_contract = source_manifest.get("nested_v2_6_stage0_source", {}).get(
+        "contract", {}
+    )
+    parent_contract = source_manifest.get("v2_7_terminal_parent", {}).get(
+        "contract", {}
+    )
     return {
         "source_manifest": {
             "path": str(source_manifest_path),
@@ -2480,18 +2463,12 @@ def _v28_source_binding_payload(
         "parent_import_receipt": {
             "path": str(parent_receipt_path),
             "file_sha256": _file_sha256(parent_receipt_path),
-            "content_sha256": parent_receipt.get("integrity", {}).get(
-                "content_sha256"
-            ),
+            "content_sha256": parent_receipt.get("integrity", {}).get("content_sha256"),
         },
         "source_authority_contract_id": parent_contract.get("contract_id"),
-        "source_authority_contract_sha256": parent_contract.get(
-            "canonical_sha256"
-        ),
+        "source_authority_contract_sha256": parent_contract.get("canonical_sha256"),
         "physical_source_contract_id": nested_contract.get("contract_id"),
-        "physical_source_contract_sha256": nested_contract.get(
-            "canonical_sha256"
-        ),
+        "physical_source_contract_sha256": nested_contract.get("canonical_sha256"),
         "source_run_id": source_binding.get("source_run_id"),
         "source_spec": source_binding.get("source_spec"),
         "source_artifacts": source_binding.get("source_artifacts"),
@@ -2516,16 +2493,14 @@ def _v29_source_binding_payload(
     source_manifest_path = (
         repository / "experiments" / "pilot_v2_9_source_manifest.json"
     )
-    parent_receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    parent_receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     parent_receipt = _read_json(parent_receipt_path)
-    nested_contract = source_manifest.get(
-        "nested_v2_6_stage0_source", {}
-    ).get("contract", {})
-    parent_contract = source_manifest.get(
-        "v2_8_terminal_parent", {}
-    ).get("contract", {})
+    nested_contract = source_manifest.get("nested_v2_6_stage0_source", {}).get(
+        "contract", {}
+    )
+    parent_contract = source_manifest.get("v2_8_terminal_parent", {}).get(
+        "contract", {}
+    )
     return {
         "source_manifest": {
             "path": str(source_manifest_path),
@@ -2537,18 +2512,12 @@ def _v29_source_binding_payload(
         "parent_import_receipt": {
             "path": str(parent_receipt_path),
             "file_sha256": _file_sha256(parent_receipt_path),
-            "content_sha256": parent_receipt.get("integrity", {}).get(
-                "content_sha256"
-            ),
+            "content_sha256": parent_receipt.get("integrity", {}).get("content_sha256"),
         },
         "source_authority_contract_id": parent_contract.get("contract_id"),
-        "source_authority_contract_sha256": parent_contract.get(
-            "canonical_sha256"
-        ),
+        "source_authority_contract_sha256": parent_contract.get("canonical_sha256"),
         "physical_source_contract_id": nested_contract.get("contract_id"),
-        "physical_source_contract_sha256": nested_contract.get(
-            "canonical_sha256"
-        ),
+        "physical_source_contract_sha256": nested_contract.get("canonical_sha256"),
         "source_run_id": source_binding.get("source_run_id"),
         "source_spec": source_binding.get("source_spec"),
         "source_artifacts": source_binding.get("source_artifacts"),
@@ -2632,9 +2601,7 @@ def _expected_v27_q_ref_resolution(
                 "contract_sha256": contract.canonical_hash,
                 "git_tag": paid.git_tag,
                 "git_commit": paid.head_commit,
-                "source_manifest_sha256": source_q_ref_binding.get(
-                    "file_sha256"
-                ),
+                "source_manifest_sha256": source_q_ref_binding.get("file_sha256"),
             },
         }
     )
@@ -2657,10 +2624,7 @@ def _expected_v210_q_ref_resolution(
         authority_repo_root=authority_repo_root,
     )
     specs = tuple(contract.expand(stage="q-ref-resolution"))
-    if (
-        len(specs) != 1
-        or specs[0].execution_mode != "q_ref_resolution"
-    ):
+    if len(specs) != 1 or specs[0].execution_mode != "q_ref_resolution":
         raise PilotOrchestrationError(
             "V2.10 q-ref import requires one exact zero-provider cell"
         )
@@ -2695,20 +2659,14 @@ def _expected_v210_q_ref_resolution(
         or source.get("provider_calls_during_verification") != 0
         or source.get("treatment_effect_evidence") is not False
     ):
-        raise PilotOrchestrationError(
-            "V2.10 imported q-ref binding is malformed"
-        )
+        raise PilotOrchestrationError("V2.10 imported q-ref binding is malformed")
     repository = (
         Path(__file__).resolve().parents[1]
         if authority_repo_root is None
         else Path(authority_repo_root).resolve(strict=True)
     )
-    source_manifest_path = repository.joinpath(
-        *V210_SOURCE_MANIFEST_PATH.parts
-    )
-    parent_receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    source_manifest_path = repository.joinpath(*V210_SOURCE_MANIFEST_PATH.parts)
+    parent_receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     return _seal_bound_payload(
         {
             "schema_version": PILOT_V210_IMPORTED_QREF_SCHEMA_VERSION,
@@ -2733,34 +2691,24 @@ def _expected_v210_q_ref_resolution(
                 "git_tag": paid.git_tag,
                 "git_commit": paid.head_commit,
                 "source_contract_id": source_release.get("contract_id"),
-                "source_contract_sha256": source_release.get(
-                    "contract_sha256"
-                ),
+                "source_contract_sha256": source_release.get("contract_sha256"),
                 "source_run_id": source.get("source_run_id"),
-                "source_q_ref_file_sha256": source_artifacts[
-                    "q_ref_resolution"
-                ].get("file_sha256"),
-                "source_q_ref_content_sha256": source_artifacts[
-                    "q_ref_resolution"
-                ].get("content_sha256"),
-                "source_terminal_file_sha256": source_terminal.get(
+                "source_q_ref_file_sha256": source_artifacts["q_ref_resolution"].get(
                     "file_sha256"
                 ),
-                "source_terminal_content_sha256": source_terminal.get(
+                "source_q_ref_content_sha256": source_artifacts["q_ref_resolution"].get(
                     "content_sha256"
                 ),
+                "source_terminal_file_sha256": source_terminal.get("file_sha256"),
+                "source_terminal_content_sha256": source_terminal.get("content_sha256"),
                 "source_raw_inventory_sha256": source_release.get(
                     "raw_inventory_sha256"
                 ),
-                "source_manifest_file_sha256": _file_sha256(
-                    source_manifest_path
-                ),
+                "source_manifest_file_sha256": _file_sha256(source_manifest_path),
                 "source_manifest_content_sha256": source_manifest.get(
                     "integrity", {}
                 ).get("content_sha256"),
-                "parent_import_receipt_file_sha256": _file_sha256(
-                    parent_receipt_path
-                ),
+                "parent_import_receipt_file_sha256": _file_sha256(parent_receipt_path),
                 "parent_import_receipt_content_sha256": parent_receipt.get(
                     "integrity", {}
                 ).get("content_sha256"),
@@ -2785,10 +2733,7 @@ def _expected_v2101_q_ref_resolution(
         authority_repo_root=authority_repo_root,
     )
     specs = tuple(contract.expand(stage="q-ref-resolution"))
-    if (
-        len(specs) != 1
-        or specs[0].execution_mode != "q_ref_resolution"
-    ):
+    if len(specs) != 1 or specs[0].execution_mode != "q_ref_resolution":
         raise PilotOrchestrationError(
             "V2.10.1 q-ref import requires one exact zero-provider cell"
         )
@@ -2826,20 +2771,14 @@ def _expected_v2101_q_ref_resolution(
         or source.get("provider_calls_during_verification") != 0
         or source.get("treatment_effect_evidence") is not False
     ):
-        raise PilotOrchestrationError(
-            "V2.10.1 imported q-ref binding is malformed"
-        )
+        raise PilotOrchestrationError("V2.10.1 imported q-ref binding is malformed")
     repository = (
         Path(__file__).resolve().parents[1]
         if authority_repo_root is None
         else Path(authority_repo_root).resolve(strict=True)
     )
-    source_manifest_path = repository.joinpath(
-        *V2101_SOURCE_MANIFEST_PATH.parts
-    )
-    parent_receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    source_manifest_path = repository.joinpath(*V2101_SOURCE_MANIFEST_PATH.parts)
+    parent_receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     return _seal_bound_payload(
         {
             "schema_version": PILOT_V2101_IMPORTED_QREF_SCHEMA_VERSION,
@@ -2865,34 +2804,24 @@ def _expected_v2101_q_ref_resolution(
                 "git_tag": paid.git_tag,
                 "git_commit": paid.head_commit,
                 "source_contract_id": source_release.get("contract_id"),
-                "source_contract_sha256": source_release.get(
-                    "contract_sha256"
-                ),
+                "source_contract_sha256": source_release.get("contract_sha256"),
                 "source_run_id": source.get("source_run_id"),
-                "source_q_ref_file_sha256": source_artifacts[
-                    "q_ref_resolution"
-                ].get("file_sha256"),
-                "source_q_ref_content_sha256": source_artifacts[
-                    "q_ref_resolution"
-                ].get("content_sha256"),
-                "source_terminal_file_sha256": source_terminal.get(
+                "source_q_ref_file_sha256": source_artifacts["q_ref_resolution"].get(
                     "file_sha256"
                 ),
-                "source_terminal_content_sha256": source_terminal.get(
+                "source_q_ref_content_sha256": source_artifacts["q_ref_resolution"].get(
                     "content_sha256"
                 ),
+                "source_terminal_file_sha256": source_terminal.get("file_sha256"),
+                "source_terminal_content_sha256": source_terminal.get("content_sha256"),
                 "source_raw_inventory_sha256": source_release.get(
                     "raw_inventory_sha256"
                 ),
-                "source_manifest_file_sha256": _file_sha256(
-                    source_manifest_path
-                ),
+                "source_manifest_file_sha256": _file_sha256(source_manifest_path),
                 "source_manifest_content_sha256": source_manifest.get(
                     "integrity", {}
                 ).get("content_sha256"),
-                "parent_import_receipt_file_sha256": _file_sha256(
-                    parent_receipt_path
-                ),
+                "parent_import_receipt_file_sha256": _file_sha256(parent_receipt_path),
                 "parent_import_receipt_content_sha256": parent_receipt.get(
                     "integrity", {}
                 ).get("content_sha256"),
@@ -2955,20 +2884,14 @@ def _expected_v2102_q_ref_resolution(
         or source.get("provider_calls_during_verification") != 0
         or source.get("treatment_effect_evidence") is not False
     ):
-        raise PilotOrchestrationError(
-            "V2.10.2 imported q-ref binding is malformed"
-        )
+        raise PilotOrchestrationError("V2.10.2 imported q-ref binding is malformed")
     repository = (
         Path(__file__).resolve().parents[1]
         if authority_repo_root is None
         else Path(authority_repo_root).resolve(strict=True)
     )
-    source_manifest_path = repository.joinpath(
-        *V2102_SOURCE_MANIFEST_PATH.parts
-    )
-    parent_receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    source_manifest_path = repository.joinpath(*V2102_SOURCE_MANIFEST_PATH.parts)
+    parent_receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     return _seal_bound_payload(
         {
             "schema_version": PILOT_V2102_IMPORTED_QREF_SCHEMA_VERSION,
@@ -2994,34 +2917,24 @@ def _expected_v2102_q_ref_resolution(
                 "git_tag": paid.git_tag,
                 "git_commit": paid.head_commit,
                 "source_contract_id": source_release.get("contract_id"),
-                "source_contract_sha256": source_release.get(
-                    "contract_sha256"
-                ),
+                "source_contract_sha256": source_release.get("contract_sha256"),
                 "source_run_id": source.get("source_run_id"),
-                "source_q_ref_file_sha256": source_artifacts[
-                    "q_ref_resolution"
-                ].get("file_sha256"),
-                "source_q_ref_content_sha256": source_artifacts[
-                    "q_ref_resolution"
-                ].get("content_sha256"),
-                "source_terminal_file_sha256": source_terminal.get(
+                "source_q_ref_file_sha256": source_artifacts["q_ref_resolution"].get(
                     "file_sha256"
                 ),
-                "source_terminal_content_sha256": source_terminal.get(
+                "source_q_ref_content_sha256": source_artifacts["q_ref_resolution"].get(
                     "content_sha256"
                 ),
+                "source_terminal_file_sha256": source_terminal.get("file_sha256"),
+                "source_terminal_content_sha256": source_terminal.get("content_sha256"),
                 "source_raw_inventory_sha256": source_release.get(
                     "raw_inventory_sha256"
                 ),
-                "source_manifest_file_sha256": _file_sha256(
-                    source_manifest_path
-                ),
+                "source_manifest_file_sha256": _file_sha256(source_manifest_path),
                 "source_manifest_content_sha256": source_manifest.get(
                     "integrity", {}
                 ).get("content_sha256"),
-                "parent_import_receipt_file_sha256": _file_sha256(
-                    parent_receipt_path
-                ),
+                "parent_import_receipt_file_sha256": _file_sha256(parent_receipt_path),
                 "parent_import_receipt_content_sha256": parent_receipt.get(
                     "integrity", {}
                 ).get("content_sha256"),
@@ -3042,9 +2955,7 @@ def _build_v28_qref_equivalence_receipt(
     """Replay V2.8's fresh q-ref against the immutable nested V2.6 fixture."""
 
     if contract.contract_id != V28_CONTRACT_ID:
-        raise PilotOrchestrationError(
-            "V2.8 q-ref equivalence used by another contract"
-        )
+        raise PilotOrchestrationError("V2.8 q-ref equivalence used by another contract")
     source_manifest, parent_receipt = _v28_import_authority(
         contract,
         raw_root=raw_root,
@@ -3062,9 +2973,7 @@ def _build_v28_qref_equivalence_receipt(
         )
         source_resolution_path = snapshot_path_for_v27_source_artifact_v28(
             raw_root,
-            str(
-                reference.get("q_ref_resolution", {}).get("path", "")
-            ),
+            str(reference.get("q_ref_resolution", {}).get("path", "")),
         )
     except PilotV28Stage0ImportError as exc:
         raise PilotOrchestrationError(
@@ -3085,20 +2994,16 @@ def _build_v28_qref_equivalence_receipt(
         != source_manifest_binding.get("file_sha256")
         or _file_sha256(source_manifest_path)
         != source_manifest_binding.get("file_sha256")
-        or _file_sha256(source_config_path)
-        != source_config_binding.get("file_sha256")
+        or _file_sha256(source_config_path) != source_config_binding.get("file_sha256")
         or _file_sha256(source_resolution_path)
         != source_resolution_binding.get("file_sha256")
     ):
-        raise PilotOrchestrationError(
-            "V2.8 q-ref historical source bindings drifted"
-        )
+        raise PilotOrchestrationError("V2.8 q-ref historical source bindings drifted")
     source_config = _read_json(source_config_path)
     source_resolution = _read_json(source_resolution_path)
     source_integrity = source_resolution.get("integrity")
     if (
-        source_resolution.get("schema_version")
-        != "finevo-q-ref-resolution-v1"
+        source_resolution.get("schema_version") != "finevo-q-ref-resolution-v1"
         or not isinstance(source_integrity, Mapping)
         or source_integrity.get("content_sha256")
         != _bound_content_sha256(source_resolution)
@@ -3108,9 +3013,7 @@ def _build_v28_qref_equivalence_receipt(
             "V2.8 q-ref historical resolution integrity drifted"
         )
     source_streams = {
-        name: _strict_imported_jsonl(
-            source_run_dir / "streams" / f"{name}.jsonl"
-        )
+        name: _strict_imported_jsonl(source_run_dir / "streams" / f"{name}.jsonl")
         for name in ("actions", "utility_ledger", "shock_events")
     }
     current_config = dict(result.config)
@@ -3121,41 +3024,31 @@ def _build_v28_qref_equivalence_receipt(
     current_bindings = resolution.get("bindings")
     checks = {
         "fresh_config_run_id_matches_contract_cell": (
-            current_run_id
-            == contract.expand(stage="q-ref-resolution")[0].run_id
+            current_run_id == contract.expand(stage="q-ref-resolution")[0].run_id
         ),
         "historical_config_run_id_is_distinct": (
-            isinstance(historical_run_id, str)
-            and historical_run_id != current_run_id
+            isinstance(historical_run_id, str) and historical_run_id != current_run_id
         ),
         "config_equal_except_run_id": current_config == historical_config,
-        "actions_exact": (
-            tuple(result.stream("actions")) == source_streams["actions"]
-        ),
+        "actions_exact": (tuple(result.stream("actions")) == source_streams["actions"]),
         "utility_ledger_exact": (
-            tuple(result.stream("utility_ledger"))
-            == source_streams["utility_ledger"]
+            tuple(result.stream("utility_ledger")) == source_streams["utility_ledger"]
         ),
         "shock_events_exact": (
-            tuple(result.stream("shock_events"))
-            == source_streams["shock_events"]
+            tuple(result.stream("shock_events")) == source_streams["shock_events"]
         ),
         "q_ref_exact": (
-            resolution.get("q_ref") == source_resolution.get("q_ref")
+            resolution.get("q_ref")
+            == source_resolution.get("q_ref")
             == reference.get("q_ref")
         ),
         "row_count_exact": (
-            resolution.get("row_count")
-            == source_resolution.get("row_count")
-            == 48
+            resolution.get("row_count") == source_resolution.get("row_count") == 48
         ),
         "run_contract_exact": (
-            resolution.get("run_contract")
-            == source_resolution.get("run_contract")
+            resolution.get("run_contract") == source_resolution.get("run_contract")
         ),
-        "checks_exact": (
-            resolution.get("checks") == source_resolution.get("checks")
-        ),
+        "checks_exact": (resolution.get("checks") == source_resolution.get("checks")),
         "run_summary_exact": (
             resolution.get("source", {}).get("run_summary")
             == source_resolution.get("source", {}).get("run_summary")
@@ -3190,9 +3083,7 @@ def _build_v28_qref_equivalence_receipt(
         / "experiments"
         / "pilot_v2_8_source_manifest.json"
     )
-    parent_receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    parent_receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     return _seal_bound_payload(
         {
             "schema_version": PILOT_V28_QREF_EQUIVALENCE_SCHEMA_VERSION,
@@ -3202,9 +3093,7 @@ def _build_v28_qref_equivalence_receipt(
                 "run_id": current_run_id,
                 "manifest": str(current_manifest),
                 "manifest_file_sha256": _file_sha256(current_manifest),
-                "actions_sha256": canonical_sha256(
-                    list(result.stream("actions"))
-                ),
+                "actions_sha256": canonical_sha256(list(result.stream("actions"))),
                 "utility_ledger_sha256": canonical_sha256(
                     list(result.stream("utility_ledger"))
                 ),
@@ -3213,23 +3102,17 @@ def _build_v28_qref_equivalence_receipt(
                 ),
                 "q_ref": resolution["q_ref"],
                 "ledger_hash": current_bindings["ledger_hash"],
-                "source_config_hash": current_bindings[
-                    "source_config_hash"
-                ],
+                "source_config_hash": current_bindings["source_config_hash"],
             },
             "historical_reference": {
                 "run_id": historical_run_id,
                 "source_run_root": str(source_run_dir),
-                "source_manifest_file_sha256": source_manifest_binding[
-                    "file_sha256"
-                ],
+                "source_manifest_file_sha256": source_manifest_binding["file_sha256"],
                 "q_ref_resolution": str(source_resolution_path),
                 "q_ref_resolution_file_sha256": source_resolution_binding[
                     "file_sha256"
                 ],
-                "actions_sha256": canonical_sha256(
-                    list(source_streams["actions"])
-                ),
+                "actions_sha256": canonical_sha256(list(source_streams["actions"])),
                 "utility_ledger_sha256": canonical_sha256(
                     list(source_streams["utility_ledger"])
                 ),
@@ -3238,9 +3121,7 @@ def _build_v28_qref_equivalence_receipt(
                 ),
                 "q_ref": source_resolution["q_ref"],
                 "ledger_hash": source_bindings["ledger_hash"],
-                "source_config_hash": source_bindings[
-                    "source_config_hash"
-                ],
+                "source_config_hash": source_bindings["source_config_hash"],
                 "source_result_reused": False,
             },
             "provider_boundary": {
@@ -3253,18 +3134,14 @@ def _build_v28_qref_equivalence_receipt(
                 "contract_sha256": contract.canonical_hash,
                 "git_tag": paid.git_tag,
                 "git_commit": paid.head_commit,
-                "source_manifest_file_sha256": _file_sha256(
-                    source_manifest_file
-                ),
-                "source_manifest_content_sha256": source_manifest[
-                    "integrity"
-                ]["content_sha256"],
-                "parent_import_receipt_file_sha256": _file_sha256(
-                    parent_receipt_path
-                ),
-                "parent_import_receipt_content_sha256": parent_receipt[
-                    "integrity"
-                ]["content_sha256"],
+                "source_manifest_file_sha256": _file_sha256(source_manifest_file),
+                "source_manifest_content_sha256": source_manifest["integrity"][
+                    "content_sha256"
+                ],
+                "parent_import_receipt_file_sha256": _file_sha256(parent_receipt_path),
+                "parent_import_receipt_content_sha256": parent_receipt["integrity"][
+                    "content_sha256"
+                ],
             },
         }
     )
@@ -3290,9 +3167,7 @@ def _build_v29_qref_equivalence_receipts(
     """
 
     if contract.contract_id != V29_CONTRACT_ID:
-        raise PilotOrchestrationError(
-            "V2.9 q-ref equivalence used by another contract"
-        )
+        raise PilotOrchestrationError("V2.9 q-ref equivalence used by another contract")
     source_manifest, parent_receipt = _v29_import_authority(
         contract,
         raw_root=raw_root,
@@ -3316,14 +3191,12 @@ def _build_v29_qref_equivalence_receipts(
             "V2.9 source manifest lacks its verified q-ref runner reference"
         )
     fixed_bindings = {
-        name: verified_runner.get(name)
-        for name in ("manifest", "config", "provenance")
+        name: verified_runner.get(name) for name in ("manifest", "config", "provenance")
     }
     stream_bindings = verified_runner.get("streams")
-    if (
-        any(not isinstance(value, Mapping) for value in fixed_bindings.values())
-        or not isinstance(stream_bindings, Mapping)
-    ):
+    if any(
+        not isinstance(value, Mapping) for value in fixed_bindings.values()
+    ) or not isinstance(stream_bindings, Mapping):
         raise PilotOrchestrationError(
             "V2.9 q-ref historical artifact bindings are malformed"
         )
@@ -3340,10 +3213,9 @@ def _build_v29_qref_equivalence_receipts(
             raise PilotOrchestrationError(
                 f"V2.9 historical q-ref {name} path failed validation: {exc}"
             ) from exc
-        if (
-            _file_sha256(artifact_path) != binding.get("file_sha256")
-            or artifact_path.stat().st_size != binding.get("byte_size")
-        ):
+        if _file_sha256(artifact_path) != binding.get(
+            "file_sha256"
+        ) or artifact_path.stat().st_size != binding.get("byte_size"):
             raise PilotOrchestrationError(
                 f"V2.9 historical q-ref {name} hash/size drifted"
             )
@@ -3383,8 +3255,7 @@ def _build_v29_qref_equivalence_receipts(
             ) from exc
         rows = _strict_imported_jsonl(stream_path)
         if (
-            stream_path
-            != source_run_dir / "streams" / f"{name}.jsonl"
+            stream_path != source_run_dir / "streams" / f"{name}.jsonl"
             or _file_sha256(stream_path) != binding.get("file_sha256")
             or stream_path.stat().st_size != binding.get("byte_size")
             or len(rows) != expected_rows
@@ -3409,19 +3280,16 @@ def _build_v29_qref_equivalence_receipts(
         )
         if str(exc) != expected_extra:
             raise PilotOrchestrationError(
-                f"V2.9 historical q-ref runner manifest failed "
-                f"verification: {exc}"
+                f"V2.9 historical q-ref runner manifest failed " f"verification: {exc}"
             ) from exc
         # The immutable V2.8 failure receipt was appended after verified-run
         # finalization.  The V2.9 source importer has already hash-verified the
         # manifest inventory and independently verified exactly those two
         # failure files; no other post-manifest extension is accepted.
         verification = None
-    if (
-        verification is not None
-        and verification.manifest_sha256
-        != fixed_bindings["manifest"].get("file_sha256")
-    ):
+    if verification is not None and verification.manifest_sha256 != fixed_bindings[
+        "manifest"
+    ].get("file_sha256"):
         raise PilotOrchestrationError(
             "V2.9 historical q-ref runner manifest hash drifted"
         )
@@ -3451,17 +3319,14 @@ def _build_v29_qref_equivalence_receipts(
         or historical_details.get("contract_sha256")
         != reference.get("source_contract_sha256")
         or historical_details.get("run_spec") != source_spec
-        or tuple(historical_result.stream("actions"))
-        != historical_streams["actions"]
+        or tuple(historical_result.stream("actions")) != historical_streams["actions"]
         or tuple(historical_result.stream("utility_ledger"))
         != historical_streams["utility_ledger"]
         or tuple(historical_result.stream("shock_events"))
         != historical_streams["shock_events"]
         or historical_result.summary != historical_streams["summary"][0]
     ):
-        raise PilotOrchestrationError(
-            "V2.9 historical q-ref runner identity drifted"
-        )
+        raise PilotOrchestrationError("V2.9 historical q-ref runner identity drifted")
 
     source_contract_sha256 = reference.get("source_contract_sha256")
     if not isinstance(source_contract_sha256, str):
@@ -3475,9 +3340,7 @@ def _build_v29_qref_equivalence_receipts(
     )
     current_run_id = result.config.get("run_id")
     current_budget_id = result.summary.get("api", {}).get("budget_id")
-    historical_budget_id = historical_result.summary.get("api", {}).get(
-        "budget_id"
-    )
+    historical_budget_id = historical_result.summary.get("api", {}).get("budget_id")
     if not all(
         isinstance(value, str) and value
         for value in (
@@ -3514,8 +3377,7 @@ def _build_v29_qref_equivalence_receipts(
     source_config_run_id = source_config.pop("run_id", None)
     comparison = {
         "fresh_config_run_id_matches_contract_cell": (
-            current_config_run_id
-            == contract.expand(stage="q-ref-resolution")[0].run_id
+            current_config_run_id == contract.expand(stage="q-ref-resolution")[0].run_id
         ),
         "historical_config_run_id_matches_reference": (
             source_config_run_id == historical_run_id
@@ -3529,8 +3391,7 @@ def _build_v29_qref_equivalence_receipts(
             == historical_streams["utility_ledger"]
         ),
         "shock_events_exact": (
-            tuple(result.stream("shock_events"))
-            == historical_streams["shock_events"]
+            tuple(result.stream("shock_events")) == historical_streams["shock_events"]
         ),
         "q_ref_exact": (
             isinstance(ancestral, Mapping)
@@ -3540,13 +3401,10 @@ def _build_v29_qref_equivalence_receipts(
             == 63.50397933257746
         ),
         "row_count_exact": (
-            resolution.get("row_count")
-            == historical_resolution.get("row_count")
-            == 48
+            resolution.get("row_count") == historical_resolution.get("row_count") == 48
         ),
         "run_contract_exact": (
-            resolution.get("run_contract")
-            == historical_resolution.get("run_contract")
+            resolution.get("run_contract") == historical_resolution.get("run_contract")
         ),
         "checks_exact": (
             resolution.get("checks") == historical_resolution.get("checks")
@@ -3574,10 +3432,7 @@ def _build_v29_qref_equivalence_receipts(
             summary_equivalence.get("status") == "pass"
             and summary_equivalence.get("schema_version")
             == QREF_RUN_SUMMARY_EQUIVALENCE_SCHEMA_VERSION
-            and summary_equivalence.get("comparison", {}).get(
-                "leaf_path_count"
-            )
-            == 1002
+            and summary_equivalence.get("comparison", {}).get("leaf_path_count") == 1002
             and summary_equivalence.get("comparison", {}).get(
                 "normalized_leaf_path_count"
             )
@@ -3607,9 +3462,7 @@ def _build_v29_qref_equivalence_receipts(
 
     repository = Path(__file__).resolve().parents[1]
     source_manifest_path = repository.joinpath(*V29_SOURCE_MANIFEST_PATH.parts)
-    parent_receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    parent_receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     audit_equivalence = _seal_bound_payload(
         {
             "schema_version": PILOT_V29_QREF_EQUIVALENCE_SCHEMA_VERSION,
@@ -3620,9 +3473,7 @@ def _build_v29_qref_equivalence_receipts(
                 "budget_id": current_budget_id,
                 "manifest": str(current_manifest),
                 "manifest_file_sha256": _file_sha256(current_manifest),
-                "actions_sha256": canonical_sha256(
-                    list(result.stream("actions"))
-                ),
+                "actions_sha256": canonical_sha256(list(result.stream("actions"))),
                 "utility_ledger_sha256": canonical_sha256(
                     list(result.stream("utility_ledger"))
                 ),
@@ -3631,9 +3482,7 @@ def _build_v29_qref_equivalence_receipts(
                 ),
                 "q_ref": resolution["q_ref"],
                 "ledger_hash": current_bindings["ledger_hash"],
-                "source_config_hash": current_bindings[
-                    "source_config_hash"
-                ],
+                "source_config_hash": current_bindings["source_config_hash"],
             },
             "historical_reference": {
                 "run_id": historical_run_id,
@@ -3642,30 +3491,22 @@ def _build_v29_qref_equivalence_receipts(
                 "source_manifest_file_sha256": fixed_bindings["manifest"][
                     "file_sha256"
                 ],
-                "actions_sha256": canonical_sha256(
-                    list(historical_streams["actions"])
-                ),
+                "actions_sha256": canonical_sha256(list(historical_streams["actions"])),
                 "utility_ledger_sha256": canonical_sha256(
                     list(historical_streams["utility_ledger"])
                 ),
                 "shock_events_sha256": canonical_sha256(
                     list(historical_streams["shock_events"])
                 ),
-                "summary_file_sha256": _file_sha256(
-                    historical_stream_paths["summary"]
-                ),
+                "summary_file_sha256": _file_sha256(historical_stream_paths["summary"]),
                 "q_ref": historical_resolution["q_ref"],
                 "ledger_hash": historical_bindings["ledger_hash"],
-                "source_config_hash": historical_bindings[
-                    "source_config_hash"
-                ],
+                "source_config_hash": historical_bindings["source_config_hash"],
                 "source_result_reused": False,
             },
             "summary_equivalence": {
                 "schema_version": summary_equivalence["schema_version"],
-                "content_sha256": summary_equivalence["integrity"][
-                    "content_sha256"
-                ],
+                "content_sha256": summary_equivalence["integrity"]["content_sha256"],
                 "common_projection_sha256": summary_equivalence[
                     "common_projection_sha256"
                 ],
@@ -3682,18 +3523,14 @@ def _build_v29_qref_equivalence_receipts(
                 "contract_sha256": contract.canonical_hash,
                 "git_tag": paid.git_tag,
                 "git_commit": paid.head_commit,
-                "source_manifest_file_sha256": _file_sha256(
-                    source_manifest_path
-                ),
-                "source_manifest_content_sha256": source_manifest[
-                    "integrity"
-                ]["content_sha256"],
-                "parent_import_receipt_file_sha256": _file_sha256(
-                    parent_receipt_path
-                ),
-                "parent_import_receipt_content_sha256": parent_receipt[
-                    "integrity"
-                ]["content_sha256"],
+                "source_manifest_file_sha256": _file_sha256(source_manifest_path),
+                "source_manifest_content_sha256": source_manifest["integrity"][
+                    "content_sha256"
+                ],
+                "parent_import_receipt_file_sha256": _file_sha256(parent_receipt_path),
+                "parent_import_receipt_content_sha256": parent_receipt["integrity"][
+                    "content_sha256"
+                ],
             },
         }
     )
@@ -3717,9 +3554,7 @@ def _load_verified_v211_calibration(
         )
     path = raw_root / "parent-import" / "parent_import_receipt.json"
     if not path.exists():
-        raise PilotOrchestrationError(
-            f"required artifact is missing: {path}"
-        )
+        raise PilotOrchestrationError(f"required artifact is missing: {path}")
     repository = Path(__file__).resolve().parents[1]
     try:
         receipt = verify_v211_parent_import_receipt(
@@ -3739,12 +3574,9 @@ def _load_verified_v211_calibration(
     parent = receipt.get("parent_release")
     policy = receipt.get("import_policy")
     if not all(
-        isinstance(value, Mapping)
-        for value in (imported, source, parent, policy)
+        isinstance(value, Mapping) for value in (imported, source, parent, policy)
     ):
-        raise PilotOrchestrationError(
-            "V2.11 parent calibration receipt is malformed"
-        )
+        raise PilotOrchestrationError("V2.11 parent calibration receipt is malformed")
 
     boundary_source = boundary["source_manifest"]
     expected_profile = {
@@ -3753,9 +3585,7 @@ def _load_verified_v211_calibration(
         "labor_weight": calibration["utility_profile"]["labor_weight"],
         "inverse_frisch": calibration["utility_profile"]["inverse_frisch"],
         "consumption_scale": calibration["q_ref"]
-        * calibration["utility_profile"][
-            "consumption_scale_multiplier_of_q_ref"
-        ],
+        * calibration["utility_profile"]["consumption_scale_multiplier_of_q_ref"],
         "discount_factor": calibration["utility_profile"]["discount_factor"],
         "budget_tolerance": 1e-8,
         "max_labor_hours": 168.0,
@@ -3773,12 +3603,10 @@ def _load_verified_v211_calibration(
         },
         "parent_release": (
             parent.get("contract_id") == boundary["parent"]["contract_id"]
-            and parent.get("contract_sha256")
-            == boundary["parent"]["contract_sha256"]
+            and parent.get("contract_sha256") == boundary["parent"]["contract_sha256"]
             and parent.get("resolved_git_commit")
             == boundary["parent"]["science_commit"]
-            and parent.get("science_tag")
-            == boundary["parent"]["science_tag"]
+            and parent.get("science_tag") == boundary["parent"]["science_tag"]
             and parent.get("run_ledger_sha256")
             == boundary["parent"]["run_ledger_internal_sha256"]
             and parent.get("budget_ledger_sha256")
@@ -3790,10 +3618,8 @@ def _load_verified_v211_calibration(
         ),
         "absolute_flow_utility_threshold": (
             isinstance(threshold, Mapping)
-            and threshold.get("value")
-            == calibration["absolute_flow_utility_threshold"]
-            and threshold.get("source_profile")
-            == calibration["utility_profile_id"]
+            and threshold.get("value") == calibration["absolute_flow_utility_threshold"]
+            and threshold.get("source_profile") == calibration["utility_profile_id"]
             and threshold.get("treatment_outcomes_inspected") is False
         ),
         "source_bindings": (
@@ -3827,17 +3653,14 @@ def _load_verified_v211_calibration(
     failed = sorted(name for name, passed in checks.items() if not passed)
     if failed:
         raise PilotOrchestrationError(
-            "V2.11 imported calibration differs from its frozen contract: "
-            f"{failed}"
+            "V2.11 imported calibration differs from its frozen contract: " f"{failed}"
         )
     return {
         "receipt": receipt,
         "q_ref": float(calibration["q_ref"]),
         "selected_profile_id": str(calibration["utility_profile_id"]),
         "selected_utility": {
-            key: value
-            for key, value in expected_profile.items()
-            if key != "profile_id"
+            key: value for key, value in expected_profile.items() if key != "profile_id"
         },
         "absolute_flow_utility_threshold": _json_copy(threshold),
     }
@@ -3876,9 +3699,7 @@ def _load_verified_v2111_calibration(
         ) from exc
     calibration = wrapper.get("calibration")
     if not isinstance(calibration, Mapping):
-        raise PilotOrchestrationError(
-            "V2.11.1 calibration wrapper is malformed"
-        )
+        raise PilotOrchestrationError("V2.11.1 calibration wrapper is malformed")
     boundary = contract.v2111_forward_boundary["calibration_allowlist"]
     selected = calibration.get("selected_utility_profile")
     threshold = calibration.get("stage0_absolute_flow_utility_threshold")
@@ -3891,15 +3712,13 @@ def _load_verified_v2111_calibration(
             "labor_weight": selected.get("labor_weight"),
             "inverse_frisch": selected.get("inverse_frisch"),
             "consumption_scale_multiplier_of_q_ref": (
-                float(selected.get("consumption_scale"))
-                / float(calibration["q_ref"])
+                float(selected.get("consumption_scale")) / float(calibration["q_ref"])
             ),
             "discount_factor": selected.get("discount_factor"),
         }
         != dict(boundary["utility_profile"])
         or not isinstance(threshold, Mapping)
-        or threshold.get("value")
-        != boundary["absolute_flow_utility_threshold"]
+        or threshold.get("value") != boundary["absolute_flow_utility_threshold"]
         or threshold.get("treatment_outcomes_inspected") is not False
         or wrapper.get("provider_calls_current_attempt") != 0
         or wrapper.get("scientific_evidence") is not False
@@ -3913,9 +3732,79 @@ def _load_verified_v2111_calibration(
         "q_ref": float(calibration["q_ref"]),
         "selected_profile_id": str(selected["profile_id"]),
         "selected_utility": {
-            key: value
-            for key, value in selected.items()
-            if key != "profile_id"
+            key: value for key, value in selected.items() if key != "profile_id"
+        },
+        "absolute_flow_utility_threshold": _json_copy(threshold),
+    }
+
+
+def _load_verified_v2112_calibration(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+    authority_repo_root: str | Path | None = None,
+) -> dict[str, Any]:
+    """Replay V2.11.1 and expose only the V2.11.2 calibration wrapper."""
+
+    if (
+        contract.contract_id != V2112_CONTRACT_ID
+        or contract.v2112_forward_boundary is None
+    ):
+        raise PilotOrchestrationError(
+            "V2.11.2 calibration import requires its forward boundary"
+        )
+    receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
+    try:
+        receipt = verify_v2112_parent_import_receipt(
+            receipt_path,
+            repo_root=Path(__file__).resolve().parents[1],
+            child_contract_sha256=contract.canonical_hash,
+            child_git_tag=paid.git_tag,
+            child_git_commit=paid.head_commit,
+            parent_science_root=authority_repo_root,
+        )
+        wrapper = calibration_wrapper_from_v2112_receipt(receipt)
+    except PilotV2112ParentImportError as exc:
+        raise PilotOrchestrationError(
+            f"V2.11.2 parent calibration import failed validation: {exc}"
+        ) from exc
+    calibration = wrapper.get("calibration")
+    if not isinstance(calibration, Mapping):
+        raise PilotOrchestrationError("V2.11.2 calibration wrapper is malformed")
+    boundary = contract.v2112_forward_boundary["calibration_allowlist"]
+    selected = calibration.get("selected_utility_profile")
+    threshold = calibration.get("stage0_absolute_flow_utility_threshold")
+    if (
+        calibration.get("q_ref") != boundary["q_ref"]
+        or not isinstance(selected, Mapping)
+        or selected.get("profile_id") != boundary["utility_profile_id"]
+        or {
+            "rho": selected.get("rho"),
+            "labor_weight": selected.get("labor_weight"),
+            "inverse_frisch": selected.get("inverse_frisch"),
+            "consumption_scale_multiplier_of_q_ref": (
+                float(selected.get("consumption_scale")) / float(calibration["q_ref"])
+            ),
+            "discount_factor": selected.get("discount_factor"),
+        }
+        != dict(boundary["utility_profile"])
+        or not isinstance(threshold, Mapping)
+        or threshold.get("value") != boundary["absolute_flow_utility_threshold"]
+        or threshold.get("treatment_outcomes_inspected") is not False
+        or wrapper.get("provider_calls_current_attempt") != 0
+        or wrapper.get("scientific_evidence") is not False
+    ):
+        raise PilotOrchestrationError(
+            "V2.11.2 imported calibration differs from its frozen contract"
+        )
+    return {
+        "receipt": receipt,
+        "wrapper": wrapper,
+        "q_ref": float(calibration["q_ref"]),
+        "selected_profile_id": str(selected["profile_id"]),
+        "selected_utility": {
+            key: value for key, value in selected.items() if key != "profile_id"
         },
         "absolute_flow_utility_threshold": _json_copy(threshold),
     }
@@ -3928,6 +3817,26 @@ def _load_verified_q_ref(
     paid: GitProvenance | None,
     authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
+    if contract.contract_id == V2112_CONTRACT_ID:
+        if paid is None:
+            raise PilotOrchestrationError(
+                "V2.11.2 imported q-ref requires paid release provenance"
+            )
+        calibration = _load_verified_v2112_calibration(
+            contract,
+            raw_root=raw_root,
+            paid=paid,
+            authority_repo_root=authority_repo_root,
+        )
+        return {
+            "schema_version": "finevo-pilot-v2.11.2-imported-qref-view-v1",
+            "status": "pass",
+            "q_ref": calibration["q_ref"],
+            "scientific_evidence": False,
+            "source_parent_import_content_sha256": calibration["receipt"]["integrity"][
+                "content_sha256"
+            ],
+        }
     if contract.contract_id == V2111_CONTRACT_ID:
         if paid is None:
             raise PilotOrchestrationError(
@@ -3944,9 +3853,9 @@ def _load_verified_q_ref(
             "status": "pass",
             "q_ref": calibration["q_ref"],
             "scientific_evidence": False,
-            "source_parent_import_content_sha256": calibration["receipt"][
-                "integrity"
-            ]["content_sha256"],
+            "source_parent_import_content_sha256": calibration["receipt"]["integrity"][
+                "content_sha256"
+            ],
         }
     if contract.contract_id == V211_CONTRACT_ID:
         calibration = _load_verified_v211_calibration(
@@ -3959,9 +3868,9 @@ def _load_verified_q_ref(
             "status": "pass",
             "q_ref": calibration["q_ref"],
             "scientific_evidence": False,
-            "source_parent_import_content_sha256": calibration["receipt"][
-                "integrity"
-            ]["content_sha256"],
+            "source_parent_import_content_sha256": calibration["receipt"]["integrity"][
+                "content_sha256"
+            ],
         }
     path = raw_root / "q-ref-resolution" / "q_ref_resolution.json"
     value = _read_json(path)
@@ -4143,9 +4052,7 @@ def _load_verified_q_ref(
         if authority_repo_root is None
         else Path(authority_repo_root).resolve(strict=True) / "config.yaml"
     )
-    if bindings.get("environment_source_hash") != _file_sha256(
-        environment_source_path
-    ):
+    if bindings.get("environment_source_hash") != _file_sha256(environment_source_path):
         raise PilotOrchestrationError("q_ref environment source hash mismatch")
     source_result = load_verified_run_artifacts(
         expected_manifest.parent,
@@ -4195,10 +4102,8 @@ def _load_verified_q_ref(
             authority_repo_root=authority_repo_root,
         )
         if (
-            value.get("q_ref_summary_equivalence")
-            != expected_summary_equivalence
-            or value.get("q_ref_audit_equivalence")
-            != expected_audit_equivalence
+            value.get("q_ref_summary_equivalence") != expected_summary_equivalence
+            or value.get("q_ref_audit_equivalence") != expected_audit_equivalence
         ):
             raise PilotOrchestrationError(
                 "V2.9 q_ref equivalence receipts differ from replay"
@@ -4253,18 +4158,14 @@ def verify_v29_qref_resolution(
     """
 
     if contract.contract_id != V29_CONTRACT_ID:
-        raise PilotOrchestrationError(
-            "V2.9 q_ref replay used by another contract"
-        )
+        raise PilotOrchestrationError("V2.9 q_ref replay used by another contract")
     if (
         git_tag != contract.implementation["required_git_tag"]
         or not isinstance(resolved_git_commit, str)
         or len(resolved_git_commit) != 40
         or any(character not in "0123456789abcdef" for character in resolved_git_commit)
     ):
-        raise PilotOrchestrationError(
-            "V2.9 q_ref replay release binding is malformed"
-        )
+        raise PilotOrchestrationError("V2.9 q_ref replay release binding is malformed")
     root = Path(raw_root).resolve(strict=True)
     expected_path = root / "q-ref-resolution" / "q_ref_resolution.json"
     candidate = Path(resolution_path)
@@ -4408,12 +4309,7 @@ def _v27_stage0_envelope_path(raw_root: Path, spec: PilotRunSpec) -> Path:
 
 
 def _v27_stage0_terminal_path(raw_root: Path, spec: PilotRunSpec) -> Path:
-    return (
-        raw_root
-        / "stage0-calibration"
-        / "summaries"
-        / f"{spec.run_id}.json"
-    )
+    return raw_root / "stage0-calibration" / "summaries" / f"{spec.run_id}.json"
 
 
 def _imported_stage0_label(contract: PilotContract) -> str:
@@ -4501,18 +4397,14 @@ def _build_v210_stage0_envelope(
         raise PilotOrchestrationError(
             f"{spec.run_id} V2.10 Stage-0 source binding is malformed"
         )
-    parent_receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    parent_receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     parent_receipt = _read_json(parent_receipt_path)
     repository = (
         Path(__file__).resolve().parents[1]
         if authority_repo_root is None
         else Path(authority_repo_root).resolve(strict=True)
     )
-    source_manifest_path = repository.joinpath(
-        *V210_SOURCE_MANIFEST_PATH.parts
-    )
+    source_manifest_path = repository.joinpath(*V210_SOURCE_MANIFEST_PATH.parts)
     envelope = _seal_bound_payload(
         {
             "schema_version": PILOT_V210_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION,
@@ -4526,13 +4418,9 @@ def _build_v210_stage0_envelope(
                 "schema_version": "finevo-pilot-stage0-analysis-v1",
                 "function": "verified_v210_imported_prerequisite_binding",
                 "phase_agnostic": True,
-                "allowed_record_streams": [
-                    "imported_terminal_metrics"
-                ],
+                "allowed_record_streams": ["imported_terminal_metrics"],
                 "allowed_input_sha256": canonical_sha256(metrics),
-                "source_row_counts": _json_copy(
-                    metrics.get("row_counts", {})
-                ),
+                "source_row_counts": _json_copy(metrics.get("row_counts", {})),
                 "summary": _json_copy(metrics),
             },
             "source_import": _json_copy(source),
@@ -4555,28 +4443,18 @@ def _build_v210_stage0_envelope(
                 "git_tag": paid.git_tag,
                 "git_commit": paid.head_commit,
                 "source_contract_id": source_release.get("contract_id"),
-                "source_contract_sha256": source_release.get(
-                    "contract_sha256"
-                ),
+                "source_contract_sha256": source_release.get("contract_sha256"),
                 "source_run_id": source.get("source_run_id"),
-                "source_terminal_file_sha256": source_terminal.get(
-                    "file_sha256"
-                ),
-                "source_terminal_content_sha256": source_terminal.get(
-                    "content_sha256"
-                ),
+                "source_terminal_file_sha256": source_terminal.get("file_sha256"),
+                "source_terminal_content_sha256": source_terminal.get("content_sha256"),
                 "source_raw_inventory_sha256": source_release.get(
                     "raw_inventory_sha256"
                 ),
-                "source_manifest_file_sha256": _file_sha256(
-                    source_manifest_path
-                ),
+                "source_manifest_file_sha256": _file_sha256(source_manifest_path),
                 "source_manifest_content_sha256": source_manifest.get(
                     "integrity", {}
                 ).get("content_sha256"),
-                "parent_import_receipt_file_sha256": _file_sha256(
-                    parent_receipt_path
-                ),
+                "parent_import_receipt_file_sha256": _file_sha256(parent_receipt_path),
                 "parent_import_receipt_content_sha256": parent_receipt.get(
                     "integrity", {}
                 ).get("content_sha256"),
@@ -4643,18 +4521,14 @@ def _build_v2101_stage0_envelope(
         raise PilotOrchestrationError(
             f"{spec.run_id} V2.10.1 Stage-0 source binding is malformed"
         )
-    parent_receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    parent_receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     parent_receipt = _read_json(parent_receipt_path)
     repository = (
         Path(__file__).resolve().parents[1]
         if authority_repo_root is None
         else Path(authority_repo_root).resolve(strict=True)
     )
-    source_manifest_path = repository.joinpath(
-        *V2101_SOURCE_MANIFEST_PATH.parts
-    )
+    source_manifest_path = repository.joinpath(*V2101_SOURCE_MANIFEST_PATH.parts)
     envelope = _seal_bound_payload(
         {
             "schema_version": PILOT_V2101_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION,
@@ -4668,13 +4542,9 @@ def _build_v2101_stage0_envelope(
                 "schema_version": "finevo-pilot-stage0-analysis-v1",
                 "function": "verified_v2101_imported_prerequisite_binding",
                 "phase_agnostic": True,
-                "allowed_record_streams": [
-                    "imported_terminal_metrics"
-                ],
+                "allowed_record_streams": ["imported_terminal_metrics"],
                 "allowed_input_sha256": canonical_sha256(metrics),
-                "source_row_counts": _json_copy(
-                    metrics.get("row_counts", {})
-                ),
+                "source_row_counts": _json_copy(metrics.get("row_counts", {})),
                 "summary": _json_copy(metrics),
             },
             "source_import": _json_copy(source),
@@ -4697,28 +4567,18 @@ def _build_v2101_stage0_envelope(
                 "git_tag": paid.git_tag,
                 "git_commit": paid.head_commit,
                 "source_contract_id": source_release.get("contract_id"),
-                "source_contract_sha256": source_release.get(
-                    "contract_sha256"
-                ),
+                "source_contract_sha256": source_release.get("contract_sha256"),
                 "source_run_id": source.get("source_run_id"),
-                "source_terminal_file_sha256": source_terminal.get(
-                    "file_sha256"
-                ),
-                "source_terminal_content_sha256": source_terminal.get(
-                    "content_sha256"
-                ),
+                "source_terminal_file_sha256": source_terminal.get("file_sha256"),
+                "source_terminal_content_sha256": source_terminal.get("content_sha256"),
                 "source_raw_inventory_sha256": source_release.get(
                     "raw_inventory_sha256"
                 ),
-                "source_manifest_file_sha256": _file_sha256(
-                    source_manifest_path
-                ),
+                "source_manifest_file_sha256": _file_sha256(source_manifest_path),
                 "source_manifest_content_sha256": source_manifest.get(
                     "integrity", {}
                 ).get("content_sha256"),
-                "parent_import_receipt_file_sha256": _file_sha256(
-                    parent_receipt_path
-                ),
+                "parent_import_receipt_file_sha256": _file_sha256(parent_receipt_path),
                 "parent_import_receipt_content_sha256": parent_receipt.get(
                     "integrity", {}
                 ).get("content_sha256"),
@@ -4785,18 +4645,14 @@ def _build_v2102_stage0_envelope(
         raise PilotOrchestrationError(
             f"{spec.run_id} V2.10.2 Stage-0 source binding is malformed"
         )
-    parent_receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    parent_receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     parent_receipt = _read_json(parent_receipt_path)
     repository = (
         Path(__file__).resolve().parents[1]
         if authority_repo_root is None
         else Path(authority_repo_root).resolve(strict=True)
     )
-    source_manifest_path = repository.joinpath(
-        *V2102_SOURCE_MANIFEST_PATH.parts
-    )
+    source_manifest_path = repository.joinpath(*V2102_SOURCE_MANIFEST_PATH.parts)
     envelope = _seal_bound_payload(
         {
             "schema_version": PILOT_V2102_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION,
@@ -4812,9 +4668,7 @@ def _build_v2102_stage0_envelope(
                 "phase_agnostic": True,
                 "allowed_record_streams": ["imported_terminal_metrics"],
                 "allowed_input_sha256": canonical_sha256(metrics),
-                "source_row_counts": _json_copy(
-                    metrics.get("row_counts", {})
-                ),
+                "source_row_counts": _json_copy(metrics.get("row_counts", {})),
                 "summary": _json_copy(metrics),
             },
             "source_import": _json_copy(source),
@@ -4837,28 +4691,18 @@ def _build_v2102_stage0_envelope(
                 "git_tag": paid.git_tag,
                 "git_commit": paid.head_commit,
                 "source_contract_id": source_release.get("contract_id"),
-                "source_contract_sha256": source_release.get(
-                    "contract_sha256"
-                ),
+                "source_contract_sha256": source_release.get("contract_sha256"),
                 "source_run_id": source.get("source_run_id"),
-                "source_terminal_file_sha256": source_terminal.get(
-                    "file_sha256"
-                ),
-                "source_terminal_content_sha256": source_terminal.get(
-                    "content_sha256"
-                ),
+                "source_terminal_file_sha256": source_terminal.get("file_sha256"),
+                "source_terminal_content_sha256": source_terminal.get("content_sha256"),
                 "source_raw_inventory_sha256": source_release.get(
                     "raw_inventory_sha256"
                 ),
-                "source_manifest_file_sha256": _file_sha256(
-                    source_manifest_path
-                ),
+                "source_manifest_file_sha256": _file_sha256(source_manifest_path),
                 "source_manifest_content_sha256": source_manifest.get(
                     "integrity", {}
                 ).get("content_sha256"),
-                "parent_import_receipt_file_sha256": _file_sha256(
-                    parent_receipt_path
-                ),
+                "parent_import_receipt_file_sha256": _file_sha256(parent_receipt_path),
                 "parent_import_receipt_content_sha256": parent_receipt.get(
                     "integrity", {}
                 ).get("content_sha256"),
@@ -4923,14 +4767,12 @@ def _build_v27_stage0_envelope(
             authority_repo_root=authority_repo_root,
         )
     if contract.contract_id == V29_CONTRACT_ID:
-        result, source_binding, source_run_dir = (
-            _load_v29_imported_stage0_result(
-                contract,
-                spec,
-                raw_root=raw_root,
-                paid=paid,
-                source_manifest=source_manifest,
-            )
+        result, source_binding, source_run_dir = _load_v29_imported_stage0_result(
+            contract,
+            spec,
+            raw_root=raw_root,
+            paid=paid,
+            source_manifest=source_manifest,
         )
         source_payload = _v29_source_binding_payload(
             source_manifest=source_manifest,
@@ -4941,14 +4783,12 @@ def _build_v27_stage0_envelope(
         )
         envelope_schema = PILOT_V29_IMPORTED_RUN_ENVELOPE_SCHEMA_VERSION
     elif contract.contract_id == V28_CONTRACT_ID:
-        result, source_binding, source_run_dir = (
-            _load_v28_imported_stage0_result(
-                contract,
-                spec,
-                raw_root=raw_root,
-                paid=paid,
-                source_manifest=source_manifest,
-            )
+        result, source_binding, source_run_dir = _load_v28_imported_stage0_result(
+            contract,
+            spec,
+            raw_root=raw_root,
+            paid=paid,
+            source_manifest=source_manifest,
         )
         source_payload = _v28_source_binding_payload(
             source_manifest=source_manifest,
@@ -5004,9 +4844,7 @@ def _build_v27_stage0_envelope(
             "contract_id": contract.contract_id,
             "contract_sha256": contract.canonical_hash,
             "run_spec": spec.to_dict(),
-            "execution_disposition": (
-                "immutable-parent-import-offline-resummary"
-            ),
+            "execution_disposition": ("immutable-parent-import-offline-resummary"),
             "reader": {
                 "schema_version": "finevo-pilot-stage0-analysis-v1",
                 "function": "summarize_stage0_run",
@@ -5330,13 +5168,10 @@ def _expected_v210_family_stage0_selection(
         profile_id: [] for profile_id in ofat["profile_order"]
     }
     specs = tuple(contract.expand(stage="stage0-calibration"))
-    if (
-        len(specs) != 14
-        or any(
-            spec.execution_mode != "actor_run"
-            or spec.model_id != "llama33_local_controlled"
-            for spec in specs
-        )
+    if len(specs) != 14 or any(
+        spec.execution_mode != "actor_run"
+        or spec.model_id != "llama33_local_controlled"
+        for spec in specs
     ):
         raise PilotOrchestrationError(
             f"{label} Stage-0 import requires the exact 7x2 local actor matrix"
@@ -5376,9 +5211,7 @@ def _expected_v210_family_stage0_selection(
                 contract=contract,
                 schema_version=envelope_schema,
                 paid=paid,
-                artifact_name=(
-                    f"{label} {spec.run_id} imported Stage-0 envelope"
-                ),
+                artifact_name=(f"{label} {spec.run_id} imported Stage-0 envelope"),
             )
             if envelope != expected:
                 raise PilotOrchestrationError(
@@ -5410,16 +5243,13 @@ def _expected_v210_family_stage0_selection(
             if isinstance(artifacts, Mapping)
             else None
         )
-        if (
-            not isinstance(selection_artifact, Mapping)
-            or not isinstance(selection_artifact.get("snapshot_path"), str)
+        if not isinstance(selection_artifact, Mapping) or not isinstance(
+            selection_artifact.get("snapshot_path"), str
         ):
             raise PilotOrchestrationError(
                 f"{spec.run_id} lacks its verified source Stage-0 selection"
             )
-        selected_source = _read_json(
-            Path(selection_artifact["snapshot_path"])
-        )
+        selected_source = _read_json(Path(selection_artifact["snapshot_path"]))
         binding_projection = {
             key: selection_artifact.get(key)
             for key in (
@@ -5447,24 +5277,20 @@ def _expected_v210_family_stage0_selection(
                 "execution_disposition": envelope["execution_disposition"],
                 "envelope": str(envelope_path),
                 "envelope_file_sha256": _file_sha256(envelope_path),
-                "envelope_content_sha256": envelope["integrity"][
-                    "content_sha256"
-                ],
+                "envelope_content_sha256": envelope["integrity"]["content_sha256"],
                 "terminal_summary": str(terminal_path),
                 "terminal_summary_file_sha256": _file_sha256(terminal_path),
                 "terminal_summary_content_sha256": terminal_value["integrity"][
                     "content_sha256"
                 ],
                 "source_run_id": source_binding["source_run_id"],
-                "source_terminal_file_sha256": source_binding[
-                    "source_terminal"
-                ]["file_sha256"],
+                "source_terminal_file_sha256": source_binding["source_terminal"][
+                    "file_sha256"
+                ],
                 "provider_calls_current_attempt": 0,
             }
         )
-        cells.append(
-            (spec, envelope_path, terminal_path, dict(summary))
-        )
+        cells.append((spec, envelope_path, terminal_path, dict(summary)))
     if source_selection is None or source_selection_binding is None:
         raise PilotOrchestrationError(
             f"{label} Stage-0 source selection is unavailable"
@@ -5519,12 +5345,12 @@ def _expected_v210_family_stage0_selection(
                 "git_commit": paid.head_commit,
                 "q_ref_content_sha256": q_ref["integrity"]["content_sha256"],
                 "q_ref_file_sha256": _file_sha256(q_ref_path),
-                "source_manifest_content_sha256": source_manifest[
-                    "integrity"
-                ]["content_sha256"],
-                "parent_import_receipt_content_sha256": parent_receipt[
-                    "integrity"
-                ]["content_sha256"],
+                "source_manifest_content_sha256": source_manifest["integrity"][
+                    "content_sha256"
+                ],
+                "parent_import_receipt_content_sha256": parent_receipt["integrity"][
+                    "content_sha256"
+                ],
                 "source_stage0_selection": source_selection_binding,
                 "source_envelopes": sorted(
                     source_envelopes,
@@ -5753,17 +5579,18 @@ def _expected_v27_stage0_selection(
                                 source_manifest,
                             )
                             if contract.contract_id == V29_CONTRACT_ID
-                            else
-                            imported_v26_run_dir_v28(
-                                raw_root,
-                                spec,
-                                source_manifest,
-                            )
-                            if contract.contract_id == V28_CONTRACT_ID
-                            else imported_v26_run_dir(
-                                raw_root,
-                                spec,
-                                source_manifest,
+                            else (
+                                imported_v26_run_dir_v28(
+                                    raw_root,
+                                    spec,
+                                    source_manifest,
+                                )
+                                if contract.contract_id == V28_CONTRACT_ID
+                                else imported_v26_run_dir(
+                                    raw_root,
+                                    spec,
+                                    source_manifest,
+                                )
                             )
                         )
                         / "manifest.json"
@@ -5781,24 +5608,18 @@ def _expected_v27_stage0_selection(
                 "execution_disposition": envelope["execution_disposition"],
                 "envelope": str(envelope_path),
                 "envelope_file_sha256": _file_sha256(envelope_path),
-                "envelope_content_sha256": envelope["integrity"][
-                    "content_sha256"
-                ],
+                "envelope_content_sha256": envelope["integrity"]["content_sha256"],
                 "terminal_summary": str(terminal_path),
                 "terminal_summary_file_sha256": _file_sha256(terminal_path),
                 "terminal_summary_content_sha256": terminal_value["integrity"][
                     "content_sha256"
                 ],
                 "source_run_id": source_binding["source_run_id"],
-                "source_manifest_sha256": source_manifest_binding[
-                    "file_sha256"
-                ],
+                "source_manifest_sha256": source_manifest_binding["file_sha256"],
                 "provider_calls_current_attempt": 0,
             }
         )
-        cells.append(
-            (spec, envelope_path, terminal_path, dict(summary))
-        )
+        cells.append((spec, envelope_path, terminal_path, dict(summary)))
     selection = select_stage0_profile(ofat, by_profile)
     selection["absolute_flow_utility_threshold"] = (
         _derive_stage0_absolute_flow_threshold(
@@ -5870,6 +5691,34 @@ def _load_verified_stage0_selection(
                 "diagnostic Stage-0 selection lacks its non-scientific boundary"
             )
         return value
+    if contract.contract_id == V2112_CONTRACT_ID:
+        if paid is None:
+            raise PilotOrchestrationError(
+                "V2.11.2 imported Stage-0 selection requires paid provenance"
+            )
+        calibration = _load_verified_v2112_calibration(
+            contract,
+            raw_root=raw_root,
+            paid=paid,
+            authority_repo_root=authority_repo_root,
+        )
+        return {
+            "schema_version": (
+                "finevo-pilot-v2.11.2-imported-stage0-selection-view-v1"
+            ),
+            "contract_sha256": contract.canonical_hash,
+            "selected_profile_id": calibration["selected_profile_id"],
+            "selected_utility": _json_copy(calibration["selected_utility"]),
+            "absolute_flow_utility_threshold": _json_copy(
+                calibration["absolute_flow_utility_threshold"]
+            ),
+            "outcome_fields_used": [],
+            "provider_calls_current_attempt": 0,
+            "scientific_evidence": False,
+            "source_parent_import_content_sha256": calibration["receipt"]["integrity"][
+                "content_sha256"
+            ],
+        }
     if contract.contract_id == V2111_CONTRACT_ID:
         if paid is None:
             raise PilotOrchestrationError(
@@ -5894,9 +5743,9 @@ def _load_verified_stage0_selection(
             "outcome_fields_used": [],
             "provider_calls_current_attempt": 0,
             "scientific_evidence": False,
-            "source_parent_import_content_sha256": calibration["receipt"][
-                "integrity"
-            ]["content_sha256"],
+            "source_parent_import_content_sha256": calibration["receipt"]["integrity"][
+                "content_sha256"
+            ],
         }
     if contract.contract_id == V211_CONTRACT_ID:
         calibration = _load_verified_v211_calibration(
@@ -5905,9 +5754,7 @@ def _load_verified_stage0_selection(
             authority_repo_root=authority_repo_root,
         )
         return {
-            "schema_version": (
-                "finevo-pilot-v2.11-imported-stage0-selection-view-v1"
-            ),
+            "schema_version": ("finevo-pilot-v2.11-imported-stage0-selection-view-v1"),
             "contract_sha256": contract.canonical_hash,
             "selected_profile_id": calibration["selected_profile_id"],
             "selected_utility": _json_copy(calibration["selected_utility"]),
@@ -5917,9 +5764,9 @@ def _load_verified_stage0_selection(
             "outcome_fields_used": [],
             "provider_calls_current_attempt": 0,
             "scientific_evidence": False,
-            "source_parent_import_content_sha256": calibration["receipt"][
-                "integrity"
-            ]["content_sha256"],
+            "source_parent_import_content_sha256": calibration["receipt"]["integrity"][
+                "content_sha256"
+            ],
         }
     value = _read_json(path)
     if paid is None and not isinstance(value.get("bindings"), Mapping):
@@ -6106,9 +5953,7 @@ def verify_v27_stage0_selection(
             "imported Stage-0 selection release binding is malformed"
         )
     root = Path(raw_root).resolve(strict=True)
-    expected_path = (
-        root / "stage0-calibration" / "stage0_selection.json"
-    )
+    expected_path = root / "stage0-calibration" / "stage0_selection.json"
     candidate = Path(selection_path)
     if candidate.is_symlink() or candidate.resolve(strict=True) != expected_path:
         raise PilotOrchestrationError(
@@ -6282,9 +6127,7 @@ def config_for_spec(
             episode_length=horizon,
         ),
         prompt_tier_ceiling_tokens=(
-            200_000
-            if contract.contract_id in V211_FAMILY_CONTRACT_IDS
-            else None
+            200_000 if contract.contract_id in V211_FAMILY_CONTRACT_IDS else None
         ),
         scientific_scope=(
             "preregistered_mechanism_micro_pilot"
@@ -6382,9 +6225,7 @@ def _repository_relative_path(
         or relative.parts[0] != required_top
         or any(part in {"", ".", ".."} for part in relative.parts)
     ):
-        raise PilotOrchestrationError(
-            f"{name} must stay below {required_top}/"
-        )
+        raise PilotOrchestrationError(f"{name} must stay below {required_top}/")
     return relative.as_posix()
 
 
@@ -6481,6 +6322,61 @@ def _verified_observed_p95_binding(
     paid: GitProvenance,
     authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
+    if contract.contract_id == V2112_CONTRACT_ID:
+        if model_id not in {"gpt52_main", "gpt56_diagnostic"}:
+            raise PilotOrchestrationError(
+                f"{model_id} has no V2.11.2 post-gate dispatch authority"
+            )
+        release_root = (
+            Path(__file__).resolve().parents[1]
+            if authority_repo_root is None
+            else Path(authority_repo_root).resolve(strict=True)
+        )
+        receipt_path = _observed_p95_authority_receipt_path(
+            contract,
+            model_id,
+            raw_root=raw_root,
+        )
+        relative = _repository_relative_path(
+            receipt_path,
+            required_top="experiment_results",
+            name="V2.11.2 post-gate authority receipt",
+            repo_root=release_root,
+        )
+        try:
+            binding = verified_v2112_gate_authority_binding(
+                relative,
+                repo_root=release_root,
+                expected_git_commit=paid.head_commit,
+                expected_contract_sha256=contract.canonical_hash,
+            )
+        except PilotV2112GateError as exc:
+            raise PilotOrchestrationError(
+                f"V2.11.2 post-gate authority failed validation: {exc}"
+            ) from exc
+        runtime_model = _runtime_model_for_profile(contract.provider_profiles[model_id])
+        reservations = binding.get("reservations")
+        if (
+            set(binding)
+            != {
+                "receipt_path",
+                "receipt_file_sha256",
+                "receipt_content_sha256",
+                "git_commit",
+                "reservations",
+            }
+            or binding.get("receipt_path") != relative
+            or binding.get("git_commit") != paid.head_commit
+            or not isinstance(reservations, Mapping)
+            or runtime_model not in reservations
+        ):
+            raise PilotOrchestrationError(
+                f"V2.11.2 {model_id} flat p95 authority identity drifted"
+            )
+        return {
+            **{key: value for key, value in binding.items() if key != "reservations"},
+            "reservations": {runtime_model: _json_copy(reservations[runtime_model])},
+        }
     if contract.contract_id == V2111_CONTRACT_ID:
         if model_id not in {"gpt52_main", "gpt56_diagnostic"}:
             raise PilotOrchestrationError(
@@ -6513,9 +6409,7 @@ def _verified_observed_p95_binding(
             raise PilotOrchestrationError(
                 f"V2.11.1 post-gate authority failed validation: {exc}"
             ) from exc
-        runtime_model = _runtime_model_for_profile(
-            contract.provider_profiles[model_id]
-        )
+        runtime_model = _runtime_model_for_profile(contract.provider_profiles[model_id])
         reservations = binding.get("reservations")
         if (
             set(binding)
@@ -6535,14 +6429,8 @@ def _verified_observed_p95_binding(
                 f"V2.11.1 {model_id} flat p95 authority identity drifted"
             )
         return {
-            **{
-                key: value
-                for key, value in binding.items()
-                if key != "reservations"
-            },
-            "reservations": {
-                runtime_model: _json_copy(reservations[runtime_model])
-            },
+            **{key: value for key, value in binding.items() if key != "reservations"},
+            "reservations": {runtime_model: _json_copy(reservations[runtime_model])},
         }
     if contract.contract_id == V211_CONTRACT_ID:
         if model_id not in {"gpt52_main", "gpt56_diagnostic"}:
@@ -6576,9 +6464,7 @@ def _verified_observed_p95_binding(
             raise PilotOrchestrationError(
                 f"V2.11 post-gate authority failed validation: {exc}"
             ) from exc
-        runtime_model = _runtime_model_for_profile(
-            contract.provider_profiles[model_id]
-        )
+        runtime_model = _runtime_model_for_profile(contract.provider_profiles[model_id])
         reservations = binding.get("reservations")
         if (
             set(binding)
@@ -6602,9 +6488,7 @@ def _verified_observed_p95_binding(
         # immutable receipt/file/content binding.
         return {
             **{key: value for key, value in binding.items() if key != "reservations"},
-            "reservations": {
-                runtime_model: _json_copy(reservations[runtime_model])
-            },
+            "reservations": {runtime_model: _json_copy(reservations[runtime_model])},
         }
     if contract.contract_id == V2102_CONTRACT_ID:
         if model_id not in V2102_ALLOWED_P95_PROFILES:
@@ -6763,9 +6647,7 @@ def _verified_observed_p95_binding(
             or binding.get("source_contract_id") != V28_CONTRACT_ID
             or binding.get("source_git_commit") != V29_PARENT_COMMIT
             or binding.get("served_model") != profile.served_model
-            or binding.get("runtime_model") != _runtime_model_for_profile(
-                profile
-            )
+            or binding.get("runtime_model") != _runtime_model_for_profile(profile)
         ):
             raise PilotOrchestrationError(
                 "V2.9 imported p95 authority identity drifted"
@@ -6908,24 +6790,18 @@ def _verify_v27_importer_p95_profiles(
         else V27_ALLOWED_P95_PROFILES
     )
     profiles = importer_result.get("resealed_p95_profiles")
-    if not isinstance(profiles, Mapping) or set(profiles) != set(
-        allowed_profiles
-    ):
+    if not isinstance(profiles, Mapping) or set(profiles) != set(allowed_profiles):
         raise PilotOrchestrationError(
             f"{label} importer did not return both exact p95 profiles"
         )
     for model_id in sorted(allowed_profiles):
         imported = profiles.get(model_id)
-        if (
-            not isinstance(imported, Mapping)
-            or set(imported)
-            != {
-                "receipt",
-                "projection",
-                "runtime_models",
-                "source_kind",
-            }
-        ):
+        if not isinstance(imported, Mapping) or set(imported) != {
+            "receipt",
+            "projection",
+            "runtime_models",
+            "source_kind",
+        }:
             raise PilotOrchestrationError(
                 f"{label} importer {model_id} p95 result is malformed"
             )
@@ -6975,18 +6851,14 @@ def _verify_v27_importer_p95_profiles(
             name=f"{model_id} {label} p95 projection",
         )
         if (
-            imported.get("source_kind")
-            != expected_source_kind
-            or imported.get("runtime_models")
-            != sorted(receipt_binding["reservations"])
+            imported.get("source_kind") != expected_source_kind
+            or imported.get("runtime_models") != sorted(receipt_binding["reservations"])
             or receipt.get("path") != expected_receipt_relative
-            or receipt.get("file_sha256")
-            != receipt_binding["receipt_file_sha256"]
+            or receipt.get("file_sha256") != receipt_binding["receipt_file_sha256"]
             or receipt.get("content_sha256")
             != receipt_binding["receipt_content_sha256"]
             or projection.get("path") != expected_projection_relative
-            or projection.get("file_sha256")
-            != _file_sha256(projection_path)
+            or projection.get("file_sha256") != _file_sha256(projection_path)
             or projection.get("content_sha256")
             != payload.get("integrity", {}).get("content_sha256")
         ):
@@ -7048,8 +6920,7 @@ def _verify_v29_importer_p95_profiles(
             or binding.get("source_contract_id") != V28_CONTRACT_ID
             or binding.get("source_git_commit") != V29_PARENT_COMMIT
             or binding.get("served_model") != profile.served_model
-            or binding.get("runtime_model")
-            != _runtime_model_for_profile(profile)
+            or binding.get("runtime_model") != _runtime_model_for_profile(profile)
             or not isinstance(binding.get("authority"), Mapping)
             or not isinstance(binding.get("projection"), Mapping)
             or not isinstance(binding.get("reservations"), Mapping)
@@ -7088,8 +6959,7 @@ def _verify_v210_importer_p95_profiles(
         importer_result.get("imported_cell_count") != 16
         or importer_result.get("imported_q_ref_cell_count") != 1
         or importer_result.get("imported_stage0_cell_count") != 14
-        or importer_result.get("offline_candidate_admission_cells_imported")
-        != 0
+        or importer_result.get("offline_candidate_admission_cells_imported") != 0
         or importer_result.get("provider_construction_during_import") is not False
         or importer_result.get("provider_calls_during_import") != 0
         or importer_result.get("hosted_provider_calls_during_import") != 0
@@ -7100,9 +6970,8 @@ def _verify_v210_importer_p95_profiles(
             "V2.10 importer result violates its exact zero-call boundary"
         )
     declared_profiles = receipt.get("p95_current_release_authorities")
-    if (
-        not isinstance(declared_profiles, Mapping)
-        or set(declared_profiles) != set(V210_ALLOWED_P95_PROFILES)
+    if not isinstance(declared_profiles, Mapping) or set(declared_profiles) != set(
+        V210_ALLOWED_P95_PROFILES
     ):
         raise PilotOrchestrationError(
             "V2.10 parent receipt lacks both exact current-release P95 profiles"
@@ -7185,8 +7054,7 @@ def _verify_v2101_importer_p95_profiles(
         importer_result.get("imported_cell_count") != 16
         or importer_result.get("imported_q_ref_cell_count") != 1
         or importer_result.get("imported_stage0_cell_count") != 14
-        or importer_result.get("offline_candidate_admission_cells_imported")
-        != 0
+        or importer_result.get("offline_candidate_admission_cells_imported") != 0
         or importer_result.get("provider_construction_during_import") is not False
         or importer_result.get("provider_calls_during_import") != 0
         or importer_result.get("hosted_provider_calls_during_import") != 0
@@ -7198,9 +7066,8 @@ def _verify_v2101_importer_p95_profiles(
             "V2.10.1 importer result violates its exact zero-call boundary"
         )
     declared_profiles = receipt.get("p95_current_release_authorities")
-    if (
-        not isinstance(declared_profiles, Mapping)
-        or set(declared_profiles) != set(V2101_ALLOWED_P95_PROFILES)
+    if not isinstance(declared_profiles, Mapping) or set(declared_profiles) != set(
+        V2101_ALLOWED_P95_PROFILES
     ):
         raise PilotOrchestrationError(
             "V2.10.1 parent receipt lacks both exact current-release P95 profiles"
@@ -7284,8 +7151,7 @@ def _verify_v2102_importer_p95_profiles(
         importer_result.get("imported_cell_count") != 16
         or importer_result.get("imported_q_ref_cell_count") != 1
         or importer_result.get("imported_stage0_cell_count") != 14
-        or importer_result.get("offline_candidate_admission_cells_imported")
-        != 0
+        or importer_result.get("offline_candidate_admission_cells_imported") != 0
         or importer_result.get("provider_construction_during_import") is not False
         or importer_result.get("provider_calls_during_import") != 0
         or importer_result.get("hosted_provider_calls_during_import") != 0
@@ -7297,9 +7163,8 @@ def _verify_v2102_importer_p95_profiles(
             "V2.10.2 importer result violates its exact zero-call boundary"
         )
     declared_profiles = receipt.get("p95_current_release_authorities")
-    if (
-        not isinstance(declared_profiles, Mapping)
-        or set(declared_profiles) != set(V2102_ALLOWED_P95_PROFILES)
+    if not isinstance(declared_profiles, Mapping) or set(declared_profiles) != set(
+        V2102_ALLOWED_P95_PROFILES
     ):
         raise PilotOrchestrationError(
             "V2.10.2 parent receipt lacks both exact current-release P95 profiles"
@@ -7397,9 +7262,7 @@ def _runner_p95_reservations(
         }
         amendment = contract.p95_runner_binding_retry_amendment
         declared_fields = (
-            amendment["p95_runner_binding_repair"][
-                "runner_binding_required_fields"
-            ]
+            amendment["p95_runner_binding_repair"]["runner_binding_required_fields"]
             if amendment is not None
             else ()
         )
@@ -7447,8 +7310,7 @@ def _runner_p95_reservations(
                 != "stop-before-provider-construction"
                 or repair.get("receipt_replacement_race_policy")
                 != "guarded-read-binding-mismatch-stop"
-                or repair.get("provider_construction_before_verification")
-                is not False
+                or repair.get("provider_construction_before_verification") is not False
                 or repair.get("validation_before_provider_construction") is not True
             ):
                 raise PilotOrchestrationError(
@@ -7462,9 +7324,7 @@ def _runner_p95_reservations(
         or set(receipt_reservations) != {runtime_model}
         or not isinstance(receipt_reservations[runtime_model], Mapping)
     ):
-        raise PilotOrchestrationError(
-            "observed p95 receipt model reservations drifted"
-        )
+        raise PilotOrchestrationError("observed p95 receipt model reservations drifted")
     by_kind: dict[str, Any] = {}
     for call_kind in ("action", "semantic"):
         entry = receipt_reservations[runtime_model].get(call_kind)
@@ -7483,9 +7343,7 @@ def _runner_p95_reservations(
         by_kind[call_kind] = {
             "authority": {
                 **_json_copy(entry["authority"]),
-                "source_authority_receipt_path": (
-                    receipt_binding["receipt_path"]
-                ),
+                "source_authority_receipt_path": (receipt_binding["receipt_path"]),
                 "source_authority_receipt_file_sha256": (
                     receipt_binding["receipt_file_sha256"]
                 ),
@@ -7714,9 +7572,7 @@ def _exception_failure(
         else:
             details = None
         if details is not None:
-            failure.update(
-                bounded_failure_details(_json_copy(details))
-            )
+            failure.update(bounded_failure_details(_json_copy(details)))
     return failure
 
 
@@ -7964,9 +7820,7 @@ def _preflight_config(
     *,
     paid: GitProvenance,
     raw_root: Path | None = None,
-    contract_bootstrap_reservations: Mapping[
-        str, Mapping[str, Any]
-    ] | None = None,
+    contract_bootstrap_reservations: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> VerifiedRunConfig:
     v211_family = contract.contract_id in V211_FAMILY_CONTRACT_IDS
     if v211_family:
@@ -7976,15 +7830,23 @@ def _preflight_config(
                 "calibration root"
             )
         calibration = (
-            _load_verified_v2111_calibration(
+            _load_verified_v2112_calibration(
                 contract,
                 raw_root=raw_root,
                 paid=paid,
             )
-            if contract.contract_id == V2111_CONTRACT_ID
-            else _load_verified_v211_calibration(
-                contract,
-                raw_root=raw_root,
+            if contract.contract_id == V2112_CONTRACT_ID
+            else (
+                _load_verified_v2111_calibration(
+                    contract,
+                    raw_root=raw_root,
+                    paid=paid,
+                )
+                if contract.contract_id == V2111_CONTRACT_ID
+                else _load_verified_v211_calibration(
+                    contract,
+                    raw_root=raw_root,
+                )
             )
         )
         profile = calibration["selected_utility"]
@@ -8075,13 +7937,9 @@ def _preflight_config(
         ),
         pilot_tag=paid.git_tag if scientific_authorization else None,
         allow_scientific_scope=scientific_authorization,
-        contract_bootstrap_reservations=(
-            contract_bootstrap_reservations or {}
-        ),
+        contract_bootstrap_reservations=(contract_bootstrap_reservations or {}),
         preflight_measurement_role=(
-            "closed_loop_preflight"
-            if contract_bootstrap_reservations
-            else None
+            "closed_loop_preflight" if contract_bootstrap_reservations else None
         ),
     )
 
@@ -8091,17 +7949,29 @@ class _CheckpointPreflightResult:
 
     def __init__(self, checkpoint: PilotCheckpoint) -> None:
         payload = checkpoint.payload
+        action_parse_modes = {
+            (int(row["decision_t"]), str(row["agent_id"])): row.get(
+                "parse_disposition", {}
+            ).get("parse_mode")
+            for row in payload["provider_calls"]
+            if row.get("call_kind") == "action"
+        }
+        actions = []
+        for step in payload["prefix_steps"]:
+            decision_t = int(step["decision_t"])
+            for agent_id, decision in step["decisions"].items():
+                normalized = dict(decision)
+                parse_mode = action_parse_modes.get((decision_t, str(agent_id)))
+                if parse_mode is not None:
+                    normalized["parse_mode"] = parse_mode
+                actions.append({"decision": normalized})
         self.summary = {
             "scientific_evidence": False,
             "result_scope": "preregistered_capability_preflight",
         }
         self.validation_status = {"status": "pass"}
         self._streams = {
-            "actions": tuple(
-                {"decision": dict(decision)}
-                for step in payload["prefix_steps"]
-                for decision in step["decisions"].values()
-            ),
+            "actions": tuple(actions),
             "semantic_proposals": tuple(payload["proposal_outcomes"]),
             "api_usage": tuple(payload["provider_calls"]),
         }
@@ -8231,7 +8101,8 @@ def _preflight_checks(
             "action_parse_success_24_of_24"
             if v211_long_context
             else "action_parse_success_12_of_12"
-        ): len(actions) == expected_actions
+        ): len(actions)
+        == expected_actions
         and (
             not v211_long_context
             or all(
@@ -8366,9 +8237,8 @@ def _preflight_checks(
                 if v211_long_context
                 else "proposal_outcomes_accounted_4_of_4"
             )
-        ] = (
-            len(proposals) == expected_proposals
-            and checks.pop("proposal_outcomes_accounted")
+        ] = len(proposals) == expected_proposals and checks.pop(
+            "proposal_outcomes_accounted"
         )
         checks[
             (
@@ -8376,7 +8246,7 @@ def _preflight_checks(
                 if v211_long_context
                 else "provider_calls_accounted_16_of_16"
             )
-        ] = len(api_rows) == expected_calls
+        ] = (len(api_rows) == expected_calls)
     return checks
 
 
@@ -8423,6 +8293,11 @@ def _usage_projection_rows(
             )
     else:
         imported_rows = capability.get("usage_projection_rows")
+        if imported_rows is None:
+            # V2.11.2 inherits the normalized V2.11.1 capability wrapper.
+            # Its 30 immutable usage records are already in projection-ready
+            # response_model/call_kind/usage form under ``usage_rows``.
+            imported_rows = capability.get("usage_rows")
         if isinstance(imported_rows, (str, bytes)) or not isinstance(
             imported_rows, Sequence
         ):
@@ -8452,6 +8327,35 @@ def _usage_projection_rows(
     return rows
 
 
+def _dispatch_projection_rows(
+    contract: PilotContract,
+    capability: Mapping[str, Any],
+    preflight_result: Any,
+) -> list[dict[str, Any]]:
+    """Return the release-authorized usage denominator for dispatch P95.
+
+    V2.11.2's recovery amendment makes the newly collected long-context
+    preflight the sole normal-science reservation authority.  Its inherited
+    V2.11.1 capability rows remain capability-audit evidence only.  Older
+    releases retain their original combined capability/preflight semantics.
+    """
+
+    if contract.contract_id == V2112_CONTRACT_ID:
+        return [
+            {
+                "response_model": row["response_model"],
+                "call_kind": row["call_kind"],
+                "usage": row["usage"],
+            }
+            for row in preflight_result.stream("api_usage")
+        ]
+    return _usage_projection_rows(
+        capability,
+        preflight_result,
+        capability_call_kind_map=_capability_projection_call_kind_map(contract),
+    )
+
+
 def _capability_projection_call_kind_map(
     contract: PilotContract,
 ) -> Mapping[str, str] | None:
@@ -8467,18 +8371,13 @@ def _capability_projection_call_kind_map(
         return None
     policy = amendment.get("bootstrap_policy")
     if not isinstance(policy, Mapping):
-        raise PilotOrchestrationError(
-            "preflight bootstrap policy is malformed"
-        )
+        raise PilotOrchestrationError("preflight bootstrap policy is malformed")
     value = policy.get("source_output_contract_map")
     if not isinstance(value, Mapping):
         raise PilotOrchestrationError(
             "preflight bootstrap output-contract map is malformed"
         )
-    return {
-        str(source): str(target)
-        for source, target in value.items()
-    }
+    return {str(source): str(target) for source, target in value.items()}
 
 
 def _capability_import_with_preflight(
@@ -8498,6 +8397,33 @@ def _capability_import_with_preflight(
             "canonicalization": PILOT_BOUND_ARTIFACT_CANONICALIZATION,
             "content_sha256": canonical_sha256(value),
         }
+    return value
+
+
+def _v2112_reseal_long_context_exactness(
+    receipt: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Rebind unchanged V2.11 exactness semantics to the V2.11.2 release.
+
+    The underlying checkpoint is still replayed by the audited V2.11
+    verifier.  Only the receipt schema and its self-hash change, preventing a
+    historical V2.11/V2.11.1 receipt from being accepted as fresh V2.11.2
+    evidence.
+    """
+
+    value = _json_copy(receipt)
+    claimed = value.pop("receipt_hash", None)
+    if (
+        value.get("schema_version")
+        != "finevo-v2.11-long-context-preflight-exactness-receipt-v1"
+        or not isinstance(claimed, str)
+        or claimed != canonical_sha256(value)
+    ):
+        raise PilotOrchestrationError(
+            "V2.11.2 exactness reseal requires a valid V2.11 verifier receipt"
+        )
+    value["schema_version"] = V2112_PREFLIGHT_EXACTNESS_SCHEMA_VERSION
+    value["receipt_hash"] = canonical_sha256(value)
     return value
 
 
@@ -8551,10 +8477,7 @@ def _bootstrap_target_context(
         stage=preflight_stage,
         model=capability_spec.model_id,
     )
-    if (
-        len(targets) != 1
-        or targets[0].execution_mode != "closed_loop_preflight"
-    ):
+    if len(targets) != 1 or targets[0].execution_mode != "closed_loop_preflight":
         raise PilotOrchestrationError(
             "bootstrap source does not resolve to one exact preflight cell"
         )
@@ -8620,6 +8543,215 @@ def _persist_capability_bootstrap_projection(
     return projection, path
 
 
+def _v2112_bootstrap_source_context(
+    contract: PilotContract,
+    *,
+    model_id: str,
+    target: PilotRunSpec,
+    raw_root: Path,
+    repo_root: Path,
+    paid: GitProvenance,
+    config_sha256: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Rebuild the immutable V2.11.1 wrapper and exact bootstrap kwargs."""
+
+    receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
+    try:
+        source = verified_v2112_capability_source(
+            receipt_path,
+            model_id=model_id,
+            repo_root=repo_root,
+            child_contract_sha256=contract.canonical_hash,
+            child_git_tag=paid.git_tag,
+            child_git_commit=paid.head_commit,
+        )
+        manifest = load_v2112_source_manifest(repo_root=repo_root)
+    except PilotV2112ParentImportError as exc:
+        raise PilotOrchestrationError(
+            f"V2.11.2 bootstrap source failed validation: {exc}"
+        ) from exc
+    root_hint = manifest.get("parent_release", {}).get("root_hint")
+    if not isinstance(root_hint, str) or not root_hint:
+        raise PilotOrchestrationError("V2.11.2 bootstrap source root hint is malformed")
+    try:
+        parent_root = (repo_root / root_hint).resolve(strict=True)
+    except OSError as exc:
+        raise PilotOrchestrationError(
+            "V2.11.2 immutable V2.11.1 source root is unavailable"
+        ) from exc
+    if not parent_root.is_dir():
+        raise PilotOrchestrationError(
+            "V2.11.2 immutable V2.11.1 source root is not a directory"
+        )
+    source_capability_path = parent_root / source["source_path"]
+    source_parent_receipt_path = (
+        parent_root
+        / "experiment_results"
+        / "pilot-v2.11.1"
+        / "raw"
+        / "parent-import"
+        / "parent_import_receipt.json"
+    )
+    source_parent_receipt = _read_json(source_parent_receipt_path)
+    source_release = source["source_release"]
+    kwargs = {
+        "source_parent_receipt": source_parent_receipt,
+        "model_id": model_id,
+        "source_contract_sha256": source_release["contract_sha256"],
+        "source_capability_spec": source["run_spec"],
+        "target_contract_sha256": contract.canonical_hash,
+        "target_preflight_spec": target.to_dict(),
+        "provider_profile": contract.provider_profiles[model_id].to_dict(),
+        "source_parent_receipt_path": source_parent_receipt_path,
+        "source_parent_receipt_file_sha256": _file_sha256(source_parent_receipt_path),
+        "source_capability_path": source_capability_path,
+        "source_capability_file_sha256": source["source_file_sha256"],
+        "source_git_tag": source_release["git_tag"],
+        "source_git_commit": source_release["resolved_git_commit"],
+        "target_git_tag": paid.git_tag,
+        "target_git_commit": paid.head_commit,
+        "authorized_config_sha256": config_sha256,
+    }
+    return source, kwargs
+
+
+def _persist_v2112_bootstrap_projection(
+    contract: PilotContract,
+    capability_spec: PilotRunSpec,
+    *,
+    raw_root: Path,
+    repo_root: Path,
+    paid: GitProvenance,
+) -> tuple[dict[str, Any], Path]:
+    """Seal the V2.11.1-to-V2.11.2 operational preflight authority."""
+
+    if (
+        contract.contract_id != V2112_CONTRACT_ID
+        or contract.v2112_recovery_amendment is None
+        or capability_spec.execution_mode != "capability_authority_import"
+    ):
+        raise PilotOrchestrationError(
+            "V2.11.2 bootstrap requires one imported capability source"
+        )
+    targets = contract.expand(
+        stage="long-context-preflight",
+        model=capability_spec.model_id,
+    )
+    if len(targets) != 1 or targets[0].execution_mode != "closed_loop_preflight":
+        raise PilotOrchestrationError(
+            "V2.11.2 bootstrap lacks one exact target preflight cell"
+        )
+    target = targets[0]
+    provisional = _preflight_config(
+        contract,
+        target,
+        paid=paid,
+        raw_root=raw_root,
+    )
+    config_sha256 = bootstrap_config_binding_sha256(
+        provisional,
+        measurement_role="closed_loop_preflight",
+    )
+    source, kwargs = _v2112_bootstrap_source_context(
+        contract,
+        model_id=capability_spec.model_id,
+        target=target,
+        raw_root=raw_root,
+        repo_root=repo_root,
+        paid=paid,
+        config_sha256=config_sha256,
+    )
+    try:
+        projection = build_v2112_contract_envelope_bootstrap_projection(
+            source["payload"],
+            **kwargs,
+        )
+    except PilotV2112BootstrapError as exc:
+        raise PilotOrchestrationError(
+            f"V2.11.2 bootstrap source failed validation: {exc}"
+        ) from exc
+    path = (
+        raw_root
+        / capability_spec.stage_id
+        / "runs"
+        / capability_spec.run_id
+        / V2112_BOOTSTRAP_PROJECTION_FILENAME
+    )
+    _persist_exact_json(path, projection)
+    try:
+        validate_v2112_contract_envelope_bootstrap_projection(
+            _read_json(path),
+            source["payload"],
+            **kwargs,
+        )
+    except PilotV2112BootstrapError as exc:
+        raise PilotOrchestrationError(
+            f"V2.11.2 persisted bootstrap failed validation: {exc}"
+        ) from exc
+    return projection, path
+
+
+def _load_v2112_bootstrap_projection(
+    contract: PilotContract,
+    *,
+    preflight_spec: PilotRunSpec,
+    raw_root: Path,
+    repo_root: Path,
+    paid: GitProvenance,
+) -> tuple[dict[str, Any], Path, dict[str, dict[str, Any]]]:
+    capability_specs = contract.expand(
+        stage="capability-gate",
+        model=preflight_spec.model_id,
+    )
+    if (
+        contract.contract_id != V2112_CONTRACT_ID
+        or len(capability_specs) != 1
+        or capability_specs[0].execution_mode != "capability_authority_import"
+    ):
+        raise PilotOrchestrationError(
+            "V2.11.2 preflight lacks one imported capability source"
+        )
+    capability_spec = capability_specs[0]
+    provisional = _preflight_config(
+        contract,
+        preflight_spec,
+        paid=paid,
+        raw_root=raw_root,
+    )
+    config_sha256 = bootstrap_config_binding_sha256(
+        provisional,
+        measurement_role="closed_loop_preflight",
+    )
+    source, kwargs = _v2112_bootstrap_source_context(
+        contract,
+        model_id=preflight_spec.model_id,
+        target=preflight_spec,
+        raw_root=raw_root,
+        repo_root=repo_root,
+        paid=paid,
+        config_sha256=config_sha256,
+    )
+    path = (
+        raw_root
+        / capability_spec.stage_id
+        / "runs"
+        / capability_spec.run_id
+        / V2112_BOOTSTRAP_PROJECTION_FILENAME
+    )
+    try:
+        projection = _read_json(path)
+        reservations = runner_reservations_from_v2112_bootstrap_projection(
+            projection,
+            source["payload"],
+            **kwargs,
+        )
+    except (OSError, ValueError, PilotV2112BootstrapError) as exc:
+        raise PilotOrchestrationError(
+            f"V2.11.2 bootstrap load failed validation: {exc}"
+        ) from exc
+    return projection, path, reservations
+
+
 def _persist_v2111_bootstrap_projection(
     contract: PilotContract,
     capability_spec: PilotRunSpec,
@@ -8642,10 +8774,7 @@ def _persist_v2111_bootstrap_projection(
         stage="long-context-preflight",
         model=capability_spec.model_id,
     )
-    if (
-        len(targets) != 1
-        or targets[0].execution_mode != "closed_loop_preflight"
-    ):
+    if len(targets) != 1 or targets[0].execution_mode != "closed_loop_preflight":
         raise PilotOrchestrationError(
             "V2.11.1 bootstrap lacks one exact target preflight cell"
         )
@@ -8660,9 +8789,7 @@ def _persist_v2111_bootstrap_projection(
         provisional,
         measurement_role="closed_loop_preflight",
     )
-    receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     try:
         source = verified_v2111_capability_source(
             receipt_path,
@@ -8674,9 +8801,7 @@ def _persist_v2111_bootstrap_projection(
         )
         kwargs = {
             "model_id": capability_spec.model_id,
-            "source_contract_sha256": source["parent_release"][
-                "contract_sha256"
-            ],
+            "source_contract_sha256": source["parent_release"]["contract_sha256"],
             "source_capability_spec": source["spec"],
             "target_contract_sha256": contract.canonical_hash,
             "target_preflight_spec": target.to_dict(),
@@ -8684,22 +8809,16 @@ def _persist_v2111_bootstrap_projection(
                 capability_spec.model_id
             ].to_dict(),
             "source_capability_path": source["source"]["resolved_path"],
-            "source_capability_file_sha256": source["source"][
-                "file_sha256"
-            ],
+            "source_capability_file_sha256": source["source"]["file_sha256"],
             "source_git_tag": source["parent_release"]["git_tag"],
-            "source_git_commit": source["parent_release"][
-                "resolved_git_commit"
-            ],
+            "source_git_commit": source["parent_release"]["resolved_git_commit"],
             "target_git_tag": paid.git_tag,
             "target_git_commit": paid.head_commit,
             "authorized_config_sha256": config_sha256,
         }
-        projection = (
-            build_v2111_contract_envelope_bootstrap_projection(
-                source["payload"],
-                **kwargs,
-            )
+        projection = build_v2111_contract_envelope_bootstrap_projection(
+            source["payload"],
+            **kwargs,
         )
     except (PilotV2111ParentImportError, PilotV2111BootstrapError) as exc:
         raise PilotOrchestrationError(
@@ -8741,8 +8860,7 @@ def _load_v2111_bootstrap_projection(
     if (
         contract.contract_id != V2111_CONTRACT_ID
         or len(capability_specs) != 1
-        or capability_specs[0].execution_mode
-        != "capability_authority_import"
+        or capability_specs[0].execution_mode != "capability_authority_import"
     ):
         raise PilotOrchestrationError(
             "V2.11.1 preflight lacks one imported capability source"
@@ -8758,9 +8876,7 @@ def _load_v2111_bootstrap_projection(
         provisional,
         measurement_role="closed_loop_preflight",
     )
-    receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     try:
         source = verified_v2111_capability_source(
             receipt_path,
@@ -8772,9 +8888,7 @@ def _load_v2111_bootstrap_projection(
         )
         kwargs = {
             "model_id": preflight_spec.model_id,
-            "source_contract_sha256": source["parent_release"][
-                "contract_sha256"
-            ],
+            "source_contract_sha256": source["parent_release"]["contract_sha256"],
             "source_capability_spec": source["spec"],
             "target_contract_sha256": contract.canonical_hash,
             "target_preflight_spec": preflight_spec.to_dict(),
@@ -8782,13 +8896,9 @@ def _load_v2111_bootstrap_projection(
                 preflight_spec.model_id
             ].to_dict(),
             "source_capability_path": source["source"]["resolved_path"],
-            "source_capability_file_sha256": source["source"][
-                "file_sha256"
-            ],
+            "source_capability_file_sha256": source["source"]["file_sha256"],
             "source_git_tag": source["parent_release"]["git_tag"],
-            "source_git_commit": source["parent_release"][
-                "resolved_git_commit"
-            ],
+            "source_git_commit": source["parent_release"]["resolved_git_commit"],
             "target_git_tag": paid.git_tag,
             "target_git_commit": paid.head_commit,
             "authorized_config_sha256": config_sha256,
@@ -8801,12 +8911,10 @@ def _load_v2111_bootstrap_projection(
             / V2111_BOOTSTRAP_PROJECTION_FILENAME
         )
         projection = _read_json(path)
-        reservations = (
-            runner_reservations_from_v2111_bootstrap_projection(
-                projection,
-                source["payload"],
-                **kwargs,
-            )
+        reservations = runner_reservations_from_v2111_bootstrap_projection(
+            projection,
+            source["payload"],
+            **kwargs,
         )
     except (PilotV2111ParentImportError, PilotV2111BootstrapError) as exc:
         raise PilotOrchestrationError(
@@ -8915,20 +9023,14 @@ def _execute_evaluator_capability_import_stage(
 ) -> dict[str, Any]:
     """Materialize the frozen V2.2 capability correction with zero dispatch."""
 
-    if (
-        not specs
-        or any(
-            spec.stage_id != "capability-gate"
-            or spec.execution_mode != "capability_probe"
-            for spec in specs
-        )
+    if not specs or any(
+        spec.stage_id != "capability-gate" or spec.execution_mode != "capability_probe"
+        for spec in specs
     ):
         raise PilotOrchestrationError(
             "evaluator amendment import is restricted to capability-gate probes"
         )
-    account_import_budget = (
-        contract.preflight_bootstrap_amendment is not None
-    )
+    account_import_budget = contract.preflight_bootstrap_amendment is not None
     projections = (
         {
             spec.run_id: RunProjection(
@@ -8938,9 +9040,7 @@ def _execute_evaluator_capability_import_stage(
                 completions=0,
                 storage_bytes=5_000_000,
                 basis={
-                    "method": (
-                        "validated-capability-import-zero-provider-call"
-                    ),
+                    "method": ("validated-capability-import-zero-provider-call"),
                     "hosted_completion_cap_counted": True,
                     "prompt_tokens": 0,
                     "completion_tokens": 0,
@@ -8979,14 +9079,12 @@ def _execute_evaluator_capability_import_stage(
             if account_import_budget and (
                 not isinstance(existing_budget, Mapping)
                 or projection is None
-                or existing_budget.get("reservation")
-                != projection.to_dict()
+                or existing_budget.get("reservation") != projection.to_dict()
                 or existing_budget.get("status") != "complete"
                 or not isinstance(existing_budget.get("actual"), Mapping)
             ):
                 raise PilotOrchestrationError(
-                    f"evaluator import budget row differs on resume: "
-                    f"{spec.run_id}"
+                    f"evaluator import budget row differs on resume: " f"{spec.run_id}"
                 )
         elif account_import_budget and _recover_or_stop_interrupted_reservation(
             budget_ledger,
@@ -9010,7 +9108,7 @@ def _execute_evaluator_capability_import_stage(
         ):
             raise PilotOrchestrationError(
                 f"capability import is not a zero-call pass for {spec.run_id}"
-        )
+            )
         capability_path = run_dir / "capability.json"
         _persist_exact_json(capability_path, capability)
         bootstrap = _persist_capability_bootstrap_projection(
@@ -9037,12 +9135,7 @@ def _execute_evaluator_capability_import_stage(
             bootstrap_projections[spec.model_id] = str(bootstrap_path)
         gate_path = run_dir / "gate_receipt.json"
         _persist_exact_json(gate_path, gate)
-        terminal_path = (
-            raw_root
-            / spec.stage_id
-            / "summaries"
-            / f"{spec.run_id}.json"
-        )
+        terminal_path = raw_root / spec.stage_id / "summaries" / f"{spec.run_id}.json"
         terminal_payload = {
             "metrics": {},
             "gate_evidence": gate,
@@ -9097,17 +9190,12 @@ def _execute_evaluator_capability_import_stage(
             run_ledger.finalize(
                 spec.run_id,
                 status=budget_status,
-                artifact=(
-                    str(terminal_path)
-                    if budget_status == "complete"
-                    else None
-                ),
+                artifact=(str(terminal_path) if budget_status == "complete" else None),
                 failure=budget_failure,
             )
             if budget_status != "complete":
                 raise PilotOrchestrationError(
-                    f"capability import budget reconciliation failed: "
-                    f"{spec.run_id}"
+                    f"capability import budget reconciliation failed: " f"{spec.run_id}"
                 )
         elif not run_ledger.is_terminal(spec.run_id):
             run_ledger.finalize(
@@ -9175,8 +9263,7 @@ def _execute_capability_preflight(
     )
     split_preflight_only = spec.execution_mode == "closed_loop_preflight"
     v211_long_context = (
-        contract.contract_id in V211_FAMILY_CONTRACT_IDS
-        and split_preflight_only
+        contract.contract_id in V211_FAMILY_CONTRACT_IDS and split_preflight_only
     )
     bootstrap_projection: Mapping[str, Any] | None = None
     bootstrap_projection_path: Path | None = None
@@ -9204,10 +9291,7 @@ def _execute_capability_preflight(
             / "capability.json"
         )
         source_capability = _read_json(capability_path)
-        if (
-            source_capability.get("schema_version")
-            == CAPABILITY_IMPORT_SCHEMA_VERSION
-        ):
+        if source_capability.get("schema_version") == CAPABILITY_IMPORT_SCHEMA_VERSION:
             amendment_receipt = _read_json(
                 evaluator_amendment_control_path(raw_root=raw_root)
             )
@@ -9228,15 +9312,54 @@ def _execute_capability_preflight(
                     f"closed-loop capability import binding mismatch: {exc}"
                 ) from exc
         elif (
+            contract.contract_id == V2112_CONTRACT_ID
+            and source_capability.get("schema_version")
+            == V2112_CAPABILITY_WRAPPER_SCHEMA_VERSION
+        ):
+            release_root = Path(__file__).resolve().parents[1]
+            try:
+                parent_receipt = verify_v2112_parent_import_receipt(
+                    raw_root / "parent-import" / "parent_import_receipt.json",
+                    repo_root=release_root,
+                    child_contract_sha256=contract.canonical_hash,
+                    child_git_tag=paid.git_tag,
+                    child_git_commit=paid.head_commit,
+                )
+                expected_wrapper = capability_wrappers_from_v2112_receipt(
+                    parent_receipt
+                )[spec.model_id]
+                source = verified_v2112_capability_source(
+                    parent_receipt,
+                    model_id=spec.model_id,
+                    repo_root=release_root,
+                    child_contract_sha256=contract.canonical_hash,
+                    child_git_tag=paid.git_tag,
+                    child_git_commit=paid.head_commit,
+                )
+            except PilotV2112ParentImportError as exc:
+                raise PilotOrchestrationError(
+                    f"V2.11.2 closed-loop imported capability replay failed: {exc}"
+                ) from exc
+            if source_capability != expected_wrapper:
+                raise PilotOrchestrationError(
+                    "V2.11.2 closed-loop imported capability wrapper drifted"
+                )
+            inherited = source["payload"].get("capability")
+            if not isinstance(inherited, Mapping):
+                raise PilotOrchestrationError(
+                    "V2.11.2 inherited capability payload is malformed"
+                )
+            capability_payload = source_capability
+            capability = _json_copy(inherited)
+            capability["pass"] = capability.get("capability_pass") is True
+        elif (
             contract.contract_id == V2111_CONTRACT_ID
             and source_capability.get("schema_version")
             == V2111_CAPABILITY_WRAPPER_SCHEMA_VERSION
         ):
             try:
                 parent_receipt = verify_v2111_parent_import_receipt(
-                    raw_root
-                    / "parent-import"
-                    / "parent_import_receipt.json",
+                    raw_root / "parent-import" / "parent_import_receipt.json",
                     repo_root=Path(__file__).resolve().parents[1],
                     child_contract_sha256=contract.canonical_hash,
                     child_git_tag=paid.git_tag,
@@ -9266,18 +9389,23 @@ def _execute_capability_preflight(
         else:
             capability_payload = source_capability
             if (
-                capability_payload.get("contract_sha256")
-                != contract.canonical_hash
-                or capability_payload.get("run_spec")
-                != capability_specs[0].to_dict()
+                capability_payload.get("contract_sha256") != contract.canonical_hash
+                or capability_payload.get("run_spec") != capability_specs[0].to_dict()
             ):
                 raise PilotOrchestrationError(
                     "closed-loop preflight capability binding mismatch"
                 )
         if not (
-            contract.contract_id == V2111_CONTRACT_ID
-            and source_capability.get("schema_version")
-            == V2111_CAPABILITY_WRAPPER_SCHEMA_VERSION
+            (
+                contract.contract_id == V2112_CONTRACT_ID
+                and source_capability.get("schema_version")
+                == V2112_CAPABILITY_WRAPPER_SCHEMA_VERSION
+            )
+            or (
+                contract.contract_id == V2111_CONTRACT_ID
+                and source_capability.get("schema_version")
+                == V2111_CAPABILITY_WRAPPER_SCHEMA_VERSION
+            )
         ):
             capability = capability_payload
         if contract.preflight_bootstrap_amendment is not None:
@@ -9299,21 +9427,29 @@ def _execute_capability_preflight(
                 raise PilotOrchestrationError(
                     "closed-loop bootstrap capability source path drifted"
                 )
-            bootstrap_reservations = (
-                runner_reservations_from_bootstrap_projection(
-                    bootstrap_projection,
-                    contract=contract,
-                    capability_spec=bootstrap_capability_spec,
-                    target_preflight_spec=bootstrap_target_spec,
-                    capability=bootstrap_capability,
-                    source_capability_path=bootstrap_capability_path,
-                    source_capability_file_sha256=_file_sha256(
-                        bootstrap_capability_path
-                    ),
-                    git_tag=paid.git_tag,
-                    git_commit=paid.head_commit,
-                    authorized_config_sha256=bootstrap_config_sha256,
-                )
+            bootstrap_reservations = runner_reservations_from_bootstrap_projection(
+                bootstrap_projection,
+                contract=contract,
+                capability_spec=bootstrap_capability_spec,
+                target_preflight_spec=bootstrap_target_spec,
+                capability=bootstrap_capability,
+                source_capability_path=bootstrap_capability_path,
+                source_capability_file_sha256=_file_sha256(bootstrap_capability_path),
+                git_tag=paid.git_tag,
+                git_commit=paid.head_commit,
+                authorized_config_sha256=bootstrap_config_sha256,
+            )
+        elif contract.contract_id == V2112_CONTRACT_ID:
+            (
+                bootstrap_projection,
+                bootstrap_projection_path,
+                bootstrap_reservations,
+            ) = _load_v2112_bootstrap_projection(
+                contract,
+                preflight_spec=spec,
+                raw_root=raw_root,
+                repo_root=Path(__file__).resolve().parents[1],
+                paid=paid,
             )
         elif contract.contract_id == V2111_CONTRACT_ID:
             (
@@ -9365,9 +9501,7 @@ def _execute_capability_preflight(
                 else None
             ),
             prompt_tier_ceiling_tokens=(
-                200_000
-                if contract.contract_id in V211_FAMILY_CONTRACT_IDS
-                else None
+                200_000 if contract.contract_id in V211_FAMILY_CONTRACT_IDS else None
             ),
         )
         capability_payload = {
@@ -9381,8 +9515,7 @@ def _execute_capability_preflight(
         capability_path = run_dir / "capability.json"
         _atomic_json(capability_path, capability_payload)
     continue_v211_after_content_no_go = (
-        v211_long_context
-        and capability.get("interface_gate", {}).get("pass") is True
+        v211_long_context and capability.get("interface_gate", {}).get("pass") is True
     )
     if not capability["pass"] and not continue_v211_after_content_no_go:
         interface_pass = capability["interface_gate"]["pass"] is True
@@ -9440,9 +9573,7 @@ def _execute_capability_preflight(
         }
         if bootstrap is not None:
             _, capability_bootstrap_path = bootstrap
-            receipt["bootstrap_projection"] = str(
-                capability_bootstrap_path
-            )
+            receipt["bootstrap_projection"] = str(capability_bootstrap_path)
         _atomic_json(run_dir / "gate_receipt.json", receipt)
         terminal = write_terminal_summary(
             raw_root / spec.stage_id / "summaries" / f"{spec.run_id}.json",
@@ -9489,15 +9620,15 @@ def _execute_capability_preflight(
                 call_journal_path=preflight_journal_path,
                 resume=resume,
             )
-            checkpoint_receipt = (
-                verify_v211_long_context_preflight_checkpoint(
-                    checkpoint,
-                    call_journal_path=preflight_journal_path,
+            checkpoint_receipt = verify_v211_long_context_preflight_checkpoint(
+                checkpoint,
+                call_journal_path=preflight_journal_path,
+            )
+            if contract.contract_id == V2112_CONTRACT_ID:
+                checkpoint_receipt = _v2112_reseal_long_context_exactness(
+                    checkpoint_receipt
                 )
-            )
-            checkpoint_receipt_path = (
-                run_dir / "preflight_checkpoint_exactness.json"
-            )
+            checkpoint_receipt_path = run_dir / "preflight_checkpoint_exactness.json"
             _persist_exact_json(
                 checkpoint_receipt_path,
                 checkpoint_receipt,
@@ -9528,9 +9659,7 @@ def _execute_capability_preflight(
                     "exactness": exactness,
                 }
             )
-            checkpoint_receipt_path = (
-                run_dir / "preflight_checkpoint_exactness.json"
-            )
+            checkpoint_receipt_path = run_dir / "preflight_checkpoint_exactness.json"
             _atomic_bound_json(checkpoint_receipt_path, checkpoint_receipt)
         result = _CheckpointPreflightResult(checkpoint)
     else:
@@ -9626,9 +9755,7 @@ def _execute_capability_preflight(
         assert bootstrap_projection_path is not None
         source_bindings.update(
             {
-                "source_bootstrap_projection": str(
-                    bootstrap_projection_path
-                ),
+                "source_bootstrap_projection": str(bootstrap_projection_path),
                 "source_bootstrap_projection_file_sha256": _file_sha256(
                     bootstrap_projection_path
                 ),
@@ -9637,16 +9764,20 @@ def _execute_capability_preflight(
                 ),
             }
         )
-        if contract.contract_id == V2111_CONTRACT_ID:
-            source_bindings[
-                "source_preflight_bootstrap_amendment_sha256"
-            ] = canonical_sha256(
-                contract.v2111_preflight_bootstrap_amendment
+        if contract.contract_id in {V2111_CONTRACT_ID, V2112_CONTRACT_ID}:
+            source_bindings["source_preflight_bootstrap_amendment_sha256"] = (
+                canonical_sha256(
+                    contract.to_dict()[
+                        (
+                            "v2112_recovery_amendment"
+                            if contract.contract_id == V2112_CONTRACT_ID
+                            else "v2111_preflight_bootstrap_amendment"
+                        )
+                    ]
+                )
             )
         else:
-            amendment_control = preflight_amendment_control_path(
-                raw_root=raw_root
-            )
+            amendment_control = preflight_amendment_control_path(raw_root=raw_root)
             amendment_control_value = _read_json(amendment_control)
             try:
                 validate_preflight_amendment_control(
@@ -9659,16 +9790,12 @@ def _execute_capability_preflight(
                 ) from exc
             source_bindings.update(
                 {
-                    "source_preflight_amendment_control": str(
-                        amendment_control
-                    ),
+                    "source_preflight_amendment_control": str(amendment_control),
                     "source_preflight_amendment_control_file_sha256": (
                         _file_sha256(amendment_control)
                     ),
                     "source_preflight_amendment_control_content_sha256": (
-                        amendment_control_value["integrity"][
-                            "content_sha256"
-                        ]
+                        amendment_control_value["integrity"]["content_sha256"]
                     ),
                 }
             )
@@ -9706,12 +9833,10 @@ def _execute_capability_preflight(
             "served_model": profile.served_model,
             "bindings": source_bindings,
             "projection": preflight_p95(
-                _usage_projection_rows(
+                _dispatch_projection_rows(
+                    contract,
                     capability,
                     result,
-                    capability_call_kind_map=(
-                        _capability_projection_call_kind_map(contract)
-                    ),
                 ),
                 reserve_multiplier=float(
                     contract.budgets["pre_dispatch_projection"]["reserve_multiplier"]
@@ -9762,14 +9887,10 @@ def _execute_capability_preflight(
     }
     if authority_receipt_path is not None:
         assert authority_receipt_binding is not None
-        receipt["observed_p95_authority_receipt"] = str(
-            authority_receipt_path
-        )
+        receipt["observed_p95_authority_receipt"] = str(authority_receipt_path)
         receipt["observed_p95_authority_binding"] = {
             "receipt_path": authority_receipt_binding["receipt_path"],
-            "receipt_file_sha256": authority_receipt_binding[
-                "receipt_file_sha256"
-            ],
+            "receipt_file_sha256": authority_receipt_binding["receipt_file_sha256"],
             "receipt_content_sha256": authority_receipt_binding[
                 "receipt_content_sha256"
             ],
@@ -9930,8 +10051,7 @@ def _load_v25_inherited_projection(
     bindings = payload.get("bindings")
     if (
         not isinstance(bindings, Mapping)
-        or bindings.get("source_kind")
-        != "v2.3-historical-parent-import-v2.5"
+        or bindings.get("source_kind") != "v2.3-historical-parent-import-v2.5"
         or bindings.get("source_authority_receipt") != str(receipt_path)
     ):
         raise PilotOrchestrationError(
@@ -10017,8 +10137,7 @@ def _load_v26_inherited_projection(
     bindings = payload.get("bindings")
     if (
         not isinstance(bindings, Mapping)
-        or bindings.get("source_kind")
-        != "v2.5-terminal-parent-import-v2.6"
+        or bindings.get("source_kind") != "v2.5-terminal-parent-import-v2.6"
         or bindings.get("source_authority_receipt") != str(receipt_path)
     ):
         raise PilotOrchestrationError(
@@ -10099,8 +10218,7 @@ def _load_v27_resealed_projection(
         payload.get("model_id") != model_id
         or payload.get("served_model") != profile.served_model
         or not isinstance(bindings, Mapping)
-        or bindings.get("source_kind")
-        != V27_RESEALED_OBSERVED_P95_SOURCE_KIND
+        or bindings.get("source_kind") != V27_RESEALED_OBSERVED_P95_SOURCE_KIND
         or bindings.get("source_authority_receipt") != receipt_relative
     ):
         raise PilotOrchestrationError(
@@ -10272,21 +10390,16 @@ def _load_v29_imported_projection(
         or _file_sha256(path) != projection_binding.get("file_sha256")
         or payload.get("integrity", {}).get("content_sha256")
         != projection_binding.get("content_sha256")
-        or _bound_content_sha256(payload)
-        != projection_binding.get("content_sha256")
+        or _bound_content_sha256(payload) != projection_binding.get("content_sha256")
         or _file_sha256(receipt_path) != authority_binding.get("file_sha256")
         or payload_bindings.get("contract_sha256")
         != binding.get("source_contract_sha256")
         or payload_bindings.get("git_commit") != V29_PARENT_COMMIT
     ):
-        raise PilotOrchestrationError(
-            f"V2.9 imported {model_id} p95 binding drifted"
-        )
+        raise PilotOrchestrationError(f"V2.9 imported {model_id} p95 binding drifted")
     for call_kind in ("action", "semantic"):
         reservation = reservations[runtime_model].get(call_kind)
-        projected = payload_projection.get(
-            f"{profile.served_model}::{call_kind}"
-        )
+        projected = payload_projection.get(f"{profile.served_model}::{call_kind}")
         if (
             not isinstance(reservation, Mapping)
             or reservation.get("reservation") != projected
@@ -10316,9 +10429,7 @@ def _load_v210_resealed_projection(
             "V2.10 resealed p95 projection used by another contract"
         )
     if model_id not in V210_ALLOWED_P95_PROFILES:
-        raise PilotOrchestrationError(
-            f"{model_id} is not an allowed V2.10 p95 profile"
-        )
+        raise PilotOrchestrationError(f"{model_id} is not an allowed V2.10 p95 profile")
     release_root = (
         Path(__file__).resolve().parents[1]
         if authority_repo_root is None
@@ -10648,6 +10759,55 @@ def _load_verified_projection(
     capability_artifact = _read_json(capability_path)
     capability = capability_artifact
     if (
+        contract.contract_id == V2112_CONTRACT_ID
+        and capability_artifact.get("schema_version")
+        == V2112_CAPABILITY_WRAPPER_SCHEMA_VERSION
+    ):
+        if paid is None:
+            raise PilotOrchestrationError(
+                "V2.11.2 preflight projection verification requires paid "
+                "release provenance"
+            )
+        release_root = (
+            Path(__file__).resolve().parents[1]
+            if authority_repo_root is None
+            else Path(authority_repo_root).resolve(strict=True)
+        )
+        try:
+            parent_receipt = verify_v2112_parent_import_receipt(
+                raw_root / "parent-import" / "parent_import_receipt.json",
+                repo_root=release_root,
+                child_contract_sha256=contract.canonical_hash,
+                child_git_tag=paid.git_tag,
+                child_git_commit=paid.head_commit,
+            )
+            expected_wrapper = capability_wrappers_from_v2112_receipt(parent_receipt)[
+                model_id
+            ]
+            verified_source = verified_v2112_capability_source(
+                parent_receipt,
+                model_id=model_id,
+                repo_root=release_root,
+                child_contract_sha256=contract.canonical_hash,
+                child_git_tag=paid.git_tag,
+                child_git_commit=paid.head_commit,
+            )
+        except PilotV2112ParentImportError as exc:
+            raise PilotOrchestrationError(
+                f"V2.11.2 preflight capability replay failed: {exc}"
+            ) from exc
+        if capability_artifact != expected_wrapper:
+            raise PilotOrchestrationError(
+                "V2.11.2 preflight capability wrapper drifted"
+            )
+        inherited = verified_source["payload"].get("capability")
+        if not isinstance(inherited, Mapping):
+            raise PilotOrchestrationError(
+                "V2.11.2 inherited capability payload is malformed"
+            )
+        capability = _json_copy(inherited)
+        capability["pass"] = capability.get("capability_pass") is True
+    elif (
         contract.contract_id == V2111_CONTRACT_ID
         and capability_artifact.get("schema_version")
         == V2111_CAPABILITY_WRAPPER_SCHEMA_VERSION
@@ -10670,9 +10830,9 @@ def _load_verified_projection(
                 child_git_tag=paid.git_tag,
                 child_git_commit=paid.head_commit,
             )
-            expected_wrapper = capability_wrappers_from_v2111_receipt(
-                parent_receipt
-            )[model_id]
+            expected_wrapper = capability_wrappers_from_v2111_receipt(parent_receipt)[
+                model_id
+            ]
             verified_source = verified_v2111_capability_source(
                 parent_receipt,
                 model_id=model_id,
@@ -10713,17 +10873,13 @@ def _load_verified_projection(
                 "V2.3 preflight bootstrap verification requires paid "
                 "release provenance"
             )
-        bootstrap_target_spec, bootstrap_config_sha256 = (
-            _bootstrap_target_context(
-                contract,
-                capability_specs[0],
-                paid=paid,
-            )
+        bootstrap_target_spec, bootstrap_config_sha256 = _bootstrap_target_context(
+            contract,
+            capability_specs[0],
+            paid=paid,
         )
         if bootstrap_target_spec != preflight_specs[0]:
-            raise PilotOrchestrationError(
-                "preflight bootstrap target cell drifted"
-            )
+            raise PilotOrchestrationError("preflight bootstrap target cell drifted")
         bootstrap_path = _capability_bootstrap_projection_path(
             raw_root=raw_root,
             spec=capability_specs[0],
@@ -10735,9 +10891,7 @@ def _load_verified_projection(
             else str(contract.implementation["required_git_tag"])
         )
         expected_git_commit = (
-            paid.head_commit
-            if paid is not None
-            else str(bindings.get("git_commit"))
+            paid.head_commit if paid is not None else str(bindings.get("git_commit"))
         )
         try:
             validate_capability_bootstrap_projection(
@@ -10767,29 +10921,54 @@ def _load_verified_projection(
         if (
             bindings.get("git_tag") != expected_git_tag
             or bindings.get("git_commit") != expected_git_commit
-            or bindings.get("source_bootstrap_projection")
-            != str(bootstrap_path)
-            or bindings.get(
-                "source_bootstrap_projection_file_sha256"
-            )
+            or bindings.get("source_bootstrap_projection") != str(bootstrap_path)
+            or bindings.get("source_bootstrap_projection_file_sha256")
             != _file_sha256(bootstrap_path)
-            or bindings.get(
-                "source_bootstrap_projection_content_sha256"
-            )
+            or bindings.get("source_bootstrap_projection_content_sha256")
             != bootstrap_projection["integrity"]["content_sha256"]
-            or bindings.get("source_preflight_amendment_control")
-            != str(control_path)
-            or bindings.get(
-                "source_preflight_amendment_control_file_sha256"
-            )
+            or bindings.get("source_preflight_amendment_control") != str(control_path)
+            or bindings.get("source_preflight_amendment_control_file_sha256")
             != _file_sha256(control_path)
-            or bindings.get(
-                "source_preflight_amendment_control_content_sha256"
-            )
+            or bindings.get("source_preflight_amendment_control_content_sha256")
             != control["integrity"]["content_sha256"]
         ):
             raise PilotOrchestrationError(
                 "preflight bootstrap/amendment source binding mismatch"
+            )
+    elif contract.contract_id == V2112_CONTRACT_ID:
+        if paid is None:
+            raise PilotOrchestrationError(
+                "V2.11.2 preflight bootstrap verification requires paid "
+                "release provenance"
+            )
+        (
+            bootstrap_projection,
+            bootstrap_path,
+            bootstrap_reservations,
+        ) = _load_v2112_bootstrap_projection(
+            contract,
+            preflight_spec=preflight_specs[0],
+            raw_root=raw_root,
+            repo_root=(
+                Path(__file__).resolve().parents[1]
+                if authority_repo_root is None
+                else Path(authority_repo_root).resolve(strict=True)
+            ),
+            paid=paid,
+        )
+        if (
+            bindings.get("git_tag") != paid.git_tag
+            or bindings.get("git_commit") != paid.head_commit
+            or bindings.get("source_bootstrap_projection") != str(bootstrap_path)
+            or bindings.get("source_bootstrap_projection_file_sha256")
+            != _file_sha256(bootstrap_path)
+            or bindings.get("source_bootstrap_projection_content_sha256")
+            != bootstrap_projection["integrity"]["content_sha256"]
+            or bindings.get("source_preflight_bootstrap_amendment_sha256")
+            != canonical_sha256(contract.to_dict()["v2112_recovery_amendment"])
+        ):
+            raise PilotOrchestrationError(
+                "V2.11.2 preflight bootstrap source binding mismatch"
             )
     elif contract.contract_id == V2111_CONTRACT_ID:
         if paid is None:
@@ -10815,20 +10994,13 @@ def _load_verified_projection(
         if (
             bindings.get("git_tag") != paid.git_tag
             or bindings.get("git_commit") != paid.head_commit
-            or bindings.get("source_bootstrap_projection")
-            != str(bootstrap_path)
+            or bindings.get("source_bootstrap_projection") != str(bootstrap_path)
             or bindings.get("source_bootstrap_projection_file_sha256")
             != _file_sha256(bootstrap_path)
-            or bindings.get(
-                "source_bootstrap_projection_content_sha256"
-            )
+            or bindings.get("source_bootstrap_projection_content_sha256")
             != bootstrap_projection["integrity"]["content_sha256"]
-            or bindings.get(
-                "source_preflight_bootstrap_amendment_sha256"
-            )
-            != canonical_sha256(
-                contract.v2111_preflight_bootstrap_amendment
-            )
+            or bindings.get("source_preflight_bootstrap_amendment_sha256")
+            != canonical_sha256(contract.v2111_preflight_bootstrap_amendment)
         ):
             raise PilotOrchestrationError(
                 "V2.11.1 preflight bootstrap source binding mismatch"
@@ -10850,49 +11022,33 @@ def _load_verified_projection(
                     target_preflight_spec=bootstrap_target_spec,
                     capability=capability,
                     source_capability_path=capability_path,
-                    source_capability_file_sha256=_file_sha256(
-                        capability_path
-                    ),
+                    source_capability_file_sha256=_file_sha256(capability_path),
                     git_tag=paid.git_tag,
                     git_commit=paid.head_commit,
                     authorized_config_sha256=bootstrap_config_sha256,
                 )
             )
             if (
-                checkpoint_run_config.get(
-                    "contract_bootstrap_reservations"
-                )
+                checkpoint_run_config.get("contract_bootstrap_reservations")
                 != expected_bootstrap_authority
-                or checkpoint_run_config.get(
-                    "preflight_measurement_role"
-                )
+                or checkpoint_run_config.get("preflight_measurement_role")
                 != "closed_loop_preflight"
-                or checkpoint_run_config.get(
-                    "preflight_p95_reservations"
-                )
-                != {}
+                or checkpoint_run_config.get("preflight_p95_reservations") != {}
             ):
                 raise PilotOrchestrationError(
                     "preflight checkpoint bootstrap authority differs from "
                     "its capability projection"
                 )
-        elif contract.contract_id == V2111_CONTRACT_ID:
+        elif contract.contract_id in {V2111_CONTRACT_ID, V2112_CONTRACT_ID}:
             if (
-                checkpoint_run_config.get(
-                    "contract_bootstrap_reservations"
-                )
+                checkpoint_run_config.get("contract_bootstrap_reservations")
                 != bootstrap_reservations
-                or checkpoint_run_config.get(
-                    "preflight_measurement_role"
-                )
+                or checkpoint_run_config.get("preflight_measurement_role")
                 != "closed_loop_preflight"
-                or checkpoint_run_config.get(
-                    "preflight_p95_reservations"
-                )
-                != {}
+                or checkpoint_run_config.get("preflight_p95_reservations") != {}
             ):
                 raise PilotOrchestrationError(
-                    "V2.11.1 preflight checkpoint bootstrap authority "
+                    "V2.11 family preflight checkpoint bootstrap authority "
                     "differs from its contract-envelope projection"
                 )
         elif (
@@ -10906,28 +11062,24 @@ def _load_verified_projection(
         exactness_path = run_dir / "preflight_checkpoint_exactness.json"
         exactness = _read_json(exactness_path)
         if contract.contract_id in V211_FAMILY_CONTRACT_IDS:
-            expected_exactness = (
-                verify_v211_long_context_preflight_checkpoint(
-                    checkpoint,
-                    call_journal_path=journal_path,
-                )
+            expected_exactness = verify_v211_long_context_preflight_checkpoint(
+                checkpoint,
+                call_journal_path=journal_path,
             )
+            if contract.contract_id == V2112_CONTRACT_ID:
+                expected_exactness = _v2112_reseal_long_context_exactness(
+                    expected_exactness
+                )
             if (
                 exactness != expected_exactness
                 or bindings.get("source_checkpoint") != str(checkpoint_path)
                 or bindings.get("source_checkpoint_file_sha256")
                 != _file_sha256(checkpoint_path)
-                or bindings.get("source_checkpoint_hash")
-                != checkpoint.checkpoint_hash
-                or bindings.get("source_checkpoint_exactness")
-                != str(exactness_path)
-                or bindings.get(
-                    "source_checkpoint_exactness_file_sha256"
-                )
+                or bindings.get("source_checkpoint_hash") != checkpoint.checkpoint_hash
+                or bindings.get("source_checkpoint_exactness") != str(exactness_path)
+                or bindings.get("source_checkpoint_exactness_file_sha256")
                 != _file_sha256(exactness_path)
-                or bindings.get(
-                    "source_checkpoint_exactness_content_sha256"
-                )
+                or bindings.get("source_checkpoint_exactness_content_sha256")
                 != exactness.get("receipt_hash")
             ):
                 raise PilotOrchestrationError(
@@ -10941,30 +11093,21 @@ def _load_verified_projection(
                 paid=paid,
                 artifact_name=f"{model_id} preflight checkpoint exactness",
             )
-            expected_exactness = verify_closed_loop_preflight_checkpoint(
-                checkpoint
-            )
+            expected_exactness = verify_closed_loop_preflight_checkpoint(checkpoint)
             if (
                 exactness.get("exactness") != expected_exactness
                 or bindings.get("source_checkpoint") != str(checkpoint_path)
                 or bindings.get("source_checkpoint_file_sha256")
                 != _file_sha256(checkpoint_path)
-                or bindings.get("source_checkpoint_hash")
-                != checkpoint.checkpoint_hash
-                or bindings.get("source_checkpoint_exactness")
-                != str(exactness_path)
-                or bindings.get(
-                    "source_checkpoint_exactness_file_sha256"
-                )
+                or bindings.get("source_checkpoint_hash") != checkpoint.checkpoint_hash
+                or bindings.get("source_checkpoint_exactness") != str(exactness_path)
+                or bindings.get("source_checkpoint_exactness_file_sha256")
                 != _file_sha256(exactness_path)
-                or bindings.get(
-                    "source_checkpoint_exactness_content_sha256"
-                )
+                or bindings.get("source_checkpoint_exactness_content_sha256")
                 != exactness["integrity"]["content_sha256"]
                 or exactness["bindings"].get("checkpoint_hash")
                 != checkpoint.checkpoint_hash
-                or exactness["bindings"].get("checkpoint_path")
-                != str(checkpoint_path)
+                or exactness["bindings"].get("checkpoint_path") != str(checkpoint_path)
                 or exactness["bindings"].get("checkpoint_file_sha256")
                 != _file_sha256(checkpoint_path)
             ):
@@ -11003,12 +11146,10 @@ def _load_verified_projection(
         contract.budgets["pre_dispatch_projection"]["reserve_multiplier"]
     )
     recomputed = preflight_p95(
-        _usage_projection_rows(
+        _dispatch_projection_rows(
+            contract,
             capability,
             result,
-            capability_call_kind_map=(
-                _capability_projection_call_kind_map(contract)
-            ),
         ),
         reserve_multiplier=reserve_multiplier,
     )
@@ -11033,9 +11174,7 @@ def _load_verified_projection(
             raw_root=raw_root,
             paid=paid,
         )
-        runtime_model = _runtime_model_for_profile(
-            contract.provider_profiles[model_id]
-        )
+        runtime_model = _runtime_model_for_profile(contract.provider_profiles[model_id])
         receipt_reservations = receipt_binding.get("reservations")
         if (
             not isinstance(receipt_reservations, Mapping)
@@ -11044,15 +11183,10 @@ def _load_verified_projection(
                 receipt_reservations[runtime_model],
                 Mapping,
             )
-            or set(receipt_reservations[runtime_model])
-            != {"action", "semantic"}
+            or set(receipt_reservations[runtime_model]) != {"action", "semantic"}
             or any(
-                receipt_reservations[runtime_model][call_kind].get(
-                    "reservation"
-                )
-                != recomputed[
-                    f"{payload['served_model']}::{call_kind}"
-                ]
+                receipt_reservations[runtime_model][call_kind].get("reservation")
+                != recomputed[f"{payload['served_model']}::{call_kind}"]
                 for call_kind in ("action", "semantic")
             )
         ):
@@ -11206,15 +11340,13 @@ def _execute_q_ref(
         resolution["provider_calls_current_attempt"] = 48
         resolution["hosted_provider_calls_current_attempt"] = 0
         resolution["hosted_cost_usd_current_attempt"] = 0.0
-        resolution["q_ref_audit_equivalence"] = (
-            _build_v28_qref_equivalence_receipt(
-                contract,
-                result,
-                resolution,
-                raw_root=raw_root,
-                paid=paid,
-                current_manifest=manifest,
-            )
+        resolution["q_ref_audit_equivalence"] = _build_v28_qref_equivalence_receipt(
+            contract,
+            result,
+            resolution,
+            raw_root=raw_root,
+            paid=paid,
+            current_manifest=manifest,
         )
     resolution = _seal_bound_payload(resolution)
     output = raw_root / spec.stage_id / "q_ref_resolution.json"
@@ -11223,9 +11355,7 @@ def _execute_q_ref(
         "q_ref": resolution["q_ref"],
         "row_count": resolution["row_count"],
         "source_manifest": resolution["source_manifest"],
-        "source_manifest_sha256": resolution["bindings"][
-            "source_manifest_sha256"
-        ],
+        "source_manifest_sha256": resolution["bindings"]["source_manifest_sha256"],
         "resolution_artifact": str(output),
     }
     if contract.contract_id == V29_CONTRACT_ID:
@@ -11388,6 +11518,12 @@ def _verify_v211_family_post_gate_receipt(
     paid: GitProvenance,
 ) -> dict[str, Any]:
     try:
+        if contract.contract_id == V2112_CONTRACT_ID:
+            return verify_v2112_gate_receipt(
+                value,
+                expected_contract_sha256=contract.canonical_hash,
+                expected_git_commit=paid.head_commit,
+            )
         if contract.contract_id == V2111_CONTRACT_ID:
             return verify_v2111_gate_receipt(
                 value,
@@ -11400,7 +11536,11 @@ def _verify_v211_family_post_gate_receipt(
                 expected_contract_sha256=contract.canonical_hash,
                 expected_git_commit=paid.head_commit,
             )
-    except (PilotV211GateError, PilotV2111GateError) as exc:
+    except (
+        PilotV211GateError,
+        PilotV2111GateError,
+        PilotV2112GateError,
+    ) as exc:
         raise PilotOrchestrationError(
             f"{contract.contract_id} post-gate receipt failed validation: {exc}"
         ) from exc
@@ -11461,10 +11601,7 @@ def _v211_post_gate_inputs(
         }
 
         preflight_dir = (
-            raw_root
-            / preflight_spec.stage_id
-            / "runs"
-            / preflight_spec.run_id
+            raw_root / preflight_spec.stage_id / "runs" / preflight_spec.run_id
         )
         checkpoint_path = preflight_dir / "preflight_checkpoint.json"
         exactness_path = preflight_dir / "preflight_checkpoint_exactness.json"
@@ -11491,8 +11628,7 @@ def _v211_post_gate_inputs(
             not isinstance(preflight_checks, Mapping)
             or not preflight_checks
             or any(not isinstance(value, bool) for value in preflight_checks.values())
-            or local_gate.get("capability_pass")
-            is not (capability.get("pass") is True)
+            or local_gate.get("capability_pass") is not (capability.get("pass") is True)
         ):
             raise PilotOrchestrationError(
                 f"V2.11 {model_id} local preflight gate is incomplete"
@@ -11502,9 +11638,7 @@ def _v211_post_gate_inputs(
         model_status = (
             "capability-no-go"
             if not capability_pass
-            else "eligible"
-            if interface_pass
-            else "interface-no-go"
+            else "eligible" if interface_pass else "interface-no-go"
         )
         if local_gate.get("go") is not (model_status == "eligible"):
             raise PilotOrchestrationError(
@@ -11635,7 +11769,9 @@ def _build_v211_post_gate_with_inferred_statuses(
         )
         if failures:
             detail += f"; first failure: {failures[0]}"
-        raise PilotOrchestrationError(f"V2.11 post-gate status inference failed: {detail}")
+        raise PilotOrchestrationError(
+            f"V2.11 post-gate status inference failed: {detail}"
+        )
     return successes[0]
 
 
@@ -11667,15 +11803,9 @@ def _persist_v211_post_gate_authority(
             ) from exc
         events = run_ledger.snapshot().get("events")
         bound_head = existing["bindings"]["ledger_event_chain_head"]
-        if (
-            not isinstance(events, list)
-            or bound_head
-            not in {
-                event.get("event_sha256")
-                for event in events
-                if isinstance(event, Mapping)
-            }
-        ):
+        if not isinstance(events, list) or bound_head not in {
+            event.get("event_sha256") for event in events if isinstance(event, Mapping)
+        }:
             raise PilotOrchestrationError(
                 "V2.11 resumed post-gate ledger prefix is absent"
             )
@@ -11687,9 +11817,7 @@ def _persist_v211_post_gate_authority(
             run_ledger=run_ledger,
         )
         resumed_inputs["ledger_event_chain_head"] = bound_head
-        rebuilt, _ = _build_v211_post_gate_with_inferred_statuses(
-            resumed_inputs
-        )
+        rebuilt, _ = _build_v211_post_gate_with_inferred_statuses(resumed_inputs)
         try:
             verify_v211_gate_receipt(
                 rebuilt,
@@ -11773,9 +11901,7 @@ def _persist_v211_post_gate_authority(
         budget_ledger=budget_ledger,
         run_ledger=run_ledger,
     )
-    receipt, final_statuses = _build_v211_post_gate_with_inferred_statuses(
-        final_inputs
-    )
+    receipt, final_statuses = _build_v211_post_gate_with_inferred_statuses(final_inputs)
     if final_statuses != draft_statuses:
         raise PilotOrchestrationError(
             "V2.11 model decisions changed while sealing the global gate"
@@ -11810,9 +11936,7 @@ def _v2111_post_gate_inputs(
         )
     repo_root = Path(__file__).resolve().parents[1]
     model_ids = ("gpt52_main", "gpt56_diagnostic")
-    parent_receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    parent_receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     try:
         parent_receipt = verify_v2111_parent_import_receipt(
             parent_receipt_path,
@@ -11893,9 +12017,7 @@ def _v2111_post_gate_inputs(
         }
         local_gate = _read_json(run_dir / "gate_receipt.json")
         checks = local_gate.get("preflight_checks")
-        inherited_payload = inherited_capability_bindings[model_id].get(
-            "payload"
-        )
+        inherited_payload = inherited_capability_bindings[model_id].get("payload")
         inherited_capability = (
             inherited_payload.get("capability")
             if isinstance(inherited_payload, Mapping)
@@ -11915,21 +12037,13 @@ def _v2111_post_gate_inputs(
             raise PilotOrchestrationError(
                 f"V2.11.1 {model_id} local preflight gate is incomplete"
             )
-        if (
-            local_gate["capability_pass"]
-            is not inherited_capability["capability_pass"]
-        ):
+        if local_gate["capability_pass"] is not inherited_capability["capability_pass"]:
             raise PilotOrchestrationError(
                 f"V2.11.1 {model_id} local capability decision differs "
                 "from the replay-verified inherited capability wrapper"
             )
-        local_go = (
-            local_gate["capability_pass"] is True
-            and all(checks.values())
-        )
-        expected_ledger_status = (
-            "complete" if local_go else "capability-no-go"
-        )
+        local_go = local_gate["capability_pass"] is True and all(checks.values())
+        expected_ledger_status = "complete" if local_go else "capability-no-go"
         if (
             local_gate.get("go") is not local_go
             or run_ledger.status(spec.run_id) != expected_ledger_status
@@ -11937,9 +12051,7 @@ def _v2111_post_gate_inputs(
             raise PilotOrchestrationError(
                 f"V2.11.1 {model_id} local preflight status drifted"
             )
-        local_statuses[model_id] = (
-            "eligible" if local_go else "interface-no-go"
-        )
+        local_statuses[model_id] = "eligible" if local_go else "interface-no-go"
 
     budget_snapshot = budget_ledger.snapshot()
     budget_rows = budget_snapshot.get("runs")
@@ -11948,9 +12060,7 @@ def _v2111_post_gate_inputs(
         parent_debit,
         Mapping,
     ):
-        raise PilotOrchestrationError(
-            "V2.11.1 pre-science budget ledger is malformed"
-        )
+        raise PilotOrchestrationError("V2.11.1 pre-science budget ledger is malformed")
     child_pre_science_storage = 0
     for run_id in sorted(pre_science_run_ids):
         row = budget_rows.get(run_id)
@@ -11997,9 +12107,7 @@ def _v2111_post_gate_inputs(
         "inherited_capability_bindings": inherited_capability_bindings,
         "fresh_preflight_artifacts": fresh_preflight_artifacts,
         "model_terminal_statuses": local_statuses,
-        "current_attempt_pre_science_storage_bytes": (
-            child_pre_science_storage
-        ),
+        "current_attempt_pre_science_storage_bytes": (child_pre_science_storage),
         "ledger_event_chain_head": events[-1]["event_sha256"],
         "science_run_ids_by_model": science_run_ids_by_model,
         "source_manifest_hashes": {
@@ -12072,15 +12180,9 @@ def _persist_v2111_post_gate_authority(
             ) from exc
         events = run_ledger.snapshot().get("events")
         bound_head = existing["bindings"]["ledger_event_chain_head"]
-        if (
-            not isinstance(events, list)
-            or bound_head
-            not in {
-                event.get("event_sha256")
-                for event in events
-                if isinstance(event, Mapping)
-            }
-        ):
+        if not isinstance(events, list) or bound_head not in {
+            event.get("event_sha256") for event in events if isinstance(event, Mapping)
+        }:
             raise PilotOrchestrationError(
                 "V2.11.1 resumed post-gate ledger prefix is absent"
             )
@@ -12092,9 +12194,7 @@ def _persist_v2111_post_gate_authority(
             run_ledger=run_ledger,
         )
         resumed_inputs["ledger_event_chain_head"] = bound_head
-        rebuilt, _ = _build_v2111_post_gate_with_inferred_statuses(
-            resumed_inputs
-        )
+        rebuilt, _ = _build_v2111_post_gate_with_inferred_statuses(resumed_inputs)
         if rebuilt != existing:
             raise PilotOrchestrationError(
                 "V2.11.1 resumed post-gate authority differs from current "
@@ -12109,9 +12209,7 @@ def _persist_v2111_post_gate_authority(
         budget_ledger=budget_ledger,
         run_ledger=run_ledger,
     )
-    draft, draft_statuses = _build_v2111_post_gate_with_inferred_statuses(
-        inputs
-    )
+    draft, draft_statuses = _build_v2111_post_gate_with_inferred_statuses(inputs)
     science_specs_by_model = {
         model_id: tuple(
             spec
@@ -12153,9 +12251,7 @@ def _persist_v2111_post_gate_authority(
             status="budget-stopped",
             failure={
                 "error_type": "PostGateProjectionNoGo",
-                "message": (
-                    "V2.11.1 full-matrix projection did not fit hard caps"
-                ),
+                "message": ("V2.11.1 full-matrix projection did not fit hard caps"),
                 "source_stage": PILOT_V211_POST_GATE_STAGE_ID,
                 "reasons": list(draft.get("reasons", [])),
             },
@@ -12183,6 +12279,365 @@ def _persist_v2111_post_gate_authority(
     except PilotV2111GateError as exc:
         raise PilotOrchestrationError(
             f"V2.11.1 final post-gate authority failed validation: {exc}"
+        ) from exc
+    _persist_exact_json(path, receipt)
+    return path, receipt
+
+
+def _v2112_post_gate_inputs(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+    budget_ledger: PilotBudgetLedger,
+    run_ledger: PilotRunLedger,
+) -> dict[str, Any]:
+    """Rebuild only fresh V2.11.2 gate evidence plus inherited capability."""
+
+    if contract.contract_id != V2112_CONTRACT_ID:
+        raise PilotOrchestrationError(
+            "V2.11.2 post-gate inputs require the exact V2.11.2 contract"
+        )
+    repo_root = Path(__file__).resolve().parents[1]
+    model_ids = ("gpt52_main", "gpt56_diagnostic")
+    parent_receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
+    try:
+        parent_receipt = verify_v2112_parent_import_receipt(
+            parent_receipt_path,
+            repo_root=repo_root,
+            child_contract_sha256=contract.canonical_hash,
+            child_git_tag=paid.git_tag,
+            child_git_commit=paid.head_commit,
+        )
+        inherited_capability_bindings = {
+            model_id: verified_v2112_inherited_capability_binding(
+                parent_receipt,
+                model_id=model_id,
+                repo_root=repo_root,
+                child_contract_sha256=contract.canonical_hash,
+                child_git_tag=paid.git_tag,
+                child_git_commit=paid.head_commit,
+            )
+            for model_id in model_ids
+        }
+    except PilotV2112ParentImportError as exc:
+        raise PilotOrchestrationError(
+            f"V2.11.2 post-gate parent replay failed: {exc}"
+        ) from exc
+    parent_relative = _repository_relative_path(
+        parent_receipt_path,
+        required_top="experiment_results",
+        name="V2.11.2 parent-import receipt",
+        repo_root=repo_root,
+    )
+    parent_import_receipt_binding = {
+        "path": parent_relative,
+        "file_sha256": _file_sha256(parent_receipt_path),
+        "content_sha256": parent_receipt["integrity"]["content_sha256"],
+    }
+
+    fresh_preflight_artifacts: dict[str, dict[str, Any]] = {}
+    local_statuses: dict[str, str] = {}
+    pre_science_run_ids: set[str] = set()
+    parent_specs = contract.expand(stage="parent-import")
+    if len(parent_specs) != 1:
+        raise PilotOrchestrationError(
+            "V2.11.2 post-gate requires one exact parent-import cell"
+        )
+    pre_science_run_ids.add(parent_specs[0].run_id)
+    pre_science_run_ids.update(
+        spec.run_id for spec in contract.expand(stage="capability-gate")
+    )
+
+    for model_id in model_ids:
+        preflight_specs = contract.expand(
+            stage=PILOT_V211_POST_GATE_STAGE_ID,
+            model=model_id,
+        )
+        if len(preflight_specs) != 1:
+            raise PilotOrchestrationError(
+                f"V2.11.2 {model_id} lacks one exact fresh preflight"
+            )
+        spec = preflight_specs[0]
+        pre_science_run_ids.add(spec.run_id)
+        run_dir = raw_root / spec.stage_id / "runs" / spec.run_id
+        checkpoint_path = run_dir / "preflight_checkpoint.json"
+        exactness_path = run_dir / "preflight_checkpoint_exactness.json"
+        journal_path = _provider_call_journal_path(
+            run_dir,
+            run_id=spec.run_id,
+            kind="preflight",
+        )
+        checkpoint = _read_json(checkpoint_path)
+        exactness = _read_json(exactness_path)
+        journal = _read_json(journal_path)
+        checkpoint_run_id = checkpoint.get("run_config", {}).get("run_id")
+        if not isinstance(checkpoint_run_id, str):
+            raise PilotOrchestrationError(
+                f"V2.11.2 {model_id} checkpoint lacks its runner run ID"
+            )
+        fresh_preflight_artifacts[model_id] = {
+            "ledger_run_id": spec.run_id,
+            "checkpoint_run_id": checkpoint_run_id,
+            "run_spec_sha256": canonical_sha256(spec.to_dict()),
+            "checkpoint_artifact_sha256": canonical_sha256(checkpoint),
+            "checkpoint": checkpoint,
+            "exactness_artifact_sha256": canonical_sha256(exactness),
+            "exactness": exactness,
+            "provider_call_journal_artifact_sha256": canonical_sha256(journal),
+            "provider_call_journal": journal,
+        }
+        local_gate = _read_json(run_dir / "gate_receipt.json")
+        checks = local_gate.get("preflight_checks")
+        inherited_payload = inherited_capability_bindings[model_id].get("payload")
+        inherited_capability = (
+            inherited_payload.get("capability")
+            if isinstance(inherited_payload, Mapping)
+            else None
+        )
+        if (
+            not isinstance(checks, Mapping)
+            or not checks
+            or any(not isinstance(value, bool) for value in checks.values())
+            or not isinstance(local_gate.get("capability_pass"), bool)
+            or not isinstance(inherited_capability, Mapping)
+            or not isinstance(
+                inherited_capability.get("capability_pass"),
+                bool,
+            )
+        ):
+            raise PilotOrchestrationError(
+                f"V2.11.2 {model_id} local preflight gate is incomplete"
+            )
+        if local_gate["capability_pass"] is not inherited_capability["capability_pass"]:
+            raise PilotOrchestrationError(
+                f"V2.11.2 {model_id} capability decision differs from "
+                "the inherited capability wrapper"
+            )
+        local_go = local_gate["capability_pass"] is True and all(checks.values())
+        expected_ledger_status = "complete" if local_go else "capability-no-go"
+        if (
+            local_gate.get("go") is not local_go
+            or run_ledger.status(spec.run_id) != expected_ledger_status
+        ):
+            raise PilotOrchestrationError(
+                f"V2.11.2 {model_id} local preflight status drifted"
+            )
+        local_statuses[model_id] = (
+            "eligible"
+            if local_go
+            else (
+                "capability-no-go"
+                if local_gate["capability_pass"] is not True
+                else "interface-no-go"
+            )
+        )
+
+    budget_snapshot = budget_ledger.snapshot()
+    budget_rows = budget_snapshot.get("runs")
+    parent_debit = budget_snapshot.get("parent_debit")
+    if not isinstance(budget_rows, Mapping) or not isinstance(
+        parent_debit,
+        Mapping,
+    ):
+        raise PilotOrchestrationError("V2.11.2 pre-science budget ledger is malformed")
+    child_pre_science_storage = 0
+    for run_id in sorted(pre_science_run_ids):
+        row = budget_rows.get(run_id)
+        actual = row.get("actual") if isinstance(row, Mapping) else None
+        if (
+            not isinstance(actual, Mapping)
+            or isinstance(actual.get("storage_bytes"), bool)
+            or not isinstance(actual.get("storage_bytes"), int)
+            or int(actual["storage_bytes"]) < 0
+        ):
+            raise PilotOrchestrationError(
+                f"V2.11.2 pre-science budget actual is missing for {run_id}"
+            )
+        child_pre_science_storage += int(actual["storage_bytes"])
+
+    science_run_ids_by_model: dict[str, list[str]] = {
+        model_id: [] for model_id in model_ids
+    }
+    for stage_id in (
+        "experiment-c",
+        "experiment-a",
+        "experiment-d",
+        "experiment-b",
+        "cross-model",
+    ):
+        for spec in contract.expand(stage=stage_id):
+            if spec.model_id not in science_run_ids_by_model:
+                raise PilotOrchestrationError(
+                    "V2.11.2 science cell uses an unregistered model"
+                )
+            science_run_ids_by_model[spec.model_id].append(spec.run_id)
+
+    events = run_ledger.snapshot().get("events")
+    if not isinstance(events, list) or not events:
+        raise PilotOrchestrationError(
+            "V2.11.2 run ledger lacks its tamper-evident event chain"
+        )
+    return {
+        "contract_sha256": contract.canonical_hash,
+        "release_tag": paid.git_tag,
+        "release_commit": paid.head_commit,
+        "parent_import_receipt_binding": parent_import_receipt_binding,
+        "parent_budget_debit": _json_copy(parent_debit),
+        "inherited_capability_bindings": inherited_capability_bindings,
+        "fresh_preflight_artifacts": fresh_preflight_artifacts,
+        "model_terminal_statuses": local_statuses,
+        "current_attempt_pre_science_storage_bytes": (child_pre_science_storage),
+        "ledger_event_chain_head": events[-1]["event_sha256"],
+        "science_run_ids_by_model": science_run_ids_by_model,
+        "source_manifest_hashes": {
+            "file_sha256": V2112_SOURCE_MANIFEST_FILE_SHA256,
+            "content_sha256": V2112_SOURCE_MANIFEST_CONTENT_SHA256,
+        },
+    }
+
+
+def _build_v2112_post_gate_with_inferred_statuses(
+    inputs: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Infer status from sealed 24/8 fresh samples plus capability audit."""
+
+    model_ids = ("gpt52_main", "gpt56_diagnostic")
+    successes: list[tuple[dict[str, Any], dict[str, str]]] = []
+    failures: list[str] = []
+    for candidate_values in product(
+        ("eligible", "interface-no-go"),
+        ("eligible", "interface-no-go"),
+    ):
+        statuses = dict(zip(model_ids, candidate_values, strict=True))
+        candidate = dict(inputs)
+        candidate["model_terminal_statuses"] = statuses
+        try:
+            receipt = build_v2112_post_gate_authority(**candidate)
+        except PilotV2112GateError as exc:
+            failures.append(str(exc))
+            continue
+        successes.append((receipt, statuses))
+    if len(successes) != 1:
+        detail = (
+            "no terminal-status assignment validated"
+            if not successes
+            else "multiple terminal-status assignments validated"
+        )
+        if failures:
+            detail += f"; first failure: {failures[0]}"
+        raise PilotOrchestrationError(
+            f"V2.11.2 post-gate status inference failed: {detail}"
+        )
+    return successes[0]
+
+
+def _persist_v2112_post_gate_authority(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+    budget_ledger: PilotBudgetLedger,
+    run_ledger: PilotRunLedger,
+) -> tuple[Path, dict[str, Any]]:
+    """Seal V2.11.2 authority or terminalize all 131 science cells."""
+
+    path = _v211_post_gate_authority_path(raw_root)
+    if path.exists():
+        if path.is_symlink() or not path.is_file():
+            raise PilotOrchestrationError(
+                "V2.11.2 post-gate authority must be a regular file"
+            )
+        try:
+            existing = verify_v2112_gate_receipt(
+                _read_json(path),
+                expected_contract_sha256=contract.canonical_hash,
+                expected_git_commit=paid.head_commit,
+            )
+        except PilotV2112GateError as exc:
+            raise PilotOrchestrationError(
+                f"V2.11.2 resumed post-gate authority failed: {exc}"
+            ) from exc
+        events = run_ledger.snapshot().get("events")
+        bound_head = existing["bindings"]["ledger_event_chain_head"]
+        if not isinstance(events, list) or bound_head not in {
+            event.get("event_sha256") for event in events if isinstance(event, Mapping)
+        }:
+            raise PilotOrchestrationError(
+                "V2.11.2 resumed post-gate ledger prefix is absent"
+            )
+        resumed_inputs = _v2112_post_gate_inputs(
+            contract,
+            raw_root=raw_root,
+            paid=paid,
+            budget_ledger=budget_ledger,
+            run_ledger=run_ledger,
+        )
+        resumed_inputs["ledger_event_chain_head"] = bound_head
+        rebuilt, _ = _build_v2112_post_gate_with_inferred_statuses(resumed_inputs)
+        if rebuilt != existing:
+            raise PilotOrchestrationError(
+                "V2.11.2 resumed post-gate differs from sealed sources"
+            )
+        return path, existing
+
+    inputs = _v2112_post_gate_inputs(
+        contract,
+        raw_root=raw_root,
+        paid=paid,
+        budget_ledger=budget_ledger,
+        run_ledger=run_ledger,
+    )
+    draft, draft_statuses = _build_v2112_post_gate_with_inferred_statuses(inputs)
+    science_specs = tuple(
+        spec
+        for stage_id in (
+            "experiment-c",
+            "experiment-a",
+            "experiment-d",
+            "experiment-b",
+            "cross-model",
+        )
+        for spec in contract.expand(stage=stage_id)
+    )
+    if draft.get("go") is not True:
+        run_ledger.stop_pending(
+            science_specs,
+            status="integrity-stopped",
+            failure={
+                "error_type": "V2112PostGateNoGo",
+                "message": (
+                    "V2.11.2 global fresh-preflight gate did not authorize "
+                    "scientific dispatch"
+                ),
+                "source_stage": PILOT_V211_POST_GATE_STAGE_ID,
+                "reasons": list(draft.get("reasons", [])),
+            },
+        )
+
+    final_inputs = _v2112_post_gate_inputs(
+        contract,
+        raw_root=raw_root,
+        paid=paid,
+        budget_ledger=budget_ledger,
+        run_ledger=run_ledger,
+    )
+    receipt, final_statuses = _build_v2112_post_gate_with_inferred_statuses(
+        final_inputs
+    )
+    if final_statuses != draft_statuses:
+        raise PilotOrchestrationError(
+            "V2.11.2 model decisions changed while sealing the global gate"
+        )
+    try:
+        verify_v2112_gate_receipt(
+            receipt,
+            expected_contract_sha256=contract.canonical_hash,
+            expected_git_commit=paid.head_commit,
+        )
+    except PilotV2112GateError as exc:
+        raise PilotOrchestrationError(
+            f"V2.11.2 final post-gate authority failed: {exc}"
         ) from exc
     _persist_exact_json(path, receipt)
     return path, receipt
@@ -12414,8 +12869,7 @@ def _load_v2_terminal_summary(
             f"{spec.run_id} terminal summary provenance is malformed"
         )
     if (
-        provenance.get("git_tag")
-        != contract.implementation["required_git_tag"]
+        provenance.get("git_tag") != contract.implementation["required_git_tag"]
         or provenance.get("tag_object_type") != "tag"
         or provenance.get("worktree_clean") is not True
         or (
@@ -12447,7 +12901,9 @@ def _v2_capability_semantic_go(
         raise PilotOrchestrationError(
             f"passing capability cell {spec.run_id} lacks a sealed artifact"
         )
-    artifact_value = _read_json(Path(_v2_source_file_binding(raw_root, artifact)["path"]))
+    artifact_value = _read_json(
+        Path(_v2_source_file_binding(raw_root, artifact)["path"])
+    )
     if artifact_value.get("schema_version") != PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION:
         if status != "capability-no-go":
             raise PilotOrchestrationError(
@@ -12497,30 +12953,65 @@ def _v2_capability_semantic_go(
             f"{spec.run_id} terminal gate differs from its source receipt"
         )
     if spec.execution_mode == "capability_authority_import":
-        if (
-            contract.contract_id != V2111_CONTRACT_ID
-            or paid is None
-            or capability.get("schema_version")
-            != V2111_CAPABILITY_WRAPPER_SCHEMA_VERSION
-        ):
+        if paid is None or contract.contract_id not in {
+            V2111_CONTRACT_ID,
+            V2112_CONTRACT_ID,
+        }:
             raise PilotOrchestrationError(
-                f"{spec.run_id} is not a valid V2.11.1 capability import"
+                f"{spec.run_id} is not a valid V2.11-family capability import"
             )
-        try:
-            parent_receipt = verify_v2111_parent_import_receipt(
-                raw_root / "parent-import" / "parent_import_receipt.json",
-                repo_root=Path(__file__).resolve().parents[1],
-                child_contract_sha256=contract.canonical_hash,
-                child_git_tag=paid.git_tag,
-                child_git_commit=paid.head_commit,
-            )
-            expected_wrapper = capability_wrappers_from_v2111_receipt(
-                parent_receipt
-            )[spec.model_id]
-        except PilotV2111ParentImportError as exc:
-            raise PilotOrchestrationError(
-                f"{spec.run_id} inherited capability replay failed: {exc}"
-            ) from exc
+        if contract.contract_id == V2112_CONTRACT_ID:
+            if (
+                capability.get("schema_version")
+                != V2112_CAPABILITY_WRAPPER_SCHEMA_VERSION
+            ):
+                raise PilotOrchestrationError(
+                    f"{spec.run_id} has the wrong V2.11.2 wrapper schema"
+                )
+            try:
+                parent_receipt = verify_v2112_parent_import_receipt(
+                    raw_root / "parent-import" / "parent_import_receipt.json",
+                    repo_root=Path(__file__).resolve().parents[1],
+                    child_contract_sha256=contract.canonical_hash,
+                    child_git_tag=paid.git_tag,
+                    child_git_commit=paid.head_commit,
+                )
+                expected_wrapper = capability_wrappers_from_v2112_receipt(
+                    parent_receipt
+                )[spec.model_id]
+            except PilotV2112ParentImportError as exc:
+                raise PilotOrchestrationError(
+                    f"{spec.run_id} V2.11.2 capability replay failed: {exc}"
+                ) from exc
+            bootstrap_filename = V2112_BOOTSTRAP_PROJECTION_FILENAME
+            additional_gate = {
+                "historical_failed_preflight_calls_used": 0,
+            }
+        else:
+            if (
+                capability.get("schema_version")
+                != V2111_CAPABILITY_WRAPPER_SCHEMA_VERSION
+            ):
+                raise PilotOrchestrationError(
+                    f"{spec.run_id} has the wrong V2.11.1 wrapper schema"
+                )
+            try:
+                parent_receipt = verify_v2111_parent_import_receipt(
+                    raw_root / "parent-import" / "parent_import_receipt.json",
+                    repo_root=Path(__file__).resolve().parents[1],
+                    child_contract_sha256=contract.canonical_hash,
+                    child_git_tag=paid.git_tag,
+                    child_git_commit=paid.head_commit,
+                )
+                expected_wrapper = capability_wrappers_from_v2111_receipt(
+                    parent_receipt
+                )[spec.model_id]
+            except PilotV2111ParentImportError as exc:
+                raise PilotOrchestrationError(
+                    f"{spec.run_id} inherited capability replay failed: {exc}"
+                ) from exc
+            bootstrap_filename = V2111_BOOTSTRAP_PROJECTION_FILENAME
+            additional_gate = {}
         imported = capability.get("capability")
         semantic_go = (
             capability == expected_wrapper
@@ -12530,25 +13021,21 @@ def _v2_capability_semantic_go(
         )
         expected_gate = {
             "capability_pass": semantic_go,
-            "capability_status": (
-                "imported-pass" if semantic_go else "imported-no-go"
-            ),
+            "capability_status": ("imported-pass" if semantic_go else "imported-no-go"),
             "go": semantic_go,
             "historical_source_calls": 30,
+            **additional_gate,
             "provider_calls_current_attempt": 0,
             "interface_pass": semantic_go,
             "preflight_run": None,
             "reason": None if semantic_go else "inherited-capability-no-go",
-            "bootstrap_projection": str(
-                run_dir / V2111_BOOTSTRAP_PROJECTION_FILENAME
-            ),
+            "bootstrap_projection": str(run_dir / bootstrap_filename),
         }
         if (
             gate != expected_gate
             or _read_json(run_dir / "capability.json") != capability
             or summary.get("scientific_evidence") is not False
-            or summary.get("evidence_scope")
-            != "preregistered_task_capability_gate"
+            or summary.get("evidence_scope") != "preregistered_task_capability_gate"
         ):
             raise PilotOrchestrationError(
                 f"{spec.run_id} imported capability terminal drifted"
@@ -12577,6 +13064,30 @@ def _v2_capability_semantic_go(
                 amendment_receipt,
             )
         elif (
+            capability_schema == V2112_CAPABILITY_WRAPPER_SCHEMA_VERSION
+            and contract.contract_id == V2112_CONTRACT_ID
+            and spec.execution_mode == "closed_loop_preflight"
+        ):
+            base_wrapper = {
+                key: value
+                for key, value in capability.items()
+                if key not in {"preflight_go", "preflight_checks"}
+            }
+            parent_receipt = verify_v2112_parent_import_receipt(
+                raw_root / "parent-import" / "parent_import_receipt.json",
+                repo_root=Path(__file__).resolve().parents[1],
+                child_contract_sha256=contract.canonical_hash,
+                child_git_tag=paid.git_tag if paid is not None else "",
+                child_git_commit=paid.head_commit if paid is not None else "",
+            )
+            expected_wrapper = capability_wrappers_from_v2112_receipt(parent_receipt)[
+                spec.model_id
+            ]
+            if base_wrapper != expected_wrapper:
+                raise PilotV2112ParentImportError(
+                    "preflight capability wrapper differs from parent replay"
+                )
+        elif (
             capability_schema == V2111_CAPABILITY_WRAPPER_SCHEMA_VERSION
             and contract.contract_id == V2111_CONTRACT_ID
             and spec.execution_mode == "closed_loop_preflight"
@@ -12593,9 +13104,9 @@ def _v2_capability_semantic_go(
                 child_git_tag=paid.git_tag if paid is not None else "",
                 child_git_commit=paid.head_commit if paid is not None else "",
             )
-            expected_wrapper = capability_wrappers_from_v2111_receipt(
-                parent_receipt
-            )[spec.model_id]
+            expected_wrapper = capability_wrappers_from_v2111_receipt(parent_receipt)[
+                spec.model_id
+            ]
             if base_wrapper != expected_wrapper:
                 raise PilotV2111ParentImportError(
                     "preflight capability wrapper differs from parent replay"
@@ -12608,6 +13119,7 @@ def _v2_capability_semantic_go(
         PilotEvidenceError,
         PilotEvaluationAmendmentError,
         PilotV2111ParentImportError,
+        PilotV2112ParentImportError,
     ) as exc:
         raise PilotOrchestrationError(
             f"{spec.run_id} capability evidence failed semantic recomputation: {exc}"
@@ -12615,6 +13127,7 @@ def _v2_capability_semantic_go(
     if capability_schema not in {
         CAPABILITY_IMPORT_SCHEMA_VERSION,
         V2111_CAPABILITY_WRAPPER_SCHEMA_VERSION,
+        V2112_CAPABILITY_WRAPPER_SCHEMA_VERSION,
     }:
         capability_spec = spec
         if spec.execution_mode == "closed_loop_preflight":
@@ -12653,12 +13166,10 @@ def _v2_capability_semantic_go(
                     "V2.3 capability bootstrap semantic verification "
                     "requires paid release provenance"
                 )
-            bootstrap_target, bootstrap_config_sha256 = (
-                _bootstrap_target_context(
-                    contract,
-                    spec,
-                    paid=paid,
-                )
+            bootstrap_target, bootstrap_config_sha256 = _bootstrap_target_context(
+                contract,
+                spec,
+                paid=paid,
             )
             expected_bootstrap_path = _capability_bootstrap_projection_path(
                 raw_root=raw_root,
@@ -12677,9 +13188,7 @@ def _v2_capability_semantic_go(
                         run_dir / "capability.json"
                     ),
                     git_tag=str(summary["provenance"]["git_tag"]),
-                    git_commit=str(
-                        summary["provenance"]["resolved_git_commit"]
-                    ),
+                    git_commit=str(summary["provenance"]["resolved_git_commit"]),
                     authorized_config_sha256=bootstrap_config_sha256,
                 )
             except PilotPreflightAmendmentError as exc:
@@ -12695,13 +13204,9 @@ def _v2_capability_semantic_go(
             or gate.get("preflight_run") is not None
             or (
                 expected_bootstrap_path is not None
-                and gate.get("bootstrap_projection")
-                != str(expected_bootstrap_path)
+                and gate.get("bootstrap_projection") != str(expected_bootstrap_path)
             )
-            or (
-                expected_bootstrap_path is None
-                and "bootstrap_projection" in gate
-            )
+            or (expected_bootstrap_path is None and "bootstrap_projection" in gate)
         ):
             raise PilotOrchestrationError(
                 f"{spec.run_id} capability gate differs from recomputed rows"
@@ -12720,11 +13225,12 @@ def _v2_capability_semantic_go(
             _CheckpointPreflightResult(checkpoint),
             contract.provider_profiles[spec.model_id],
             checkpoint_preflight=True,
-            v211_long_context=(
-                contract.contract_id in V211_FAMILY_CONTRACT_IDS
-            ),
+            v211_long_context=(contract.contract_id in V211_FAMILY_CONTRACT_IDS),
         )
-        if capability_schema == V2111_CAPABILITY_WRAPPER_SCHEMA_VERSION:
+        if capability_schema in {
+            V2111_CAPABILITY_WRAPPER_SCHEMA_VERSION,
+            V2112_CAPABILITY_WRAPPER_SCHEMA_VERSION,
+        }:
             imported_capability = capability.get("capability")
             capability_pass = (
                 isinstance(imported_capability, Mapping)
@@ -12752,7 +13258,15 @@ def _v2_capability_semantic_go(
         )
         source_capability = _read_json(source_capability_path)
         expected_bootstrap_path = None
-        if contract.contract_id == V2111_CONTRACT_ID:
+        if contract.contract_id == V2112_CONTRACT_ID:
+            expected_bootstrap_path = (
+                raw_root
+                / source_spec.stage_id
+                / "runs"
+                / source_spec.run_id
+                / V2112_BOOTSTRAP_PROJECTION_FILENAME
+            )
+        elif contract.contract_id == V2111_CONTRACT_ID:
             expected_bootstrap_path = (
                 raw_root
                 / source_spec.stage_id
@@ -12765,7 +13279,10 @@ def _v2_capability_semantic_go(
                 raw_root=raw_root,
                 spec=source_spec,
             )
-        if capability_schema == V2111_CAPABILITY_WRAPPER_SCHEMA_VERSION:
+        if capability_schema in {
+            V2111_CAPABILITY_WRAPPER_SCHEMA_VERSION,
+            V2112_CAPABILITY_WRAPPER_SCHEMA_VERSION,
+        }:
             expected_capability = {
                 **source_capability,
                 "preflight_go": semantic_go,
@@ -12799,17 +13316,12 @@ def _v2_capability_semantic_go(
             or gate.get("projection") != str(projection_path)
             or gate.get("preflight_manifest") is not None
             or gate.get("preflight_checkpoint") != str(checkpoint_path)
-            or gate.get("preflight_checkpoint_exactness")
-            != str(exactness_path)
+            or gate.get("preflight_checkpoint_exactness") != str(exactness_path)
             or (
                 expected_bootstrap_path is not None
-                and gate.get("bootstrap_projection")
-                != str(expected_bootstrap_path)
+                and gate.get("bootstrap_projection") != str(expected_bootstrap_path)
             )
-            or (
-                expected_bootstrap_path is None
-                and "bootstrap_projection" in gate
-            )
+            or (expected_bootstrap_path is None and "bootstrap_projection" in gate)
         ):
             raise PilotOrchestrationError(
                 f"{spec.run_id} preflight gate differs from sealed source recomputation"
@@ -12845,11 +13357,7 @@ def _v2_stage_control_paths(
     elif stage_id == "parent-import":
         stage_receipt = _stage_receipt_path(raw_root, stage_id)
         for path in stage_root.rglob("*.json"):
-            if (
-                path != stage_receipt
-                and path.is_file()
-                and not path.is_symlink()
-            ):
+            if path != stage_receipt and path.is_file() and not path.is_symlink():
                 paths.add(path)
     elif stage_id == "stage0-calibration":
         path = stage_root / "stage0_selection.json"
@@ -12865,9 +13373,7 @@ def _v2_stage_control_paths(
         }:
             paths.update(
                 path
-                for path in stage_root.glob(
-                    "runs/*/imported_run_envelope.json"
-                )
+                for path in stage_root.glob("runs/*/imported_run_envelope.json")
                 if path.is_file() and not path.is_symlink()
             )
             paths.update(
@@ -12897,9 +13403,7 @@ def _v2_stage_control_paths(
         _materializes_legacy_amendment_controls(contract)
         and contract.preflight_bootstrap_amendment is not None
     ):
-        preflight_control = preflight_amendment_control_path(
-            raw_root=raw_root
-        )
+        preflight_control = preflight_amendment_control_path(raw_root=raw_root)
         if preflight_control.exists():
             paths.add(preflight_control)
     if _is_capability_stage(contract, stage_id):
@@ -12911,6 +13415,7 @@ def _v2_stage_control_paths(
                 "projection_p95.json",
                 PREFLIGHT_BOOTSTRAP_PROJECTION_FILENAME,
                 V2111_BOOTSTRAP_PROJECTION_FILENAME,
+                V2112_BOOTSTRAP_PROJECTION_FILENAME,
                 "preflight_checkpoint.json",
                 "preflight_checkpoint_exactness.json",
             ):
@@ -12950,21 +13455,14 @@ def _v2_stage_receipt_bindings(
             raw_root=raw_root,
         )
     )
-    deduplicated = {
-        str(item["path"]): item for item in source_files
-    }
-    sources = [
-        deduplicated[path] for path in sorted(deduplicated)
-    ]
+    deduplicated = {str(item["path"]): item for item in source_files}
+    sources = [deduplicated[path] for path in sorted(deduplicated)]
     go_models: list[str] = []
     missing_terminal_family_post_gate = (
         contract.contract_id in V211_FAMILY_CONTRACT_IDS
         and stage_id == PILOT_V211_POST_GATE_STAGE_ID
         and not _v211_post_gate_authority_path(raw_root).exists()
-        and all(
-            row.get("status") in TERMINAL_RUN_STATUSES
-            for row in rows.values()
-        )
+        and all(row.get("status") in TERMINAL_RUN_STATUSES for row in rows.values())
     )
     if (
         _is_capability_stage(contract, stage_id)
@@ -13000,13 +13498,10 @@ def _v2_stage_receipt_bindings(
             ]
             if not set(globally_eligible) <= set(go_models):
                 raise PilotOrchestrationError(
-                    "V2.11-family global gate authorized a locally "
-                    "ineligible model"
+                    "V2.11-family global gate authorized a locally " "ineligible model"
                 )
             go_models = globally_eligible
-        elif all(
-            row.get("status") in TERMINAL_RUN_STATUSES for row in rows.values()
-        ):
+        elif all(row.get("status") in TERMINAL_RUN_STATUSES for row in rows.values()):
             # A provider, budget, or integrity failure can terminalize the
             # entire gate before a post-gate authority is sealable.  The
             # failure receipt must remain publishable and must authorize no
@@ -13027,9 +13522,7 @@ def _v2_stage_receipt_bindings(
         "run_ledger_schema_version": PILOT_RUN_LEDGER_SCHEMA_VERSION_V2,
         "ledger_event_count": len(events),
         "ledger_event_chain_head": events[-1]["event_sha256"],
-        "stage_specs_sha256": canonical_sha256(
-            [spec.to_dict() for spec in specs]
-        ),
+        "stage_specs_sha256": canonical_sha256([spec.to_dict() for spec in specs]),
         "stage_rows_sha256": canonical_sha256(stage_rows),
         "source_files": sources,
         "source_files_sha256": canonical_sha256(sources),
@@ -13063,35 +13556,19 @@ def _v2_control_gate_ok(
         eligible = set(receipt["denominator"]["eligible_model_ids"])
         local_go: set[str] = set()
         for spec in contract.expand(stage=stage_id):
-            gate_path = (
-                raw_root
-                / stage_id
-                / "runs"
-                / spec.run_id
-                / "gate_receipt.json"
-            )
-            if (
-                gate_path.exists()
-                and _read_json(gate_path).get("go") is True
-            ):
+            gate_path = raw_root / stage_id / "runs" / spec.run_id / "gate_receipt.json"
+            if gate_path.exists() and _read_json(gate_path).get("go") is True:
                 local_go.add(spec.model_id)
         if not eligible <= local_go:
             raise PilotOrchestrationError(
-                "V2.11-family global gate authorized a locally "
-                "ineligible model"
+                "V2.11-family global gate authorized a locally " "ineligible model"
             )
         run_snapshot = _read_json(raw_root / "run_ledger.json")
         events = run_snapshot.get("events")
         bound_head = receipt["bindings"]["ledger_event_chain_head"]
-        if (
-            not isinstance(events, list)
-            or bound_head
-            not in {
-                event.get("event_sha256")
-                for event in events
-                if isinstance(event, Mapping)
-            }
-        ):
+        if not isinstance(events, list) or bound_head not in {
+            event.get("event_sha256") for event in events if isinstance(event, Mapping)
+        }:
             raise PilotOrchestrationError(
                 "V2.11-family post-gate ledger event-chain prefix is absent"
             )
@@ -13104,7 +13581,13 @@ def _v2_control_gate_ok(
         path = raw_root / stage_id / "parent_import_receipt.json"
         if not path.exists():
             return False
-        if contract.contract_id == V2111_CONTRACT_ID:
+        if contract.contract_id == V2112_CONTRACT_ID:
+            _load_verified_v2112_calibration(
+                contract,
+                raw_root=raw_root,
+                paid=paid,
+            )
+        elif contract.contract_id == V2111_CONTRACT_ID:
             _load_verified_v2111_calibration(
                 contract,
                 raw_root=raw_root,
@@ -13312,22 +13795,15 @@ def _v2_recomputed_stage_fields(
     )
     semantic_status = "complete" if go else "complete-with-no-go"
     execution_progression_go = (
-        (
-            terminal
-            and hard_stop_count == 0
-            and control_go
-            and bool(go_models)
-        )
+        (terminal and hard_stop_count == 0 and control_go and bool(go_models))
         if v211_post_gate_stage
         else (
             terminal
             and hard_stop_count == 0
             and (
-                _is_core_stage(stage_id) or stage_id == "cross-model-sentinels"
-                or (
-                    _is_capability_stage(contract, stage_id)
-                    and bool(go_models)
-                )
+                _is_core_stage(stage_id)
+                or stage_id == "cross-model-sentinels"
+                or (_is_capability_stage(contract, stage_id) and bool(go_models))
                 or go
             )
         )
@@ -13424,9 +13900,10 @@ def _verify_v2_stage_receipt(
                 f"V2 stage receipt field {key!r} differs from source "
                 f"recomputation for {stage_id}"
             )
-    if fields["hard_stop_cell_count"] == 0 and receipt.get(
-        "status"
-    ) != fields["semantic_status"]:
+    if (
+        fields["hard_stop_cell_count"] == 0
+        and receipt.get("status") != fields["semantic_status"]
+    ):
         raise PilotOrchestrationError(
             f"V2 stage receipt status differs from source recomputation for {stage_id}"
         )
@@ -13620,8 +14097,7 @@ def _write_stage_receipt(
                     and existing.get("go_models") != declared_go_models
                 )
                 or existing.get("artifacts") != dict(artifacts or {})
-                or existing.get("failure")
-                != (dict(failure) if failure else None)
+                or existing.get("failure") != (dict(failure) if failure else None)
                 or existing.get("diagnostic_only") is not diagnostic
                 or existing.get("scientific_evidence")
                 is not (False if diagnostic else None)
@@ -13642,16 +14118,11 @@ def _write_stage_receipt(
             if go_models is None
             else list(dict.fromkeys(str(item) for item in go_models))
         )
-        if (
-            declared_go_models is not None
-            and declared_go_models != fields["go_models"]
-        ):
+        if declared_go_models is not None and declared_go_models != fields["go_models"]:
             raise PilotOrchestrationError(
                 f"V2 {stage_id} go_models differ from sealed source recomputation"
             )
-        if fields["hard_stop_cell_count"] == 0 and status != fields[
-            "semantic_status"
-        ]:
+        if fields["hard_stop_cell_count"] == 0 and status != fields["semantic_status"]:
             raise PilotOrchestrationError(
                 f"V2 {stage_id} status differs from sealed source recomputation"
             )
@@ -13661,11 +14132,7 @@ def _write_stage_receipt(
             "contract_sha256": contract.canonical_hash,
             "stage_id": stage_id,
             "status": status,
-            **{
-                key: value
-                for key, value in fields.items()
-                if key != "semantic_status"
-            },
+            **{key: value for key, value in fields.items() if key != "semantic_status"},
             "bindings": bindings,
             "artifacts": dict(artifacts or {}),
             "failure": dict(failure) if failure else None,
@@ -13708,7 +14175,8 @@ def _write_stage_receipt(
         and status in {"complete", "complete-with-no-go"}
         and hard_stop_count == 0
         and (
-            _is_core_stage(stage_id) or stage_id == "cross-model-sentinels"
+            _is_core_stage(stage_id)
+            or stage_id == "cross-model-sentinels"
             or (
                 contract.schema_version.endswith("-v2")
                 and _is_capability_stage(contract, stage_id)
@@ -13928,9 +14396,7 @@ def _experiment_c_sensitivity_path(
     stage_id: str = "experiment-c",
 ) -> Path:
     if not _is_experiment_c_stage(stage_id):
-        raise PilotOrchestrationError(
-            f"{stage_id!r} is not an Experiment C stage"
-        )
+        raise PilotOrchestrationError(f"{stage_id!r} is not an Experiment C stage")
     return raw_root / stage_id / "rule_sensitivity.json"
 
 
@@ -14002,9 +14468,7 @@ def _build_experiment_c_sensitivity(
         stage_id if contract.schema_version.endswith("-v2") else "experiment-b"
     )
     if not _is_experiment_c_stage(stage_id):
-        raise PilotOrchestrationError(
-            f"{stage_id!r} is not an Experiment C stage"
-        )
+        raise PilotOrchestrationError(f"{stage_id!r} is not an Experiment C stage")
     if model_id is None:
         candidates = tuple(
             candidate
@@ -14369,9 +14833,7 @@ def _d_narrative_causal_bindings(
         "proposal_counters_after": dict(branch["proposal_counters_after"]),
         "proposals_frozen": branch["freeze_proposals"],
         "focal_agent_id": narratives["focal_agent_id"],
-        "narrative_pulse_contract": dict(
-            narratives["narrative_pulse_contract"]
-        ),
+        "narrative_pulse_contract": dict(narratives["narrative_pulse_contract"]),
         "branch_narrative_pulse_only": narrative["pulse_only"],
         "action_grid": dict(narratives["action_grid"]),
     }
@@ -14407,12 +14869,8 @@ def _d_group_projection(
         "error-verified",
         "error-unverified",
     }
-    continuation_count = sum(
-        spec.arm_id in branch_arms for spec in group_specs
-    )
-    narrative_count = sum(
-        spec.arm_id == "narrative-content" for spec in group_specs
-    )
+    continuation_count = sum(spec.arm_id in branch_arms for spec in group_specs)
+    narrative_count = sum(spec.arm_id == "narrative-content" for spec in group_specs)
     if (
         not group_specs
         or continuation_count + narrative_count != len(group_specs)
@@ -14421,11 +14879,7 @@ def _d_group_projection(
         raise PilotOrchestrationError(
             "Experiment D projection lacks its registered causal branch group"
         )
-    calls = {
-        "action": 4
-        * 6
-        * (1 + continuation_count + narrative_count)
-    }
+    calls = {"action": 4 * 6 * (1 + continuation_count + narrative_count)}
     calls["semantic"] = 4 * 2  # prefix proposals at outcomes 3 and 6 only
     source = _read_json(Path(normal.basis["source"]))["projection"]
     by_kind: dict[str, Mapping[str, Any]] = {}
@@ -14455,18 +14909,14 @@ def _d_group_projection(
         run_id=group_id,
         stage_bucket=representative.budget_bucket,
         cost_usd=totals["cost_usd"],
-        completions=(
-            sum(calls.values()) if hosted_completion_cap_counted else 0
-        ),
+        completions=(sum(calls.values()) if hosted_completion_cap_counted else 0),
         storage_bytes=80_000_000,
         basis={
             "method": "shared-checkpoint-preflight-p95-times-1.25",
             "source": normal.basis["source"],
             "calls_by_kind": calls,
             "run_call_limit": sum(calls.values()),
-            "hosted_completion_cap_counted": (
-                hosted_completion_cap_counted
-            ),
+            "hosted_completion_cap_counted": (hosted_completion_cap_counted),
             "prompt_tokens": math.ceil(totals["prompt_tokens"]),
             "completion_tokens": math.ceil(totals["completion_tokens"]),
             "total_tokens": math.ceil(totals["total_tokens"]),
@@ -14476,9 +14926,7 @@ def _d_group_projection(
 
 
 D_PUBLICATION_FAILURE_RESERVE_BYTES = 1_048_576
-D_PUBLICATION_FAILURE_RESERVE_FILENAME = (
-    "post_reconciliation_failure_storage.reserve"
-)
+D_PUBLICATION_FAILURE_RESERVE_FILENAME = "post_reconciliation_failure_storage.reserve"
 
 
 def _clear_d_pending_summaries(group_dir: Path) -> None:
@@ -14506,17 +14954,10 @@ def _demote_d_publication(
 
     stage_ids = {spec.stage_id for spec in specs}
     if len(stage_ids) != 1:
-        raise PilotOrchestrationError(
-            "Experiment D demotion requires one exact stage"
-        )
+        raise PilotOrchestrationError("Experiment D demotion requires one exact stage")
     stage_id = next(iter(stage_ids))
     for spec in specs:
-        summary = (
-            raw_root
-            / stage_id
-            / "summaries"
-            / f"{spec.run_id}.json"
-        )
+        summary = raw_root / stage_id / "summaries" / f"{spec.run_id}.json"
         if summary.exists() or summary.is_symlink():
             summary.unlink()
     _clear_d_pending_summaries(group_dir)
@@ -14576,14 +15017,9 @@ def _execute_d_seed(
     if len(contract.models_for_stage(stage_id)) > 1:
         group_root = group_root / model_id
     group_dir = group_root / f"s{seed}"
-    reserve_path = (
-        group_dir / D_PUBLICATION_FAILURE_RESERVE_FILENAME
-    )
+    reserve_path = group_dir / D_PUBLICATION_FAILURE_RESERVE_FILENAME
     if all(run_ledger.is_terminal(spec.run_id) for spec in specs):
-        if any(
-            run_ledger.status(spec.run_id) != "complete"
-            for spec in specs
-        ):
+        if any(run_ledger.status(spec.run_id) != "complete" for spec in specs):
             _demote_d_publication(
                 raw_root=raw_root,
                 group_dir=group_dir,
@@ -14598,9 +15034,7 @@ def _execute_d_seed(
     )
     projection = (
         RunProjection(
-            run_id=(
-                f"development-fake-{stage_id}-{model_id}-d-s{seed}"
-            ),
+            run_id=(f"development-fake-{stage_id}-{model_id}-d-s{seed}"),
             stage_bucket=representative.budget_bucket,
             cost_usd=0.0,
             completions=0,
@@ -14652,9 +15086,7 @@ def _execute_d_seed(
                 },
             )
         nonterminal_specs = tuple(
-            spec
-            for spec in specs
-            if not run_ledger.is_terminal(spec.run_id)
+            spec for spec in specs if not run_ledger.is_terminal(spec.run_id)
         )
         if nonterminal_specs:
             run_ledger.finalize_many(
@@ -14732,9 +15164,7 @@ def _execute_d_seed(
             "error-unverified": "erroneous-unverified",
         }
         continuation_specs = {
-            branch_map[spec.arm_id]: spec
-            for spec in specs
-            if spec.arm_id in branch_map
+            branch_map[spec.arm_id]: spec for spec in specs if spec.arm_id in branch_map
         }
         narrative_specs = {
             str(spec.narrative_id): spec
@@ -14746,10 +15176,9 @@ def _execute_d_seed(
             for treatment in DEFAULT_TREATMENTS
             if treatment in continuation_specs
         )
-        if (
-            set(continuation_specs) != set(registered_treatments)
-            or len(continuation_specs) + len(narrative_specs) != len(specs)
-        ):
+        if set(continuation_specs) != set(registered_treatments) or len(
+            continuation_specs
+        ) + len(narrative_specs) != len(specs):
             raise PilotOrchestrationError(
                 "Experiment D group contains an unregistered branch mapping"
             )
@@ -14783,10 +15212,7 @@ def _execute_d_seed(
                 "contract_hash": base.pilot_contract_hash,
             }
 
-        d_journal_paths = tuple(
-            Path(journal_target(spec)["path"])
-            for spec in specs
-        )
+        d_journal_paths = tuple(Path(journal_target(spec)["path"]) for spec in specs)
         checkpoint = build_pilot_checkpoint(
             base,
             llm=llm,
@@ -14885,9 +15311,7 @@ def _execute_d_seed(
                             "per-branch cost allocation is claimed"
                         ),
                     },
-                    "provider_call_journal": narrative_branch[
-                        "provider_call_journal"
-                    ],
+                    "provider_call_journal": narrative_branch["provider_call_journal"],
                 }
             branch = continuation["branches"][branch_map[spec.arm_id]]
             return {
@@ -14939,10 +15363,7 @@ def _execute_d_seed(
         else:
             for spec in specs:
                 artifact_path = (
-                    raw_root
-                    / stage_id
-                    / "diagnostic_summaries"
-                    / f"{spec.run_id}.json"
+                    raw_root / stage_id / "diagnostic_summaries" / f"{spec.run_id}.json"
                 )
                 _atomic_json(
                     artifact_path,
@@ -15000,10 +15421,7 @@ def _execute_d_seed(
                 clear_pending_non_scientific_summaries()
                 for spec in specs:
                     completed_artifacts[spec.run_id] = write_terminal_summary(
-                        raw_root
-                        / stage_id
-                        / "summaries"
-                        / f"{spec.run_id}.json",
+                        raw_root / stage_id / "summaries" / f"{spec.run_id}.json",
                         contract=contract,
                         run_spec=spec,
                         resolved_git_commit=paid.head_commit,
@@ -15018,9 +15436,7 @@ def _execute_d_seed(
                     budget,
                     additional_paths=(
                         *tuple(completed_artifacts.values()),
-                        *tuple(
-                            path for path in d_journal_paths if path.exists()
-                        ),
+                        *tuple(path for path in d_journal_paths if path.exists()),
                     ),
                     completion_cap_counted=bool(
                         projection.basis.get(
@@ -15087,9 +15503,11 @@ def _execute_d_seed(
                     "artifact": (
                         str(completed_artifacts[spec.run_id])
                         if ledger_status == "complete"
-                        else str(reconciliation_failure_receipt)
-                        if reconciliation_failure_receipt is not None
-                        else None
+                        else (
+                            str(reconciliation_failure_receipt)
+                            if reconciliation_failure_receipt is not None
+                            else None
+                        )
                     ),
                     "failure": ledger_failure,
                 }
@@ -15120,10 +15538,7 @@ def _execute_d_seed(
             }
             failure_receipt = _write_execution_failure_receipt(
                 group_dir / "failure_receipt",
-                scope=(
-                    f"finevo-pilot/{stage_id}/"
-                    "post-reconciliation-publication"
-                ),
+                scope=(f"finevo-pilot/{stage_id}/" "post-reconciliation-publication"),
                 error=exc,
                 contract=contract,
                 projection=projection,
@@ -15147,18 +15562,13 @@ def _execute_d_seed(
                     )
                 ),
             )
-            if (
-                post_failure_actual["storage_bytes"]
-                > actual["storage_bytes"]
-            ):
+            if post_failure_actual["storage_bytes"] > actual["storage_bytes"]:
                 raise PilotOrchestrationError(
                     "post-reconciliation Experiment D failure artifacts "
                     "exceed their reserved publication-recovery storage"
                 ) from exc
             nonterminal_specs = tuple(
-                spec
-                for spec in specs
-                if not run_ledger.is_terminal(spec.run_id)
+                spec for spec in specs if not run_ledger.is_terminal(spec.run_id)
             )
             if nonterminal_specs:
                 run_ledger.finalize_many(
@@ -15189,9 +15599,7 @@ def _execute_d_seed(
         actual = _actual_budget_values(
             group_dir,
             budget,
-            additional_paths=tuple(
-                path for path in d_journal_paths if path.exists()
-            ),
+            additional_paths=tuple(path for path in d_journal_paths if path.exists()),
             completion_cap_counted=bool(
                 projection.basis.get(
                     "hosted_completion_cap_counted",
@@ -15226,9 +15634,7 @@ def _execute_d_seed(
                 failure=failure,
             )
         nonterminal_specs = tuple(
-            spec
-            for spec in specs
-            if not run_ledger.is_terminal(spec.run_id)
+            spec for spec in specs if not run_ledger.is_terminal(spec.run_id)
         )
         if nonterminal_specs:
             run_ledger.finalize_many(
@@ -15438,22 +15844,14 @@ def _remaining_core_projections(
         if not _is_experiment_d_stage(stage_id):
             continue
         d_specs = tuple(contract.expand(stage=stage_id))
-        groups = sorted(
-            {
-                (spec.model_id, spec.environment_seed)
-                for spec in d_specs
-            }
-        )
+        groups = sorted({(spec.model_id, spec.environment_seed) for spec in d_specs})
         for model_id, seed in groups:
             group_specs = tuple(
                 spec
                 for spec in d_specs
-                if spec.model_id == model_id
-                and spec.environment_seed == seed
+                if spec.model_id == model_id and spec.environment_seed == seed
             )
-            if all(
-                run_ledger.is_terminal(spec.run_id) for spec in group_specs
-            ):
+            if all(run_ledger.is_terminal(spec.run_id) for spec in group_specs):
                 continue
             representative = next(
                 spec for spec in group_specs if spec.arm_id == "matched-a"
@@ -15562,8 +15960,7 @@ def _reconcile_v27_qref_no_go_budget(
             "V2.7 q-ref no-go resume lacks its exact terminal receipt chain"
         )
     if any(
-        not run_ledger.is_terminal(candidate.run_id)
-        for candidate in contract.expand()
+        not run_ledger.is_terminal(candidate.run_id) for candidate in contract.expand()
     ):
         raise PilotOrchestrationError(
             "V2.7 q-ref no-go resume has an unterminated descendant"
@@ -15582,8 +15979,7 @@ def _reconcile_v27_qref_no_go_budget(
     if (
         not isinstance(budget_row, Mapping)
         or budget_row.get("reservation") != projection.to_dict()
-        or budget_row.get("status")
-        not in {"reserved", "integrity-stopped"}
+        or budget_row.get("status") not in {"reserved", "integrity-stopped"}
     ):
         raise PilotOrchestrationError(
             "V2.7 q-ref no-go budget row is not safely reconcilable"
@@ -15638,9 +16034,7 @@ def _execute_v27_q_ref_import_stage(
                 "reservation; upstream no-go has no dispatch authority"
             )
         if existing_budget.get("reservation") != projection.to_dict():
-            raise PilotOrchestrationError(
-                "V2.7 q-ref budget reservation drifted"
-            )
+            raise PilotOrchestrationError("V2.7 q-ref budget reservation drifted")
         if run_ledger.status(spec.run_id) != "complete":
             return _reconcile_v27_qref_no_go_budget(
                 contract,
@@ -15668,15 +16062,10 @@ def _execute_v27_q_ref_import_stage(
             raw_root=raw_root,
             paid=paid,
         )
-        resolution_path = (
-            raw_root / "q-ref-resolution" / "q_ref_resolution.json"
-        )
+        resolution_path = raw_root / "q-ref-resolution" / "q_ref_resolution.json"
         _persist_exact_json(resolution_path, resolution)
         terminal_path = (
-            raw_root
-            / "q-ref-resolution"
-            / "summaries"
-            / f"{spec.run_id}.json"
+            raw_root / "q-ref-resolution" / "summaries" / f"{spec.run_id}.json"
         )
         terminal_payload = {
             "metrics": {"q_ref": resolution["q_ref"]},
@@ -15685,9 +16074,7 @@ def _execute_v27_q_ref_import_stage(
                 "q_ref_resolution": {
                     "path": str(resolution_path),
                     "file_sha256": _file_sha256(resolution_path),
-                    "content_sha256": resolution["integrity"][
-                        "content_sha256"
-                    ],
+                    "content_sha256": resolution["integrity"]["content_sha256"],
                 },
                 "provider_calls_current_attempt": 0,
             },
@@ -15721,12 +16108,9 @@ def _execute_v27_q_ref_import_stage(
                 terminal.get("payload") != terminal_payload
                 or terminal.get("scientific_evidence") is not False
                 or terminal.get("diagnostic_only") is not False
-                or terminal.get("evidence_scope")
-                != "preregistered_q_ref_resolution"
+                or terminal.get("evidence_scope") != "preregistered_q_ref_resolution"
             ):
-                raise PilotOrchestrationError(
-                    "V2.7 q-ref terminal differs on resume"
-                )
+                raise PilotOrchestrationError("V2.7 q-ref terminal differs on resume")
         else:
             write_terminal_summary(
                 terminal_path,
@@ -15778,9 +16162,10 @@ def _execute_v27_q_ref_import_stage(
         )
         return _read_json(receipt)
     except Exception as exc:
-        if run_ledger.is_terminal(spec.run_id) and run_ledger.status(
-            spec.run_id
-        ) == "complete":
+        if (
+            run_ledger.is_terminal(spec.run_id)
+            and run_ledger.status(spec.run_id) == "complete"
+        ):
             raise
         failure = _exception_failure(exc)
         if not run_ledger.is_terminal(spec.run_id):
@@ -15806,18 +16191,13 @@ def _execute_v27_q_ref_import_stage(
             paid=paid,
         )
         budget_row = budget_ledger.snapshot()["runs"].get(spec.run_id)
-        if (
-            isinstance(budget_row, Mapping)
-            and budget_row.get("status") != "complete"
-        ):
+        if isinstance(budget_row, Mapping) and budget_row.get("status") != "complete":
             budget_ledger.finalize(
                 spec.run_id,
                 status="integrity-stopped",
                 cost_usd=0.0,
                 completions=0,
-                storage_bytes=_directory_size(
-                    raw_root / "q-ref-resolution"
-                ),
+                storage_bytes=_directory_size(raw_root / "q-ref-resolution"),
                 failure=failure,
             )
         raise PilotOrchestrationError(
@@ -15876,9 +16256,7 @@ def _execute_v210_family_q_ref_import_stage(
                 "reservation; upstream no-go has no dispatch authority"
             )
         if existing_budget.get("reservation") != projection.to_dict():
-            raise PilotOrchestrationError(
-                f"{label} q-ref budget reservation drifted"
-            )
+            raise PilotOrchestrationError(f"{label} q-ref budget reservation drifted")
         if run_ledger.status(spec.run_id) != "complete":
             return _reconcile_v27_qref_no_go_budget(
                 contract,
@@ -15892,9 +16270,7 @@ def _execute_v210_family_q_ref_import_stage(
     elif existing_budget is None:
         budget_ledger.reserve(projection)
     elif existing_budget.get("reservation") != projection.to_dict():
-        raise PilotOrchestrationError(
-            f"{label} q-ref budget reservation drifted"
-        )
+        raise PilotOrchestrationError(f"{label} q-ref budget reservation drifted")
     try:
         _assert_prerequisites(
             contract,
@@ -15910,27 +16286,24 @@ def _execute_v210_family_q_ref_import_stage(
                 paid=paid,
             )
             if contract.contract_id == V2102_CONTRACT_ID
-            else _expected_v2101_q_ref_resolution(
-                contract,
-                raw_root=raw_root,
-                paid=paid,
-            )
-            if contract.contract_id == V2101_CONTRACT_ID
-            else _expected_v210_q_ref_resolution(
-                contract,
-                raw_root=raw_root,
-                paid=paid,
+            else (
+                _expected_v2101_q_ref_resolution(
+                    contract,
+                    raw_root=raw_root,
+                    paid=paid,
+                )
+                if contract.contract_id == V2101_CONTRACT_ID
+                else _expected_v210_q_ref_resolution(
+                    contract,
+                    raw_root=raw_root,
+                    paid=paid,
+                )
             )
         )
-        resolution_path = (
-            raw_root / "q-ref-resolution" / "q_ref_resolution.json"
-        )
+        resolution_path = raw_root / "q-ref-resolution" / "q_ref_resolution.json"
         _persist_exact_json(resolution_path, resolution)
         terminal_path = (
-            raw_root
-            / "q-ref-resolution"
-            / "summaries"
-            / f"{spec.run_id}.json"
+            raw_root / "q-ref-resolution" / "summaries" / f"{spec.run_id}.json"
         )
         source_import = resolution["source_import"]
         source_artifacts = source_import["source_artifacts"]
@@ -15942,30 +16315,29 @@ def _execute_v210_family_q_ref_import_stage(
                     (
                         "immutable-v2.9-prerequisite-import-offline-v2.10.2-reseal"
                         if contract.contract_id == V2102_CONTRACT_ID
-                        else
-                        "immutable-v2.9-prerequisite-import-offline-v2.10.1-reseal"
-                        if contract.contract_id == V2101_CONTRACT_ID
-                        else "immutable-v2.9-prerequisite-import-offline-reseal"
+                        else (
+                            "immutable-v2.9-prerequisite-import-offline-v2.10.1-reseal"
+                            if contract.contract_id == V2101_CONTRACT_ID
+                            else "immutable-v2.9-prerequisite-import-offline-reseal"
+                        )
                     )
                 ),
                 "q_ref_resolution": {
                     "path": str(resolution_path),
                     "file_sha256": _file_sha256(resolution_path),
-                    "content_sha256": resolution["integrity"][
-                        "content_sha256"
-                    ],
+                    "content_sha256": resolution["integrity"]["content_sha256"],
                 },
                 "provider_calls_current_attempt": 0,
             },
             "q_ref_resolution": {
                 "q_ref": resolution["q_ref"],
                 "row_count": resolution["row_count"],
-                "source_resolution": source_artifacts[
-                    "q_ref_resolution"
-                ]["snapshot_path"],
-                "source_resolution_sha256": source_artifacts[
-                    "q_ref_resolution"
-                ]["file_sha256"],
+                "source_resolution": source_artifacts["q_ref_resolution"][
+                    "snapshot_path"
+                ],
+                "source_resolution_sha256": source_artifacts["q_ref_resolution"][
+                    "file_sha256"
+                ],
                 "resolution_artifact": str(resolution_path),
             },
             "provider_calls": 0,
@@ -15983,8 +16355,7 @@ def _execute_v210_family_q_ref_import_stage(
                 terminal.get("payload") != terminal_payload
                 or terminal.get("scientific_evidence") is not False
                 or terminal.get("diagnostic_only") is not False
-                or terminal.get("evidence_scope")
-                != "preregistered_q_ref_resolution"
+                or terminal.get("evidence_scope") != "preregistered_q_ref_resolution"
             ):
                 raise PilotOrchestrationError(
                     f"{label} q-ref terminal differs on resume"
@@ -16050,9 +16421,10 @@ def _execute_v210_family_q_ref_import_stage(
         )
         return _read_json(receipt)
     except Exception as exc:
-        if run_ledger.is_terminal(spec.run_id) and run_ledger.status(
-            spec.run_id
-        ) == "complete":
+        if (
+            run_ledger.is_terminal(spec.run_id)
+            and run_ledger.status(spec.run_id) == "complete"
+        ):
             raise
         failure = _exception_failure(exc)
         if not run_ledger.is_terminal(spec.run_id):
@@ -16078,18 +16450,13 @@ def _execute_v210_family_q_ref_import_stage(
             paid=paid,
         )
         budget_row = budget_ledger.snapshot()["runs"].get(spec.run_id)
-        if (
-            isinstance(budget_row, Mapping)
-            and budget_row.get("status") != "complete"
-        ):
+        if isinstance(budget_row, Mapping) and budget_row.get("status") != "complete":
             budget_ledger.finalize(
                 spec.run_id,
                 status="integrity-stopped",
                 cost_usd=0.0,
                 completions=0,
-                storage_bytes=_directory_size(
-                    raw_root / "q-ref-resolution"
-                ),
+                storage_bytes=_directory_size(raw_root / "q-ref-resolution"),
                 failure=failure,
             )
         raise PilotOrchestrationError(
@@ -16107,9 +16474,7 @@ def _execute_v210_q_ref_import_stage(
     budget_ledger: PilotBudgetLedger,
 ) -> dict[str, Any]:
     if contract.contract_id != V210_CONTRACT_ID:
-        raise PilotOrchestrationError(
-            "V2.10 q-ref executor used by another contract"
-        )
+        raise PilotOrchestrationError("V2.10 q-ref executor used by another contract")
     return _execute_v210_family_q_ref_import_stage(
         contract,
         specs,
@@ -16130,9 +16495,7 @@ def _execute_v2101_q_ref_import_stage(
     budget_ledger: PilotBudgetLedger,
 ) -> dict[str, Any]:
     if contract.contract_id != V2101_CONTRACT_ID:
-        raise PilotOrchestrationError(
-            "V2.10.1 q-ref executor used by another contract"
-        )
+        raise PilotOrchestrationError("V2.10.1 q-ref executor used by another contract")
     return _execute_v210_family_q_ref_import_stage(
         contract,
         specs,
@@ -16153,9 +16516,7 @@ def _execute_v2102_q_ref_import_stage(
     budget_ledger: PilotBudgetLedger,
 ) -> dict[str, Any]:
     if contract.contract_id != V2102_CONTRACT_ID:
-        raise PilotOrchestrationError(
-            "V2.10.2 q-ref executor used by another contract"
-        )
+        raise PilotOrchestrationError("V2.10.2 q-ref executor used by another contract")
     return _execute_v210_family_q_ref_import_stage(
         contract,
         specs,
@@ -16171,9 +16532,7 @@ def _persist_v27_stage0_commit_intent(
     *,
     raw_root: Path,
     paid: GitProvenance,
-    cells: Sequence[
-        tuple[PilotRunSpec, Path, Path, Mapping[str, Any]]
-    ],
+    cells: Sequence[tuple[PilotRunSpec, Path, Path, Mapping[str, Any]]],
     selection_path: Path,
     projections: Mapping[str, RunProjection],
     entry_completed_run_ids: Sequence[str],
@@ -16189,11 +16548,7 @@ def _persist_v27_stage0_commit_intent(
         V2101_CONTRACT_ID: PILOT_V2101_STAGE0_COMMIT_INTENT_SCHEMA_VERSION,
         V2102_CONTRACT_ID: PILOT_V2102_STAGE0_COMMIT_INTENT_SCHEMA_VERSION,
     }[contract.contract_id]
-    path = (
-        raw_root
-        / "stage0-calibration"
-        / "stage0_commit_intent.json"
-    )
+    path = raw_root / "stage0-calibration" / "stage0_commit_intent.json"
     run_ids = {spec.run_id for spec, _, _, _ in cells}
     origin_entry = sorted(str(run_id) for run_id in entry_completed_run_ids)
     if path.exists():
@@ -16228,16 +16583,10 @@ def _persist_v27_stage0_commit_intent(
                         "run_id": spec.run_id,
                         "status": "complete",
                         "envelope": str(envelope_path),
-                        "envelope_file_sha256": _file_sha256(
-                            envelope_path
-                        ),
+                        "envelope_file_sha256": _file_sha256(envelope_path),
                         "terminal_summary": str(terminal_path),
-                        "terminal_summary_file_sha256": _file_sha256(
-                            terminal_path
-                        ),
-                        "budget_reservation": projections[
-                            spec.run_id
-                        ].to_dict(),
+                        "terminal_summary_file_sha256": _file_sha256(terminal_path),
+                        "budget_reservation": projections[spec.run_id].to_dict(),
                     }
                     for spec, envelope_path, terminal_path, _ in cells
                 ],
@@ -16246,9 +16595,9 @@ def _persist_v27_stage0_commit_intent(
             "selection": {
                 "path": str(selection_path),
                 "file_sha256": _file_sha256(selection_path),
-                "content_sha256": _read_json(selection_path)[
-                    "integrity"
-                ]["content_sha256"],
+                "content_sha256": _read_json(selection_path)["integrity"][
+                    "content_sha256"
+                ],
             },
             "provider_calls_current_attempt": 0,
             "commit_protocol": {
@@ -16287,14 +16636,10 @@ def _reconcile_v27_stage0_no_go_budget(
             "V2.7 Stage-0 no-go resume has a missing ledger row"
         )
     statuses = {str(row["status"]) for row in stage_rows}
-    failures = [
-        row.get("failure") for row in stage_rows
-        if isinstance(row, Mapping)
-    ]
+    failures = [row.get("failure") for row in stage_rows if isinstance(row, Mapping)]
     if (
         len(statuses) != 1
-        or next(iter(statuses))
-        not in {"integrity-stopped", "budget-stopped"}
+        or next(iter(statuses)) not in {"integrity-stopped", "budget-stopped"}
         or any(row.get("artifact") is not None for row in stage_rows)
         or not failures
         or not isinstance(failures[0], Mapping)
@@ -16314,10 +16659,8 @@ def _reconcile_v27_stage0_no_go_budget(
         budget_row = budget_rows.get(spec.run_id)
         if (
             not isinstance(budget_row, Mapping)
-            or budget_row.get("reservation")
-            != projections[spec.run_id].to_dict()
-            or budget_row.get("status")
-            not in {"reserved", terminal_status}
+            or budget_row.get("reservation") != projections[spec.run_id].to_dict()
+            or budget_row.get("status") not in {"reserved", terminal_status}
         ):
             raise PilotOrchestrationError(
                 "V2.7 Stage-0 no-go budget rows are not safely reconcilable"
@@ -16334,9 +16677,7 @@ def _reconcile_v27_stage0_no_go_budget(
     first_run_id = min(projections)
     for spec in specs:
         storage_bytes = 0
-        envelope_parent = _v27_stage0_envelope_path(
-            raw_root, spec
-        ).parent
+        envelope_parent = _v27_stage0_envelope_path(raw_root, spec).parent
         if envelope_parent.exists():
             storage_bytes += _directory_size(envelope_parent)
         terminal_path = _v27_stage0_terminal_path(raw_root, spec)
@@ -16344,12 +16685,8 @@ def _reconcile_v27_stage0_no_go_budget(
             storage_bytes += terminal_path.stat().st_size
         if spec.run_id == first_run_id:
             for control_path in (
-                raw_root
-                / "stage0-calibration"
-                / "stage0_selection.json",
-                raw_root
-                / "stage0-calibration"
-                / "stage0_commit_intent.json",
+                raw_root / "stage0-calibration" / "stage0_selection.json",
+                raw_root / "stage0-calibration" / "stage0_commit_intent.json",
                 receipt,
             ):
                 if control_path.is_file():
@@ -16417,8 +16754,7 @@ def _execute_imported_stage0_stage(
             V2102_CONTRACT_ID,
         }
         or len(specs) != 14
-        or {spec.run_id for spec in specs}
-        != {spec.run_id for spec in expected}
+        or {spec.run_id for spec in specs} != {spec.run_id for spec in expected}
         or any(spec.execution_mode != "actor_run" for spec in specs)
     ):
         raise PilotOrchestrationError(
@@ -16440,9 +16776,7 @@ def _execute_imported_stage0_stage(
             completions=0,
             storage_bytes=2_000_000,
             basis={
-                "method": (
-                    f"{contract_label.lower()}-imported-stage0-envelope"
-                ),
+                "method": (f"{contract_label.lower()}-imported-stage0-envelope"),
                 "provider_calls": 0,
                 "hosted_completion_cap_counted": False,
             },
@@ -16450,9 +16784,7 @@ def _execute_imported_stage0_stage(
         for spec in specs
     }
     entry_terminal_ids = {
-        spec.run_id
-        for spec in specs
-        if run_ledger.is_terminal(spec.run_id)
+        spec.run_id for spec in specs if run_ledger.is_terminal(spec.run_id)
     }
     entry_budget_rows = budget_ledger.snapshot()["runs"]
     reservation_matrix_prevalidated = False
@@ -16462,9 +16794,7 @@ def _execute_imported_stage0_stage(
                 f"{contract_label} Stage-0 entered with a partial terminal matrix"
             )
         present_budget_ids = {
-            spec.run_id
-            for spec in specs
-            if spec.run_id in entry_budget_rows
+            spec.run_id for spec in specs if spec.run_id in entry_budget_rows
         }
         if not present_budget_ids:
             raise PilotOrchestrationError(
@@ -16529,9 +16859,7 @@ def _execute_imported_stage0_stage(
             paid=paid,
             materialize=True,
         )
-        selection_path = (
-            raw_root / "stage0-calibration" / "stage0_selection.json"
-        )
+        selection_path = raw_root / "stage0-calibration" / "stage0_selection.json"
         _persist_exact_json(selection_path, selection)
 
         # This is the same full-matrix budget gate as a fresh Stage-0 run,
@@ -16545,8 +16873,7 @@ def _execute_imported_stage0_stage(
         _assert_projection_matrix_fits(budget_ledger, projections)
 
         by_run = {
-            spec.run_id: (terminal, envelope)
-            for spec, envelope, terminal, _ in cells
+            spec.run_id: (terminal, envelope) for spec, envelope, terminal, _ in cells
         }
         commit_intent = _persist_v27_stage0_commit_intent(
             contract,
@@ -16566,9 +16893,7 @@ def _execute_imported_stage0_stage(
             if spec.run_id == first_run_id:
                 storage_bytes += selection_path.stat().st_size
                 storage_bytes += commit_intent.stat().st_size
-            if storage_bytes > import_projections[
-                spec.run_id
-            ].storage_bytes:
+            if storage_bytes > import_projections[spec.run_id].storage_bytes:
                 raise PilotBudgetError(
                     f"{spec.run_id} imported Stage-0 prepared artifacts "
                     "exceed their storage reservation"
@@ -16619,9 +16944,7 @@ def _execute_imported_stage0_stage(
         storage_by_run[first_run_id] += receipt.stat().st_size
         for spec in specs:
             storage_bytes = storage_by_run[spec.run_id]
-            if storage_bytes > import_projections[
-                spec.run_id
-            ].storage_bytes:
+            if storage_bytes > import_projections[spec.run_id].storage_bytes:
                 raise PilotBudgetError(
                     f"{spec.run_id} imported Stage-0 published artifacts "
                     "exceed their storage reservation"
@@ -16654,17 +16977,11 @@ def _execute_imported_stage0_stage(
             )
             budget_statuses = {
                 spec.run_id: (
-                    budget_ledger.snapshot()["runs"]
-                    .get(spec.run_id, {})
-                    .get("status")
+                    budget_ledger.snapshot()["runs"].get(spec.run_id, {}).get("status")
                 )
                 for spec in specs
             }
-            intent_path = (
-                raw_root
-                / "stage0-calibration"
-                / "stage0_commit_intent.json"
-            )
+            intent_path = raw_root / "stage0-calibration" / "stage0_commit_intent.json"
             raise PilotOrchestrationError(
                 f"{contract_label} Stage-0 publication requires audited --resume; "
                 f"disposition={disposition}; "
@@ -16734,25 +17051,17 @@ def _execute_imported_stage0_stage(
                 or budget_row.get("status") == "complete"
             ):
                 continue
-            envelope_parent = _v27_stage0_envelope_path(
-                raw_root, spec
-            ).parent
+            envelope_parent = _v27_stage0_envelope_path(raw_root, spec).parent
             storage_bytes = (
-                _directory_size(envelope_parent)
-                if envelope_parent.exists()
-                else 0
+                _directory_size(envelope_parent) if envelope_parent.exists() else 0
             )
             terminal_path = _v27_stage0_terminal_path(raw_root, spec)
             if terminal_path.is_file():
                 storage_bytes += terminal_path.stat().st_size
             if spec.run_id == first_run_id:
                 for control_path in (
-                    raw_root
-                    / "stage0-calibration"
-                    / "stage0_selection.json",
-                    raw_root
-                    / "stage0-calibration"
-                    / "stage0_commit_intent.json",
+                    raw_root / "stage0-calibration" / "stage0_selection.json",
+                    raw_root / "stage0-calibration" / "stage0_commit_intent.json",
                     receipt,
                 ):
                     if control_path.is_file():
@@ -16841,26 +17150,38 @@ def _transactional_parent_import_projection(
     source_storage = (
         V2102_PARENT_RAW_STORAGE_BYTES
         if contract.contract_id == V2102_CONTRACT_ID
-        else V210_PARENT_RAW_STORAGE_BYTES
-        if contract.contract_id in {V210_CONTRACT_ID, V2101_CONTRACT_ID}
-        else V29_PARENT_RAW_STORAGE_BYTES
-        if contract.contract_id == V29_CONTRACT_ID
-        else V28_PARENT_RAW_STORAGE_BYTES
-        if contract.contract_id == V28_CONTRACT_ID
-        else V26_RAW_STORAGE_BYTES
+        else (
+            V210_PARENT_RAW_STORAGE_BYTES
+            if contract.contract_id in {V210_CONTRACT_ID, V2101_CONTRACT_ID}
+            else (
+                V29_PARENT_RAW_STORAGE_BYTES
+                if contract.contract_id == V29_CONTRACT_ID
+                else (
+                    V28_PARENT_RAW_STORAGE_BYTES
+                    if contract.contract_id == V28_CONTRACT_ID
+                    else V26_RAW_STORAGE_BYTES
+                )
+            )
+        )
     )
     method = (
         "v2.10.2-byte-exact-v2.9-via-v2.10.1-parent-snapshot-plus-consumer-adapter-reseal"
         if contract.contract_id == V2102_CONTRACT_ID
-        else "v2.10.1-byte-exact-v2.9-via-v2.10-parent-snapshot-plus-current-flat-p95-reseal"
-        if contract.contract_id == V2101_CONTRACT_ID
-        else "v2.10-byte-exact-v2.9-parent-snapshot-plus-current-flat-p95-reseal"
-        if contract.contract_id == V210_CONTRACT_ID
-        else "v2.9-byte-exact-v2.8-parent-snapshot-read-only-p95"
-        if contract.contract_id == V29_CONTRACT_ID
         else (
-            f"{_transactional_parent_label(contract).lower()}-"
-            "byte-exact-parent-snapshot-plus-reseal"
+            "v2.10.1-byte-exact-v2.9-via-v2.10-parent-snapshot-plus-current-flat-p95-reseal"
+            if contract.contract_id == V2101_CONTRACT_ID
+            else (
+                "v2.10-byte-exact-v2.9-parent-snapshot-plus-current-flat-p95-reseal"
+                if contract.contract_id == V210_CONTRACT_ID
+                else (
+                    "v2.9-byte-exact-v2.8-parent-snapshot-read-only-p95"
+                    if contract.contract_id == V29_CONTRACT_ID
+                    else (
+                        f"{_transactional_parent_label(contract).lower()}-"
+                        "byte-exact-parent-snapshot-plus-reseal"
+                    )
+                )
+            )
         )
     )
     return RunProjection(
@@ -16890,13 +17211,8 @@ def _persist_v29_parent_import_for_orchestrator(
 ) -> dict[str, Any]:
     """Adapt V2.9's explicit source API to the shared parent-stage runner."""
 
-    if (
-        contract.contract_id != V29_CONTRACT_ID
-        or child_git_tag != V29_SCIENCE_TAG
-    ):
-        raise PilotOrchestrationError(
-            "V2.9 parent importer release identity drifted"
-        )
+    if contract.contract_id != V29_CONTRACT_ID or child_git_tag != V29_SCIENCE_TAG:
+        raise PilotOrchestrationError("V2.9 parent importer release identity drifted")
     source_manifest_path = repo_root.joinpath(*V29_SOURCE_MANIFEST_PATH.parts)
     try:
         source_manifest = load_v29_source_manifest(source_manifest_path)
@@ -16926,13 +17242,8 @@ def _persist_v210_parent_import_for_orchestrator(
     """Adapt the V2.10 source/evidence API to the parent-stage transaction."""
 
     required_tag = str(contract.implementation["required_git_tag"])
-    if (
-        contract.contract_id != V210_CONTRACT_ID
-        or child_git_tag != required_tag
-    ):
-        raise PilotOrchestrationError(
-            "V2.10 parent importer release identity drifted"
-        )
+    if contract.contract_id != V210_CONTRACT_ID or child_git_tag != required_tag:
+        raise PilotOrchestrationError("V2.10 parent importer release identity drifted")
     source_manifest_path = repo_root.joinpath(*V210_SOURCE_MANIFEST_PATH.parts)
     try:
         source_manifest = load_v210_source_manifest(source_manifest_path)
@@ -16963,16 +17274,11 @@ def _persist_v2101_parent_import_for_orchestrator(
     """Adapt the dedicated V2.10.1 source API to the parent transaction."""
 
     required_tag = str(contract.implementation["required_git_tag"])
-    if (
-        contract.contract_id != V2101_CONTRACT_ID
-        or child_git_tag != required_tag
-    ):
+    if contract.contract_id != V2101_CONTRACT_ID or child_git_tag != required_tag:
         raise PilotOrchestrationError(
             "V2.10.1 parent importer release identity drifted"
         )
-    source_manifest_path = repo_root.joinpath(
-        *V2101_SOURCE_MANIFEST_PATH.parts
-    )
+    source_manifest_path = repo_root.joinpath(*V2101_SOURCE_MANIFEST_PATH.parts)
     try:
         source_manifest = load_v2101_source_manifest(source_manifest_path)
         return persist_v2101_parent_import(
@@ -17002,16 +17308,11 @@ def _persist_v2102_parent_import_for_orchestrator(
     """Adapt V2.10.2's exact V2.10.1 lineage to the parent transaction."""
 
     required_tag = str(contract.implementation["required_git_tag"])
-    if (
-        contract.contract_id != V2102_CONTRACT_ID
-        or child_git_tag != required_tag
-    ):
+    if contract.contract_id != V2102_CONTRACT_ID or child_git_tag != required_tag:
         raise PilotOrchestrationError(
             "V2.10.2 parent importer release identity drifted"
         )
-    source_manifest_path = repo_root.joinpath(
-        *V2102_SOURCE_MANIFEST_PATH.parts
-    )
+    source_manifest_path = repo_root.joinpath(*V2102_SOURCE_MANIFEST_PATH.parts)
     try:
         source_manifest = load_v2102_source_manifest(source_manifest_path)
         return persist_v2102_parent_import(
@@ -17091,12 +17392,7 @@ def _materialize_or_verify_v27_parent_terminal(
     paid: GitProvenance,
     result: Mapping[str, Any],
 ) -> Path:
-    terminal_path = (
-        raw_root
-        / "parent-import"
-        / "summaries"
-        / f"{spec.run_id}.json"
-    )
+    terminal_path = raw_root / "parent-import" / "summaries" / f"{spec.run_id}.json"
     contract_label = _transactional_parent_label(contract)
     payload = _v27_parent_terminal_payload(contract, result)
     if terminal_path.exists():
@@ -17111,8 +17407,7 @@ def _materialize_or_verify_v27_parent_terminal(
             terminal.get("payload") != payload
             or terminal.get("scientific_evidence") is not False
             or terminal.get("diagnostic_only") is not False
-            or terminal.get("evidence_scope")
-            != "preregistered_parent_authority_import"
+            or terminal.get("evidence_scope") != "preregistered_parent_authority_import"
         ):
             raise PilotOrchestrationError(
                 f"{contract_label} parent terminal differs on resume"
@@ -17132,11 +17427,7 @@ def _materialize_or_verify_v27_parent_terminal(
 
 
 def _v27_parent_commit_intent_path(*, raw_root: Path) -> Path:
-    return (
-        raw_root
-        / "parent-import"
-        / "parent_import_commit_intent.json"
-    )
+    return raw_root / "parent-import" / "parent_import_commit_intent.json"
 
 
 def _verify_v27_parent_commit_intent(
@@ -17329,10 +17620,7 @@ def _assert_v27_parent_success_ledger_boundary(
             f"{label} parent success ledger boundary has a registration mismatch"
         )
     expected_terminal = str(
-        raw_root
-        / "parent-import"
-        / "summaries"
-        / f"{spec.run_id}.json"
+        raw_root / "parent-import" / "summaries" / f"{spec.run_id}.json"
     )
     invalid: dict[str, dict[str, Any]] = {}
     for candidate in expected_specs:
@@ -17460,9 +17748,7 @@ def _persist_v27_parent_commit_intent(
         )
     value = _seal_bound_payload(
         {
-            "schema_version": (
-                _transactional_parent_commit_schema(contract)
-            ),
+            "schema_version": (_transactional_parent_commit_schema(contract)),
             "contract_id": contract.contract_id,
             "contract_sha256": contract.canonical_hash,
             "stage_id": "parent-import",
@@ -17471,9 +17757,7 @@ def _persist_v27_parent_commit_intent(
                 "run_id": spec.run_id,
                 "status": "complete",
                 "terminal_summary": str(terminal_path),
-                "terminal_summary_file_sha256": _file_sha256(
-                    terminal_path
-                ),
+                "terminal_summary_file_sha256": _file_sha256(terminal_path),
             },
             "importer_result_sha256": canonical_sha256(result),
             "budget_reservation": projection.to_dict(),
@@ -17544,8 +17828,7 @@ def _reconcile_v27_parent_import_no_go_budget(
     if (
         not isinstance(budget_row, Mapping)
         or budget_row.get("reservation") != projection.to_dict()
-        or budget_row.get("status")
-        not in {"reserved", "integrity-stopped"}
+        or budget_row.get("status") not in {"reserved", "integrity-stopped"}
     ):
         raise PilotOrchestrationError(
             f"{label} parent no-go budget row is not safely reconcilable"
@@ -17625,9 +17908,7 @@ def _v2111_parent_import_projection(spec: PilotRunSpec) -> RunProjection:
         completions=0,
         storage_bytes=1_000_000,
         basis={
-            "method": (
-                "v2.11.1-compact-parent-calibration-capability-receipt-only"
-            ),
+            "method": ("v2.11.1-compact-parent-calibration-capability-receipt-only"),
             "artifact_headroom_bytes": 1_000_000,
             "provider_construction": False,
             "provider_calls": 0,
@@ -17638,6 +17919,273 @@ def _v2111_parent_import_projection(spec: PilotRunSpec) -> RunProjection:
             "hosted_completion_cap_counted": False,
         },
     )
+
+
+def _v2112_parent_import_projection(spec: PilotRunSpec) -> RunProjection:
+    return RunProjection(
+        run_id=spec.run_id,
+        stage_bucket=spec.budget_bucket,
+        cost_usd=0.0,
+        completions=0,
+        storage_bytes=1_000_000,
+        basis={
+            "method": ("v2.11.2-compact-parent-calibration-capability-receipt-only"),
+            "artifact_headroom_bytes": 1_000_000,
+            "provider_construction": False,
+            "provider_calls": 0,
+            "imported_effect_cells": 0,
+            "imported_preflight_samples": 0,
+            "imported_checkpoint_artifacts": [],
+            "imported_p95_authorities": [],
+            "imported_capability_wrappers": 2,
+            "raw_tree_copied": False,
+            "hosted_completion_cap_counted": False,
+        },
+    )
+
+
+def _execute_v2112_parent_import_stage(
+    contract: PilotContract,
+    specs: Sequence[PilotRunSpec],
+    *,
+    raw_root: Path,
+    repo_root: Path,
+    parent_repo_root: str | Path | None,
+    paid: GitProvenance,
+    run_ledger: PilotRunLedger,
+    budget_ledger: PilotBudgetLedger,
+) -> dict[str, Any]:
+    """Import only V2.11.1 calibration/capability wrappers, with zero calls."""
+
+    if contract.contract_id != V2112_CONTRACT_ID:
+        raise PilotOrchestrationError(
+            "dedicated V2.11.2 parent executor requires its exact contract"
+        )
+    if (
+        len(specs) != 1
+        or specs[0].stage_id != "parent-import"
+        or specs[0].execution_mode != "parent_authority_import"
+    ):
+        raise PilotOrchestrationError(
+            "V2.11.2 parent import requires one exact zero-call cell"
+        )
+    if parent_repo_root is None:
+        raise PilotOrchestrationError(
+            "V2.11.2 parent-import requires --parent-repo-root pointing to "
+            "the immutable V2.11.1 science checkout"
+        )
+    boundary = contract.v2112_forward_boundary
+    expanded = tuple(contract.expand())
+    rows = run_ledger.snapshot().get("runs")
+    if (
+        not isinstance(boundary, Mapping)
+        or int(boundary["matrix"]["ledger_cells"]) != 136
+        or len(expanded) != 136
+        or not isinstance(rows, Mapping)
+        or len(rows) != 136
+        or set(rows) != {candidate.run_id for candidate in expanded}
+    ):
+        raise PilotOrchestrationError(
+            "V2.11.2 parent import requires the exact 136-cell registration"
+        )
+
+    spec = specs[0]
+    projection = _v2112_parent_import_projection(spec)
+    budget_row = budget_ledger.snapshot()["runs"].get(spec.run_id)
+    if budget_row is None:
+        budget_ledger.reserve(projection)
+    elif budget_row.get("reservation") != projection.to_dict():
+        raise PilotOrchestrationError(
+            "V2.11.2 parent-import budget reservation drifted"
+        )
+    receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
+    terminal_path = raw_root / "parent-import" / "summaries" / f"{spec.run_id}.json"
+    entry_status = run_ledger.status(spec.run_id)
+    if entry_status not in {"scheduled", "complete"}:
+        row = run_ledger.snapshot()["runs"][spec.run_id]
+        failure = row.get("failure")
+        if not isinstance(failure, Mapping):
+            raise PilotOrchestrationError(
+                "V2.11.2 terminal parent no-go lacks failure evidence"
+            )
+        _propagate_stage_no_go(
+            contract,
+            source_stage="parent-import",
+            ledger=run_ledger,
+            failure=failure,
+        )
+        stage_receipt = _write_stage_receipt(
+            contract,
+            "parent-import",
+            raw_root=raw_root,
+            ledger=run_ledger,
+            status="integrity-stopped",
+            failure=failure,
+            paid=paid,
+        )
+        _finalize_v27_parent_import_budget(
+            budget_ledger,
+            projection,
+            raw_root=raw_root,
+            status="integrity-stopped",
+            failure=failure,
+        )
+        return _read_json(stage_receipt)
+
+    try:
+        result = persist_v2112_parent_import(
+            repo_root=repo_root,
+            child_contract_sha256=contract.canonical_hash,
+            child_git_tag=paid.git_tag,
+            child_git_commit=paid.head_commit,
+            parent_science_root=parent_repo_root,
+            destination=receipt_path,
+        )
+        verified = verify_v2112_parent_import_receipt(
+            receipt_path,
+            repo_root=repo_root,
+            child_contract_sha256=contract.canonical_hash,
+            child_git_tag=paid.git_tag,
+            child_git_commit=paid.head_commit,
+            parent_science_root=parent_repo_root,
+        )
+        wrappers = capability_wrappers_from_v2112_receipt(verified)
+        if (
+            result.get("provider_construction_during_import") is not False
+            or result.get("provider_calls_during_import") != 0
+            or result.get("imported_effect_cells") != 0
+            or result.get("imported_preflight_samples") != 0
+            or result.get("imported_checkpoint_artifacts") != []
+            or result.get("imported_p95_authorities") != []
+            or result.get("raw_tree_copied") is not False
+            or set(wrappers) != {"gpt52_main", "gpt56_diagnostic"}
+        ):
+            raise PilotOrchestrationError(
+                "V2.11.2 parent importer violated its zero-provider boundary"
+            )
+        calibration = _load_verified_v2112_calibration(
+            contract,
+            raw_root=raw_root,
+            paid=paid,
+            authority_repo_root=parent_repo_root,
+        )
+        payload = {
+            "metrics": {},
+            "gate_evidence": {
+                "importer_result": _json_copy(result),
+                "q_ref": calibration["q_ref"],
+                "selected_profile_id": calibration["selected_profile_id"],
+                "absolute_flow_utility_threshold": calibration[
+                    "absolute_flow_utility_threshold"
+                ]["value"],
+                "capability_wrapper_content_sha256": {
+                    model_id: wrapper["integrity"]["content_sha256"]
+                    for model_id, wrapper in wrappers.items()
+                },
+                "historical_failed_preflight_calls_audit_only": 64,
+            },
+            "provider_construction": False,
+            "provider_calls": 0,
+            "imported_effect_cells": 0,
+            "imported_preflight_samples": 0,
+            "imported_checkpoint_artifacts": [],
+            "imported_p95_authorities": [],
+            "claim_boundary": (
+                "V2.11.1 calibration and capability wrappers only; its failed "
+                "preflight journals remain budget/failure audit and provide no "
+                "sample, checkpoint, p95, or treatment-effect authority."
+            ),
+        }
+        if terminal_path.exists():
+            terminal = _load_v2_terminal_summary(
+                contract,
+                spec,
+                terminal_path,
+                raw_root=raw_root,
+                paid=paid,
+            )
+            if terminal.get("payload") != payload:
+                raise PilotOrchestrationError(
+                    "V2.11.2 parent terminal differs on resume"
+                )
+        else:
+            write_terminal_summary(
+                terminal_path,
+                contract=contract,
+                run_spec=spec,
+                resolved_git_commit=paid.head_commit,
+                git_tag=paid.git_tag,
+                payload=payload,
+                scientific_evidence=False,
+                diagnostic_only=False,
+                evidence_scope="preregistered_parent_authority_import",
+            )
+        if entry_status == "scheduled":
+            run_ledger.finalize(
+                spec.run_id,
+                status="complete",
+                artifact=str(terminal_path),
+            )
+        stage_receipt = _write_stage_receipt(
+            contract,
+            "parent-import",
+            raw_root=raw_root,
+            ledger=run_ledger,
+            status="complete",
+            artifacts={
+                **_json_copy(result),
+                "terminal_summary": str(terminal_path),
+            },
+            paid=paid,
+        )
+        _finalize_v27_parent_import_budget(
+            budget_ledger,
+            projection,
+            raw_root=raw_root,
+            status="complete",
+        )
+        return _read_json(stage_receipt)
+    except Exception as exc:
+        if run_ledger.status(spec.run_id) == "complete":
+            raise
+        failure = {
+            "error_type": "V2112ParentImportIntegrityError",
+            "cause_type": type(exc).__name__,
+            "message": str(exc),
+            "provider_construction": False,
+            "provider_calls": 0,
+        }
+        run_ledger.finalize(
+            spec.run_id,
+            status="integrity-stopped",
+            artifact=None,
+            failure=failure,
+        )
+        _propagate_stage_no_go(
+            contract,
+            source_stage="parent-import",
+            ledger=run_ledger,
+            failure=failure,
+        )
+        stage_receipt = _write_stage_receipt(
+            contract,
+            "parent-import",
+            raw_root=raw_root,
+            ledger=run_ledger,
+            status="integrity-stopped",
+            failure=failure,
+            paid=paid,
+        )
+        _finalize_v27_parent_import_budget(
+            budget_ledger,
+            projection,
+            raw_root=raw_root,
+            status="integrity-stopped",
+            failure=failure,
+        )
+        raise PilotOrchestrationError(
+            f"V2.11.2 parent import failed; receipt={stage_receipt}"
+        ) from exc
 
 
 def _execute_v2111_parent_import_stage(
@@ -17672,9 +18220,7 @@ def _execute_v2111_parent_import_stage(
         )
     boundary = contract.v2111_forward_boundary
     if not isinstance(boundary, Mapping):
-        raise PilotOrchestrationError(
-            "V2.11.1 forward boundary is unavailable"
-        )
+        raise PilotOrchestrationError("V2.11.1 forward boundary is unavailable")
     expanded = tuple(contract.expand())
     rows = run_ledger.snapshot().get("runs")
     expected_count = int(boundary["matrix"]["ledger_cells"])
@@ -17698,12 +18244,8 @@ def _execute_v2111_parent_import_stage(
         raise PilotOrchestrationError(
             "V2.11.1 parent-import budget reservation drifted"
         )
-    receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
-    terminal_path = (
-        raw_root / "parent-import" / "summaries" / f"{spec.run_id}.json"
-    )
+    receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
+    terminal_path = raw_root / "parent-import" / "summaries" / f"{spec.run_id}.json"
     entry_status = run_ledger.status(spec.run_id)
     if entry_status not in {"scheduled", "complete"}:
         row = run_ledger.snapshot()["runs"][spec.run_id]
@@ -17891,6 +18433,200 @@ def _execute_v2111_parent_import_stage(
         ) from exc
 
 
+def _execute_v2112_capability_import_stage(
+    contract: PilotContract,
+    specs: Sequence[PilotRunSpec],
+    *,
+    raw_root: Path,
+    repo_root: Path,
+    paid: GitProvenance,
+    run_ledger: PilotRunLedger,
+    budget_ledger: PilotBudgetLedger,
+) -> dict[str, Any]:
+    """Materialize the two direct V2.11.1 wrappers without a provider."""
+
+    if (
+        contract.contract_id != V2112_CONTRACT_ID
+        or {spec.model_id for spec in specs} != {"gpt52_main", "gpt56_diagnostic"}
+        or any(
+            spec.stage_id != "capability-gate"
+            or spec.execution_mode != "capability_authority_import"
+            for spec in specs
+        )
+    ):
+        raise PilotOrchestrationError(
+            "V2.11.2 capability import requires its exact two registered cells"
+        )
+    _assert_prerequisites(
+        contract,
+        "capability-gate",
+        raw_root=raw_root,
+        paid=paid,
+        ledger=run_ledger,
+    )
+    receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
+    try:
+        receipt = verify_v2112_parent_import_receipt(
+            receipt_path,
+            repo_root=repo_root,
+            child_contract_sha256=contract.canonical_hash,
+            child_git_tag=paid.git_tag,
+            child_git_commit=paid.head_commit,
+        )
+        wrappers = capability_wrappers_from_v2112_receipt(receipt)
+    except PilotV2112ParentImportError as exc:
+        raise PilotOrchestrationError(
+            f"V2.11.2 capability source failed validation: {exc}"
+        ) from exc
+
+    go_models: list[str] = []
+    artifacts: dict[str, Any] = {
+        "provider_construction": False,
+        "provider_calls_current_attempt": 0,
+        "historical_source_calls": 60,
+        "historical_failed_preflight_calls_used_for_gate": 0,
+        "scientific_evidence": False,
+        "models": {},
+    }
+    for spec in specs:
+        wrapper = wrappers[spec.model_id]
+        projection = RunProjection(
+            run_id=spec.run_id,
+            stage_bucket=spec.budget_bucket,
+            cost_usd=0.0,
+            completions=0,
+            storage_bytes=1_000_000,
+            basis={
+                "method": "v2.11.2-direct-v2.11.1-capability-wrapper",
+                "provider_construction": False,
+                "provider_calls_current_attempt": 0,
+                "historical_source_calls": 30,
+                "imported_preflight_samples": 0,
+                "imported_checkpoint_artifacts": [],
+                "imported_p95_authorities": [],
+                "hosted_completion_cap_counted": False,
+                "scientific_evidence": False,
+            },
+        )
+        budget_row = budget_ledger.snapshot()["runs"].get(spec.run_id)
+        if budget_row is None:
+            budget_ledger.reserve(projection)
+        elif budget_row.get("reservation") != projection.to_dict():
+            raise PilotOrchestrationError(
+                f"{spec.run_id} imported capability reservation drifted"
+            )
+        run_dir = raw_root / spec.stage_id / "runs" / spec.run_id
+        capability_path = run_dir / "capability.json"
+        gate_path = run_dir / "gate_receipt.json"
+        terminal_path = raw_root / spec.stage_id / "summaries" / f"{spec.run_id}.json"
+        imported = wrapper["capability"]
+        semantic_go = (
+            imported.get("capability_pass") is True
+            and imported.get("interface_pass") is True
+        )
+        gate = {
+            "capability_pass": semantic_go,
+            "capability_status": ("imported-pass" if semantic_go else "imported-no-go"),
+            "go": semantic_go,
+            "historical_source_calls": 30,
+            "historical_failed_preflight_calls_used": 0,
+            "provider_calls_current_attempt": 0,
+            "interface_pass": semantic_go,
+            "preflight_run": None,
+            "reason": None if semantic_go else "inherited-capability-no-go",
+        }
+        _persist_exact_json(capability_path, wrapper)
+        _, bootstrap_path = _persist_v2112_bootstrap_projection(
+            contract,
+            spec,
+            raw_root=raw_root,
+            repo_root=repo_root,
+            paid=paid,
+        )
+        gate["bootstrap_projection"] = str(bootstrap_path)
+        _persist_exact_json(gate_path, gate)
+        payload = {
+            "metrics": {},
+            "capability": _json_copy(wrapper),
+            "gate_evidence": gate,
+            "provider_calls": 0,
+            "claim_boundary": (
+                "Direct V2.11.1 capability/interface evidence only; failed "
+                "preflight samples, checkpoints and P95 remain excluded."
+            ),
+        }
+        if terminal_path.exists():
+            terminal = _load_v2_terminal_summary(
+                contract,
+                spec,
+                terminal_path,
+                raw_root=raw_root,
+                paid=paid,
+            )
+            if terminal.get("payload") != payload:
+                raise PilotOrchestrationError(
+                    f"{spec.run_id} V2.11.2 capability terminal differs"
+                )
+        else:
+            write_terminal_summary(
+                terminal_path,
+                contract=contract,
+                run_spec=spec,
+                resolved_git_commit=paid.head_commit,
+                git_tag=paid.git_tag,
+                payload=payload,
+                scientific_evidence=False,
+                diagnostic_only=False,
+                evidence_scope="preregistered_task_capability_gate",
+            )
+        status = "complete" if semantic_go else "capability-no-go"
+        if run_ledger.status(spec.run_id) == "scheduled":
+            run_ledger.finalize(
+                spec.run_id,
+                status=status,
+                artifact=str(terminal_path),
+            )
+        elif run_ledger.status(spec.run_id) != status:
+            raise PilotOrchestrationError(
+                f"{spec.run_id} V2.11.2 capability ledger status drifted"
+            )
+        if budget_row is None or budget_row.get("status") == "reserved":
+            budget_ledger.finalize(
+                spec.run_id,
+                status=status,
+                cost_usd=0.0,
+                completions=0,
+                storage_bytes=_directory_size(run_dir) + terminal_path.stat().st_size,
+            )
+        if semantic_go:
+            go_models.append(spec.model_id)
+        artifacts["models"][spec.model_id] = {
+            "capability": str(capability_path),
+            "gate_receipt": str(gate_path),
+            "bootstrap_projection": str(bootstrap_path),
+            "terminal_summary": str(terminal_path),
+            "wrapper_content_sha256": wrapper["integrity"]["content_sha256"],
+            "provider_calls_current_attempt": 0,
+            "historical_source_calls": 30,
+        }
+    status = (
+        "complete"
+        if set(go_models) == {"gpt52_main", "gpt56_diagnostic"}
+        else "complete-with-no-go"
+    )
+    stage_receipt = _write_stage_receipt(
+        contract,
+        "capability-gate",
+        raw_root=raw_root,
+        ledger=run_ledger,
+        status=status,
+        go_models=go_models,
+        artifacts=artifacts,
+        paid=paid,
+    )
+    return _read_json(stage_receipt)
+
+
 def _execute_v2111_capability_import_stage(
     contract: PilotContract,
     specs: Sequence[PilotRunSpec],
@@ -17905,8 +18641,7 @@ def _execute_v2111_capability_import_stage(
 
     if (
         contract.contract_id != V2111_CONTRACT_ID
-        or {spec.model_id for spec in specs}
-        != {"gpt52_main", "gpt56_diagnostic"}
+        or {spec.model_id for spec in specs} != {"gpt52_main", "gpt56_diagnostic"}
         or any(
             spec.stage_id != "capability-gate"
             or spec.execution_mode != "capability_authority_import"
@@ -17923,9 +18658,7 @@ def _execute_v2111_capability_import_stage(
         paid=paid,
         ledger=run_ledger,
     )
-    receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
+    receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
     try:
         receipt = verify_v2111_parent_import_receipt(
             receipt_path,
@@ -17975,9 +18708,7 @@ def _execute_v2111_capability_import_stage(
         run_dir = raw_root / spec.stage_id / "runs" / spec.run_id
         capability_path = run_dir / "capability.json"
         gate_path = run_dir / "gate_receipt.json"
-        terminal_path = (
-            raw_root / spec.stage_id / "summaries" / f"{spec.run_id}.json"
-        )
+        terminal_path = raw_root / spec.stage_id / "summaries" / f"{spec.run_id}.json"
         imported = wrapper["capability"]
         semantic_go = (
             imported.get("capability_pass") is True
@@ -17985,9 +18716,7 @@ def _execute_v2111_capability_import_stage(
         )
         gate = {
             "capability_pass": semantic_go,
-            "capability_status": (
-                "imported-pass" if semantic_go else "imported-no-go"
-            ),
+            "capability_status": ("imported-pass" if semantic_go else "imported-no-go"),
             "go": semantic_go,
             "historical_source_calls": 30,
             "provider_calls_current_attempt": 0,
@@ -18056,8 +18785,7 @@ def _execute_v2111_capability_import_stage(
                 status=status,
                 cost_usd=0.0,
                 completions=0,
-                storage_bytes=_directory_size(run_dir)
-                + terminal_path.stat().st_size,
+                storage_bytes=_directory_size(run_dir) + terminal_path.stat().st_size,
             )
         if semantic_go:
             go_models.append(spec.model_id)
@@ -18066,9 +18794,7 @@ def _execute_v2111_capability_import_stage(
             "gate_receipt": str(gate_path),
             "bootstrap_projection": str(bootstrap_path),
             "terminal_summary": str(terminal_path),
-            "wrapper_content_sha256": wrapper["integrity"][
-                "content_sha256"
-            ],
+            "wrapper_content_sha256": wrapper["integrity"]["content_sha256"],
             "provider_calls_current_attempt": 0,
             "historical_source_calls": 30,
         }
@@ -18143,9 +18869,7 @@ def _execute_v211_parent_import_stage(
     if budget_row is None:
         budget_ledger.reserve(projection)
     elif budget_row.get("reservation") != projection.to_dict():
-        raise PilotOrchestrationError(
-            "V2.11 parent-import budget reservation drifted"
-        )
+        raise PilotOrchestrationError("V2.11 parent-import budget reservation drifted")
 
     entry_status = run_ledger.status(spec.run_id)
     if entry_status != "scheduled" and entry_status != "complete":
@@ -18179,15 +18903,8 @@ def _execute_v211_parent_import_stage(
         )
         return _read_json(receipt_path)
 
-    receipt_path = (
-        raw_root / "parent-import" / "parent_import_receipt.json"
-    )
-    terminal_path = (
-        raw_root
-        / "parent-import"
-        / "summaries"
-        / f"{spec.run_id}.json"
-    )
+    receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
+    terminal_path = raw_root / "parent-import" / "summaries" / f"{spec.run_id}.json"
     try:
         expected = build_v211_parent_import(
             repo_root=repo_root,
@@ -18243,9 +18960,7 @@ def _execute_v211_parent_import_stage(
                 or terminal.get("evidence_scope")
                 != "preregistered_parent_authority_import"
             ):
-                raise PilotOrchestrationError(
-                    "V2.11 parent terminal differs on resume"
-                )
+                raise PilotOrchestrationError("V2.11 parent terminal differs on resume")
         else:
             write_terminal_summary(
                 terminal_path,
@@ -18399,11 +19114,7 @@ def _execute_v24_parent_import_stage(
     entry_run_status = (
         run_ledger.status(spec.run_id)
         if transactional_parent
-        else (
-            "complete"
-            if run_ledger.is_terminal(spec.run_id)
-            else "scheduled"
-        )
+        else ("complete" if run_ledger.is_terminal(spec.run_id) else "scheduled")
     )
     v27_projection: RunProjection | None = None
     v27_entry_disposition: str | None = None
@@ -18441,9 +19152,7 @@ def _execute_v24_parent_import_stage(
             )
         if v27_entry_disposition == "scheduled-failure-resume":
             assert v27_entry_failure is not None
-            failure_path = _v27_parent_failure_receipt_path(
-                raw_root=raw_root
-            )
+            failure_path = _v27_parent_failure_receipt_path(raw_root=raw_root)
             run_ledger.finalize(
                 spec.run_id,
                 status="integrity-stopped",
@@ -18490,15 +19199,23 @@ def _execute_v24_parent_import_stage(
             verifier = (
                 _verify_v2102_importer_p95_profiles
                 if contract.contract_id == V2102_CONTRACT_ID
-                else _verify_v2101_importer_p95_profiles
-                if contract.contract_id == V2101_CONTRACT_ID
-                else _verify_v210_importer_p95_profiles
-                if contract.contract_id == V210_CONTRACT_ID
-                else _verify_v29_importer_p95_profiles
-                if contract.contract_id == V29_CONTRACT_ID
-                else _verify_v28_importer_p95_profiles
-                if contract.contract_id == V28_CONTRACT_ID
-                else _verify_v27_importer_p95_profiles
+                else (
+                    _verify_v2101_importer_p95_profiles
+                    if contract.contract_id == V2101_CONTRACT_ID
+                    else (
+                        _verify_v210_importer_p95_profiles
+                        if contract.contract_id == V210_CONTRACT_ID
+                        else (
+                            _verify_v29_importer_p95_profiles
+                            if contract.contract_id == V29_CONTRACT_ID
+                            else (
+                                _verify_v28_importer_p95_profiles
+                                if contract.contract_id == V28_CONTRACT_ID
+                                else _verify_v27_importer_p95_profiles
+                            )
+                        )
+                    )
+                )
             )
             verified_profiles = verifier(
                 contract,
@@ -18573,15 +19290,23 @@ def _execute_v24_parent_import_stage(
             verifier = (
                 _verify_v2102_importer_p95_profiles
                 if contract.contract_id == V2102_CONTRACT_ID
-                else _verify_v2101_importer_p95_profiles
-                if contract.contract_id == V2101_CONTRACT_ID
-                else _verify_v210_importer_p95_profiles
-                if contract.contract_id == V210_CONTRACT_ID
-                else _verify_v29_importer_p95_profiles
-                if contract.contract_id == V29_CONTRACT_ID
-                else _verify_v28_importer_p95_profiles
-                if contract.contract_id == V28_CONTRACT_ID
-                else _verify_v27_importer_p95_profiles
+                else (
+                    _verify_v2101_importer_p95_profiles
+                    if contract.contract_id == V2101_CONTRACT_ID
+                    else (
+                        _verify_v210_importer_p95_profiles
+                        if contract.contract_id == V210_CONTRACT_ID
+                        else (
+                            _verify_v29_importer_p95_profiles
+                            if contract.contract_id == V29_CONTRACT_ID
+                            else (
+                                _verify_v28_importer_p95_profiles
+                                if contract.contract_id == V28_CONTRACT_ID
+                                else _verify_v27_importer_p95_profiles
+                            )
+                        )
+                    )
+                )
             )
             verified_profiles = verifier(
                 contract,
@@ -18616,10 +19341,7 @@ def _execute_v24_parent_import_stage(
             )
         else:
             terminal = write_terminal_summary(
-                raw_root
-                / "parent-import"
-                / "summaries"
-                / f"{spec.run_id}.json",
+                raw_root / "parent-import" / "summaries" / f"{spec.run_id}.json",
                 contract=contract,
                 run_spec=spec,
                 resolved_git_commit=paid.head_commit,
@@ -18670,9 +19392,7 @@ def _execute_v24_parent_import_stage(
         return _read_json(receipt)
     except Exception as exc:
         if transactional_parent:
-            intent_path = _v27_parent_commit_intent_path(
-                raw_root=raw_root
-            )
+            intent_path = _v27_parent_commit_intent_path(raw_root=raw_root)
             if intent_path.exists() or intent_path.is_symlink():
                 _verify_v27_parent_commit_intent(
                     contract,
@@ -18702,25 +19422,18 @@ def _execute_v24_parent_import_stage(
                     f"commit_intent={intent_path}; "
                     f"budget_status={budget_status}"
                 ) from exc
-            failure_path = _v27_parent_failure_receipt_path(
-                raw_root=raw_root
-            )
+            failure_path = _v27_parent_failure_receipt_path(raw_root=raw_root)
             if failure_path.exists() or failure_path.is_symlink():
                 raise PilotOrchestrationError(
                     f"{contract_label} parent failure intent appeared during "
                     "a success "
                     "attempt; manual integrity audit is required"
                 ) from exc
-        if (
-            transactional_parent
-            and run_ledger.is_terminal(spec.run_id)
-        ):
+        if transactional_parent and run_ledger.is_terminal(spec.run_id):
             budget_status = (
                 None
                 if budget_ledger is None
-                else budget_ledger.snapshot()["runs"]
-                .get(spec.run_id, {})
-                .get("status")
+                else budget_ledger.snapshot()["runs"].get(spec.run_id, {}).get("status")
             )
             raise PilotOrchestrationError(
                 f"{contract_label} parent terminal state lacks a sealed intent; "
@@ -18838,9 +19551,7 @@ def _execute_stage_locked(
         else None
     )
     if preflight_amendment_control is not None:
-        preflight_control_path = preflight_amendment_control_path(
-            raw_root=root
-        )
+        preflight_control_path = preflight_amendment_control_path(raw_root=root)
         _persist_exact_json(
             preflight_control_path,
             preflight_amendment_control,
@@ -18899,6 +19610,28 @@ def _execute_stage_locked(
             )
         )
     if stage_id == "parent-import":
+        if contract.contract_id == V2112_CONTRACT_ID:
+            parent_budget_ledger = PilotBudgetLedger(
+                root / "budget_ledger.json",
+                contract_hash=contract.canonical_hash,
+                caps=_budget_caps(contract),
+                tamper_evident=True,
+                parent_debit=_parent_budget_debit(
+                    contract,
+                    repo_root=repository,
+                    parent_repo_root=parent_repo_root,
+                ),
+            )
+            return _execute_v2112_parent_import_stage(
+                contract,
+                specs,
+                raw_root=root,
+                repo_root=repository,
+                parent_repo_root=parent_repo_root,
+                paid=paid,
+                run_ledger=run_ledger,
+                budget_ledger=parent_budget_ledger,
+            )
         if contract.contract_id == V2111_CONTRACT_ID:
             parent_budget_ledger = PilotBudgetLedger(
                 root / "budget_ledger.json",
@@ -18992,11 +19725,15 @@ def _execute_stage_locked(
         qref_executor = (
             _execute_v2102_q_ref_import_stage
             if contract.contract_id == V2102_CONTRACT_ID
-            else _execute_v2101_q_ref_import_stage
-            if contract.contract_id == V2101_CONTRACT_ID
-            else _execute_v210_q_ref_import_stage
-            if contract.contract_id == V210_CONTRACT_ID
-            else _execute_v27_q_ref_import_stage
+            else (
+                _execute_v2101_q_ref_import_stage
+                if contract.contract_id == V2101_CONTRACT_ID
+                else (
+                    _execute_v210_q_ref_import_stage
+                    if contract.contract_id == V210_CONTRACT_ID
+                    else _execute_v27_q_ref_import_stage
+                )
+            )
         )
         return qref_executor(
             contract,
@@ -19013,10 +19750,17 @@ def _execute_stage_locked(
         tamper_evident=contract.schema_version.endswith("-v2"),
         parent_debit=_parent_budget_debit(contract),
     )
-    if (
-        contract.contract_id == V2111_CONTRACT_ID
-        and stage_id == "capability-gate"
-    ):
+    if contract.contract_id == V2112_CONTRACT_ID and stage_id == "capability-gate":
+        return _execute_v2112_capability_import_stage(
+            contract,
+            specs,
+            raw_root=root,
+            repo_root=repository,
+            paid=paid,
+            run_ledger=run_ledger,
+            budget_ledger=budget_ledger,
+        )
+    if contract.contract_id == V2111_CONTRACT_ID and stage_id == "capability-gate":
         return _execute_v2111_capability_import_stage(
             contract,
             specs,
@@ -19120,10 +19864,10 @@ def _execute_stage_locked(
             continue
         catalog_path = root / stage_id / "provider_catalog" / f"{model_id}.json"
         try:
-            if (
-                contract.contract_id == PILOT_V21_CONTRACT_ID
-                and profile.transport in {"openai", "openrouter"}
-            ):
+            if contract.contract_id == PILOT_V21_CONTRACT_ID and profile.transport in {
+                "openai",
+                "openrouter",
+            }:
                 # This constructor performs local credential-shape and SDK
                 # validation.  It sends no request and deliberately runs
                 # before the live catalog read and before any reservation.
@@ -19367,18 +20111,12 @@ def _execute_stage_locked(
         ) from exc
 
     if _is_experiment_d_stage(stage_id):
-        groups = sorted(
-            {
-                (spec.model_id, spec.environment_seed)
-                for spec in specs
-            }
-        )
+        groups = sorted({(spec.model_id, spec.environment_seed) for spec in specs})
         for model_id, seed in groups:
             group = tuple(
                 spec
                 for spec in specs
-                if spec.model_id == model_id
-                and spec.environment_seed == seed
+                if spec.model_id == model_id and spec.environment_seed == seed
             )
             if contract.schema_version.endswith("-v2"):
                 _assert_prerequisites(
@@ -19767,18 +20505,20 @@ def _execute_stage_locked(
     ):
         try:
             persist_post_gate = (
-                _persist_v2111_post_gate_authority
-                if contract.contract_id == V2111_CONTRACT_ID
-                else _persist_v211_post_gate_authority
-            )
-            post_gate_path, v211_post_gate_receipt = (
-                persist_post_gate(
-                    contract,
-                    raw_root=root,
-                    paid=paid,
-                    budget_ledger=budget_ledger,
-                    run_ledger=run_ledger,
+                _persist_v2112_post_gate_authority
+                if contract.contract_id == V2112_CONTRACT_ID
+                else (
+                    _persist_v2111_post_gate_authority
+                    if contract.contract_id == V2111_CONTRACT_ID
+                    else _persist_v211_post_gate_authority
                 )
+            )
+            post_gate_path, v211_post_gate_receipt = persist_post_gate(
+                contract,
+                raw_root=root,
+                paid=paid,
+                budget_ledger=budget_ledger,
+                run_ledger=run_ledger,
             )
             stage_artifacts["post_gate_authority"] = {
                 "path": str(post_gate_path),
@@ -19790,11 +20530,22 @@ def _execute_stage_locked(
                 ],
                 "provider_calls_during_authority": 0,
             }
+            # Only the sealed global authority may name models eligible for
+            # downstream dispatch.  Local per-model gates are inputs to that
+            # authority, not an independently sufficient dispatch decision.
+            go_models = list(
+                v211_post_gate_receipt["denominator"]["eligible_model_ids"]
+            )
         except Exception as exc:
             stage_artifacts["post_gate_authority_failure"] = {
                 "error_type": type(exc).__name__,
                 "message": str(exc),
             }
+            # A terminal mixed outcome can leave a locally passing model in
+            # ``go_models`` even though the global authority is necessarily
+            # absent.  Publish the fail-closed stage receipt with the same
+            # recomputed empty eligibility set used by its source bindings.
+            go_models = []
             _propagate_stage_no_go(
                 contract,
                 source_stage=stage_id,
@@ -19819,11 +20570,7 @@ def _execute_stage_locked(
                 complete
                 and isinstance(v211_post_gate_receipt, Mapping)
                 and v211_post_gate_receipt.get("go") is True
-                and set(
-                    v211_post_gate_receipt["denominator"][
-                        "eligible_model_ids"
-                    ]
-                )
+                and set(v211_post_gate_receipt["denominator"]["eligible_model_ids"])
                 == set(contract.models_for_stage(stage_id))
             )
             else "complete-with-no-go"
@@ -19840,12 +20587,9 @@ def _execute_stage_locked(
         status = "complete"
     else:
         status = "complete-with-no-go"
-    if (
-        _is_capability_stage(contract, stage_id)
-        and not (
-            contract.contract_id in V211_FAMILY_CONTRACT_IDS
-            and stage_id == "capability-gate"
-        )
+    if _is_capability_stage(contract, stage_id) and not (
+        contract.contract_id in V211_FAMILY_CONTRACT_IDS
+        and stage_id == "capability-gate"
     ):
         _propagate_capability_no_go(
             contract,
@@ -19913,10 +20657,72 @@ def _bootstrap_development_utility(
     contract: PilotContract,
     *,
     raw_root: Path,
+    resume: bool = False,
 ) -> dict[str, Any]:
     """Resolve q_ref and a fixed center profile for plumbing diagnostics."""
 
     qref_dir = raw_root / "q-ref-resolution" / "runs" / "development-qref"
+    qref_path = raw_root / "q-ref-resolution" / "q_ref_resolution.json"
+    selection_path = raw_root / "stage0-calibration" / "stage0_selection.json"
+    existing = {
+        "manifest": qref_dir / "manifest.json",
+        "q_ref_resolution": qref_path,
+        "stage0_selection": selection_path,
+    }
+    if resume and any(path.exists() for path in existing.values()):
+        if not all(path.is_file() for path in existing.values()):
+            raise PilotOrchestrationError(
+                "development utility bootstrap is partial; refusing to "
+                "silently regenerate it on resume"
+            )
+        result = load_verified_run_artifacts(qref_dir)
+        resolution = build_q_ref_resolution(
+            result,
+            contract_hash=contract.canonical_hash,
+            environment_source_hash=hashlib.sha256(
+                DEFAULT_ENV_CONFIG.read_bytes()
+            ).hexdigest(),
+        )
+        resolution["bindings"]["source_manifest_sha256"] = hashlib.sha256(
+            existing["manifest"].read_bytes()
+        ).hexdigest()
+        resolution["source_manifest"] = str(existing["manifest"])
+        resolution["diagnostic_only"] = True
+        resolution["scientific_evidence"] = False
+        if _read_json(qref_path) != resolution:
+            raise PilotOrchestrationError(
+                "development q_ref bootstrap differs from sealed run artifacts"
+            )
+        ofat = expand_stage0_ofat(float(resolution["q_ref"]))
+        center = next(
+            profile for profile in ofat["profiles"] if profile["profile_id"] == "center"
+        )
+        expected_selection = {
+            "schema_version": "finevo-stage0-selection-v1",
+            "selected_profile_id": "center",
+            "selected_utility": center["utility"],
+            "selection_basis": [
+                "development diagnostic fixed center profile",
+                "no model-performance field was inspected",
+            ],
+            "outcome_fields_used": [],
+            "contract_sha256": contract.canonical_hash,
+            "q_ref_artifact_hash": canonical_sha256(resolution),
+            "diagnostic_only": True,
+            "scientific_evidence": False,
+            "evidence_boundary": (
+                "This fixed-center development fixture only exercises A-D "
+                "plumbing; it is not Stage-0 scientific calibration."
+            ),
+        }
+        if _read_json(selection_path) != expected_selection:
+            raise PilotOrchestrationError(
+                "development Stage-0 selection differs on resume"
+            )
+        return {
+            "q_ref_resolution": str(qref_path),
+            "stage0_selection": str(selection_path),
+        }
     config = q_ref_run_config(run_id=qref_dir.name)
     budget = RunBudget(
         BudgetLimits(
@@ -19958,7 +20764,6 @@ def _bootstrap_development_utility(
     resolution["source_manifest"] = str(manifest)
     resolution["diagnostic_only"] = True
     resolution["scientific_evidence"] = False
-    qref_path = raw_root / "q-ref-resolution" / "q_ref_resolution.json"
     _atomic_json(qref_path, resolution)
 
     ofat = expand_stage0_ofat(float(resolution["q_ref"]))
@@ -19983,7 +20788,6 @@ def _bootstrap_development_utility(
             "it is not Stage-0 scientific calibration."
         ),
     }
-    selection_path = raw_root / "stage0-calibration" / "stage0_selection.json"
     _atomic_json(selection_path, selection)
     return {
         "q_ref_resolution": str(qref_path),
@@ -20002,7 +20806,11 @@ def run_development_fake_matrix(
     contract = load_pilot_contract(contract_path)
     root = Path(raw_root).resolve() / "development-fake"
     root.mkdir(parents=True, exist_ok=True)
-    bootstrap = _bootstrap_development_utility(contract, raw_root=root)
+    bootstrap = _bootstrap_development_utility(
+        contract,
+        raw_root=root,
+        resume=resume,
+    )
     selected: list[PilotRunSpec] = []
     development_stages = (
         _contract_core_stage_ids(contract)
@@ -20032,9 +20840,13 @@ def run_development_fake_matrix(
         raise PilotOrchestrationError("development matrix already exists; use --resume")
     if contract.contract_id in V211_FAMILY_CONTRACT_IDS:
         forward_boundary = (
-            contract.v211_forward_boundary
-            if contract.contract_id == V211_CONTRACT_ID
-            else contract.v2111_forward_boundary
+            contract.v2112_forward_boundary
+            if contract.contract_id == V2112_CONTRACT_ID
+            else (
+                contract.v211_forward_boundary
+                if contract.contract_id == V211_CONTRACT_ID
+                else contract.v2111_forward_boundary
+            )
         )
         if forward_boundary is None:  # pragma: no cover - parser
             raise PilotOrchestrationError(
@@ -20053,9 +20865,7 @@ def run_development_fake_matrix(
         parent_debit=development_parent_debit,
     )
 
-    d_specs = tuple(
-        spec for spec in selected if _is_experiment_d_stage(spec.stage_id)
-    )
+    d_specs = tuple(spec for spec in selected if _is_experiment_d_stage(spec.stage_id))
     actor_specs = tuple(
         spec for spec in selected if not _is_experiment_d_stage(spec.stage_id)
     )
@@ -20136,10 +20946,7 @@ def run_development_fake_matrix(
             )
 
     d_groups = sorted(
-        {
-            (spec.stage_id, spec.model_id, spec.environment_seed)
-            for spec in d_specs
-        }
+        {(spec.stage_id, spec.model_id, spec.environment_seed) for spec in d_specs}
     )
     for stage_id, model_id, seed in d_groups:
         _execute_d_seed(

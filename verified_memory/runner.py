@@ -20,6 +20,7 @@ import random
 import re
 from statistics import mean
 import subprocess
+from types import MappingProxyType
 from typing import Any, Mapping, Optional, Sequence
 
 import numpy as np
@@ -121,6 +122,206 @@ V2111_PREFLIGHT_ENVELOPE_COST_USD = {
     "openai/gpt-5.2-2025-12-11": 0.407344,
     "openai/gpt-5.6-sol": 1.12288,
 }
+V2112_CONTRACT_ENVELOPE_AUTHORITY_ID = (
+    "finevo-v2.11.2-contract-envelope-bootstrap-v1"
+)
+V2112_CONTRACT_ID = "finevo-pilot-v2.11.2"
+V2112_RELEASE_TAG = "pilot-v2.11.2-science"
+V2112_SOURCE_CONTRACT_ID = V2111_CONTRACT_ID
+V2112_SOURCE_RELEASE_TAG = V2111_RELEASE_TAG
+V2112_PREFLIGHT_SEED = 2010922376
+V2112_PREFLIGHT_PROMPT_ENVELOPE_TOKENS = 200_000
+V2112_PREFLIGHT_COMPLETION_ENVELOPE_TOKENS = 4_096
+V2112_PREFLIGHT_CAPABILITY_SAMPLE_COUNTS = {
+    "action": 24,
+    "semantic": 6,
+}
+V2112_RUNTIME_MODEL_BY_MODEL_ID = {
+    "gpt52_main": "openai/gpt-5.2-2025-12-11",
+    "gpt56_diagnostic": "openai/gpt-5.6-sol",
+}
+V2112_PREFLIGHT_ENVELOPE_COST_USD = {
+    "openai/gpt-5.2-2025-12-11": 0.407344,
+    "openai/gpt-5.6-sol": 1.12288,
+}
+
+
+@dataclass(frozen=True, slots=True)
+class LongContextPreflightAuthority:
+    """Frozen release-specific authority for one long-context preflight.
+
+    The runner selects this record only by ``authority_id``.  Keeping the
+    complete target/source lineage in one immutable record prevents a valid
+    bootstrap from one retry release from being reused in another release.
+    """
+
+    authority_id: str
+    target_contract_id: str
+    target_release_tag: str
+    source_contract_id: str
+    source_release_tag: str
+    preflight_seed: int
+    prompt_envelope_tokens: int
+    completion_envelope_tokens: int
+    capability_sample_counts: Mapping[str, int]
+    runtime_model_by_model_id: Mapping[str, str]
+    envelope_cost_usd: Mapping[str, float]
+
+    def __post_init__(self) -> None:
+        for name in (
+            "authority_id",
+            "target_contract_id",
+            "target_release_tag",
+            "source_contract_id",
+            "source_release_tag",
+        ):
+            value = getattr(self, name)
+            if (
+                not isinstance(value, str)
+                or not value.strip()
+                or value != value.strip()
+            ):
+                raise ValueError(f"{name} must be a normalized non-empty string")
+        if (
+            isinstance(self.preflight_seed, bool)
+            or not isinstance(self.preflight_seed, int)
+            or self.preflight_seed < 0
+        ):
+            raise ValueError("preflight_seed must be a nonnegative integer")
+        for name in (
+            "prompt_envelope_tokens",
+            "completion_envelope_tokens",
+        ):
+            value = getattr(self, name)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or value < 1
+            ):
+                raise ValueError(f"{name} must be a positive integer")
+        sample_counts = dict(self.capability_sample_counts)
+        if set(sample_counts) != PREFLIGHT_P95_CALL_KINDS or any(
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or value < 1
+            for value in sample_counts.values()
+        ):
+            raise ValueError(
+                "capability_sample_counts must define positive action and "
+                "semantic denominators"
+            )
+        runtime_models = dict(self.runtime_model_by_model_id)
+        costs = dict(self.envelope_cost_usd)
+        if (
+            not runtime_models
+            or any(
+                not isinstance(model_id, str)
+                or not model_id.strip()
+                or not isinstance(model, str)
+                or not model.strip()
+                for model_id, model in runtime_models.items()
+            )
+            or set(runtime_models.values()) != set(costs)
+            or any(
+                isinstance(cost, bool)
+                or not isinstance(cost, (int, float))
+                or not math.isfinite(float(cost))
+                or float(cost) <= 0
+                for cost in costs.values()
+            )
+        ):
+            raise ValueError(
+                "runtime model and frozen envelope price mappings drifted"
+            )
+        object.__setattr__(
+            self,
+            "capability_sample_counts",
+            MappingProxyType(sample_counts),
+        )
+        object.__setattr__(
+            self,
+            "runtime_model_by_model_id",
+            MappingProxyType(runtime_models),
+        )
+        object.__setattr__(
+            self,
+            "envelope_cost_usd",
+            MappingProxyType(
+                {model: float(cost) for model, cost in costs.items()}
+            ),
+        )
+
+    def target_run_id(self, model_id: str) -> str:
+        """Return the only actor runner id authorized for ``model_id``."""
+
+        if model_id not in self.runtime_model_by_model_id:
+            raise ValueError(
+                "long-context preflight authority has no such model_id"
+            )
+        return (
+            f"{self.target_contract_id}--long-context-preflight--{model_id}"
+            "--closed-loop-preflight--none--stage0-selected--"
+            f"s{self.preflight_seed}--actor-preflight"
+        )
+
+    def source_run_id(self, model_id: str) -> str:
+        """Return the only direct capability-source id for ``model_id``."""
+
+        if model_id not in self.runtime_model_by_model_id:
+            raise ValueError(
+                "long-context preflight authority has no such model_id"
+            )
+        return (
+            f"{self.source_contract_id}--capability-gate--{model_id}"
+            "--capability-probe--none--provider-preflight-default--"
+            f"s{self.preflight_seed}"
+        )
+
+
+LONG_CONTEXT_PREFLIGHT_AUTHORITY_BY_ID: Mapping[
+    str, LongContextPreflightAuthority
+] = MappingProxyType(
+    {
+        V2111_CONTRACT_ENVELOPE_AUTHORITY_ID: LongContextPreflightAuthority(
+            authority_id=V2111_CONTRACT_ENVELOPE_AUTHORITY_ID,
+            target_contract_id=V2111_CONTRACT_ID,
+            target_release_tag=V2111_RELEASE_TAG,
+            source_contract_id=V2111_SOURCE_CONTRACT_ID,
+            source_release_tag=V2111_SOURCE_RELEASE_TAG,
+            preflight_seed=V2111_PREFLIGHT_SEED,
+            prompt_envelope_tokens=(
+                V2111_PREFLIGHT_PROMPT_ENVELOPE_TOKENS
+            ),
+            completion_envelope_tokens=(
+                V2111_PREFLIGHT_COMPLETION_ENVELOPE_TOKENS
+            ),
+            capability_sample_counts=(
+                V2111_PREFLIGHT_CAPABILITY_SAMPLE_COUNTS
+            ),
+            runtime_model_by_model_id=V2111_RUNTIME_MODEL_BY_MODEL_ID,
+            envelope_cost_usd=V2111_PREFLIGHT_ENVELOPE_COST_USD,
+        ),
+        V2112_CONTRACT_ENVELOPE_AUTHORITY_ID: LongContextPreflightAuthority(
+            authority_id=V2112_CONTRACT_ENVELOPE_AUTHORITY_ID,
+            target_contract_id=V2112_CONTRACT_ID,
+            target_release_tag=V2112_RELEASE_TAG,
+            source_contract_id=V2112_SOURCE_CONTRACT_ID,
+            source_release_tag=V2112_SOURCE_RELEASE_TAG,
+            preflight_seed=V2112_PREFLIGHT_SEED,
+            prompt_envelope_tokens=(
+                V2112_PREFLIGHT_PROMPT_ENVELOPE_TOKENS
+            ),
+            completion_envelope_tokens=(
+                V2112_PREFLIGHT_COMPLETION_ENVELOPE_TOKENS
+            ),
+            capability_sample_counts=(
+                V2112_PREFLIGHT_CAPABILITY_SAMPLE_COUNTS
+            ),
+            runtime_model_by_model_id=V2112_RUNTIME_MODEL_BY_MODEL_ID,
+            envelope_cost_usd=V2112_PREFLIGHT_ENVELOPE_COST_USD,
+        ),
+    }
+)
 CONTEXT_FEATURES = (
     "log_price",
     "interest_rate",
@@ -1032,13 +1233,13 @@ class ContractBootstrapReservation:
 
 @dataclass(frozen=True, slots=True)
 class ContractEnvelopeBootstrapReservation:
-    """V2.11.1 capability audit plus a separate contract-max envelope.
+    """Release-bound capability audit plus a separate contract-max envelope.
 
     The capability projection remains an exact observed-p95-plus-25-percent
-    audit of one same-model 30-call V2.11 capability cell.  It is deliberately
+    audit of one same-model 30-call source capability cell.  It is deliberately
     not the effective dispatch reservation: the 2x12 long-context prompt
     distribution is not exchangeable with the capability task distribution.
-    The effective reservation is instead the frozen V2.11.1 contract envelope.
+    The effective reservation is the authority release's frozen envelope.
     """
 
     capability_projection: PreflightP95Reservation
@@ -1081,18 +1282,21 @@ class ContractEnvelopeBootstrapReservation:
             raise TypeError(
                 "contract-envelope bootstrap must wrap an envelope usage value"
             )
-        if self.authority_id != V2111_CONTRACT_ENVELOPE_AUTHORITY_ID:
+        authority = LONG_CONTEXT_PREFLIGHT_AUTHORITY_BY_ID.get(
+            self.authority_id
+        )
+        if authority is None:
             raise ValueError("unsupported contract-envelope bootstrap authority")
         if (
-            self.target_contract_id != V2111_CONTRACT_ID
-            or self.pilot_tag != V2111_RELEASE_TAG
-            or self.source_contract_id != V2111_SOURCE_CONTRACT_ID
-            or self.source_tag != V2111_SOURCE_RELEASE_TAG
+            self.target_contract_id != authority.target_contract_id
+            or self.pilot_tag != authority.target_release_tag
+            or self.source_contract_id != authority.source_contract_id
+            or self.source_tag != authority.source_release_tag
         ):
             raise ValueError(
                 "contract-envelope bootstrap contract/tag lineage drifted"
             )
-        expected_runtime_model = V2111_RUNTIME_MODEL_BY_MODEL_ID.get(
+        expected_runtime_model = authority.runtime_model_by_model_id.get(
             self.model_id
         )
         if (
@@ -1103,7 +1307,7 @@ class ContractEnvelopeBootstrapReservation:
                 "contract-envelope bootstrap same-model binding drifted"
             )
         if self.capability_projection.sample_count != (
-            V2111_PREFLIGHT_CAPABILITY_SAMPLE_COUNTS[
+            authority.capability_sample_counts[
                 self.capability_projection.call_kind
             ]
         ):
@@ -1112,15 +1316,15 @@ class ContractEnvelopeBootstrapReservation:
             )
         if (
             self.envelope_usage.prompt_tokens
-            != V2111_PREFLIGHT_PROMPT_ENVELOPE_TOKENS
+            != authority.prompt_envelope_tokens
             or self.envelope_usage.completion_tokens
-            != V2111_PREFLIGHT_COMPLETION_ENVELOPE_TOKENS
+            != authority.completion_envelope_tokens
         ):
             raise ValueError(
                 "contract-envelope bootstrap must reserve the exact "
                 "200000-token prompt and 4096-token completion envelope"
             )
-        expected_cost = V2111_PREFLIGHT_ENVELOPE_COST_USD[
+        expected_cost = authority.envelope_cost_usd[
             expected_runtime_model
         ]
         if not math.isclose(
@@ -1134,14 +1338,10 @@ class ContractEnvelopeBootstrapReservation:
                 "frozen provider-profile price"
             )
         if (
-            self.authorized_seed != V2111_PREFLIGHT_SEED
-            or not self.authorized_run_id.startswith(
-                f"{V2111_CONTRACT_ID}--long-context-preflight--"
-            )
-            or not self.authorized_run_id.endswith("--actor-preflight")
-            or not self.source_run_id.startswith(
-                f"{V2111_SOURCE_CONTRACT_ID}--capability-gate--"
-            )
+            self.authorized_seed != authority.preflight_seed
+            or self.authorized_run_id
+            != authority.target_run_id(self.model_id)
+            or self.source_run_id != authority.source_run_id(self.model_id)
         ):
             raise ValueError(
                 "contract-envelope bootstrap run/seed scope drifted"
@@ -1442,7 +1642,7 @@ def _normalize_contract_bootstrap_reservations(
                     ContractEnvelopeBootstrapReservation
                     if isinstance(authority, Mapping)
                     and authority.get("authority_id")
-                    == V2111_CONTRACT_ENVELOPE_AUTHORITY_ID
+                    in LONG_CONTEXT_PREFLIGHT_AUTHORITY_BY_ID
                     else ContractBootstrapReservation
                 )
                 entries.append(
@@ -1972,14 +2172,43 @@ class VerifiedRunConfig:
                     "contract bootstrap authority is restricted to the exact "
                     "2-agent x 6-month closed-loop preflight"
                 )
+            envelope_authority: LongContextPreflightAuthority | None = None
+            if envelope_bootstrap:
+                envelope_authority_ids = {
+                    item.authority_id
+                    for item in self.contract_bootstrap_reservations
+                    if isinstance(
+                        item,
+                        ContractEnvelopeBootstrapReservation,
+                    )
+                }
+                if len(envelope_authority_ids) != 1:
+                    raise ValueError(
+                        "long-context preflight bootstrap authorities cannot "
+                        "be mixed across releases"
+                    )
+                envelope_authority = (
+                    LONG_CONTEXT_PREFLIGHT_AUTHORITY_BY_ID.get(
+                        next(iter(envelope_authority_ids))
+                    )
+                )
+                if envelope_authority is None:
+                    raise ValueError(
+                        "unsupported contract-envelope bootstrap authority"
+                    )
             if envelope_bootstrap and (
                 self.episode_length != 12
-                or self.seed != V2111_PREFLIGHT_SEED
-                or self.pilot_tag != V2111_RELEASE_TAG
-                or not self.run_id.startswith(
-                    f"{V2111_CONTRACT_ID}--long-context-preflight--"
+                or self.seed != envelope_authority.preflight_seed
+                or self.pilot_tag != envelope_authority.target_release_tag
+                or any(
+                    self.run_id
+                    != envelope_authority.target_run_id(item.model_id)
+                    for item in self.contract_bootstrap_reservations
+                    if isinstance(
+                        item,
+                        ContractEnvelopeBootstrapReservation,
+                    )
                 )
-                or not self.run_id.endswith("--actor-preflight")
                 or self.context_mode != "full"
                 or not self.enable_episodic_retrieval
                 or not self.enable_semantic
@@ -1989,11 +2218,11 @@ class VerifiedRunConfig:
                 or self.temperature != 0.0
                 or self.top_p != 1.0
                 or self.prompt_tier_ceiling_tokens
-                != V2111_PREFLIGHT_PROMPT_ENVELOPE_TOKENS
+                != envelope_authority.prompt_envelope_tokens
                 or self.action_max_tokens
-                != V2111_PREFLIGHT_COMPLETION_ENVELOPE_TOKENS
+                != envelope_authority.completion_envelope_tokens
                 or self.rule_max_tokens
-                != V2111_PREFLIGHT_COMPLETION_ENVELOPE_TOKENS
+                != envelope_authority.completion_envelope_tokens
                 or self.action_max_visible_json_bytes != 1_024
                 or self.rule_max_visible_json_bytes != 4_096
                 or self.accepted_action_parse_modes != ("exact_json",)
@@ -2006,9 +2235,15 @@ class VerifiedRunConfig:
                 or not self.fail_on_clipped_action
                 or self.semantic_parse_failure_policy != "record-and-skip"
             ):
+                release_label = "V" + (
+                    envelope_authority.target_contract_id.removeprefix(
+                        "finevo-pilot-v"
+                    )
+                )
                 raise ValueError(
                     "contract-envelope bootstrap authority is restricted to "
-                    "the exact V2.11.1 2-agent x 12-month long-context preflight"
+                    f"the exact {release_label} "
+                    "2-agent x 12-month long-context preflight"
                 )
             bootstrap_models = {
                 item.model for item in self.contract_bootstrap_reservations
@@ -4390,6 +4625,8 @@ __all__ = [
     "FIXED_ERRONEOUS_RULE",
     "ContractBootstrapReservation",
     "ContractEnvelopeBootstrapReservation",
+    "LONG_CONTEXT_PREFLIGHT_AUTHORITY_BY_ID",
+    "LongContextPreflightAuthority",
     "ObservedPreflightP95Reservation",
     "OBSERVED_P95_AUTHORITY_ID",
     "OBSERVED_P95_PROJECTION_SCHEMA_VERSION",
@@ -4417,6 +4654,17 @@ __all__ = [
     "V2111_RUNTIME_MODEL_BY_MODEL_ID",
     "V2111_SOURCE_CONTRACT_ID",
     "V2111_SOURCE_RELEASE_TAG",
+    "V2112_CONTRACT_ENVELOPE_AUTHORITY_ID",
+    "V2112_CONTRACT_ID",
+    "V2112_PREFLIGHT_CAPABILITY_SAMPLE_COUNTS",
+    "V2112_PREFLIGHT_COMPLETION_ENVELOPE_TOKENS",
+    "V2112_PREFLIGHT_ENVELOPE_COST_USD",
+    "V2112_PREFLIGHT_PROMPT_ENVELOPE_TOKENS",
+    "V2112_PREFLIGHT_SEED",
+    "V2112_RELEASE_TAG",
+    "V2112_RUNTIME_MODEL_BY_MODEL_ID",
+    "V2112_SOURCE_CONTRACT_ID",
+    "V2112_SOURCE_RELEASE_TAG",
     "VerifiedRunConfig",
     "VerifiedRunError",
     "VerifiedRunResult",
