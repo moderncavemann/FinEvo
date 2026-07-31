@@ -9,10 +9,12 @@ from types import SimpleNamespace
 import pytest
 
 import verified_memory.ci_release_receipt as ci_receipts
+import verified_memory.scientific_release_attestation as science_attestation
 from verified_memory.ci_release_receipt import (
     CIReleaseReceiptError,
     PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
     PUBLICATION_CONSUMER_CI_AUTHORITY_SCHEMA_VERSION,
+    PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX,
     PUBLICATION_CONSUMER_CI_RECEIPT_SCHEMA_VERSION,
     SCIENTIFIC_SOURCE_MANIFEST_ANCHORS,
     SCIENTIFIC_SOURCE_MANIFEST_INVENTORY_SCHEMA_VERSION,
@@ -30,6 +32,7 @@ from verified_memory.ci_release_receipt import (
 )
 from verified_memory.scientific_release_attestation import (
     CI_JOB_RECEIPT_SCHEMA_VERSION,
+    ScientificReleaseAttestationError,
     canonical_sha256,
 )
 
@@ -683,6 +686,41 @@ def test_publication_consumer_receipt_has_distinct_non_scientific_envelope(
     assert receipt["receipt_sha256"] == canonical_sha256(
         {key: value for key, value in receipt.items() if key != "receipt_sha256"}
     )
+
+
+def test_science_parser_rejects_valid_publication_consumer_prefix(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    authority_path = _publication_authority(tmp_path)
+    _mock_publication_authority_dependencies(monkeypatch)
+    receipt = build_publication_consumer_ci_receipt(
+        tmp_path,
+        authority_path=authority_path,
+        ci_job_receipt=_publication_ci_job(tmp_path),
+    )
+    publication_only_log = (
+        PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX
+        + json.dumps(receipt, sort_keys=True, separators=(",", ":"))
+        + "\n"
+    ).encode("utf-8")
+
+    with pytest.raises(
+        ScientificReleaseAttestationError,
+        match="exactly one release receipt log line",
+    ):
+        science_attestation._parse_ci_job_log(
+            publication_only_log,
+            required_job=None,
+            requirements=None,
+            selection=None,
+            repository="moderncavemann/FinEvo",
+            head=V2115_CONSUMER_HEAD,
+            workflow_sha256="8" * 64,
+            workflow_blob_oid=WORKFLOW_BLOB,
+            inventory_sha256=INVENTORY_SHA,
+            inventory_count=6,
+        )
 
 
 def test_publication_consumer_rejects_incomplete_ci_job_receipt(

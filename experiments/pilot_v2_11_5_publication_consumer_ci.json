@@ -4,12 +4,12 @@
     "compiled_source_count": 283,
     "compiled_source_inventory_sha256": "74cb819ca63225f2fde2e89a26b661181804fb8624476ac2d48ce4840f6f9a09",
     "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
-    "test_collection_sha256": "18313eb154db285dffecd5e9705354cab21464da0f165bbd6bed260a9a3e36f6",
-    "test_count": 1871
+    "test_collection_sha256": "7f2b5f0a197a5d8db815c86644809a7a5dfcbf01c29cada4437fcd9c64750ec8",
+    "test_count": 1872
   },
   "integrity": {
     "canonicalization": "json-sort-keys-utf8-v1",
-    "content_sha256": "5cd43302a3ce5c9da224a8880f9046a96536de71be47c3c400032abe560ce3b4"
+    "content_sha256": "0f36b79f9d3cc41d29990097b32d27700c261e157e76ae4d7f53d0b900482a37"
   },
   "schema_version": "finevo-publication-consumer-ci-authority-v1",
   "science_anchor": {
