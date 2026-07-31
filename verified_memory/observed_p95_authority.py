@@ -77,6 +77,9 @@ DEDICATED_OBSERVED_P95_BINDING_SCHEMA_REGISTRY: Mapping[str, str] = (
             "finevo-pilot-v2.11.3-post-gate-authority-v1": (
                 "v2.11.3-post-gate-authority"
             ),
+            "finevo-pilot-v2.11.4-post-gate-authority-v1": (
+                "v2.11.4-post-gate-authority"
+            ),
         }
     )
 )
@@ -114,6 +117,10 @@ _V2112_POST_GATE_AUTHORITY_PATH = PurePosixPath(
 )
 _V2113_POST_GATE_AUTHORITY_PATH = PurePosixPath(
     "experiment_results/pilot-v2.11.3/raw/long-context-preflight/"
+    "post_gate_authority.json"
+)
+_V2114_POST_GATE_AUTHORITY_PATH = PurePosixPath(
+    "experiment_results/pilot-v2.11.4/raw/long-context-preflight/"
     "post_gate_authority.json"
 )
 _V27_ALLOWED_P95_PROFILES = frozenset({"gpt52_main", "llama33_local_controlled"})
@@ -2693,6 +2700,63 @@ def _verified_dedicated_observed_p95_binding(
         ):
             raise ObservedP95AuthorityError(
                 "v2.11.3-post-gate-authority receipt bytes or flat binding "
+                "changed during dedicated verification"
+            )
+        return _json_copy(binding)
+    elif adapter_id == "v2.11.4-post-gate-authority":
+        from .pilot_contract import PILOT_CONTRACT_V2_11_4_CANONICAL_SHA256
+        from .pilot_v2114_gate import (
+            PilotV2114GateError,
+            V2114_GATE_SCHEMA_VERSION,
+            verified_v2114_gate_authority_binding,
+        )
+
+        if schema_version != V2114_GATE_SCHEMA_VERSION:
+            raise ObservedP95AuthorityError(
+                "V2.11.4 observed-p95 producer/consumer schema registry drifted"
+            )
+        if relative != _V2114_POST_GATE_AUTHORITY_PATH:
+            raise ObservedP95AuthorityError(
+                "V2.11.4 post-gate authority is outside its exact frozen "
+                "current-release path"
+            )
+        if PILOT_CONTRACT_V2_11_4_CANONICAL_SHA256 is None:
+            raise ObservedP95AuthorityError(
+                "V2.11.4 frozen contract identity is unavailable"
+            )
+        try:
+            binding = verified_v2114_gate_authority_binding(
+                relative.as_posix(),
+                repo_root=repo_root,
+                expected_git_commit=expected_git_commit,
+                expected_contract_sha256=(
+                    PILOT_CONTRACT_V2_11_4_CANONICAL_SHA256
+                ),
+            )
+        except PilotV2114GateError as exc:
+            raise ObservedP95AuthorityError(
+                "V2.11.4 post-gate observed-p95 authority failed validation: "
+                f"{exc}"
+            ) from exc
+
+        expected_binding = {
+            "receipt_path": relative.as_posix(),
+            "receipt_file_sha256": _sha256_bytes(raw),
+            "receipt_content_sha256": receipt.get("receipt_sha256"),
+            "git_commit": expected_git_commit,
+        }
+        if (
+            not isinstance(binding, Mapping)
+            or set(binding) != {*expected_binding, "reservations"}
+            or {
+                name: binding.get(name)
+                for name in expected_binding
+            }
+            != expected_binding
+            or not isinstance(binding.get("reservations"), Mapping)
+        ):
+            raise ObservedP95AuthorityError(
+                "v2.11.4-post-gate-authority receipt bytes or flat binding "
                 "changed during dedicated verification"
             )
         return _json_copy(binding)
