@@ -110,32 +110,30 @@ git diff --check
 git status --short
 ```
 
-The following five expected-CI values are deliberately unresolved in this
-runbook. Replace each named `__FILL_*__` token with the value from the final
-inventories or the verified six-manifest inventory before running the frozen
-renderer. Do not guess a value and do not leave a null or a placeholder in the
-tracked frozen contract.
+The following five expected-CI values were collected from the tracked draft
+implementation and the verified six-manifest inventory. If any test node ID or
+tracked Python path changes, recollect them before rerendering the contract.
 
 ```bash
 python scripts/render_pilot_v2112_contract.py \
   --status frozen \
-  --test-count __FILL_TEST_COUNT__ \
-  --test-collection-sha256 __FILL_TEST_COLLECTION_SHA256__ \
-  --compiled-source-count __FILL_COMPILED_SOURCE_COUNT__ \
+  --test-count 1553 \
+  --test-collection-sha256 e599e883988ad04dd1eb40f6810902cc60fb91495c042486c335fbe08ecc33fe \
+  --compiled-source-count 245 \
   --compiled-source-inventory-sha256 \
-  __FILL_COMPILED_SOURCE_INVENTORY_SHA256__ \
+  4ca58622096459153ea503b26d2d7cfe41dd09b1e1ebc1e16901fcbdea9c55a1 \
   --sealed-manifest-inventory-sha256 \
-  __FILL_SEALED_MANIFEST_INVENTORY_SHA256__ \
+  b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952 \
   --output experiments/pilot_v2_11_2.yaml
 python scripts/render_pilot_v2112_contract.py \
   --status frozen \
-  --test-count __FILL_TEST_COUNT__ \
-  --test-collection-sha256 __FILL_TEST_COLLECTION_SHA256__ \
-  --compiled-source-count __FILL_COMPILED_SOURCE_COUNT__ \
+  --test-count 1553 \
+  --test-collection-sha256 e599e883988ad04dd1eb40f6810902cc60fb91495c042486c335fbe08ecc33fe \
+  --compiled-source-count 245 \
   --compiled-source-inventory-sha256 \
-  __FILL_COMPILED_SOURCE_INVENTORY_SHA256__ \
+  4ca58622096459153ea503b26d2d7cfe41dd09b1e1ebc1e16901fcbdea9c55a1 \
   --sealed-manifest-inventory-sha256 \
-  __FILL_SEALED_MANIFEST_INVENTORY_SHA256__ \
+  b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952 \
   --output /tmp/pilot_v2_11_2.frozen.json
 cmp /tmp/pilot_v2_11_2.frozen.json experiments/pilot_v2_11_2.yaml
 python -m pytest -q -p no:cacheprovider

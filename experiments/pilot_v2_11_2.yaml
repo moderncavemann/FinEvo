@@ -270,7 +270,7 @@
   },
   "integrity": {
     "canonicalization": "json-sort-keys-utf8-v1",
-    "declared_sha256": "555fd0908419153ce145d41995a361d97245c2b2a92d9ab100ec3e2b2185958f"
+    "declared_sha256": "c04f7d4c5ae0962a4a64b0ac543d890a1475b6f184f516534eeb8ff026505a37"
   },
   "model_roles": {
     "gpt52_main": {
@@ -589,11 +589,11 @@
   "release_requirements": {
     "branch": "main",
     "expected_ci": {
-      "compiled_source_count": null,
-      "compiled_source_inventory_sha256": null,
-      "sealed_manifest_inventory_sha256": null,
-      "test_collection_sha256": null,
-      "test_count": null
+      "compiled_source_count": 245,
+      "compiled_source_inventory_sha256": "4ca58622096459153ea503b26d2d7cfe41dd09b1e1ebc1e16901fcbdea9c55a1",
+      "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
+      "test_collection_sha256": "e599e883988ad04dd1eb40f6810902cc60fb91495c042486c335fbe08ecc33fe",
+      "test_count": 1553
     },
     "remote": "origin",
     "required_job_names": [
@@ -1000,7 +1000,7 @@
       ]
     }
   ],
-  "status": "draft",
+  "status": "frozen",
   "stop_go": {
     "calibration": {
       "ceiling_labor_rate_max": 0.5,

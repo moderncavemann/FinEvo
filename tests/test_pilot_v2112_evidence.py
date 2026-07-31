@@ -21,13 +21,11 @@ CONTRACT_PATH = ROOT / "experiments" / "pilot_v2_11_2.yaml"
 
 
 def _draft_contract():
-    return load_pilot_contract(CONTRACT_PATH)
+    return replace(load_pilot_contract(CONTRACT_PATH), status="draft")
 
 
 def _frozen_test_contract():
-    # The production freeze rewrites the tracked contract and hash.  Unit tests
-    # need only exercise the downstream all-terminal publication boundary.
-    return replace(_draft_contract(), status="frozen")
+    return load_pilot_contract(CONTRACT_PATH)
 
 
 def test_v2112_stage_partition_is_release_specific() -> None:
@@ -46,7 +44,13 @@ def test_v2112_stage_partition_is_release_specific() -> None:
     }
 
 
-def test_v2112_draft_publish_fails_before_raw_access(tmp_path: Path) -> None:
+def test_v2112_draft_publish_fails_before_raw_access(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        evidence, "load_pilot_contract", lambda _path: _draft_contract()
+    )
     with pytest.raises(PilotEvidenceError, match="requires the frozen contract"):
         evidence.build_pilot_v2112_evidence_package(
             contract_path=CONTRACT_PATH,

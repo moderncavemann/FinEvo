@@ -201,10 +201,12 @@ PILOT_V2_11_1_SOURCE_MANIFEST_CONTENT_SHA256: Optional[str] = (
 )
 # V2.11.2 remains draft until its V2.11.1 terminal source manifest, complete
 # implementation/test inventories, canonical contract, merge commit, CI and
-# annotated tag are independently frozen.  ``None`` is deliberately fail
-# closed for a frozen contract while allowing the deterministic draft renderer
-# and tests to be developed before those release identities exist.
-PILOT_CONTRACT_V2_11_2_CANONICAL_SHA256: Optional[str] = None
+# annotated tag are independently frozen.  The draft renderer remains
+# independently testable, while every tracked frozen contract must equal this
+# pinned canonical identity before provenance validation can begin.
+PILOT_CONTRACT_V2_11_2_CANONICAL_SHA256: Optional[str] = (
+    "c04f7d4c5ae0962a4a64b0ac543d890a1475b6f184f516534eeb8ff026505a37"
+)
 PILOT_V2_11_2_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = (
     "f38fb442b04ab9a0a85a246954b486f11e6c6571434336d3650b89833c70e90f"
 )

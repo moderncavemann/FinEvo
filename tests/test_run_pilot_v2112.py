@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -7,6 +8,7 @@ from typing import Any
 import pytest
 
 import run_pilot
+from scripts.render_pilot_v2112_contract import build_contract
 from verified_memory import pilot_orchestrator as orchestrator
 from verified_memory.pilot_contract import (
     PILOT_CONTRACT_ID_V2_11_2,
@@ -32,11 +34,22 @@ def _forbidden(*_args: Any, **_kwargs: Any) -> None:
     raise AssertionError("V2.11.2 CLI crossed a provider or execution boundary")
 
 
+def _draft_contract_path(tmp_path: Path) -> Path:
+    path = tmp_path / "pilot_v2_11_2.draft.json"
+    manifest = ROOT / "experiments" / "pilot_v2_11_2_source_manifest.json"
+    (tmp_path / manifest.name).write_bytes(manifest.read_bytes())
+    path.write_text(
+        json.dumps(build_contract(ROOT, status="draft"), sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
 def test_v2112_contract_id_stage_inventory_and_raw_namespace_are_exact() -> None:
     contract = load_pilot_contract(CONTRACT_PATH)
 
     assert contract.contract_id == PILOT_CONTRACT_ID_V2_11_2
-    assert contract.status == "draft"
+    assert contract.status == "frozen"
     assert tuple(stage.stage_id for stage in contract.stages) == REGISTERED_STAGES
     assert run_pilot._raw_root_for_contract(CONTRACT_PATH) == (
         ROOT / "experiment_results" / "pilot-v2.11.2" / "raw"
@@ -93,9 +106,10 @@ def test_v2112_draft_real_stages_fail_closed_before_dispatch(
     stage_id: str,
 ) -> None:
     monkeypatch.setattr(run_pilot, "execute_stage", _forbidden)
+    draft_contract = _draft_contract_path(tmp_path)
     argv = [
         "--contract",
-        str(CONTRACT_PATH),
+        str(draft_contract),
         "--stage",
         stage_id,
         "--raw-root",
@@ -129,10 +143,11 @@ def test_v2112_draft_publish_is_also_blocked_before_artifact_build(
         "build_pilot_v24_evidence_package",
         _forbidden,
     )
+    draft_contract = _draft_contract_path(tmp_path)
     args = run_pilot.build_parser().parse_args(
         [
             "--contract",
-            str(CONTRACT_PATH),
+            str(draft_contract),
             "--stage",
             "publish-evidence",
             "--raw-root",
@@ -272,10 +287,11 @@ def test_v2112_draft_development_fake_is_provider_free_and_resumable(
     monkeypatch.setattr(orchestrator, "_provider_for_profile", _forbidden)
     monkeypatch.setattr(orchestrator, "create_llm_provider", _forbidden)
     monkeypatch.setattr(run_pilot, "execute_stage", _forbidden)
+    draft_contract = _draft_contract_path(tmp_path)
     args = run_pilot.build_parser().parse_args(
         [
             "--contract",
-            str(CONTRACT_PATH),
+            str(draft_contract),
             "--stage",
             "development-a-d",
             "--development-fake",
