@@ -1,0 +1,126 @@
+{
+  "all_terminal": true,
+  "contract_sha256": "c04f7d4c5ae0962a4a64b0ac543d890a1475b6f184f516534eeb8ff026505a37",
+  "receipts": {
+    "capability-gate": {
+      "complete_cell_count": 2,
+      "content_sha256": "2fed0195ae6f06f088ea219c11f30a5d0ba82368563e5e2fde4ce211672a7b64",
+      "execution_progression_go": true,
+      "file_sha256": "4a8068793478da7ee35c7ca91bdd6e901ac758d066ed911e9848f3cfd170a6a5",
+      "go": true,
+      "go_models": [
+        "gpt52_main",
+        "gpt56_diagnostic"
+      ],
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-2-science/experiment_results/pilot-v2.11.2/raw/capability-gate/stage_receipt.json",
+      "registered_run_count": 2,
+      "status": "complete",
+      "status_counts": {
+        "complete": 2
+      }
+    },
+    "cross-model": {
+      "complete_cell_count": 0,
+      "content_sha256": "b8cb8df88298bc82e8c79277a3701e4b0b50c6204d2403f952cc6a96d45613da",
+      "execution_progression_go": false,
+      "file_sha256": "764b10d06ac494a4bb43710f69dfa31c965ab8d1960c183a49d7904a59b096c1",
+      "go": false,
+      "go_models": [],
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-2-science/experiment_results/pilot-v2.11.2/raw/cross-model/stage_receipt.json",
+      "registered_run_count": 6,
+      "status": "complete-with-no-go",
+      "status_counts": {
+        "failed": 6
+      }
+    },
+    "experiment-a": {
+      "complete_cell_count": 0,
+      "content_sha256": "6227a63df3f3f89d1b164e1e5484ad2d008bac10a6eb9b05f7a99e58c05b2302",
+      "execution_progression_go": true,
+      "file_sha256": "d18734d4305ad8f536a5f0e83209e06688ea91b0e862d12875d31e4cc1f072ba",
+      "go": false,
+      "go_models": [],
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-2-science/experiment_results/pilot-v2.11.2/raw/experiment-a/stage_receipt.json",
+      "registered_run_count": 20,
+      "status": "complete-with-no-go",
+      "status_counts": {
+        "failed": 20
+      }
+    },
+    "experiment-b": {
+      "complete_cell_count": 0,
+      "content_sha256": "0fac20f96f7bb9ca0e406a4a536c1d5bde97ff841b1cbe79a86aa1aa68aa7610",
+      "execution_progression_go": true,
+      "file_sha256": "ca5dbdf163947f168af1471b6c6a7139e2727fb3b6d658474d3f818ba66ce197",
+      "go": false,
+      "go_models": [],
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-2-science/experiment_results/pilot-v2.11.2/raw/experiment-b/stage_receipt.json",
+      "registered_run_count": 25,
+      "status": "complete-with-no-go",
+      "status_counts": {
+        "failed": 25
+      }
+    },
+    "experiment-c": {
+      "complete_cell_count": 5,
+      "content_sha256": "cd7e6e496b01edc803386fda444ba1675a27d072104fb998560a817890b2aba9",
+      "execution_progression_go": true,
+      "file_sha256": "de003f869765771fe97e74242274e23cdd95b4b5f939f52f4897d51e50c4c7a0",
+      "go": false,
+      "go_models": [],
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-2-science/experiment_results/pilot-v2.11.2/raw/experiment-c/stage_receipt.json",
+      "registered_run_count": 25,
+      "status": "complete-with-no-go",
+      "status_counts": {
+        "complete": 5,
+        "failed": 20
+      }
+    },
+    "experiment-d": {
+      "complete_cell_count": 0,
+      "content_sha256": "17e0a2019eb7839d191bf25040d5e0c8f5dd2eb28fea8e50fed8410297adb80e",
+      "execution_progression_go": true,
+      "file_sha256": "4ffe03c8a33f2d357d559d9ba59ba2ef3807f1ce2a713685801a40750e03eb1f",
+      "go": false,
+      "go_models": [],
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-2-science/experiment_results/pilot-v2.11.2/raw/experiment-d/stage_receipt.json",
+      "registered_run_count": 55,
+      "status": "complete-with-no-go",
+      "status_counts": {
+        "failed": 55
+      }
+    },
+    "long-context-preflight": {
+      "complete_cell_count": 2,
+      "content_sha256": "1d06ad536faa0ad62f2ffec2e100d80f8463acd38c75606ac8b89a24e1568659",
+      "execution_progression_go": true,
+      "file_sha256": "17c8838edb1c5497311b5c4adba3e7715cd6e601811a33c3cdd59a97d2b359e1",
+      "go": true,
+      "go_models": [
+        "gpt52_main",
+        "gpt56_diagnostic"
+      ],
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-2-science/experiment_results/pilot-v2.11.2/raw/long-context-preflight/stage_receipt.json",
+      "registered_run_count": 2,
+      "status": "complete",
+      "status_counts": {
+        "complete": 2
+      }
+    },
+    "parent-import": {
+      "complete_cell_count": 1,
+      "content_sha256": "86e3efe0ddb7223a0632041d066e56e082c197df32d84655272a944b59e99627",
+      "execution_progression_go": true,
+      "file_sha256": "778b41027dbd2db7d51b1ff2a729b96e296d2db02aeb3f75fb500ba4593472af",
+      "go": true,
+      "go_models": [],
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-2-science/experiment_results/pilot-v2.11.2/raw/parent-import/stage_receipt.json",
+      "registered_run_count": 1,
+      "status": "complete",
+      "status_counts": {
+        "complete": 1
+      }
+    }
+  },
+  "schema_version": "finevo-pilot-v2.11.2-stage-receipts-audit-v1"
+}

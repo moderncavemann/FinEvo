@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -78,6 +79,149 @@ def test_v2112_nonterminal_ledger_is_not_publishable(tmp_path: Path) -> None:
             raw_root=raw,
             expected_commit="a" * 40,
         )
+
+
+def test_v2112_long_context_summary_uses_closed_loop_gate_scope(
+    tmp_path: Path,
+) -> None:
+    contract = _frozen_test_contract()
+    spec = contract.expand(stage="long-context-preflight")[0].to_dict()
+    commit = "a" * 40
+    summary = {
+        "schema_version": evidence.PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION,
+        "contract_id": contract.contract_id,
+        "contract_sha256": contract.canonical_hash,
+        "run_spec": spec,
+        "provenance": {
+            **contract.validate_provenance(
+                commit,
+                str(contract.implementation["required_git_tag"]),
+            ),
+            "tag_object_type": "tag",
+            "worktree_clean": True,
+        },
+        "diagnostic_only": False,
+        "scientific_evidence": False,
+        "evidence_scope": "preregistered_capability_gate",
+        "payload": {},
+    }
+    summary["integrity"] = {
+        "canonicalization": "json-sort-keys-utf8-v1",
+        "content_sha256": evidence.canonical_sha256(summary),
+    }
+    path = tmp_path / "summary.json"
+    path.write_text(json.dumps(summary, sort_keys=True) + "\n", encoding="utf-8")
+
+    assert evidence._terminal_summary_header(
+        contract,
+        spec,
+        path,
+        expected_commit=commit,
+    )["evidence_scope"] == "preregistered_capability_gate"
+
+    summary["evidence_scope"] = "preregistered_task_capability_gate"
+    unsigned = dict(summary)
+    unsigned.pop("integrity")
+    summary["integrity"]["content_sha256"] = evidence.canonical_sha256(unsigned)
+    path.write_text(json.dumps(summary, sort_keys=True) + "\n", encoding="utf-8")
+    with pytest.raises(PilotEvidenceError, match="falsely claims scientific evidence"):
+        evidence._terminal_summary_header(
+            contract,
+            spec,
+            path,
+            expected_commit=commit,
+        )
+
+
+def test_v2112_fresh_preflight_reports_accepted_and_skipped_semantics(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = _frozen_test_contract()
+    rows = []
+    checkpoints = {}
+    for spec in contract.expand(stage="long-context-preflight"):
+        path = (
+            tmp_path
+            / spec.stage_id
+            / "runs"
+            / spec.run_id
+            / "preflight_checkpoint.json"
+        )
+        path.parent.mkdir(parents=True)
+        path.write_text("{}\n", encoding="utf-8")
+        failure_count = 1 if spec.model_id == "gpt56_diagnostic" else 0
+        outcomes = [
+            {
+                "candidate_parse_mode": "exact_json",
+                "candidate_parse_status": (
+                    "failure" if index < failure_count else "success"
+                ),
+                **(
+                    {"failure_reason": "candidate_parse_failure"}
+                    if index < failure_count
+                    else {}
+                ),
+            }
+            for index in range(8)
+        ]
+        checkpoints[path.resolve()] = SimpleNamespace(
+            checkpoint_hash=("a" if failure_count else "b") * 64,
+            payload={
+                "run_config": {
+                    "pilot_contract_hash": contract.canonical_hash,
+                    "run_id": f"{spec.run_id}--actor-preflight",
+                    "semantic_parse_failure_policy": "record-and-skip",
+                },
+                "provider_denominator": {
+                    "planned_calls": 32,
+                    "observed_calls": 32,
+                    "successful_terminal_calls": 32,
+                    "failed_calls": 0,
+                    "action_calls": 24,
+                    "semantic_calls": 8,
+                    "semantic_candidate_parse_failures": failure_count,
+                },
+                "proposal_outcomes": outcomes,
+            },
+        )
+        rows.append(
+            {
+                "run_id": spec.run_id,
+                "status": "complete",
+                "gate_evidence": {
+                    "preflight_checkpoint": str(path.resolve()),
+                    "preflight_checks": {
+                        "action_parse_success_24_of_24": True,
+                    },
+                },
+            }
+        )
+
+    monkeypatch.setattr(
+        evidence.PilotCheckpoint,
+        "read_json",
+        staticmethod(lambda path: checkpoints[Path(path).resolve()]),
+    )
+
+    summary = evidence._fresh_preflight_parse_dispositions(
+        contract,
+        raw_root=tmp_path,
+        rows=rows,
+    )
+
+    assert summary["gpt52_main"]["semantic"] == {
+        "registered": 8,
+        "accepted": 8,
+        "recorded_and_skipped": 0,
+        "parse_failure_policy": "record-and-skip",
+    }
+    assert summary["gpt56_diagnostic"]["semantic"] == {
+        "registered": 8,
+        "accepted": 7,
+        "recorded_and_skipped": 1,
+        "parse_failure_policy": "record-and-skip",
+    }
 
 
 def test_v2112_cross_model_direction_requires_capability_and_three_pairs() -> None:
@@ -225,6 +369,11 @@ def test_provider_free_terminal_failure_fixture_preserves_all_itt_rows(
     assert failures["denominator"]["itt_failures_retained"] == 136
     manifest = json.loads(package.manifest_path.read_text(encoding="utf-8"))
     assert manifest["scientific_matrix_complete"] is False
+    assert (
+        package.package_dir
+        / "contract"
+        / "pilot_v2_11_2_source_manifest.json"
+    ).is_file()
     assert any(
         "V2.11.1 failed-preflight" in item for item in manifest["excluded_sources"]
     )

@@ -24,6 +24,7 @@ import tempfile
 from typing import Any, Mapping, Sequence
 
 from .pilot_budget import PilotBudgetLedger
+from .pilot_checkpoint import PilotCheckpoint, PilotCheckpointError
 from .pilot_contract import PilotContract, canonical_sha256, load_pilot_contract
 from .pilot_evidence import (
     CURRENT_SCIENTIFIC_SCOPE,
@@ -173,7 +174,11 @@ def _terminal_summary_header(
     expected_scope = {
         "parent-import": "preregistered_parent_authority_import",
         "capability-gate": "preregistered_task_capability_gate",
-        "long-context-preflight": "preregistered_task_capability_gate",
+        # The closed-loop preflight is a method/interface gate, not one of the
+        # imported 30-task capability probes.  The runner has always sealed
+        # this narrower scope in its terminal summaries; evidence publication
+        # must replay that exact value instead of conflating the two gates.
+        "long-context-preflight": "preregistered_capability_gate",
     }[stage_id]
     if (
         value.get("diagnostic_only") is not False
@@ -392,6 +397,7 @@ def _validate_stage_receipts(
     raw_root: Path,
     ledger: PilotRunLedger,
     paid: GitProvenance,
+    authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     receipts: dict[str, Any] = {}
     ledger_rows = ledger.snapshot()["runs"]
@@ -446,6 +452,7 @@ def _validate_stage_receipts(
                 raw_root=raw_root,
                 ledger=ledger,
                 paid=paid,
+                authority_repo_root=authority_repo_root,
             )
         except (PilotOrchestrationError, PilotEvidenceError) as exc:
             raise PilotEvidenceError(
@@ -509,6 +516,11 @@ def _validate_post_gate(
         raise PilotEvidenceError(
             "scientific cells exist behind a V2.11.2 global preflight no-go"
         )
+    parse_dispositions = _fresh_preflight_parse_dispositions(
+        contract,
+        raw_root=raw_root,
+        rows=rows,
+    )
     return {
         "available": True,
         "path": str(path),
@@ -519,9 +531,119 @@ def _validate_post_gate(
         "model_decisions": _json_copy(receipt["model_decisions"]),
         "evidence_actuals": _json_copy(receipt["evidence_actuals"]),
         "projection": _json_copy(receipt["projection"]),
+        "fresh_parse_dispositions": parse_dispositions,
         "provider_calls_during_authority": 0,
         "scientific_evidence": False,
     }
+
+
+def _fresh_preflight_parse_dispositions(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    rows: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Expose accepted-vs-skipped parse counts without copying raw outputs."""
+
+    by_run_id = {str(row["run_id"]): row for row in rows}
+    root = raw_root.resolve()
+    summaries: dict[str, Any] = {}
+    for spec in contract.expand(stage="long-context-preflight"):
+        row = by_run_id.get(spec.run_id)
+        if not isinstance(row, Mapping) or row.get("status") != "complete":
+            raise PilotEvidenceError(
+                f"completed V2.11.2 post-gate lacks preflight row {spec.run_id}"
+            )
+        checkpoint_path = (
+            raw_root
+            / spec.stage_id
+            / "runs"
+            / spec.run_id
+            / "preflight_checkpoint.json"
+        )
+        if checkpoint_path.is_symlink():
+            raise PilotEvidenceError("V2.11.2 preflight checkpoint cannot be a symlink")
+        try:
+            checkpoint_path = checkpoint_path.resolve(strict=True)
+        except FileNotFoundError as exc:
+            raise PilotEvidenceError(
+                f"V2.11.2 preflight checkpoint is missing for {spec.model_id}"
+            ) from exc
+        if not checkpoint_path.is_relative_to(root):
+            raise PilotEvidenceError("V2.11.2 preflight checkpoint escaped raw root")
+        gate = row.get("gate_evidence")
+        checks = gate.get("preflight_checks") if isinstance(gate, Mapping) else None
+        if (
+            not isinstance(gate, Mapping)
+            or Path(str(gate.get("preflight_checkpoint"))).resolve()
+            != checkpoint_path
+            or not isinstance(checks, Mapping)
+            or checks.get("action_parse_success_24_of_24") is not True
+        ):
+            raise PilotEvidenceError(
+                f"V2.11.2 preflight parse binding drifted for {spec.model_id}"
+            )
+        try:
+            checkpoint = PilotCheckpoint.read_json(checkpoint_path)
+        except (OSError, TypeError, ValueError, PilotCheckpointError) as exc:
+            raise PilotEvidenceError(
+                f"V2.11.2 preflight checkpoint failed validation for {spec.model_id}"
+            ) from exc
+        payload = checkpoint.payload
+        run_config = payload.get("run_config")
+        denominator = payload.get("provider_denominator")
+        outcomes = payload.get("proposal_outcomes")
+        if (
+            not isinstance(run_config, Mapping)
+            or run_config.get("pilot_contract_hash") != contract.canonical_hash
+            or run_config.get("run_id") != f"{spec.run_id}--actor-preflight"
+            or run_config.get("semantic_parse_failure_policy") != "record-and-skip"
+            or not isinstance(denominator, Mapping)
+            or not isinstance(outcomes, list)
+            or denominator.get("planned_calls") != 32
+            or denominator.get("observed_calls") != 32
+            or denominator.get("successful_terminal_calls") != 32
+            or denominator.get("failed_calls") != 0
+            or denominator.get("action_calls") != 24
+            or denominator.get("semantic_calls") != 8
+            or len(outcomes) != 8
+        ):
+            raise PilotEvidenceError(
+                f"V2.11.2 preflight denominator drifted for {spec.model_id}"
+            )
+        status_counts = Counter(str(item.get("candidate_parse_status")) for item in outcomes)
+        if (
+            set(status_counts) - {"success", "failure"}
+            or any(item.get("candidate_parse_mode") != "exact_json" for item in outcomes)
+            or any(
+                item.get("failure_reason") != "candidate_parse_failure"
+                for item in outcomes
+                if item.get("candidate_parse_status") == "failure"
+            )
+            or denominator.get("semantic_candidate_parse_failures")
+            != status_counts.get("failure", 0)
+        ):
+            raise PilotEvidenceError(
+                f"V2.11.2 semantic parse dispositions drifted for {spec.model_id}"
+            )
+        summaries[spec.model_id] = {
+            "action": {
+                "registered": 24,
+                "accepted": 24,
+                "parse_failures": 0,
+            },
+            "semantic": {
+                "registered": 8,
+                "accepted": status_counts.get("success", 0),
+                "recorded_and_skipped": status_counts.get("failure", 0),
+                "parse_failure_policy": "record-and-skip",
+            },
+            "checkpoint_hash": checkpoint.checkpoint_hash,
+            "checkpoint_file_sha256": _sha256_file(checkpoint_path),
+            "raw_outputs_copied": False,
+            "scientific_evidence": False,
+        }
+    return summaries
 
 
 def _allowed_budget_ids(contract: PilotContract) -> set[str]:
@@ -731,6 +853,17 @@ def _report(
     cross_model: Mapping[str, Any],
     release_controls: Mapping[str, Any],
 ) -> str:
+    dispositions = release_controls["post_gate"].get("fresh_parse_dispositions", {})
+    disposition_text = "; ".join(
+        (
+            f"{model_id}: action {value['action']['accepted']}/"
+            f"{value['action']['registered']} accepted, semantic "
+            f"{value['semantic']['accepted']}/{value['semantic']['registered']} "
+            f"accepted and {value['semantic']['recorded_and_skipped']} "
+            "recorded-and-skipped"
+        )
+        for model_id, value in sorted(dispositions.items())
+    )
     lines = [
         "# FinEvo V2.11.2 preregistered mechanism micro-pilot",
         "",
@@ -753,6 +886,7 @@ def _report(
             "",
             "## Capability, fresh preflight, and cross-model boundary",
             "",
+            f"- Fresh parse dispositions: {disposition_text or 'unavailable (preflight no-go)' }.",
             f"- Capability/preflight: `{json.dumps(capability, sort_keys=True)}`",
             f"- Cross-model: `{json.dumps(cross_model, sort_keys=True)}`",
             "- No result supports backbone-independent wording.",
@@ -789,6 +923,12 @@ def _write_package(
     contract_target = target / "contract" / contract_path.name
     contract_target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(contract_path, contract_target)
+    # ``load_pilot_contract`` fail-closes V2.11.2 against its tracked source
+    # inventory.  The reviewer package therefore needs the sibling manifest,
+    # not only the YAML contract, for a self-contained replay.
+    source_manifest = contract_path.with_name("pilot_v2_11_2_source_manifest.json")
+    source_manifest_target = contract_target.with_name(source_manifest.name)
+    shutil.copyfile(source_manifest, source_manifest_target)
     if load_pilot_contract(contract_target).canonical_hash != contract.canonical_hash:
         raise PilotEvidenceError("copied V2.11.2 contract failed revalidation")
 
@@ -1043,6 +1183,7 @@ def build_pilot_v2112_evidence_package(
         raw_root=raw,
         ledger=ledger_object,
         paid=paid,
+        authority_repo_root=repo_root,
     )
     post_gate = _validate_post_gate(
         contract,
