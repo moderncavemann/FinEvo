@@ -154,6 +154,22 @@ V24_SCIENTIFIC_STAGES = frozenset(
         "experiment-b",
     }
 )
+V211_NON_SCIENTIFIC_STAGES = frozenset(
+    {
+        "parent-import",
+        "capability-gate",
+        "long-context-preflight",
+    }
+)
+V211_SCIENTIFIC_STAGES = frozenset(
+    {
+        "experiment-a",
+        "experiment-b",
+        "experiment-c",
+        "experiment-d",
+        "cross-model",
+    }
+)
 # Public compatibility aliases.  Internal admission always uses the
 # contract-specific helpers below.
 NON_SCIENTIFIC_STAGES = V1_NON_SCIENTIFIC_STAGES
@@ -225,6 +241,16 @@ def _is_v2101_contract(contract: PilotContract) -> bool:
 
 def _is_v2102_contract(contract: PilotContract) -> bool:
     return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.10.2"
+
+
+def _is_v211_family_contract(contract: PilotContract) -> bool:
+    """Return whether the fresh hosted V2.11 stage partition applies."""
+
+    return _is_v2_contract(contract) and contract.contract_id in {
+        "finevo-pilot-v2.11",
+        "finevo-pilot-v2.11.1",
+        "finevo-pilot-v2.11.2",
+    }
 
 
 def _is_v210_prerequisite_family_contract(contract: PilotContract) -> bool:
@@ -310,7 +336,10 @@ def _stage_sets(
 ) -> tuple[frozenset[str], frozenset[str]]:
     """Return the exact gating/scientific stage partition for this contract."""
 
-    if _is_lane_separated_contract(contract):
+    if _is_v211_family_contract(contract):
+        non_scientific = V211_NON_SCIENTIFIC_STAGES
+        scientific = V211_SCIENTIFIC_STAGES
+    elif _is_lane_separated_contract(contract):
         non_scientific = V24_NON_SCIENTIFIC_STAGES
         scientific = V24_SCIENTIFIC_STAGES
     elif _is_v2_contract(contract):
@@ -7716,6 +7745,8 @@ def _capability_by_model(
         "closed-loop-preflight",
         "secondary-closed-loop-preflight",
     }
+    if _is_v211_family_contract(contract):
+        preflight_stages = {"long-context-preflight"}
     for row in rows:
         stage = str(row["stage_id"])
         if stage not in capability_stages | preflight_stages:
@@ -7780,7 +7811,12 @@ def _capability_by_model(
             "registered_dispatch_cells": sum(
                 spec.model_id == model
                 for spec in contract.expand()
-                if spec.execution_mode in {"capability_probe", "closed_loop_preflight"}
+                if spec.execution_mode
+                in {
+                    "capability_probe",
+                    "capability_authority_import",
+                    "closed_loop_preflight",
+                }
             ),
             "contract_role": role.role,
             "dispatch_eligible": True,
@@ -7795,10 +7831,14 @@ def _capability_pass(value: Mapping[str, Any]) -> bool:
     capability = value.get("capability")
     if not isinstance(capability, Mapping):
         return False
+    inherited = capability.get("capability")
+    capability_pass = capability.get("pass") is True
+    if isinstance(inherited, Mapping):
+        capability_pass = inherited.get("capability_pass") is True
     return bool(
         value.get("ledger_status") == "complete"
         and value.get("artifact_validated") is True
-        and capability.get("pass") is True
+        and capability_pass
         and capability.get("preflight_go") is True
     )
 
@@ -7808,7 +7848,13 @@ def _cross_model_summary(
     rows: Sequence[Mapping[str, Any]],
     capability: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Any]:
-    if _is_v2_contract(contract):
+    if _is_v211_family_contract(contract):
+        source_stages = {
+            "gpt52_main": "experiment-b",
+            "gpt56_diagnostic": "cross-model",
+        }
+        models = set(source_stages)
+    elif _is_v2_contract(contract):
         source_stages: dict[str, str | None] = {
             "gpt52_main": "experiment-b",
             "llama33_local_controlled": "controlled-second",
@@ -7912,6 +7958,9 @@ def _cross_model_summary(
         capability_payload = capability.get(model, {}).get("capability", {})
         if not isinstance(capability_payload, Mapping):
             capability_payload = {}
+        inherited_capability = capability_payload.get("capability")
+        if isinstance(inherited_capability, Mapping):
+            capability_payload = inherited_capability
         category_totals = capability_payload.get("category_totals", {})
         if not isinstance(category_totals, Mapping):
             category_totals = {}
@@ -8063,6 +8112,18 @@ def _cross_model_summary(
                     else None
                 ),
             }
+            if (
+                _is_v211_family_contract(contract)
+                and contract.stop_go["cross_model"].get(
+                    "seed_unsupported_directional_replication_requires_registered_matched_a_a_null"
+                )
+                is False
+            ):
+                # V2.11.x preregisters this lane as directional-only when the
+                # provider omits decoding seed.  The absence of a model-specific
+                # matched A/A null still forbids repeatability/effect-size claims,
+                # but it does not erase a capability-qualified 3/3 direction.
+                seed_calibrated = True
         replicated = bool(
             capability_ok
             and delta
