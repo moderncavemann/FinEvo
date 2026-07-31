@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import replace
 import hashlib
 import json
 from pathlib import Path
@@ -16,6 +17,9 @@ from verified_memory.pilot_checkpoint import (
     PILOT_CHECKPOINT_SCHEMA_VERSION_V4,
     V211_LONG_CONTEXT_PREFLIGHT_CHECKPOINT_PURPOSE,
 )
+from verified_memory.pilot_contract import (
+    PILOT_CONTRACT_V2_11_CANONICAL_SHA256,
+)
 from verified_memory.pilot_v211_gate import (
     PilotV211GateError,
     build_v211_post_gate_authority,
@@ -27,6 +31,20 @@ from verified_memory.pilot_v211_gate import (
 from verified_memory.pilot_v211_parent_import import (
     V211_SOURCE_MANIFEST_CONTENT_SHA256,
     V211_SOURCE_MANIFEST_FILE_SHA256,
+)
+from verified_memory.pilot_v2111_bootstrap import (
+    PilotV2111BootstrapError,
+    build_v2111_contract_envelope_bootstrap_projection,
+    runner_reservations_from_v2111_bootstrap_projection,
+    validate_v2111_contract_envelope_bootstrap_projection,
+)
+from verified_memory.runner import (
+    ContractEnvelopeBootstrapReservation,
+    ShockEvent,
+    VerifiedRunConfig,
+    VerifiedRunError,
+    bootstrap_config_binding_sha256,
+    preflight_p95_reservation_for_call,
 )
 
 
@@ -864,4 +882,354 @@ def test_receipt_tamper_and_symlink_path_fail_closed(tmp_path: Path) -> None:
             "experiment_results/pilot-v2.11/gate.json",
             repo_root=symlink_root,
             expected_git_commit=RELEASE_COMMIT,
+        )
+
+
+V2111_TARGET_CONTRACT_SHA256 = "9" * 64
+V2111_TARGET_COMMIT = "4" * 40
+V2111_SOURCE_COMMIT = "5d6c7920bd4a872b02931fdee8a47b9ac4e7b352"
+
+
+def _v2111_specs(model_id: str) -> tuple[dict, dict]:
+    profile = PROFILES[model_id]
+    source_run_id = (
+        "finevo-pilot-v2.11--capability-gate--"
+        f"{model_id}--capability-probe--none--"
+        "provider-preflight-default--s2010922376"
+    )
+    target_run_id = (
+        "finevo-pilot-v2.11.1--long-context-preflight--"
+        f"{model_id}--closed-loop-preflight--none--"
+        "stage0-selected--s2010922376"
+    )
+    common = {
+        "model_id": model_id,
+        "requested_model": profile["requested_model"],
+        "environment_seed": 2010922376,
+        "decoding_seed": None,
+        "narrative_id": "none",
+        "num_agents": 2,
+    }
+    return (
+        {
+            **common,
+            "contract_id": "finevo-pilot-v2.11",
+            "stage_id": "capability-gate",
+            "execution_mode": "capability_probe",
+            "run_id": source_run_id,
+            "arm_id": "capability-probe",
+            "budget_bucket": "hosted_v211",
+            "episode_length": 1,
+            "shock_id": "baseline-3pct",
+            "utility_profile_id": "provider-preflight-default",
+        },
+        {
+            **common,
+            "contract_id": "finevo-pilot-v2.11.1",
+            "stage_id": "long-context-preflight",
+            "execution_mode": "closed_loop_preflight",
+            "run_id": target_run_id,
+            "arm_id": "closed-loop-preflight",
+            "budget_bucket": "hosted_v2111",
+            "episode_length": 12,
+            "shock_id": "registered-rate-shock",
+            "utility_profile_id": "stage0-selected",
+        },
+    )
+
+
+def _v2111_provider_profile(model_id: str) -> dict:
+    if model_id == "gpt52_main":
+        price = {
+            "captured_at": "2026-07-22",
+            "catalog_cached_input": 0.175,
+            "catalog_input": 1.75,
+            "catalog_output": 14.0,
+            "currency": "USD",
+            "dispatch_basis": "endpoint",
+            "endpoint_cached_input": 0.175,
+            "endpoint_input": 1.75,
+            "endpoint_output": 14.0,
+            "source": "https://developers.openai.com/api/docs/models/gpt-5.2",
+            "unit": "per_million_tokens",
+        }
+    else:
+        price = {
+            "captured_at": "2026-07-31",
+            "catalog_cached_input": 0.5,
+            "catalog_input": 5.0,
+            "catalog_output": 30.0,
+            "currency": "USD",
+            "dispatch_basis": "endpoint",
+            "endpoint_cached_input": 0.5,
+            "endpoint_input": 5.0,
+            "endpoint_output": 30.0,
+            "source": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+            "unit": "per_million_tokens",
+        }
+    profile = PROFILES[model_id]
+    return {
+        "profile_id": model_id,
+        "transport": "openai",
+        "requested_model": profile["requested_model"],
+        "served_model": profile["served_model"],
+        "price_snapshot": price,
+    }
+
+
+def _v2111_provisional_config(
+    target_spec: dict,
+) -> VerifiedRunConfig:
+    return VerifiedRunConfig(
+        run_id=f"{target_spec['run_id']}--actor-preflight",
+        seed=2010922376,
+        num_agents=2,
+        episode_length=12,
+        context_mode="full",
+        enable_episodic_retrieval=True,
+        enable_semantic=True,
+        retrieval_k=5,
+        rule_budget=3,
+        semantic_proposal_after=3,
+        semantic_proposal_interval=3,
+        max_rule_proposals_per_agent=4,
+        freeze_new_proposals_after=12,
+        send_decoding_seed=False,
+        temperature=0.0,
+        top_p=1.0,
+        action_max_tokens=4_096,
+        rule_max_tokens=4_096,
+        action_max_visible_json_bytes=1_024,
+        rule_max_visible_json_bytes=4_096,
+        accepted_action_parse_modes=("exact_json",),
+        accepted_semantic_parse_modes=("exact_json",),
+        max_retries=1,
+        fail_on_clipped_action=True,
+        semantic_parse_failure_policy="record-and-skip",
+        shock_schedule=tuple(
+            ShockEvent(
+                decision_t=decision_t,
+                phase=(
+                    "pre-shock"
+                    if decision_t <= 4
+                    else "shock" if decision_t <= 7 else "recovery"
+                ),
+                interest_rate=(
+                    0.08 if 5 <= decision_t <= 7 else 0.03
+                ),
+            )
+            for decision_t in range(12)
+        ),
+        scientific_scope="preregistered_mechanism_micro_pilot",
+        pilot_contract_hash=V2111_TARGET_CONTRACT_SHA256,
+        pilot_tag="pilot-v2.11.1-science",
+        allow_scientific_scope=True,
+        prompt_tier_ceiling_tokens=200_000,
+    )
+
+
+def _v2111_bootstrap_case(
+    tmp_path: Path,
+    *,
+    model_id: str,
+) -> tuple[dict, dict, dict, VerifiedRunConfig, dict]:
+    source_spec, target_spec = _v2111_specs(model_id)
+    capability = deepcopy(_capability_artifact(model_id)["payload"])
+    capability["contract_sha256"] = PILOT_CONTRACT_V2_11_CANONICAL_SHA256
+    capability["run_spec"] = deepcopy(source_spec)
+    source_path = tmp_path / model_id / "capability.json"
+    source_path.parent.mkdir(parents=True)
+    source_path.write_text(
+        json.dumps(
+            capability,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ),
+        encoding="utf-8",
+    )
+    source_file_sha256 = hashlib.sha256(source_path.read_bytes()).hexdigest()
+    provisional = _v2111_provisional_config(target_spec)
+    authorized_config_sha256 = bootstrap_config_binding_sha256(
+        provisional,
+        measurement_role="closed_loop_preflight",
+    )
+    kwargs = {
+        "model_id": model_id,
+        "source_contract_sha256": PILOT_CONTRACT_V2_11_CANONICAL_SHA256,
+        "source_capability_spec": source_spec,
+        "target_contract_sha256": V2111_TARGET_CONTRACT_SHA256,
+        "target_preflight_spec": target_spec,
+        "provider_profile": _v2111_provider_profile(model_id),
+        "source_capability_path": source_path,
+        "source_capability_file_sha256": source_file_sha256,
+        "source_git_tag": "pilot-v2.11-science",
+        "source_git_commit": V2111_SOURCE_COMMIT,
+        "target_git_tag": "pilot-v2.11.1-science",
+        "target_git_commit": V2111_TARGET_COMMIT,
+        "authorized_config_sha256": authorized_config_sha256,
+    }
+    projection = build_v2111_contract_envelope_bootstrap_projection(
+        capability,
+        **kwargs,
+    )
+    reservations = runner_reservations_from_v2111_bootstrap_projection(
+        projection,
+        capability,
+        **kwargs,
+    )
+    return capability, projection, reservations, provisional, kwargs
+
+
+@pytest.mark.parametrize(
+    ("model_id", "expected_cost"),
+    [
+        ("gpt52_main", 0.407344),
+        ("gpt56_diagnostic", 1.12288),
+    ],
+)
+def test_v2111_bootstrap_keeps_capability_p95_audit_but_dispatches_envelope(
+    tmp_path: Path,
+    model_id: str,
+    expected_cost: float,
+) -> None:
+    (
+        capability,
+        projection,
+        reservations,
+        provisional,
+        kwargs,
+    ) = _v2111_bootstrap_case(tmp_path, model_id=model_id)
+    validate_v2111_contract_envelope_bootstrap_projection(
+        projection,
+        capability,
+        **kwargs,
+    )
+
+    assert projection["scientific_evidence"] is False
+    assert projection["capability_projection"]["action"]["sample_count"] == 24
+    assert projection["capability_projection"]["semantic"]["sample_count"] == 6
+    assert projection["capability_projection"]["action"]["reserved_p95"] == {
+        "prompt_tokens": 125,
+        "completion_tokens": 125,
+        "total_tokens": 250,
+        "cost_usd": pytest.approx(0.0125),
+    }
+    assert projection["contract_envelope"]["action"] == {
+        "prompt_tokens": 200_000,
+        "completion_tokens": 4_096,
+        "total_tokens": 204_096,
+        "cost_usd": pytest.approx(expected_cost),
+    }
+    final = replace(
+        provisional,
+        contract_bootstrap_reservations=reservations,
+        preflight_measurement_role="closed_loop_preflight",
+    )
+    assert all(
+        isinstance(item, ContractEnvelopeBootstrapReservation)
+        for item in final.contract_bootstrap_reservations
+    )
+    for call_kind in ("action", "semantic"):
+        effective = preflight_p95_reservation_for_call(
+            final,
+            provider_model_name=projection["model"]["runtime_model"],
+            call_kind=call_kind,
+        )
+        assert effective.prompt_tokens == 200_000
+        assert effective.completion_tokens == 4_096
+        assert effective.cost_usd == pytest.approx(expected_cost)
+    serialized = final.to_dict()["contract_bootstrap_reservations"]
+    action = serialized[projection["model"]["runtime_model"]]["action"]
+    assert action["capability_projection"]["reserved_p95"][
+        "prompt_tokens"
+    ] == 125
+    assert action["contract_envelope"]["prompt_tokens"] == 200_000
+
+
+def test_v2111_bootstrap_rejects_tamper_scope_escape_and_science_laundering(
+    tmp_path: Path,
+) -> None:
+    (
+        capability,
+        projection,
+        reservations,
+        provisional,
+        kwargs,
+    ) = _v2111_bootstrap_case(tmp_path, model_id="gpt52_main")
+    final = replace(
+        provisional,
+        contract_bootstrap_reservations=reservations,
+        preflight_measurement_role="closed_loop_preflight",
+    )
+
+    tampered = deepcopy(projection)
+    tampered["contract_envelope"]["action"]["prompt_tokens"] = 199_999
+    tampered["contract_envelope"]["action"]["total_tokens"] = 204_095
+    unsigned = deepcopy(tampered)
+    unsigned.pop("integrity")
+    tampered["integrity"]["content_sha256"] = canonical_sha256(unsigned)
+    with pytest.raises(
+        PilotV2111BootstrapError,
+        match="differs from its exact reconstructed source",
+    ):
+        validate_v2111_contract_envelope_bootstrap_projection(
+            tampered,
+            capability,
+            **kwargs,
+        )
+
+    wrong_parent = {**kwargs, "source_contract_sha256": "1" * 64}
+    with pytest.raises(
+        PilotV2111BootstrapError,
+        match="differs from frozen V2.11",
+    ):
+        build_v2111_contract_envelope_bootstrap_projection(
+            capability,
+            **wrong_parent,
+        )
+    wrong_source_spec = deepcopy(kwargs["source_capability_spec"])
+    wrong_source_spec["run_id"] += "--lookalike"
+    with pytest.raises(
+        PilotV2111BootstrapError,
+        match="exact V2.11 cell",
+    ):
+        build_v2111_contract_envelope_bootstrap_projection(
+            capability,
+            **{**kwargs, "source_capability_spec": wrong_source_spec},
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="exact V2.11.1 2-agent x 12-month",
+    ):
+        replace(final, freeze_new_proposals_after=11)
+    with pytest.raises(
+        ValueError,
+        match="exact contract/tag/run/seed/config",
+    ):
+        replace(final, consumption_step=0.025)
+
+    ordinary_science = replace(
+        final,
+        contract_bootstrap_reservations=(),
+        preflight_measurement_role=None,
+    )
+    with pytest.raises(
+        VerifiedRunError,
+        match="lacks an exact observed\\+25% preflight p95 reservation",
+    ):
+        preflight_p95_reservation_for_call(
+            ordinary_science,
+            provider_model_name=projection["model"]["runtime_model"],
+            call_kind="action",
+        )
+    with pytest.raises(
+        ValueError,
+        match="preflight p95 reservation entry must contain exactly",
+    ):
+        replace(
+            ordinary_science,
+            preflight_p95_reservations=reservations,
         )

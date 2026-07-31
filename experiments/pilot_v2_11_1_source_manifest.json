@@ -1,0 +1,290 @@
+{
+  "calibration_source": {
+    "absolute_flow_utility_threshold": 0.05617208967516696,
+    "parent_import_receipt": {
+      "byte_size": 4951,
+      "content_sha256": "ff66dda18dc64c9f05d4f1c4591b3ab6ec17e3c593c6b09f2979edb1c53fadf0",
+      "file_sha256": "ca2966adc3aeb735e83277ad87e23698b0c81d34d621b53457dafdd8ad935e2d",
+      "path": "experiment_results/pilot-v2.11/raw/parent-import/parent_import_receipt.json"
+    },
+    "parent_import_stage_receipt": {
+      "byte_size": 3234,
+      "content_sha256": "d77b970cd6ee069f75d0a4513e38f286d9b9fc0ccb55c09f3f498f67342bb7a0",
+      "file_sha256": "12c81a1d6089111063a64da8629b5492f203a1fc0a4102f4e2a220b3325584f6",
+      "path": "experiment_results/pilot-v2.11/raw/parent-import/stage_receipt.json"
+    },
+    "parent_import_summary": {
+      "byte_size": 2344,
+      "content_sha256": "b66a4da5e3df078e54db880ad580cbc58dc8cd237ebd369ade8dd78dda318ef8",
+      "file_sha256": "f138dad7dcd4254c61d6a784dd1eb1b4baccf1727296ae37462c9caa5d1ba584",
+      "path": "experiment_results/pilot-v2.11/raw/parent-import/summaries/finevo-pilot-v2.11--parent-import--qref_scripted--parent-import--none--provider-preflight-default--s2010922376.json"
+    },
+    "q_ref": 63.50397933257746,
+    "scientific_evidence": false,
+    "selected_profile_id": "nu-0.5"
+  },
+  "capability_source": {
+    "models": {
+      "gpt52_main": {
+        "action_sample_count": 24,
+        "actual_usage": {
+          "completion_tokens": 35006,
+          "cost_usd": 0.53580625,
+          "prompt_tokens": 26127,
+          "total_tokens": 61133
+        },
+        "capability": {
+          "byte_size": 148643,
+          "file_sha256": "ff813d41d046387c2dd15aad71ae7a5b03e6e079d7a1088b28b495656d91727a",
+          "path": "experiment_results/pilot-v2.11/raw/capability-gate/runs/finevo-pilot-v2.11--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376/capability.json"
+        },
+        "capability_pass": true,
+        "gate_receipt": {
+          "byte_size": 144,
+          "file_sha256": "3b445e0f6836d6b0763e9870e1b9f6ad85dda97e87bd89286db49af8b458f491",
+          "path": "experiment_results/pilot-v2.11/raw/capability-gate/runs/finevo-pilot-v2.11--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376/gate_receipt.json"
+        },
+        "historical_source_calls": 30,
+        "interface_pass": true,
+        "provider_catalog": {
+          "byte_size": 1458,
+          "content_sha256": "e40dce718287986ea293be6a52ecc81f7fa2275d9f87efbdd4fec716d93e2b30",
+          "file_sha256": "c46d8d85db02a67342b395c45a0d0d781fd943edbf123bbb8d17ecf3db0d175a",
+          "path": "experiment_results/pilot-v2.11/raw/capability-gate/provider_catalog/gpt52_main.json"
+        },
+        "run_id": "finevo-pilot-v2.11--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376",
+        "runtime_model": "openai/gpt-5.2-2025-12-11",
+        "scientific_evidence": false,
+        "semantic_sample_count": 6,
+        "summary": {
+          "byte_size": 113936,
+          "content_sha256": "fd3662fa3fa7da8ab97b57b4bf5f7b88fc9c29ec2bb5dd861e1694b310e24ca3",
+          "file_sha256": "8f6f0af49de6210905a14773485a892d63bcd6653995708307fe52fad911320e",
+          "path": "experiment_results/pilot-v2.11/raw/capability-gate/summaries/finevo-pilot-v2.11--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376.json"
+        }
+      },
+      "gpt56_diagnostic": {
+        "action_sample_count": 24,
+        "actual_usage": {
+          "completion_tokens": 15172,
+          "cost_usd": 0.585795,
+          "prompt_tokens": 26127,
+          "total_tokens": 41299
+        },
+        "capability": {
+          "byte_size": 147178,
+          "file_sha256": "e051db10786b874bce941f2f757ef217902ec03fc8e0ae80eb06ecbca133cd4e",
+          "path": "experiment_results/pilot-v2.11/raw/capability-gate/runs/finevo-pilot-v2.11--capability-gate--gpt56_diagnostic--capability-probe--none--provider-preflight-default--s2010922376/capability.json"
+        },
+        "capability_pass": true,
+        "gate_receipt": {
+          "byte_size": 144,
+          "file_sha256": "3b445e0f6836d6b0763e9870e1b9f6ad85dda97e87bd89286db49af8b458f491",
+          "path": "experiment_results/pilot-v2.11/raw/capability-gate/runs/finevo-pilot-v2.11--capability-gate--gpt56_diagnostic--capability-probe--none--provider-preflight-default--s2010922376/gate_receipt.json"
+        },
+        "historical_source_calls": 30,
+        "interface_pass": true,
+        "provider_catalog": {
+          "byte_size": 1460,
+          "content_sha256": "ba8fb3a00b24cd5bc0ad8db67f8ced792578a94a7e2ffefad386a2bc946779fa",
+          "file_sha256": "7f59c3f11e2c507075135b0bbd14f4fa61bd222de14aa92c820033aa89190e79",
+          "path": "experiment_results/pilot-v2.11/raw/capability-gate/provider_catalog/gpt56_diagnostic.json"
+        },
+        "run_id": "finevo-pilot-v2.11--capability-gate--gpt56_diagnostic--capability-probe--none--provider-preflight-default--s2010922376",
+        "runtime_model": "openai/gpt-5.6-sol",
+        "scientific_evidence": false,
+        "semantic_sample_count": 6,
+        "summary": {
+          "byte_size": 112476,
+          "content_sha256": "48ad0fd72882bc1ff94c2d413212e57a0b4930ac5a01b39a2851094974772307",
+          "file_sha256": "40160f066651d8e29ef79c1024987f204ed1b681a6f8e4e52ef9d02d7eb61cfa",
+          "path": "experiment_results/pilot-v2.11/raw/capability-gate/summaries/finevo-pilot-v2.11--capability-gate--gpt56_diagnostic--capability-probe--none--provider-preflight-default--s2010922376.json"
+        }
+      }
+    },
+    "stage_receipt": {
+      "byte_size": 4618,
+      "content_sha256": "eaf00790a95bc497e02e44cd2dc2958301ef43c8d835e4d04f09d0fa3d4cf0cc",
+      "file_sha256": "6aebcaba39f9f18c35c16dff307f73118c7dac03272e9850d41ebced0ddeb8d9",
+      "path": "experiment_results/pilot-v2.11/raw/capability-gate/stage_receipt.json"
+    },
+    "taskset_sha256": "633a57690a1a61e8300ca3c1fb506084959d2f47219bc85b087dfd00732091c5"
+  },
+  "cumulative_parent_budget_debit": {
+    "cost_usd": 17.166524062500006,
+    "hosted_completions": 876,
+    "parent_budget_ledger_sha256": "be72be029f0e558153f0a81545ffe13347833031bb9b5611bcd929dc0b0408d8",
+    "parent_contract_sha256": "d65a60ccab684654979fce598f013b72c813f36f5d40d6063b81ac87557c2c36",
+    "parent_run_ledger_sha256": "d50d89535b0896f46f4ded93d9ca28062558a75a7fb8b9548f989d77233f20a1",
+    "record_sha256": "e5b8406c636d5045040677ca0bd09dd72557afdef2998095f0f5775a0ead8b9c",
+    "schema_version": "finevo-parent-budget-debit-v1",
+    "stage_bucket": "parent_v211",
+    "storage_bytes": 217581135
+  },
+  "failed_preflight_source": {
+    "expected_absent": [
+      "experiment_results/pilot-v2.11/raw/long-context-preflight/post_gate_authority.json",
+      "experiment_results/pilot-v2.11/raw/long-context-preflight/stage_receipt.json"
+    ],
+    "models": {
+      "gpt52_main": {
+        "cost_usd": 0.0,
+        "failure": {
+          "byte_size": 17248,
+          "file_sha256": "9d092d9e3c4220e7430572133b405f603a97980616e060f3e119c0668801f68d",
+          "path": "experiment_results/pilot-v2.11/raw/long-context-preflight/runs/finevo-pilot-v2.11--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376/failure_receipt/failure.json"
+        },
+        "failure_manifest": {
+          "byte_size": 293,
+          "content_sha256": "fdfb1dc291b2343d5c46df4037f26ed664d0a5705f5a4ebdc4f21887577ae368",
+          "file_sha256": "f4c8cf847a536ce6695799bee175c93e8adc5d29977d1ac64c8d4ba089a7893e",
+          "path": "experiment_results/pilot-v2.11/raw/long-context-preflight/runs/finevo-pilot-v2.11--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376/failure_receipt/failure_manifest.json"
+        },
+        "failure_reason": "scientific dispatch lacks an exact observed+25% preflight p95 reservation for openai/gpt-5.2-2025-12-11::action",
+        "provider_calls": 0,
+        "provider_catalog": {
+          "byte_size": 1458,
+          "content_sha256": "f3b706f6539c399887f02e1d73eadd0a6818176476ae3e92fb2f95e2bae9d4c6",
+          "file_sha256": "419d6ad093ddd23cda5e0a6fc3e62818da9f118e0bf9dadb3a5a5260131bfbb2",
+          "path": "experiment_results/pilot-v2.11/raw/long-context-preflight/provider_catalog/gpt52_main.json"
+        },
+        "run_id": "finevo-pilot-v2.11--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376",
+        "run_intent": {
+          "byte_size": 1085,
+          "content_sha256": "3bcc855850bbf2441b204552e79875e0140dc5c2941ccb1c22adc2fe3f0e4228",
+          "file_sha256": "f19cf2eed5f9f46653d970d3095a87acd5e8179527e7110fce894baebf104581",
+          "path": "experiment_results/pilot-v2.11/raw/long-context-preflight/runs/finevo-pilot-v2.11--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376/preflight_checkpoint.json.run-intent.json"
+        },
+        "status": "failed"
+      },
+      "gpt56_diagnostic": {
+        "cost_usd": 0.0,
+        "failure": {
+          "byte_size": 17246,
+          "file_sha256": "667ab2584ee2f13a5133a20c95f2673eb4b786282af9b134b5d99262fb0ff170",
+          "path": "experiment_results/pilot-v2.11/raw/long-context-preflight/runs/finevo-pilot-v2.11--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376/failure_receipt/failure.json"
+        },
+        "failure_manifest": {
+          "byte_size": 293,
+          "content_sha256": "edc0de87927679344b50e0cfc4c7e1e4e7aa5fc1ac3495945e178498757187d4",
+          "file_sha256": "49b5e6c54fabefd82c6d0bba7673a9178c194b423c085634207498beb128a982",
+          "path": "experiment_results/pilot-v2.11/raw/long-context-preflight/runs/finevo-pilot-v2.11--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376/failure_receipt/failure_manifest.json"
+        },
+        "failure_reason": "scientific dispatch lacks an exact observed+25% preflight p95 reservation for openai/gpt-5.6-sol::action",
+        "provider_calls": 0,
+        "provider_catalog": {
+          "byte_size": 1460,
+          "content_sha256": "09541b1c03a3527487e557e63a83c03e88afc388bc66848fcaa2bb3bff162b9d",
+          "file_sha256": "de55f8ad89c344752684f0ab4e27dbcf87e881cd658405b2438278db5e9b6b74",
+          "path": "experiment_results/pilot-v2.11/raw/long-context-preflight/provider_catalog/gpt56_diagnostic.json"
+        },
+        "run_id": "finevo-pilot-v2.11--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376",
+        "run_intent": {
+          "byte_size": 1085,
+          "content_sha256": "d61aab86b5f71314372257e8462b84dffa4b62ec9de7a43a47123ea153a5b6c9",
+          "file_sha256": "e493b07911727c3ee04f67765eea5552a14630136dd406b32a7cabf0dbe22425",
+          "path": "experiment_results/pilot-v2.11/raw/long-context-preflight/runs/finevo-pilot-v2.11--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376/preflight_checkpoint.json.run-intent.json"
+        },
+        "status": "failed"
+      }
+    }
+  },
+  "import_policy": {
+    "claim_boundary": "Calibration and capability/interface gate evidence only; no V2.11 A-D or cross-model effect, no preflight sample, and no observed-p95 authority.",
+    "copied_byte_count": 0,
+    "copied_file_count": 0,
+    "effect_metrics_observed": false,
+    "historical_capability_calls": 60,
+    "historical_effect_cells_imported": 0,
+    "historical_preflight_calls": 0,
+    "hosted_provider_calls_during_import": 0,
+    "imported_calibration_wrappers": 1,
+    "imported_capability_wrappers": 2,
+    "imported_effect_cells": 0,
+    "imported_p95_authorities": [],
+    "provider_calls_during_import": 0,
+    "provider_construction_during_import": false,
+    "raw_tree_copied": false
+  },
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "content_sha256": "7cf33945cff145fa5ca4cf6aae521acec8c96bf521abac076982ffc2e88b7812"
+  },
+  "parent_release": {
+    "budget_ledger": {
+      "byte_size": 15039,
+      "event_count": 12,
+      "event_head_sha256": "8c6ba4853cee2347db9718c8155dbf9b2a211bee0b77703b0e20ac380ce29621",
+      "file_sha256": "842fba225918c472210042597925847566d0639a5d67331cca8ad8bb2c1cb366",
+      "internal_sha256": "be72be029f0e558153f0a81545ffe13347833031bb9b5611bcd929dc0b0408d8",
+      "path": "experiment_results/pilot-v2.11/raw/budget_ledger.json",
+      "run_count": 5
+    },
+    "contract": {
+      "byte_size": 43484,
+      "file_sha256": "2417bff327cf9a38ae077e6c5b40265346ad6177a7a7a4c17a44769de92a03d8",
+      "path": "experiments/pilot_v2_11.yaml"
+    },
+    "contract_id": "finevo-pilot-v2.11",
+    "contract_sha256": "d65a60ccab684654979fce598f013b72c813f36f5d40d6063b81ac87557c2c36",
+    "publication_status": "immutable-no-go",
+    "release_attestation": {
+      "byte_size": 15539,
+      "content_sha256": "d8de3dd480f395e9d406eaa06f569f7dc904fcef892052de33e3dd5ee2265baf",
+      "file_sha256": "db06b47051f0c98d47bca133f42bb2f9c114e7e4b759679ae9e590383b219697",
+      "path": "experiment_results/pilot-v2.11/raw/release_attestation.json"
+    },
+    "resolved_git_commit": "5d6c7920bd4a872b02931fdee8a47b9ac4e7b352",
+    "root_hint": "../finevo-pilot-v2-11-science",
+    "run_ledger": {
+      "byte_size": 320841,
+      "event_count": 138,
+      "event_head_sha256": "e0177f58837c727e0d8173000db1df8bd7248bd5ce7caefa7b942b226476ca8c",
+      "file_sha256": "b0a4a0af97ec3fbee3247ceb51b5c7e0241c8d02d7ac0fba55031654bf0b8dbb",
+      "internal_sha256": "d50d89535b0896f46f4ded93d9ca28062558a75a7fb8b9548f989d77233f20a1",
+      "path": "experiment_results/pilot-v2.11/raw/run_ledger.json",
+      "run_count": 136
+    },
+    "science_tag": "pilot-v2.11-science",
+    "science_tag_object": "c4b457d0cc8e7e48f99c64f0283ab043877cc47f"
+  },
+  "schema_version": "finevo-pilot-v2.11.1-parent-source-manifest-v1",
+  "terminal_denominator": {
+    "all_cells_terminal": true,
+    "post_gate_authority_created": false,
+    "registered_cells": 136,
+    "scientific_matrix_complete": false,
+    "stage_receipt_created": false,
+    "stage_status_counts": {
+      "capability-gate": {
+        "complete": 2
+      },
+      "cross-model": {
+        "integrity-stopped": 6
+      },
+      "experiment-a": {
+        "integrity-stopped": 20
+      },
+      "experiment-b": {
+        "integrity-stopped": 25
+      },
+      "experiment-c": {
+        "integrity-stopped": 25
+      },
+      "experiment-d": {
+        "integrity-stopped": 55
+      },
+      "long-context-preflight": {
+        "failed": 2
+      },
+      "parent-import": {
+        "complete": 1
+      }
+    },
+    "status_counts": {
+      "complete": 3,
+      "failed": 2,
+      "integrity-stopped": 131
+    }
+  }
+}
