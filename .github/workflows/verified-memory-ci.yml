@@ -39,6 +39,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify immutable V2.11.2 parent tag anchor
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_commit=78870956b528946d415a9be5f5769b0893d16d74
+          test "$(git cat-file -t pilot-v2.11.2-science)" = tag
+          test "$(git rev-parse 'pilot-v2.11.2-science^{commit}')" = "${expected_commit}"
+
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
@@ -69,7 +77,7 @@ jobs:
               ':(exclude)artifacts/**'
           fi
 
-      - name: Re-hash six tracked sealed manifests
+      - name: Re-hash six tracked sealed run manifests
         if: runner.os == 'Linux'
         shell: bash
         run: |
@@ -129,6 +137,11 @@ jobs:
                   f"sha256={result.manifest_sha256}"
               )
           PY
+
+      - name: Verify V2.11.3 scientific source manifest
+        run: >-
+          python -m verified_memory.ci_release_receipt verify-source-manifests
+          --output "${RUNNER_TEMP}/finevo-source-manifests.json"
 
       - name: Scan tracked files for high-confidence secrets
         if: runner.os == 'Linux'
@@ -363,4 +376,5 @@ jobs:
           --collection "${RUNNER_TEMP}/finevo-test-collection.json"
           --sources "${RUNNER_TEMP}/finevo-python-sources.json"
           --junit "${RUNNER_TEMP}/finevo-test-results.xml"
+          --contract experiments/pilot_v2_11_3.yaml
           --output "${RUNNER_TEMP}/finevo-ci-release-receipt.json"

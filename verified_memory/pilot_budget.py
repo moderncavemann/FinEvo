@@ -709,6 +709,65 @@ class PilotBudgetLedger:
         )
         self._write()
 
+    def bind_acceptance_receipt(
+        self,
+        *,
+        receipt_schema_version: str,
+        receipt_path: str,
+        receipt_content_sha256: str,
+        accepted_run_event_count: int,
+        accepted_run_event_chain_head: str,
+        accepted_budget_event_count: int,
+        accepted_budget_event_chain_head: str,
+    ) -> None:
+        """Append one marker before any scientific budget reservation."""
+
+        if not self.tamper_evident:
+            raise PilotBudgetError(
+                "acceptance receipt binding requires a tamper-evident budget ledger"
+            )
+        events = self._state.get("events")
+        if not isinstance(events, list):
+            raise PilotBudgetError("budget ledger events must be an array")
+        expected = {
+            "receipt_schema_version": str(receipt_schema_version),
+            "receipt_path": str(receipt_path),
+            "receipt_content_sha256": str(receipt_content_sha256),
+            "accepted_run_event_count": accepted_run_event_count,
+            "accepted_run_event_chain_head": str(accepted_run_event_chain_head),
+            "accepted_budget_event_count": accepted_budget_event_count,
+            "accepted_budget_event_chain_head": str(
+                accepted_budget_event_chain_head
+            ),
+            "budget_runs_sha256": _canonical_sha256(self._state["runs"]),
+        }
+        existing = [
+            event
+            for event in events
+            if event.get("event_type") == "acceptance_receipt_bound"
+        ]
+        if existing:
+            payload = existing[0].get("payload") if len(existing) == 1 else None
+            if not isinstance(payload, Mapping) or dict(payload) != expected:
+                raise PilotBudgetError(
+                    "budget ledger acceptance receipt binding drifted"
+                )
+            return
+        if (
+            isinstance(accepted_budget_event_count, bool)
+            or accepted_budget_event_count != len(events)
+            or not events
+            or events[-1].get("event_sha256") != accepted_budget_event_chain_head
+        ):
+            raise PilotBudgetError(
+                "acceptance receipt does not bind the current budget-ledger head"
+            )
+        self._append_event(
+            "acceptance_receipt_bound",
+            expected,
+        )
+        self._write()
+
     def snapshot(self) -> dict[str, Any]:
         result = {
             "schema_version": self.schema_version,

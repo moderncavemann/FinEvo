@@ -37,6 +37,9 @@ Examples:
     python run_pilot.py --contract experiments/pilot_v2_11_2.yaml \
         --stage parent-import \
         --parent-repo-root ../finevo-pilot-v2-11-1-science --resume
+    python run_pilot.py --contract experiments/pilot_v2_11_3.yaml \
+        --stage parent-import \
+        --parent-repo-root ../finevo-pilot-v2-11-2-science --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
         --stage capability-gate --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
@@ -88,6 +91,10 @@ Pilot-v2.11.2 freezes V2.11.1's paid preflight no-go and its complete ITT
 denominator, imports only calibration and capability wrappers, repairs the
 active-rule hysteresis validator, and requires a wholly fresh 2x12 preflight.
 The old failed journals remain budget/failure audit evidence only.
+Pilot-v2.11.3 freezes V2.11.2's terminal consumer-adapter no-go, registers a
+fresh prospective 136-cell denominator, and re-verifies then reseals only its
+valid capability and preflight dispatch authority with zero provider calls.
+No V2.11.2 treatment cell is resumed, retried, or reclassified.
 """
 
 from __future__ import annotations
@@ -101,6 +108,7 @@ from verified_memory.pilot_contract import (
     PILOT_CONTRACT_ID_V2_11,
     PILOT_CONTRACT_ID_V2_11_1,
     PILOT_CONTRACT_ID_V2_11_2,
+    PILOT_CONTRACT_ID_V2_11_3,
     load_pilot_contract,
 )
 from verified_memory.pilot_evidence import build_pilot_evidence_package
@@ -119,6 +127,9 @@ from verified_memory.pilot_v2102_parent_import import V2102_CONTRACT_ID
 from verified_memory.pilot_v2112_evidence import (
     build_pilot_v2112_evidence_package,
 )
+from verified_memory.pilot_v2113_acceptance import (
+    accept_v2113_scientific_dispatch,
+)
 from verified_memory.pilot_orchestrator import (
     PilotOrchestrationError,
     execute_stage,
@@ -136,7 +147,16 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=ROOT / "experiments" / "pilot_v2_3.yaml",
     )
-    parser.add_argument("--stage", required=True)
+    execution_mode = parser.add_mutually_exclusive_group(required=True)
+    execution_mode.add_argument("--stage")
+    execution_mode.add_argument(
+        "--accept-scientific-dispatch",
+        action="store_true",
+        help=(
+            "run the V2.11.3 zero-provider 131-cell dispatch acceptance gate "
+            "before loading provider credentials"
+        ),
+    )
     parser.add_argument(
         "--resume",
         action="store_true",
@@ -172,11 +192,13 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "read-only parent source/raw checkout required only by the "
             "V2.4/V2.5/V2.6/V2.7/V2.8/V2.9/V2.10/V2.10.1/V2.10.2/V2.11 "
-            "V2.11.1, or V2.11.2 zero-provider parent-import stage; for V2.11 this "
+            "V2.11.1, V2.11.2, or V2.11.3 zero-provider parent-import stage; "
+            "for V2.11 this "
             "is the immutable V2.10.2 science checkout, and for V2.11.1 "
             "this is the immutable V2.11 science checkout (the evidence "
             "checkout remains source-manifest bound); for V2.11.2 this is "
-            "the immutable V2.11.1 science checkout"
+            "the immutable V2.11.1 science checkout; for V2.11.3 this is "
+            "the immutable V2.11.2 science checkout"
         ),
     )
     parser.add_argument(
@@ -187,6 +209,25 @@ def build_parser() -> argparse.ArgumentParser:
             "read-only repository containing an immutable raw tree; accepted "
             "only by publish-evidence when publication code is newer than the "
             "source science tag"
+        ),
+    )
+    parser.add_argument(
+        "--acceptance-output",
+        type=Path,
+        default=None,
+        help=(
+            "immutable V2.11.3 scientific-dispatch acceptance receipt; "
+            "accepted only with --accept-scientific-dispatch"
+        ),
+    )
+    parser.add_argument(
+        "--scientific-launch-input",
+        type=Path,
+        default=None,
+        help=(
+            "verified scientific launch input; defaults to "
+            "<raw-root>/scientific_launch_input.json and is accepted only "
+            "with --accept-scientific-dispatch"
         ),
     )
     return parser
@@ -205,13 +246,17 @@ def _raw_root_for_contract(contract_path: Path) -> Path:
 
 
 def execute(args: argparse.Namespace) -> dict:
+    stage = getattr(args, "stage", None)
+    acceptance_mode = bool(getattr(args, "accept_scientific_dispatch", False))
+    resume = bool(getattr(args, "resume", False))
+    development_fake = bool(getattr(args, "development_fake", False))
     parent_repo_root = getattr(args, "parent_repo_root", None)
-    if parent_repo_root is not None and args.stage != "parent-import":
+    if parent_repo_root is not None and stage != "parent-import":
         raise PilotOrchestrationError(
             "--parent-repo-root is accepted only for a parent-import stage"
         )
     selected_contract = None
-    if args.stage == "parent-import":
+    if stage == "parent-import":
         selected_contract = load_pilot_contract(args.contract)
         if (
             selected_contract.contract_id
@@ -219,6 +264,7 @@ def execute(args: argparse.Namespace) -> dict:
                 PILOT_CONTRACT_ID_V2_11,
                 PILOT_CONTRACT_ID_V2_11_1,
                 PILOT_CONTRACT_ID_V2_11_2,
+                PILOT_CONTRACT_ID_V2_11_3,
             }
             and parent_repo_root is None
         ):
@@ -226,6 +272,7 @@ def execute(args: argparse.Namespace) -> dict:
                 PILOT_CONTRACT_ID_V2_11: "V2.11",
                 PILOT_CONTRACT_ID_V2_11_1: "V2.11.1",
                 PILOT_CONTRACT_ID_V2_11_2: "V2.11.2",
+                PILOT_CONTRACT_ID_V2_11_3: "V2.11.3",
             }[selected_contract.contract_id]
             raise PilotOrchestrationError(
                 f"{contract_label} parent-import requires "
@@ -233,41 +280,90 @@ def execute(args: argparse.Namespace) -> dict:
                 "checkout"
             )
     source_repo_root = getattr(args, "source_repo_root", None)
-    if source_repo_root is not None and args.stage != "publish-evidence":
+    if source_repo_root is not None and stage != "publish-evidence":
         raise PilotOrchestrationError(
             "--source-repo-root is accepted only for publish-evidence"
         )
-    if args.stage == "development-a-d" and not args.development_fake:
+    if stage == "development-a-d" and not development_fake:
         raise PilotOrchestrationError(
             "development-a-d requires the explicit --development-fake flag"
         )
-    if not args.development_fake:
+    if not development_fake:
         if selected_contract is None:
             selected_contract = load_pilot_contract(args.contract)
         if (
-            selected_contract.contract_id == PILOT_CONTRACT_ID_V2_11_2
+            selected_contract.contract_id
+            in {PILOT_CONTRACT_ID_V2_11_2, PILOT_CONTRACT_ID_V2_11_3}
             and selected_contract.status != "frozen"
         ):
+            contract_label = (
+                "V2.11.3"
+                if selected_contract.contract_id == PILOT_CONTRACT_ID_V2_11_3
+                else "V2.11.2"
+            )
             raise PilotOrchestrationError(
-                "V2.11.2 real stages require a frozen contract; the draft "
+                f"{contract_label} real stages require a frozen contract; the draft "
                 "contract permits only development-a-d --development-fake"
             )
+    requested_raw_root = getattr(args, "raw_root", None)
     raw_root = (
-        args.raw_root
-        if args.raw_root is not None
+        requested_raw_root
+        if requested_raw_root is not None
         else _raw_root_for_contract(args.contract)
     )
-    if args.development_fake:
-        if args.stage != "development-a-d":
+    acceptance_output = getattr(args, "acceptance_output", None)
+    scientific_launch_input = getattr(args, "scientific_launch_input", None)
+    if acceptance_mode:
+        assert selected_contract is not None
+        incompatible = []
+        if resume:
+            incompatible.append("--resume")
+        if development_fake or bool(getattr(args, "development_fake_provider", False)):
+            incompatible.append("--development-fake")
+        if parent_repo_root is not None:
+            incompatible.append("--parent-repo-root")
+        if source_repo_root is not None:
+            incompatible.append("--source-repo-root")
+        if incompatible:
+            raise PilotOrchestrationError(
+                "--accept-scientific-dispatch is incompatible with "
+                + ", ".join(incompatible)
+            )
+        if (
+            selected_contract.contract_id != PILOT_CONTRACT_ID_V2_11_3
+            or selected_contract.status != "frozen"
+        ):
+            raise PilotOrchestrationError(
+                "--accept-scientific-dispatch requires the frozen production "
+                "V2.11.3 contract"
+            )
+        return accept_v2113_scientific_dispatch(
+            contract_path=args.contract,
+            repo_root=ROOT,
+            raw_root=raw_root,
+            scientific_launch_input_path=(
+                scientific_launch_input
+                if scientific_launch_input is not None
+                else raw_root / "scientific_launch_input.json"
+            ),
+            receipt_path=acceptance_output,
+        )
+    if acceptance_output is not None or scientific_launch_input is not None:
+        raise PilotOrchestrationError(
+            "--acceptance-output and --scientific-launch-input require "
+            "--accept-scientific-dispatch"
+        )
+    if development_fake:
+        if stage != "development-a-d":
             raise PilotOrchestrationError(
                 "--development-fake requires --stage development-a-d"
             )
         return run_development_fake_matrix(
             contract_path=args.contract,
-            resume=args.resume,
+            resume=resume,
             raw_root=raw_root,
         )
-    if args.stage == "publish-evidence":
+    if stage == "publish-evidence":
         contract = load_pilot_contract(args.contract)
         builder = (
             build_pilot_v2112_evidence_package
@@ -312,8 +408,8 @@ def execute(args: argparse.Namespace) -> dict:
         }
     return execute_stage(
         contract_path=args.contract,
-        stage_id=args.stage,
-        resume=args.resume,
+        stage_id=stage,
+        resume=resume,
         raw_root=raw_root,
         repo_root=ROOT,
         parent_repo_root=parent_repo_root,
@@ -340,7 +436,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     return (
-        0 if result.get("status") in {"pass", "complete", "complete-with-no-go"} else 2
+        0
+        if result.get("status") in {"go", "pass", "complete", "complete-with-no-go"}
+        else 2
     )
 
 

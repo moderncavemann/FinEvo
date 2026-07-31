@@ -88,8 +88,9 @@ def _install_projection_fixture(
         *,
         raw_root: Path,
         paid: Any = None,
+        authority_repo_root: Path | None = None,
     ) -> tuple[dict[str, Any], Path]:
-        del raw_root, paid
+        del raw_root, paid, authority_repo_root
         return payloads[model_id], paths[model_id]
 
     monkeypatch.setattr(
