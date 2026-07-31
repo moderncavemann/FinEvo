@@ -4118,9 +4118,14 @@ def _validate_standard_run_contract(
                 verify_bound_inputs=True,
                 preflight_p95_reservations=reservations,
             )
+        env_config_source = (
+            DEFAULT_ENV_CONFIG
+            if source_repo_root is None
+            else Path(source_repo_root).resolve(strict=True) / "config.yaml"
+        )
         expected_config = build_sealed_run_config(
             expected_base_config,
-            env_config_source=DEFAULT_ENV_CONFIG,
+            env_config_source=env_config_source,
         )
     except (KeyError, StopIteration, TypeError, ValueError) as exc:
         raise PilotEvidenceError(

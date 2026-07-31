@@ -660,6 +660,8 @@ def test_v2102_runner_rebuild_forwards_external_authority_root(
     spec = contract.expand(stage="local-experiment-a")[0]
     source_root = (tmp_path / "science-source").resolve()
     source_root.mkdir()
+    source_config = source_root / "config.yaml"
+    source_config.write_text("fixture: true\n", encoding="utf-8")
     raw_root = source_root / "experiment_results/pilot-v2.10.2/raw"
     raw_root.mkdir(parents=True)
     observed: dict[str, Any] = {
@@ -689,7 +691,12 @@ def test_v2102_runner_rebuild_forwards_external_authority_root(
     )
     monkeypatch.setattr(
         "verified_memory.runner.build_sealed_run_config",
-        lambda *args, **kwargs: {"schema_version": "fixture-runner-v3"},
+        lambda *args, **kwargs: (
+            observed.update(
+                {"env_config_source": kwargs.get("env_config_source")}
+            )
+            or {"schema_version": "fixture-runner-v3"}
+        ),
     )
     monkeypatch.setattr(
         pilot_evidence,
@@ -723,6 +730,7 @@ def test_v2102_runner_rebuild_forwards_external_authority_root(
         "config_calls": 2,
         "reservation_authority": source_root,
         "config_authority": source_root,
+        "env_config_source": source_config,
     }
 
 
