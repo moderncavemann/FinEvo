@@ -34,9 +34,13 @@ from .prompts import (
     build_base_decision_prompt,
     compose_decision_prompt,
 )
+from .runner import (
+    PROMPT_TIER_UPPER_BOUND_METHOD,
+    validate_prompt_tier_ceiling,
+)
 
 
-CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v4"
+CAPABILITY_SCHEMA_VERSION = "finevo-capability-gate-v5"
 CAPABILITY_THRESHOLDS = {
     # The legacy category name remains stable for v1/v2 aggregate readers.  V3+
     # rows identify the actual task as ``task_kind=action_generation``.
@@ -851,6 +855,8 @@ def _completion_row(
         "visible_json_max_bytes": output_contract.visible_json_max_bytes,
         "visible_completion_tokens": visible_completion_tokens,
         "reasoning_tokens": completion.reasoning_tokens,
+        "cached_prompt_tokens": completion.cached_prompt_tokens,
+        "provider_request_id": completion.request_id,
         **scoring_details,
         "provider_error": completion.error_type,
         "provider_error_details": provider_error_details,
@@ -896,6 +902,7 @@ def run_capability_gate(
     estimate_usage: Callable[[str, int], UsageRecord],
     task_output_contracts: Mapping[str, Any] | None = None,
     caps: Mapping[str, Any] | None = None,
+    prompt_tier_ceiling_tokens: int | None = None,
 ) -> dict[str, Any]:
     """Run all 30 fixed tasks; every provider/parse result stays in the ITT."""
 
@@ -905,6 +912,14 @@ def run_capability_gate(
         raise TypeError("budget must be RunBudget")
     contracts = _resolve_output_contracts(task_output_contracts, caps)
     tasks = build_capability_tasks()
+    prompt_upper_bounds = []
+    for task in tasks:
+        prompt_upper_bounds.append(
+            validate_prompt_tier_ceiling(
+                task.prompt,
+                prompt_tier_ceiling_tokens,
+            )
+        )
 
     def dispatch(
         selected: Sequence[CapabilityTask], contract_id: str
@@ -956,6 +971,38 @@ def run_capability_gate(
         )
         for task in tasks
     ]
+    budget_snapshot = budget.snapshot()
+    accounted_by_task: dict[str, UsageRecord] = {}
+    for completion in budget_snapshot.completions:
+        if (
+            not completion.label.startswith("capability:")
+            or completion.label.removeprefix("capability:") not in completion_by_id
+        ):
+            raise RuntimeError(
+                "capability budget contains an unregistered completion"
+            )
+        task_id = completion.label.removeprefix("capability:")
+        if task_id in accounted_by_task:
+            raise RuntimeError(
+                "capability budget contains a duplicate completion"
+            )
+        accounted_by_task[task_id] = completion.usage
+    if set(accounted_by_task) != set(completion_by_id):
+        raise RuntimeError(
+            "capability budget does not cover the registered denominator"
+        )
+    for row in rows:
+        task_id = row["task_id"]
+        # ``usage`` remains the provider-reported compatibility alias.  A
+        # failed call may conservatively retain more of its pre-dispatch
+        # reservation in the budget ledger; preserve both facts explicitly.
+        row["provider_reported_usage"] = dict(row["usage"])
+        completion = completion_by_id[task_id]
+        row["provider_reported_usage_available"] = (
+            completion.error_type is None
+            or completion.usage != UsageRecord()
+        )
+        row["budget_accounted_usage"] = accounted_by_task[task_id].to_dict()
 
     totals: dict[str, dict[str, Any]] = {}
     for category, threshold in CAPABILITY_THRESHOLDS.items():
@@ -1020,6 +1067,12 @@ def run_capability_gate(
         "task_output_contracts": {
             key: value.to_dict() for key, value in contracts.items()
         },
+        "prompt_tier_gate": {
+            "upper_bound_method": PROMPT_TIER_UPPER_BOUND_METHOD,
+            "ceiling_tokens": prompt_tier_ceiling_tokens,
+            "maximum_upper_bound_tokens": max(prompt_upper_bounds),
+            "passed": True,
+        },
         "interface_gate": interface_gate,
         "capability_assessment": capability_assessment,
         "provider_failure_count": sum(
@@ -1035,7 +1088,7 @@ def run_capability_gate(
         "strict_parse_count": sum(bool(row["strict_parse"]) for row in rows),
         "truncation_count": sum(bool(row["truncation"]) for row in rows),
         "rows": rows,
-        "budget": budget.snapshot().to_dict(),
+        "budget": budget_snapshot.to_dict(),
     }
 
 

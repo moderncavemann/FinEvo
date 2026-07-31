@@ -752,6 +752,7 @@ def test_v2102_config_forwards_external_authority_to_utility_replay(
         raw_root: Path,
         paid: Any,
         authority_repo_root: Path,
+        allow_diagnostic_fixture: bool,
     ) -> dict[str, Any]:
         observed.update(
             {
@@ -759,6 +760,7 @@ def test_v2102_config_forwards_external_authority_to_utility_replay(
                 "raw_root": raw_root,
                 "paid": paid,
                 "authority_repo_root": authority_repo_root,
+                "allow_diagnostic_fixture": allow_diagnostic_fixture,
             }
         )
         return {
@@ -791,5 +793,6 @@ def test_v2102_config_forwards_external_authority_to_utility_replay(
         "raw_root": raw_root,
         "paid": None,
         "authority_repo_root": source_root,
+        "allow_diagnostic_fixture": True,
     }
     assert config.utility.consumption_scale == 63.50397933257746

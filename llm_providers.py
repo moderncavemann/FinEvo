@@ -15,7 +15,7 @@ import hashlib
 import importlib.metadata
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
@@ -2460,12 +2460,17 @@ class MultiModelLLM:
         if budget is not None:
             if reservation is None:
                 raise RuntimeError("budgeted dispatch is missing its reservation")
+            accounted_usage = result.usage
             if result.error_type is not None:
                 # Invocation already began, so exact provider billing may be
                 # unavailable even when the wrapper returned zero/partial usage.
-                # Never release the conservative reservation on this path.
+                # Never release the conservative reservation on this path.  Keep
+                # that accounting fallback separate from ``result.usage``:
+                # downstream diagnostics must see only provider-reported usage
+                # and must not mistake reserved completion tokens for visible
+                # model output.
                 estimate = reservation.estimated_usage
-                conservative_usage = UsageRecord(
+                accounted_usage = UsageRecord(
                     prompt_tokens=max(
                         result.usage.prompt_tokens, estimate.prompt_tokens
                     ),
@@ -2478,10 +2483,8 @@ class MultiModelLLM:
                         float(estimate.cost_usd),
                     ),
                 )
-                if conservative_usage != result.usage:
-                    result = replace(result, usage=conservative_usage)
             try:
-                budget.complete_call(reservation, result.usage)
+                budget.complete_call(reservation, accounted_usage)
             except Exception as exc:
                 # ``complete_call`` records actual usage before it raises an
                 # overage.  Preserve the provider result on that exception so

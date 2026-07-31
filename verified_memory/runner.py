@@ -95,6 +95,7 @@ SCIENTIFIC_SCOPES = frozenset(
 )
 PREFLIGHT_P95_CALL_KINDS = frozenset({"action", "semantic"})
 PREFLIGHT_P95_RESERVE_MULTIPLIER = 1.25
+PROMPT_TIER_UPPER_BOUND_METHOD = "utf8-bytes-plus-256-v1"
 OBSERVED_P95_AUTHORITY_ID = "finevo-closed-loop-observed-p95-v1"
 OBSERVED_P95_SOURCE_KIND = "sealed-closed-loop-observed-p95"
 OBSERVED_P95_PROJECTION_SCHEMA_VERSION = "finevo-pilot-projection-p95-v1"
@@ -1261,6 +1262,7 @@ class VerifiedRunConfig:
         ContractBootstrapReservation, ...
     ] = ()
     preflight_measurement_role: Optional[str] = None
+    prompt_tier_ceiling_tokens: Optional[int] = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.run_id, str) or not self.run_id.strip():
@@ -1561,6 +1563,14 @@ class VerifiedRunConfig:
                     "preflight_measurement_role must be closed_loop_preflight"
                 )
             object.__setattr__(self, "preflight_measurement_role", role)
+        if self.prompt_tier_ceiling_tokens is not None and (
+            isinstance(self.prompt_tier_ceiling_tokens, bool)
+            or not isinstance(self.prompt_tier_ceiling_tokens, int)
+            or self.prompt_tier_ceiling_tokens < 1
+        ):
+            raise ValueError(
+                "prompt_tier_ceiling_tokens must be a positive integer or None"
+            )
         if self.contract_bootstrap_reservations:
             if self.preflight_p95_reservations:
                 raise ValueError(
@@ -1686,6 +1696,8 @@ class VerifiedRunConfig:
         else:
             result.pop("contract_bootstrap_reservations", None)
             result.pop("preflight_measurement_role", None)
+        if self.prompt_tier_ceiling_tokens is None:
+            result.pop("prompt_tier_ceiling_tokens", None)
         result["schema_version"] = RUNNER_SCHEMA_VERSION
         return result
 
@@ -1836,6 +1848,56 @@ def _estimate_usage(
         completion_tokens=max_tokens,
         cost_usd=cost,
     )
+
+
+def conservative_prompt_token_upper_bound(prompt: str) -> int:
+    """Return a tokenizer-independent upper bound for one user prompt.
+
+    Every model token consumes at least one UTF-8 byte from the prompt.  The
+    fixed 256-token allowance covers chat framing and request metadata without
+    relying on a provider tokenizer or network call.  This bound is
+    intentionally conservative and is used only to prevent crossing a
+    differently priced long-context tier.
+    """
+
+    if not isinstance(prompt, str):
+        raise TypeError("prompt must be a string")
+    return len(prompt.encode("utf-8")) + 256
+
+
+def validate_prompt_tier_for_dispatch(
+    config: VerifiedRunConfig,
+    prompt: str,
+) -> int:
+    """Fail before provider dispatch if the frozen prompt tier could change."""
+
+    if not isinstance(config, VerifiedRunConfig):
+        raise TypeError("config must be a VerifiedRunConfig")
+    return validate_prompt_tier_ceiling(
+        prompt,
+        config.prompt_tier_ceiling_tokens,
+    )
+
+
+def validate_prompt_tier_ceiling(
+    prompt: str,
+    ceiling_tokens: Optional[int],
+) -> int:
+    """Validate one prompt against an optional frozen pricing-tier ceiling."""
+
+    if ceiling_tokens is not None and (
+        isinstance(ceiling_tokens, bool)
+        or not isinstance(ceiling_tokens, int)
+        or ceiling_tokens < 1
+    ):
+        raise ValueError("ceiling_tokens must be a positive integer or None")
+    upper_bound = conservative_prompt_token_upper_bound(prompt)
+    if ceiling_tokens is not None and upper_bound >= ceiling_tokens:
+        raise VerifiedRunError(
+            "conservative prompt-token upper bound reaches the frozen "
+            "pricing-tier ceiling before provider dispatch"
+        )
+    return upper_bound
 
 
 def required_preflight_p95_call_kinds(
@@ -2790,6 +2852,10 @@ def run_verified_experiment(
                 causal_context_summary=bundle.protected_context_prompt,
             )
             prompt = compose_decision_prompt(base_prompt, bundle.memory_prompt)
+            prompt_token_upper_bound = validate_prompt_tier_for_dispatch(
+                config,
+                prompt.full_prompt,
+            )
             bundles[agent_id] = bundle
             prompt_rows[agent_id] = prompt
             dialogs.append([{"role": "user", "content": prompt.full_prompt}])
@@ -2815,6 +2881,13 @@ def run_verified_experiment(
                         bundle.protected_context_prompt.encode("utf-8")
                     ).hexdigest(),
                     "full_prompt_hash": prompt.full_prompt_hash,
+                    "prompt_token_upper_bound": prompt_token_upper_bound,
+                    "prompt_token_upper_bound_method": (
+                        PROMPT_TIER_UPPER_BOUND_METHOD
+                    ),
+                    "prompt_tier_ceiling_tokens": (
+                        config.prompt_tier_ceiling_tokens
+                    ),
                     "base_prompt_hash": prompt.base_prompt_hash,
                     "memory_hash": prompt.memory_hash,
                     "context_packet_id": bundle.context_packet.context_id,
@@ -3249,6 +3322,17 @@ def run_verified_experiment(
                 memories[agent_id].build_rule_proposal_prompt(max_episodes=6)
                 for agent_id in eligible
             ]
+            proposal_prompt_upper_bounds = [
+                validate_prompt_tier_for_dispatch(config, prompt)
+                for prompt in proposal_prompts
+            ]
+            proposal_prompt_upper_bound_by_agent = dict(
+                zip(
+                    eligible,
+                    proposal_prompt_upper_bounds,
+                    strict=True,
+                )
+            )
             try:
                 proposal_results = llm.get_multiple_structured_completions(
                     [
@@ -3362,6 +3446,15 @@ def run_verified_experiment(
                     "current_t": current_t,
                     "agent_id": agent_id,
                     "prompt_hash": prompt_hash,
+                    "prompt_token_upper_bound": (
+                        proposal_prompt_upper_bound_by_agent[agent_id]
+                    ),
+                    "prompt_token_upper_bound_method": (
+                        PROMPT_TIER_UPPER_BOUND_METHOD
+                    ),
+                    "prompt_tier_ceiling_tokens": (
+                        config.prompt_tier_ceiling_tokens
+                    ),
                     "raw_output": completion.text,
                     "raw_output_hash": usage_row["raw_output_hash"],
                     "provider_error": completion.error_type,
@@ -3865,6 +3958,7 @@ __all__ = [
     "OBSERVED_P95_SOURCE_KIND",
     "PREFLIGHT_P95_CALL_KINDS",
     "PREFLIGHT_P95_RESERVE_MULTIPLIER",
+    "PROMPT_TIER_UPPER_BOUND_METHOD",
     "PROVIDER_CALL_JOURNAL_SCHEMA_VERSION",
     "PreflightP95Reservation",
     "RUNNER_SCHEMA_VERSION",
@@ -3878,12 +3972,15 @@ __all__ = [
     "VerifiedRunError",
     "VerifiedRunResult",
     "bootstrap_config_binding_sha256",
+    "conservative_prompt_token_upper_bound",
     "has_sealed_observed_p95_authority",
     "preflight_p95_reservation_for_call",
     "required_preflight_p95_call_kinds",
     "serialized_has_sealed_observed_p95_authority",
     "observed_p95_authority_repo_context",
     "run_verified_experiment",
+    "validate_prompt_tier_ceiling",
+    "validate_prompt_tier_for_dispatch",
     "validate_preflight_p95_reservations",
     "verify_provider_call_journal",
 ]

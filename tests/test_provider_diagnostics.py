@@ -19,7 +19,9 @@ from verified_memory.provider_diagnostics import (
     DEFAULT_INTERFACE_PROBE_MAX_TOKENS,
     DIAGNOSTIC_CUMULATIVE_CAP_USD,
     DIAGNOSTIC_OUTPUT_RELATIVE_ROOT,
+    LEGACY_PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION,
     PRIOR_MANUAL_DIAGNOSTIC_RESERVE_USD,
+    PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION,
     ProviderDiagnosticError,
     _assert_diagnostic_output_path,
     _cumulative_reservation_cost,
@@ -249,6 +251,17 @@ def test_single_probe_writes_one_safe_receipt_and_final_ledger_hash(
     assert result["checks"] and all(result["checks"].values())
     assert providers[0].calls == 1
     assert result["budget"]["completed_calls"] == 1
+    assert (
+        result["schema_version"]
+        == PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION
+        == "finevo-provider-interface-probe-v2"
+    )
+    assert result["usage_accounting"] == {
+        "provider_reported_usage": result["completion"]["usage"],
+        "provider_reported_usage_available": True,
+        "budget_accounted_usage": result["completion"]["usage"],
+        "accounting_basis": "provider_reported",
+    }
     assert "text" not in result["completion"]
     assert result["completion"]["output_bytes"] == len(b'{"ok": true}')
     assert "cumulative_budget_final" not in result
@@ -264,6 +277,140 @@ def test_single_probe_writes_one_safe_receipt_and_final_ledger_hash(
     assert ledger["diagnostic_only"] is True
     assert ledger["entries"][0]["status"] == "pass"
     assert ledger["entries"][0]["receipt_sha256"] == result["receipt_sha256"]
+
+
+def test_failed_probe_separates_provider_reported_and_budget_accounted_usage(
+    diagnostic_root: Path,
+) -> None:
+    reported = UsageRecord(
+        prompt_tokens=20,
+        completion_tokens=8,
+        cost_usd=0.0001,
+    )
+
+    class ReturnedFailureProvider(_FixtureProvider):
+        def get_structured_completion(self, messages, **kwargs):
+            return replace(
+                super().get_structured_completion(messages, **kwargs),
+                text="Error",
+                usage=reported,
+                error_type="ProviderUnavailableError",
+                finish_reason="error",
+                native_finish_reason="error",
+                response_completed=False,
+                output_disposition="unavailable_due_to_provider_error",
+            )
+
+    result, _ = _run(
+        diagnostic_root,
+        name="returned-failure-usage.json",
+        provider_factory=ReturnedFailureProvider,
+        max_tokens=32,
+    )
+
+    estimated = result["request"]["estimated_usage"]
+    expected_accounted = {
+        "prompt_tokens": max(reported.prompt_tokens, estimated["prompt_tokens"]),
+        "completion_tokens": max(
+            reported.completion_tokens,
+            estimated["completion_tokens"],
+        ),
+        "cost_usd": max(reported.cost_usd, estimated["cost_usd"]),
+    }
+    expected_accounted["total_tokens"] = (
+        expected_accounted["prompt_tokens"]
+        + expected_accounted["completion_tokens"]
+    )
+    assert result["status"] == "no-go"
+    assert result["completion"]["usage"] == reported.to_dict()
+    assert result["usage_accounting"] == {
+        "provider_reported_usage": reported.to_dict(),
+        "provider_reported_usage_available": True,
+        "budget_accounted_usage": expected_accounted,
+        "accounting_basis": (
+            "componentwise_max_of_provider_reported_and_"
+            "pre_dispatch_reservation"
+        ),
+    }
+    assert result["budget"]["accounted_usage"] == expected_accounted
+    assert result["budget"]["completions"][0]["usage"] == expected_accounted
+    verify_provider_interface_receipt(result)
+
+
+def test_dispatched_exception_keeps_unavailable_report_separate_from_reserve(
+    diagnostic_root: Path,
+) -> None:
+    class RaisingProvider(_FixtureProvider):
+        def get_structured_completion(self, messages, **kwargs):
+            self.calls += 1
+            raise RuntimeError("fixture failure body must not be persisted")
+
+    result, _ = _run(
+        diagnostic_root,
+        name="raised-failure-usage.json",
+        provider_factory=RaisingProvider,
+        max_tokens=32,
+    )
+
+    assert result["completion"]["usage"] == UsageRecord().to_dict()
+    assert (
+        result["usage_accounting"]["provider_reported_usage_available"]
+        is False
+    )
+    assert (
+        result["usage_accounting"]["budget_accounted_usage"]
+        == result["request"]["estimated_usage"]
+        == result["budget"]["accounted_usage"]
+    )
+    assert "fixture failure body" not in json.dumps(result, sort_keys=True)
+    verify_provider_interface_receipt(result)
+
+
+def test_returned_zero_usage_error_is_explicitly_unavailable(
+    diagnostic_root: Path,
+) -> None:
+    class ZeroUsageFailureProvider(_FixtureProvider):
+        def get_structured_completion(self, messages, **kwargs):
+            return replace(
+                super().get_structured_completion(messages, **kwargs),
+                text="Error",
+                usage=UsageRecord(),
+                error_type="ProviderUnavailableError",
+                finish_reason="error",
+                native_finish_reason="error",
+                response_completed=False,
+                output_disposition="unavailable_due_to_provider_error",
+            )
+
+    result, _ = _run(
+        diagnostic_root,
+        name="returned-zero-usage.json",
+        provider_factory=ZeroUsageFailureProvider,
+        max_tokens=32,
+    )
+
+    assert result["completion"]["usage"] == UsageRecord().to_dict()
+    assert result["usage_accounting"][
+        "provider_reported_usage_available"
+    ] is False
+    assert (
+        result["usage_accounting"]["budget_accounted_usage"]
+        == result["request"]["estimated_usage"]
+    )
+    verify_provider_interface_receipt(result)
+
+
+def test_legacy_v1_probe_receipt_remains_read_only_compatible(
+    diagnostic_root: Path,
+) -> None:
+    result, _ = _run(diagnostic_root, name="legacy-v1-source.json")
+    legacy = json.loads(json.dumps(result))
+    legacy["schema_version"] = LEGACY_PROVIDER_INTERFACE_PROBE_SCHEMA_VERSION
+    legacy.pop("usage_accounting")
+    legacy.pop("receipt_sha256")
+    legacy["receipt_sha256"] = canonical_sha256(legacy)
+
+    verify_provider_interface_receipt(legacy)
 
 
 def test_reasoning_safe_default_avoids_an_80_token_interface_false_negative(

@@ -26,7 +26,11 @@ from typing import Any, Mapping, Optional, Sequence
 import numpy as np
 
 import ai_economist.foundation as foundation
-from llm_providers import MultiModelLLM, StructuredCompletion
+from llm_providers import (
+    SAFE_PROVIDER_ERROR_TYPES,
+    MultiModelLLM,
+    StructuredCompletion,
+)
 
 from .actions import ActionDecision, ActionParseError, parse_direct_action
 from .budget import BudgetExceeded, RunBudget
@@ -41,6 +45,7 @@ from .m0_utility import EnvironmentLedger, UtilityConfig
 from .m3_semantic import CandidateParseError, OutcomeCriterion
 from .prompts import build_base_decision_prompt, compose_decision_prompt
 from .runner import (
+    PROMPT_TIER_UPPER_BOUND_METHOD,
     ShockEvent,
     VerifiedRunConfig,
     _append_provider_call_journal,
@@ -52,7 +57,9 @@ from .runner import (
     _prompt_state,
     _provider_row,
     _semantic_parse_mode,
+    conservative_prompt_token_upper_bound,
     preflight_p95_reservation_for_call,
+    validate_prompt_tier_for_dispatch,
     validate_preflight_p95_reservations,
     verify_provider_call_journal,
 )
@@ -61,8 +68,25 @@ from .system import VerifiedDualTrackMemory
 
 PILOT_CHECKPOINT_SCHEMA_VERSION = "finevo-pilot-checkpoint-v1"
 PILOT_CHECKPOINT_SCHEMA_VERSION_V2 = "finevo-pilot-checkpoint-v2"
+PILOT_CHECKPOINT_SCHEMA_VERSION_V3 = "finevo-pilot-checkpoint-v3"
+PILOT_CHECKPOINT_SCHEMA_VERSION_V4 = "finevo-pilot-checkpoint-v4"
 CLOSED_LOOP_PREFLIGHT_CHECKPOINT_PURPOSE = "closed-loop-preflight"
+EXPERIMENT_D_SHARED_PREFIX_CHECKPOINT_PURPOSE = "experiment-d-shared-prefix"
+V211_LONG_CONTEXT_PREFLIGHT_CHECKPOINT_PURPOSE = (
+    "v2.11-long-context-preflight"
+)
+EXPERIMENT_D_RUN_INTENT_SCHEMA_VERSION = (
+    "finevo-experiment-d-prefix-run-intent-v1"
+)
+V211_LONG_CONTEXT_PREFLIGHT_RUN_INTENT_SCHEMA_VERSION = (
+    "finevo-v2.11-long-context-preflight-run-intent-v1"
+)
 DEFAULT_BRANCH_DECISION_T = 6
+V211_LONG_CONTEXT_PREFLIGHT_MONTHS = 12
+V211_LONG_CONTEXT_PREFLIGHT_AGENTS = 2
+V211_LONG_CONTEXT_PREFLIGHT_ACTION_CALLS = 24
+V211_LONG_CONTEXT_PREFLIGHT_SEMANTIC_CALLS = 8
+V211_LONG_CONTEXT_PREFLIGHT_PROVIDER_CALLS = 32
 _CODE_FILES = (
     "verified_memory/actions.py",
     "verified_memory/foundation_adapter.py",
@@ -79,14 +103,194 @@ _CODE_FILES = (
 )
 
 
+@dataclass(frozen=True)
+class PilotCheckpointProviderFailure:
+    """Allowlisted provider failure retained by Experiment-D receipts."""
+
+    schema_version: str
+    error_stage: str
+    call_kind: str
+    decision_t: int
+    agent_id: int
+    error_type: Optional[str]
+    finish_reason: Optional[str]
+    native_finish_reason: Optional[str]
+    reasoning_tokens: int
+    response_completed: Optional[bool]
+    output_disposition: str
+    provider_identity_sha256: str
+    model_identity_sha256: str
+    attempts: int
+    provider_error_summary: Optional[Mapping[str, Any]]
+
+    def __post_init__(self) -> None:
+        if (
+            self.schema_version
+            != "finevo-pilot-checkpoint-provider-failure-v1"
+        ):
+            raise ValueError("unsupported checkpoint provider failure schema")
+        if self.error_stage != "shared-prefix-provider":
+            raise ValueError("checkpoint provider failure stage is invalid")
+        if self.call_kind not in {"action", "semantic"}:
+            raise ValueError("checkpoint provider failure call kind is invalid")
+        if (
+            isinstance(self.decision_t, bool)
+            or not isinstance(self.decision_t, int)
+            or (
+                self.call_kind == "action"
+                and self.decision_t
+                not in range(V211_LONG_CONTEXT_PREFLIGHT_MONTHS)
+            )
+            or (
+                self.call_kind == "semantic"
+                and self.decision_t not in {3, 6, 9, 12}
+            )
+        ):
+            raise ValueError(
+                "checkpoint provider failure decision timestamp is invalid"
+            )
+        if (
+            isinstance(self.agent_id, bool)
+            or not isinstance(self.agent_id, int)
+            or self.agent_id not in range(4)
+        ):
+            raise ValueError(
+                "checkpoint provider failure agent id is invalid"
+            )
+        if self.error_type is not None and (
+            not isinstance(self.error_type, str)
+            or self.error_type not in SAFE_PROVIDER_ERROR_TYPES
+        ):
+            raise ValueError(
+                "checkpoint provider failure error type is invalid"
+            )
+        if self.finish_reason not in {
+            None,
+            "stop",
+            "length",
+            "tool_calls",
+            "content_filter",
+            "error",
+            "unknown",
+        }:
+            raise ValueError(
+                "checkpoint provider failure finish reason is invalid"
+            )
+        if self.native_finish_reason not in {
+            None,
+            "stop",
+            "length",
+            "max_tokens",
+            "max_completion_tokens",
+            "tool_calls",
+            "tool_use",
+            "content_filter",
+            "safety",
+            "error",
+            "unknown",
+        }:
+            raise ValueError(
+                "checkpoint provider failure native finish reason is invalid"
+            )
+        if self.output_disposition not in {
+            "accepted",
+            "discarded_due_to_attestation_failure",
+            "discarded_due_to_contract_failure",
+            "discarded_incomplete",
+            "discarded_invalid_finish",
+            "unavailable_due_to_provider_error",
+            "unknown",
+        }:
+            raise ValueError(
+                "checkpoint provider failure output disposition is invalid"
+            )
+        if (
+            isinstance(self.reasoning_tokens, bool)
+            or not isinstance(self.reasoning_tokens, int)
+            or self.reasoning_tokens < 0
+        ):
+            raise ValueError(
+                "checkpoint provider failure reasoning tokens are invalid"
+            )
+        if self.response_completed is not None and not isinstance(
+            self.response_completed, bool
+        ):
+            raise TypeError(
+                "checkpoint provider failure response_completed is invalid"
+            )
+        for name in (
+            "provider_identity_sha256",
+            "model_identity_sha256",
+        ):
+            value = getattr(self, name)
+            if (
+                not isinstance(value, str)
+                or re.fullmatch(r"[0-9a-f]{64}", value) is None
+            ):
+                raise ValueError(
+                    f"checkpoint provider failure {name} is invalid"
+                )
+        if (
+            isinstance(self.attempts, bool)
+            or not isinstance(self.attempts, int)
+            or not 1 <= self.attempts <= 100
+        ):
+            raise ValueError(
+                "checkpoint provider failure attempts are invalid"
+            )
+        _validate_provider_error_summary(self.provider_error_summary)
+        if (
+            self.provider_error_summary is not None
+            and self.provider_error_summary.get("error_type")
+            != self.error_type
+        ):
+            raise ValueError(
+                "checkpoint provider error summary differs from error type"
+            )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "error_stage": self.error_stage,
+            "call_kind": self.call_kind,
+            "decision_t": self.decision_t,
+            "agent_id": self.agent_id,
+            "error_type": self.error_type,
+            "finish_reason": self.finish_reason,
+            "native_finish_reason": self.native_finish_reason,
+            "reasoning_tokens": self.reasoning_tokens,
+            "response_completed": self.response_completed,
+            "output_disposition": self.output_disposition,
+            "provider_identity_sha256": self.provider_identity_sha256,
+            "model_identity_sha256": self.model_identity_sha256,
+            "attempts": self.attempts,
+            "provider_error_summary": (
+                None
+                if self.provider_error_summary is None
+                else _json_copy(self.provider_error_summary)
+            ),
+        }
+
+
 class PilotCheckpointError(ValueError):
     """Raised when a checkpoint cannot be constructed or restored exactly."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        failure: Optional[PilotCheckpointProviderFailure] = None,
+    ) -> None:
+        self.failure = failure
+        super().__init__(message)
 
 
 def _supported_checkpoint_schema(value: Any) -> str:
     if value not in {
         PILOT_CHECKPOINT_SCHEMA_VERSION,
         PILOT_CHECKPOINT_SCHEMA_VERSION_V2,
+        PILOT_CHECKPOINT_SCHEMA_VERSION_V3,
+        PILOT_CHECKPOINT_SCHEMA_VERSION_V4,
     }:
         raise PilotCheckpointError("unsupported pilot checkpoint schema")
     return str(value)
@@ -107,6 +311,144 @@ def _json_copy(value: Any) -> Any:
     return json.loads(
         json.dumps(value, ensure_ascii=False, sort_keys=True, allow_nan=False)
     )
+
+
+_LOWERCASE_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_PROVIDER_ERROR_SUMMARY_FIELDS = frozenset(
+    {
+        "schema_version",
+        "error_type",
+        "http_status",
+        "code_sha256",
+        "param_sha256",
+        "request_id_sha256",
+        "stage_sha256",
+        "sdk_name_sha256",
+        "sdk_version_sha256",
+        "redaction_policy",
+    }
+)
+
+
+def _identity_sha256(value: str) -> str:
+    if not isinstance(value, str):
+        raise TypeError("provider identity source must be a string")
+    return hashlib.sha256(value.encode("utf-8", "strict")).hexdigest()
+
+
+def _safe_finish_reason(
+    value: Optional[str],
+    *,
+    native: bool,
+) -> Optional[str]:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        return "unknown"
+    candidate = value.strip().lower()
+    allowed = {
+        "stop",
+        "length",
+        "tool_calls",
+        "content_filter",
+        "error",
+    }
+    if native:
+        allowed |= {
+            "max_tokens",
+            "max_completion_tokens",
+            "tool_use",
+            "safety",
+        }
+    return candidate if candidate in allowed else "unknown"
+
+
+def _safe_output_disposition(value: str) -> str:
+    allowed = {
+        "accepted",
+        "discarded_due_to_attestation_failure",
+        "discarded_due_to_contract_failure",
+        "discarded_incomplete",
+        "discarded_invalid_finish",
+        "unavailable_due_to_provider_error",
+    }
+    return value if value in allowed else "unknown"
+
+
+def _optional_identity_sha256(value: Any) -> Optional[str]:
+    return None if value is None else _identity_sha256(str(value))
+
+
+def _provider_error_summary(
+    completion: StructuredCompletion,
+) -> Optional[dict[str, Any]]:
+    details = completion.provider_error_details
+    if details is None:
+        return None
+    row = details.to_dict()
+    sdk = row["sdk"]
+    return {
+        "schema_version": "finevo-checkpoint-provider-error-summary-v1",
+        "error_type": row["error_type"],
+        "http_status": row["http_status"],
+        "code_sha256": _optional_identity_sha256(row["code"]),
+        "param_sha256": _optional_identity_sha256(row["param"]),
+        "request_id_sha256": _optional_identity_sha256(row["request_id"]),
+        "stage_sha256": _identity_sha256(row["stage"]),
+        "sdk_name_sha256": _identity_sha256(sdk["name"]),
+        "sdk_version_sha256": _optional_identity_sha256(sdk["version"]),
+        "redaction_policy": "allowlist-and-digest-v1",
+    }
+
+
+def _validate_provider_error_summary(value: Any) -> None:
+    if value is None:
+        return
+    if not isinstance(value, Mapping) or set(value) != (
+        _PROVIDER_ERROR_SUMMARY_FIELDS
+    ):
+        raise ValueError("checkpoint provider error summary shape is invalid")
+    if (
+        value.get("schema_version")
+        != "finevo-checkpoint-provider-error-summary-v1"
+        or value.get("redaction_policy") != "allowlist-and-digest-v1"
+        or value.get("error_type") not in SAFE_PROVIDER_ERROR_TYPES
+    ):
+        raise ValueError(
+            "checkpoint provider error summary identity is invalid"
+        )
+    status = value.get("http_status")
+    if status is not None and (
+        isinstance(status, bool)
+        or not isinstance(status, int)
+        or status not in range(100, 600)
+    ):
+        raise ValueError(
+            "checkpoint provider error summary HTTP status is invalid"
+        )
+    for name in (
+        "code_sha256",
+        "param_sha256",
+        "request_id_sha256",
+        "sdk_version_sha256",
+    ):
+        digest = value.get(name)
+        if digest is not None and (
+            not isinstance(digest, str)
+            or _LOWERCASE_SHA256_RE.fullmatch(digest) is None
+        ):
+            raise ValueError(
+                f"checkpoint provider error summary {name} is invalid"
+            )
+    for name in ("stage_sha256", "sdk_name_sha256"):
+        digest = value.get(name)
+        if (
+            not isinstance(digest, str)
+            or _LOWERCASE_SHA256_RE.fullmatch(digest) is None
+        ):
+            raise ValueError(
+                f"checkpoint provider error summary {name} is invalid"
+            )
 
 
 def encode_numpy_rng_state(state: Sequence[Any]) -> dict[str, Any]:
@@ -673,43 +1015,75 @@ def _post_ledger_batch(
     return result
 
 
-def _validate_v2_provider_evidence(
+def _validate_journaled_provider_evidence(
     payload: Mapping[str, Any],
     *,
     run_config: Mapping[str, Any],
 ) -> None:
+    schema_version = payload.get("schema_version")
+    if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+        schema_label = "v2"
+        expected_num_agents = 2
+        expected_decision_count = DEFAULT_BRANCH_DECISION_T
+        expected_semantic_times = (3, 6)
+    elif schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V3:
+        schema_label = "v3"
+        expected_num_agents = 4
+        expected_decision_count = DEFAULT_BRANCH_DECISION_T
+        expected_semantic_times = (3, 6)
+    elif schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4:
+        schema_label = "v4"
+        expected_num_agents = V211_LONG_CONTEXT_PREFLIGHT_AGENTS
+        expected_decision_count = V211_LONG_CONTEXT_PREFLIGHT_MONTHS
+        expected_semantic_times = (3, 6, 9, 12)
+    else:  # pragma: no cover - checkpoint schema validation owns this boundary
+        raise PilotCheckpointError(
+            "provider evidence requires a journaled checkpoint schema"
+        )
+    expected_action_count = expected_num_agents * expected_decision_count
+    expected_semantic_count = expected_num_agents * len(
+        expected_semantic_times
+    )
+    expected_call_count = expected_action_count + expected_semantic_count
+    expected_event_count = expected_call_count * 2
     rows = payload.get("provider_calls")
     if (
         not isinstance(rows, list)
-        or len(rows) != 16
+        or len(rows) != expected_call_count
         or payload.get("provider_calls_hash") != canonical_hash(rows)
     ):
         raise PilotCheckpointError(
-            "v2 provider-call denominator/hash is invalid"
+            f"{schema_label} provider-call denominator/hash is invalid"
         )
-    if [row.get("call_index") for row in rows] != list(range(16)):
-        raise PilotCheckpointError("v2 provider call indices are not exact")
+    if [row.get("call_index") for row in rows] != list(
+        range(expected_call_count)
+    ):
+        raise PilotCheckpointError(
+            f"{schema_label} provider call indices are not exact"
+        )
     expected_action_cells = {
         (decision_t, agent_id)
-        for decision_t in range(6)
-        for agent_id in range(2)
+        for decision_t in range(expected_decision_count)
+        for agent_id in range(expected_num_agents)
     }
     expected_semantic_cells = {
         (current_t, agent_id)
-        for current_t in (3, 6)
-        for agent_id in range(2)
+        for current_t in expected_semantic_times
+        for agent_id in range(expected_num_agents)
     }
     observed_action_cells: set[tuple[int, int]] = set()
     observed_semantic_cells: set[tuple[int, int]] = set()
     for row in rows:
         if not isinstance(row, Mapping):
-            raise PilotCheckpointError("v2 provider row must be an object")
+            raise PilotCheckpointError(
+                f"{schema_label} provider row must be an object"
+            )
         call_kind = row.get("call_kind")
         try:
             cell = (int(row["decision_t"]), int(row["agent_id"]))
         except (KeyError, TypeError, ValueError) as exc:
             raise PilotCheckpointError(
-                "v2 provider row lacks a valid task cell"
+                f"{schema_label} provider row lacks a valid task cell"
             ) from exc
         if call_kind == "action":
             observed_action_cells.add(cell)
@@ -720,7 +1094,9 @@ def _validate_v2_provider_evidence(
             max_tokens = int(run_config["rule_max_tokens"])
             max_bytes = int(run_config["rule_max_visible_json_bytes"])
         else:
-            raise PilotCheckpointError("v2 provider row has an invalid call kind")
+            raise PilotCheckpointError(
+                f"{schema_label} provider row has an invalid call kind"
+            )
         usage = row.get("usage")
         disposition = row.get("parse_disposition")
         dispatch = row.get("parameter_dispatch")
@@ -735,7 +1111,7 @@ def _validate_v2_provider_evidence(
             or row.get("output_disposition") != "accepted"
         ):
             raise PilotCheckpointError(
-                "v2 provider row is not a successful terminal call"
+                f"{schema_label} provider row is not a successful terminal call"
             )
         exact_accepted = (
             disposition.get("parse_status") == "success"
@@ -756,7 +1132,7 @@ def _validate_v2_provider_evidence(
         )
         if not exact_accepted and not recorded_semantic_failure:
             raise PilotCheckpointError(
-                "v2 parse disposition violates exact-action/"
+                f"{schema_label} parse disposition violates exact-action/"
                 "record-and-skip semantics"
             )
         if (
@@ -766,7 +1142,7 @@ def _validate_v2_provider_evidence(
             <= _V2_PARAMETER_DISPATCH_STATUSES
         ):
             raise PilotCheckpointError(
-                "v2 provider parameter dispatch is incomplete"
+                f"{schema_label} provider parameter dispatch is incomplete"
             )
         if any(
             not isinstance(row.get(name), str) or not row[name].strip()
@@ -788,7 +1164,8 @@ def _validate_v2_provider_evidence(
             )
         ):
             raise PilotCheckpointError(
-                "v2 provider requested/served/route metadata is incomplete"
+                f"{schema_label} provider requested/served/route metadata "
+                "is incomplete"
             )
         if (
             not isinstance(row.get("request_provider_pin"), list)
@@ -799,7 +1176,7 @@ def _validate_v2_provider_evidence(
             or not row["request_parameters"]
         ):
             raise PilotCheckpointError(
-                "v2 provider request metadata is incomplete"
+                f"{schema_label} provider request metadata is incomplete"
             )
         task_cap = row.get("task_cap")
         if task_cap != {
@@ -807,7 +1184,7 @@ def _validate_v2_provider_evidence(
             "max_visible_json_bytes": max_bytes,
         }:
             raise PilotCheckpointError(
-                "v2 provider row task cap differs from the run config"
+                f"{schema_label} provider row task cap differs from the run config"
             )
         if (
             int(row.get("visible_completion_tokens", -1)) < 0
@@ -817,15 +1194,30 @@ def _validate_v2_provider_evidence(
             or row.get("raw_output_bytes") != row.get("visible_output_bytes")
         ):
             raise PilotCheckpointError(
-                "v2 provider row exceeds its visible output cap"
+                f"{schema_label} provider row exceeds its visible output cap"
             )
+        if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4:
+            upper_bound = row.get("prompt_token_upper_bound")
+            ceiling = row.get("prompt_tier_ceiling_tokens")
+            if (
+                isinstance(upper_bound, bool)
+                or not isinstance(upper_bound, int)
+                or upper_bound < 1
+                or row.get("prompt_token_upper_bound_method")
+                != PROMPT_TIER_UPPER_BOUND_METHOD
+                or ceiling != 200_000
+                or upper_bound >= ceiling
+            ):
+                raise PilotCheckpointError(
+                    "v4 provider row lacks an exact short-tier prompt bound"
+                )
         provider = str(row["provider"]).strip().lower()
         if (
             provider not in {"diagnostic", "local", "ollama"}
             and float(usage.get("cost_usd", 0.0)) <= 0
         ):
             raise PilotCheckpointError(
-                "hosted v2 provider row lacks positive cost"
+                f"hosted {schema_label} provider row lacks positive cost"
             )
         if (
             provider not in {"diagnostic", "local", "ollama"}
@@ -835,14 +1227,15 @@ def _validate_v2_provider_evidence(
             )
         ):
             raise PilotCheckpointError(
-                "hosted v2 provider row lacks request id"
+                f"hosted {schema_label} provider row lacks request id"
             )
     if (
         observed_action_cells != expected_action_cells
         or observed_semantic_cells != expected_semantic_cells
     ):
         raise PilotCheckpointError(
-            "v2 provider rows do not cover the registered 12+4 task cells"
+            f"{schema_label} provider rows do not cover the registered "
+            f"{expected_action_count}+{expected_semantic_count} task cells"
         )
 
     outcomes = payload.get("proposal_outcomes")
@@ -851,19 +1244,21 @@ def _validate_v2_provider_evidence(
     }
     if (
         not isinstance(outcomes, list)
-        or len(outcomes) != 4
+        or len(outcomes) != expected_semantic_count
         or payload.get("proposal_outcomes_hash") != canonical_hash(outcomes)
         or {row.get("call_index") for row in outcomes} != semantic_indices
     ):
         raise PilotCheckpointError(
-            "v2 proposal outcomes are missing or unbound"
+            f"{schema_label} proposal outcomes are missing or unbound"
         )
     semantic_by_index = {
         row["call_index"]: row for row in rows if row["call_kind"] == "semantic"
     }
     for outcome in outcomes:
         if not isinstance(outcome, Mapping):
-            raise PilotCheckpointError("v2 proposal outcome is incomplete")
+            raise PilotCheckpointError(
+                f"{schema_label} proposal outcome is incomplete"
+            )
         source = semantic_by_index[outcome["call_index"]]
         events = outcome.get("semantic_events")
         if (
@@ -875,7 +1270,7 @@ def _validate_v2_provider_evidence(
             or outcome.get("semantic_events_hash") != canonical_hash(events)
         ):
             raise PilotCheckpointError(
-                "v2 proposal outcome source binding is incomplete"
+                f"{schema_label} proposal outcome source binding is incomplete"
             )
         if outcome.get("candidate_parse_status") == "success":
             valid = (
@@ -908,7 +1303,9 @@ def _validate_v2_provider_evidence(
         else:
             valid = False
         if not valid:
-            raise PilotCheckpointError("v2 proposal outcome is incomplete")
+            raise PilotCheckpointError(
+                f"{schema_label} proposal outcome is incomplete"
+            )
 
     denominator = payload.get("provider_denominator")
     semantic_parse_failures = sum(
@@ -916,19 +1313,21 @@ def _validate_v2_provider_evidence(
         for outcome in outcomes
     )
     if denominator != {
-        "planned_calls": 16,
-        "observed_calls": 16,
-        "successful_terminal_calls": 16,
+        "planned_calls": expected_call_count,
+        "observed_calls": expected_call_count,
+        "successful_terminal_calls": expected_call_count,
         "failed_calls": 0,
-        "action_calls": 12,
-        "semantic_calls": 4,
+        "action_calls": expected_action_count,
+        "semantic_calls": expected_semantic_count,
         "semantic_candidate_parse_failures": semantic_parse_failures,
     }:
-        raise PilotCheckpointError("v2 provider denominator is not exact")
+        raise PilotCheckpointError(
+            f"{schema_label} provider denominator is not exact"
+        )
     totals = {
-        "call_count": 16,
-        "action_call_count": 12,
-        "semantic_call_count": 4,
+        "call_count": expected_call_count,
+        "action_call_count": expected_action_count,
+        "semantic_call_count": expected_semantic_count,
         "prompt_tokens": sum(
             int(row["usage"]["prompt_tokens"]) for row in rows
         ),
@@ -963,20 +1362,26 @@ def _validate_v2_provider_evidence(
         payload.get("provider_totals") != totals
         or payload.get("provider_totals_hash") != canonical_hash(totals)
     ):
-        raise PilotCheckpointError("v2 provider totals/hash mismatch")
+        raise PilotCheckpointError(
+            f"{schema_label} provider totals/hash mismatch"
+        )
     if totals["hosted"] and totals["cost_usd"] <= 0:
-        raise PilotCheckpointError("hosted v2 total cost is not positive")
+        raise PilotCheckpointError(
+            f"hosted {schema_label} total cost is not positive"
+        )
 
     budget_snapshot = payload.get("budget_snapshot_at_checkpoint")
     if (
         not isinstance(budget_snapshot, Mapping)
         or payload.get("budget_snapshot_hash")
         != canonical_hash(budget_snapshot)
-        or budget_snapshot.get("completed_calls") != 16
+        or budget_snapshot.get("completed_calls") != expected_call_count
         or budget_snapshot.get("active_calls") != 0
         or not isinstance(budget_snapshot.get("accounted_usage"), Mapping)
     ):
-        raise PilotCheckpointError("v2 checkpoint budget snapshot is invalid")
+        raise PilotCheckpointError(
+            f"{schema_label} checkpoint budget snapshot is invalid"
+        )
     accounted = budget_snapshot["accounted_usage"]
     if (
         int(accounted.get("prompt_tokens", -1)) != totals["prompt_tokens"]
@@ -986,7 +1391,7 @@ def _validate_v2_provider_evidence(
         > 1e-12
     ):
         raise PilotCheckpointError(
-            "v2 budget snapshot differs from provider totals"
+            f"{schema_label} budget snapshot differs from provider totals"
         )
     journal_binding = payload.get("provider_call_journal_binding")
     if (
@@ -998,23 +1403,31 @@ def _validate_v2_provider_evidence(
         != run_config.get("pilot_contract_hash")
     ):
         raise PilotCheckpointError(
-            "v2 provider journal binding is invalid"
+            f"{schema_label} provider journal binding is invalid"
         )
     if journal_binding.get("enabled") is True:
         if (
             not isinstance(journal_binding.get("journal_sha256"), str)
             or len(journal_binding["journal_sha256"]) != 64
-            or journal_binding.get("event_count") != 32
-            or journal_binding.get("completion_event_count") != 16
-            or journal_binding.get("parse_disposition_event_count") != 16
+            or journal_binding.get("event_count") != expected_event_count
+            or journal_binding.get("completion_event_count")
+            != expected_call_count
+            or journal_binding.get("parse_disposition_event_count")
+            != expected_call_count
             or not isinstance(journal_binding.get("path_name"), str)
             or not journal_binding["path_name"]
         ):
             raise PilotCheckpointError(
-                "v2 enabled provider journal binding is incomplete"
+                f"{schema_label} enabled provider journal binding is incomplete"
             )
     elif journal_binding.get("enabled") is False:
         if (
+            schema_version
+            in {
+                PILOT_CHECKPOINT_SCHEMA_VERSION_V3,
+                PILOT_CHECKPOINT_SCHEMA_VERSION_V4,
+            }
+            or
             run_config.get("scientific_scope")
             == "preregistered_mechanism_micro_pilot"
             or journal_binding.get("journal_sha256") is not None
@@ -1024,11 +1437,11 @@ def _validate_v2_provider_evidence(
             or journal_binding.get("path_name") is not None
         ):
             raise PilotCheckpointError(
-                "v2 disabled provider journal binding is inconsistent"
+                f"{schema_label} disabled provider journal binding is inconsistent"
             )
     else:
         raise PilotCheckpointError(
-            "v2 provider journal enabled flag is invalid"
+            f"{schema_label} provider journal enabled flag is invalid"
         )
 
 
@@ -1089,9 +1502,18 @@ class PilotCheckpoint:
             self.payload.get("ledger_records")
         ):
             raise PilotCheckpointError("ledger hash mismatch")
-        if self.next_decision_t != DEFAULT_BRANCH_DECISION_T:
+        expected_prefix_periods = (
+            V211_LONG_CONTEXT_PREFLIGHT_MONTHS
+            if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+            else DEFAULT_BRANCH_DECISION_T
+        )
+        if self.next_decision_t != expected_prefix_periods:
             raise PilotCheckpointError(
-                "checkpoint must branch after t=5/before decision 6"
+                (
+                    "V2.11 long-context checkpoint must finish all 12 months"
+                    if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+                    else "checkpoint must branch after t=5/before decision 6"
+                )
             )
         expected_agents = {
             str(agent_id) for agent_id in range(num_agents)
@@ -1103,12 +1525,22 @@ class PilotCheckpoint:
             or any(
                 isinstance(value, bool)
                 or not isinstance(value, int)
-                or value != 2
+                or value
+                != (
+                    4
+                    if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+                    else 2
+                )
                 for value in proposals_made.values()
             )
         ):
             raise PilotCheckpointError(
-                "checkpoint must bind two proposal attempts per agent"
+                (
+                    "V2.11 long-context checkpoint must bind four proposal "
+                    "attempts per agent"
+                    if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+                    else "checkpoint must bind two proposal attempts per agent"
+                )
             )
         if self.payload.get("previous_state_hash") != canonical_hash(
             self.payload.get("previous_state")
@@ -1151,20 +1583,50 @@ class PilotCheckpoint:
             "foundation_env_config": self.payload["foundation_env_config"],
             "branch_after_decision_t": self.next_decision_t - 1,
         }
-        if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+        if schema_version in _JOURNALED_CHECKPOINT_SCHEMAS:
             purpose = self.payload.get("checkpoint_purpose")
-            if purpose != CLOSED_LOOP_PREFLIGHT_CHECKPOINT_PURPOSE:
-                raise PilotCheckpointError(
-                    "v2 checkpoint purpose must be closed-loop-preflight"
+            if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+                expected_purpose = CLOSED_LOOP_PREFLIGHT_CHECKPOINT_PURPOSE
+                expected_num_agents = 2
+                expected_episode_length = 6
+                expected_completed_months = DEFAULT_BRANCH_DECISION_T
+            elif schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V3:
+                expected_purpose = (
+                    EXPERIMENT_D_SHARED_PREFIX_CHECKPOINT_PURPOSE
                 )
-            if num_agents != 2 or episode_length != 6:
+                expected_num_agents = 4
+                expected_episode_length = 12
+                expected_completed_months = DEFAULT_BRANCH_DECISION_T
+            else:
+                expected_purpose = (
+                    V211_LONG_CONTEXT_PREFLIGHT_CHECKPOINT_PURPOSE
+                )
+                expected_num_agents = V211_LONG_CONTEXT_PREFLIGHT_AGENTS
+                expected_episode_length = V211_LONG_CONTEXT_PREFLIGHT_MONTHS
+                expected_completed_months = (
+                    V211_LONG_CONTEXT_PREFLIGHT_MONTHS
+                )
+            if purpose != expected_purpose:
                 raise PilotCheckpointError(
-                    "closed-loop preflight checkpoint must bind 2 agents x 6 months"
+                    f"{schema_version} checkpoint purpose is invalid"
+                )
+            if (
+                num_agents != expected_num_agents
+                or episode_length != expected_episode_length
+            ):
+                raise PilotCheckpointError(
+                    f"{expected_purpose} checkpoint must bind "
+                    f"{expected_num_agents} agents x "
+                    f"{expected_episode_length} months"
                 )
             ledger_records = self.payload.get("ledger_records")
-            if not isinstance(ledger_records, list) or len(ledger_records) != 12:
+            if (
+                not isinstance(ledger_records, list)
+                or len(ledger_records)
+                != expected_num_agents * expected_completed_months
+            ):
                 raise PilotCheckpointError(
-                    "closed-loop preflight ledger must contain 12 rows"
+                    f"{expected_purpose} ledger has an invalid denominator"
                 )
             if self.payload.get("proposal_counters_hash") != canonical_hash(
                 proposals_made
@@ -1236,7 +1698,18 @@ class PilotCheckpoint:
                     "v2 checkpoint does not bind exact actions and "
                     "record-and-skip semantic parsing"
                 )
-            _validate_v2_provider_evidence(
+            if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4 and (
+                run_config.get("action_max_tokens") != 4096
+                or run_config.get("rule_max_tokens") != 4096
+                or run_config.get("action_max_visible_json_bytes") != 1024
+                or run_config.get("rule_max_visible_json_bytes") != 4096
+                or run_config.get("prompt_tier_ceiling_tokens") != 200_000
+            ):
+                raise PilotCheckpointError(
+                    "V2.11 long-context checkpoint output caps or prompt "
+                    "tier ceiling drifted"
+                )
+            _validate_journaled_provider_evidence(
                 self.payload,
                 run_config=run_config,
             )
@@ -1305,25 +1778,32 @@ _V2_PARAMETER_DISPATCH_FIELDS = frozenset(
 _V2_PARAMETER_DISPATCH_STATUSES = frozenset(
     {"explicit_supported", "omitted_unsupported"}
 )
+_JOURNALED_CHECKPOINT_SCHEMAS = frozenset(
+    {
+        PILOT_CHECKPOINT_SCHEMA_VERSION_V2,
+        PILOT_CHECKPOINT_SCHEMA_VERSION_V3,
+        PILOT_CHECKPOINT_SCHEMA_VERSION_V4,
+    }
+)
 
 
-def _validate_v2_preflight_config(config: VerifiedRunConfig) -> None:
+def _validate_journaled_prefix_config(config: VerifiedRunConfig) -> None:
     if config.accepted_action_parse_modes != ("exact_json",):
         raise ValueError(
-            "v2 closed-loop preflight requires exact-only action parsing"
+            "journaled prefix requires exact-only action parsing"
         )
     if config.accepted_semantic_parse_modes != ("exact_json",):
         raise ValueError(
-            "v2 closed-loop preflight requires exact-only semantic parsing"
+            "journaled prefix requires exact-only semantic parsing"
         )
     if config.semantic_parse_failure_policy != "record-and-skip":
         raise ValueError(
-            "v2 closed-loop preflight semantic parse failures must be "
+            "journaled prefix semantic parse failures must be "
             "recorded and skipped"
         )
     if config.fail_on_clipped_action is not True:
         raise ValueError(
-            "v2 closed-loop preflight must fail on clipped actions"
+            "journaled prefix must fail on clipped actions"
         )
     if (
         config.action_max_tokens < 1
@@ -1331,7 +1811,7 @@ def _validate_v2_preflight_config(config: VerifiedRunConfig) -> None:
         or config.action_max_visible_json_bytes < 1
         or config.rule_max_visible_json_bytes < 1
     ):
-        raise ValueError("v2 closed-loop preflight task caps must be positive")
+        raise ValueError("journaled prefix task caps must be positive")
 
 
 def _hosted_provider(provider: str) -> bool:
@@ -1342,18 +1822,79 @@ def _hosted_provider(provider: str) -> bool:
     }
 
 
-def _v2_completion_audit_row(
+def _checkpoint_provider_failure(
     completion: StructuredCompletion,
     *,
+    call_kind: str,
+    decision_t: int,
+    agent_id: int,
+) -> PilotCheckpointProviderFailure:
+    return PilotCheckpointProviderFailure(
+        schema_version="finevo-pilot-checkpoint-provider-failure-v1",
+        error_stage="shared-prefix-provider",
+        call_kind=call_kind,
+        decision_t=int(decision_t),
+        agent_id=int(agent_id),
+        error_type=completion.error_type,
+        finish_reason=_safe_finish_reason(
+            completion.finish_reason,
+            native=False,
+        ),
+        native_finish_reason=_safe_finish_reason(
+            completion.native_finish_reason,
+            native=True,
+        ),
+        reasoning_tokens=int(completion.reasoning_tokens),
+        response_completed=completion.response_completed,
+        output_disposition=_safe_output_disposition(
+            completion.output_disposition
+        ),
+        provider_identity_sha256=_identity_sha256(completion.provider),
+        model_identity_sha256=_identity_sha256(completion.model),
+        attempts=int(completion.attempts),
+        provider_error_summary=_provider_error_summary(completion),
+    )
+
+
+def _journaled_completion_audit_row(
+    completion: StructuredCompletion,
+    *,
+    checkpoint_schema: str,
     call_index: int,
     call_kind: str,
     decision_t: int,
     agent_id: int,
     prompt_hash: str,
+    prompt: str,
     max_visible_tokens: int,
     max_visible_json_bytes: int,
 ) -> dict[str, Any]:
-    """Validate and retain one terminal V2 completion without raw output."""
+    """Validate one terminal journaled completion without raw output."""
+
+    schema_label = (
+        "v2"
+        if checkpoint_schema == PILOT_CHECKPOINT_SCHEMA_VERSION_V2
+        else "v3"
+        if checkpoint_schema == PILOT_CHECKPOINT_SCHEMA_VERSION_V3
+        else "v4"
+        if checkpoint_schema == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+        else None
+    )
+    if schema_label is None:
+        raise PilotCheckpointError(
+            "completion audit requires a journaled checkpoint schema"
+        )
+
+    def audit_error(message: str) -> PilotCheckpointError:
+        return PilotCheckpointError(
+            message,
+            failure=_checkpoint_provider_failure(
+                completion,
+                call_kind=call_kind,
+                decision_t=decision_t,
+                agent_id=agent_id,
+            ),
+        )
 
     row = _provider_row(
         completion,
@@ -1375,22 +1916,38 @@ def _v2_completion_audit_row(
             },
         }
     )
+    if checkpoint_schema == PILOT_CHECKPOINT_SCHEMA_VERSION_V4:
+        if not isinstance(prompt, str):
+            raise PilotCheckpointError(
+                "v4 completion audit requires the exact dispatched prompt"
+            )
+        row.update(
+            {
+                "prompt_token_upper_bound": (
+                    conservative_prompt_token_upper_bound(prompt)
+                ),
+                "prompt_token_upper_bound_method": (
+                    PROMPT_TIER_UPPER_BOUND_METHOD
+                ),
+                "prompt_tier_ceiling_tokens": 200_000,
+            }
+        )
     if not completion.ok or completion.text == "Error":
-        raise PilotCheckpointError(
-            f"v2 provider failure for {call_kind} call {call_index}: "
+        raise audit_error(
+            f"{schema_label} provider failure for {call_kind} call {call_index}: "
             f"{completion.error_type}"
         )
     if completion.attempts != 1:
-        raise PilotCheckpointError(
-            "v2 closed-loop preflight requires exactly one provider attempt"
+        raise audit_error(
+            f"{schema_label} prefix requires exactly one provider attempt"
         )
     if (
         completion.finish_reason != "stop"
         or completion.response_completed is not True
         or completion.output_disposition != "accepted"
     ):
-        raise PilotCheckpointError(
-            f"v2 completion is truncated or non-terminal for {call_kind} "
+        raise audit_error(
+            f"{schema_label} completion is truncated or non-terminal for {call_kind} "
             f"call {call_index}"
         )
     for name in (
@@ -1407,31 +1964,34 @@ def _v2_completion_audit_row(
     ):
         value = getattr(completion, name)
         if not isinstance(value, str) or not value.strip():
-            raise PilotCheckpointError(
-                f"v2 completion lacks {name} for {call_kind} call {call_index}"
+            raise audit_error(
+                f"{schema_label} completion lacks {name} for {call_kind} "
+                f"call {call_index}"
             )
     if (
         not completion.request_provider_pin
         or not completion.request_artifact_identity
         or not completion.request_parameters
     ):
-        raise PilotCheckpointError(
-            "v2 completion lacks request pin/artifact/parameter metadata"
+        raise audit_error(
+            f"{schema_label} completion lacks request "
+            "pin/artifact/parameter metadata"
         )
     if (
         _hosted_provider(completion.provider)
         and not isinstance(completion.request_id, str)
     ):
-        raise PilotCheckpointError(
-            "hosted v2 completion lacks a provider request id"
+        raise audit_error(
+            f"hosted {schema_label} completion lacks a provider request id"
         )
     dispatch = dict(completion.parameter_dispatch)
     if (
         set(dispatch) != _V2_PARAMETER_DISPATCH_FIELDS
         or not set(dispatch.values()) <= _V2_PARAMETER_DISPATCH_STATUSES
     ):
-        raise PilotCheckpointError(
-            "v2 completion parameter dispatch is incomplete or invalid"
+        raise audit_error(
+            f"{schema_label} completion parameter dispatch is "
+            "incomplete or invalid"
         )
     request_parameters = set(completion.request_parameters)
     provider_name = completion.provider.strip().lower()
@@ -1458,24 +2018,26 @@ def _v2_completion_audit_row(
     for field, wire_name in direct_wire_names.items():
         explicit = dispatch[field] == "explicit_supported"
         if explicit != (wire_name in request_parameters):
-            raise PilotCheckpointError(
-                "v2 completion parameter dispatch differs from wire parameters"
+            raise audit_error(
+                f"{schema_label} completion parameter dispatch differs "
+                "from wire parameters"
             )
     usage = completion.usage
     if usage.prompt_tokens < 1 or usage.completion_tokens < 1:
-        raise PilotCheckpointError(
-            "v2 completion usage must contain positive prompt/completion tokens"
+        raise audit_error(
+            f"{schema_label} completion usage must contain positive "
+            "prompt/completion tokens"
         )
     if _hosted_provider(completion.provider) and usage.cost_usd <= 0:
-        raise PilotCheckpointError(
-            "hosted v2 completion must record a positive cost"
+        raise audit_error(
+            f"hosted {schema_label} completion must record a positive cost"
         )
     if row["visible_completion_tokens"] > max_visible_tokens:
-        raise PilotCheckpointError(
+        raise audit_error(
             f"{call_kind} completion exceeds its visible-token cap"
         )
     if row["visible_output_bytes"] > max_visible_json_bytes:
-        raise PilotCheckpointError(
+        raise audit_error(
             f"{call_kind} completion exceeds its visible-JSON byte cap"
         )
     return row
@@ -1489,6 +2051,8 @@ def _complete_actions(
     decision_t: int,
     prompts: Sequence[str],
 ) -> list[Any]:
+    for prompt in prompts:
+        validate_prompt_tier_for_dispatch(config, prompt)
     estimates = [
         preflight_p95_reservation_for_call(
             config,
@@ -1533,11 +2097,14 @@ def build_pilot_checkpoint(
     _schema_version: str = PILOT_CHECKPOINT_SCHEMA_VERSION,
     _checkpoint_purpose: Optional[str] = None,
     _call_journal_path: Optional[str | Path] = None,
+    _run_intent_path: Optional[str | Path] = None,
+    _run_intent_binding: Optional[Mapping[str, Any]] = None,
 ) -> PilotCheckpoint:
-    """Run an exact prefix and freeze it immediately before ``decision_t=6``.
+    """Run and freeze one schema-specific exact simulation prefix.
 
-    The default is the preregistered Experiment-D branch point: after outcomes
-    for decisions 0..5 have been finalized and before any decision-6 retrieval.
+    V1/V2/V3 stop at the Experiment-D branch point after decisions 0..5.
+    V4 is reserved for the V2.11 long-context preflight and completes all
+    decisions 0..11 before sealing.
     """
 
     schema_version = _supported_checkpoint_schema(_schema_version)
@@ -1546,30 +2113,94 @@ def build_pilot_checkpoint(
             raise ValueError("v1 checkpoints do not accept a checkpoint purpose")
         if _call_journal_path is not None:
             raise ValueError("v1 checkpoints do not accept a provider journal")
+        if _run_intent_path is not None or _run_intent_binding is not None:
+            raise ValueError("v1 checkpoints do not accept a run intent")
         expected_num_agents = 4
-    else:
+    elif schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
         if _checkpoint_purpose != CLOSED_LOOP_PREFLIGHT_CHECKPOINT_PURPOSE:
             raise ValueError(
                 "v2 checkpoint purpose must be closed-loop-preflight"
             )
+        if _run_intent_path is not None or _run_intent_binding is not None:
+            raise ValueError("v2 checkpoints do not accept a run intent")
         expected_num_agents = 2
+    elif schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V3:
+        if (
+            _checkpoint_purpose
+            != EXPERIMENT_D_SHARED_PREFIX_CHECKPOINT_PURPOSE
+        ):
+            raise ValueError(
+                "v3 checkpoint purpose must be experiment-d-shared-prefix"
+            )
+        if _call_journal_path is None:
+            raise ValueError(
+                "v3 Experiment-D shared prefix requires a provider journal"
+            )
+        if _run_intent_path is None or _run_intent_binding is None:
+            raise ValueError(
+                "v3 Experiment-D shared prefix requires a sealed run intent"
+            )
+        expected_num_agents = 4
+    else:
+        if (
+            _checkpoint_purpose
+            != V211_LONG_CONTEXT_PREFLIGHT_CHECKPOINT_PURPOSE
+        ):
+            raise ValueError(
+                "v4 checkpoint purpose must be "
+                "v2.11-long-context-preflight"
+            )
+        if _call_journal_path is None:
+            raise ValueError(
+                "V2.11 long-context preflight requires a provider journal"
+            )
+        if _run_intent_path is None or _run_intent_binding is None:
+            raise ValueError(
+                "V2.11 long-context preflight requires a sealed run intent"
+            )
+        expected_num_agents = V211_LONG_CONTEXT_PREFLIGHT_AGENTS
     if not isinstance(config, VerifiedRunConfig):
         raise TypeError("config must be VerifiedRunConfig")
-    if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
-        _validate_v2_preflight_config(config)
+    if schema_version in _JOURNALED_CHECKPOINT_SCHEMAS:
+        _validate_journaled_prefix_config(config)
     if not isinstance(llm, MultiModelLLM):
         raise TypeError("llm must be MultiModelLLM")
     if not isinstance(budget, RunBudget):
         raise TypeError("budget must be RunBudget")
+    if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V3:
+        assert _run_intent_path is not None
+        assert _run_intent_binding is not None
+        _verify_experiment_d_run_intent(
+            Path(_run_intent_path).resolve(),
+            expected=_run_intent_binding,
+        )
+    elif schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4:
+        assert _run_intent_path is not None
+        assert _run_intent_binding is not None
+        _verify_v211_long_context_preflight_run_intent(
+            Path(_run_intent_path).resolve(),
+            expected=_run_intent_binding,
+        )
     validate_preflight_p95_reservations(
         config,
         provider_model_name=llm.get_model_name(),
     )
     if isinstance(prefix_periods, bool) or not isinstance(prefix_periods, int):
         raise TypeError("prefix_periods must be an integer")
-    if prefix_periods != DEFAULT_BRANCH_DECISION_T:
+    expected_prefix_periods = (
+        V211_LONG_CONTEXT_PREFLIGHT_MONTHS
+        if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+        else DEFAULT_BRANCH_DECISION_T
+    )
+    if prefix_periods != expected_prefix_periods:
         raise ValueError(
-            f"{schema_version} fixes the branch after t=5/before decision 6"
+            (
+                "V2.11 long-context preflight must complete exactly "
+                "12 decision months"
+                if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+                else f"{schema_version} fixes the branch after "
+                "t=5/before decision 6"
+            )
         )
     if config.num_agents != expected_num_agents:
         raise ValueError(
@@ -1581,6 +2212,20 @@ def build_pilot_checkpoint(
     ):
         raise ValueError(
             "closed-loop preflight checkpoint requires exactly six months"
+        )
+    if (
+        schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V3
+        and config.episode_length != 12
+    ):
+        raise ValueError(
+            "Experiment-D shared-prefix checkpoint requires exactly 12 months"
+        )
+    if (
+        schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+        and config.episode_length != V211_LONG_CONTEXT_PREFLIGHT_MONTHS
+    ):
+        raise ValueError(
+            "V2.11 long-context preflight requires exactly 12 months"
         )
     if config.episode_length < prefix_periods:
         raise ValueError("episode_length is shorter than checkpoint prefix")
@@ -1602,21 +2247,53 @@ def build_pilot_checkpoint(
         or config.semantic_proposal_interval != 3
     ):
         raise ValueError(
-            "Experiment D checkpoint fixes semantic proposals at outcome "
-            "months 3 and 6 before branching"
+            (
+                "V2.11 long-context preflight fixes semantic proposals at "
+                "outcome months 3, 6, 9, and 12"
+                if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+                else "Experiment D checkpoint fixes semantic proposals at "
+                "outcome months 3 and 6 before branching"
+            )
         )
-    if config.max_rule_proposals_per_agent < 2:
+    required_proposals = (
+        4
+        if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+        else 2
+    )
+    if config.max_rule_proposals_per_agent < required_proposals:
         raise ValueError(
-            "Experiment D checkpoint requires capacity for the outcome-month "
-            "3 and outcome-month 6 proposals"
+            (
+                "V2.11 long-context preflight requires capacity for four "
+                "proposal attempts per agent"
+                if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+                else "Experiment D checkpoint requires capacity for the "
+                "outcome-month 3 and outcome-month 6 proposals"
+            )
         )
     if (
         config.freeze_new_proposals_after is not None
         and config.freeze_new_proposals_after < prefix_periods
     ):
         raise ValueError(
-            "Experiment D proposal freeze must start no earlier than the "
-            "outcome-month 6 proposal"
+            (
+                "V2.11 proposal freeze must start no earlier than the "
+                "outcome-month 12 proposal"
+                if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+                else "Experiment D proposal freeze must start no earlier "
+                "than the outcome-month 6 proposal"
+            )
+        )
+    if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4 and (
+        config.action_max_tokens != 4096
+        or config.rule_max_tokens != 4096
+        or config.action_max_visible_json_bytes != 1024
+        or config.rule_max_visible_json_bytes != 4096
+        or config.prompt_tier_ceiling_tokens != 200_000
+    ):
+        raise ValueError(
+            "V2.11 long-context preflight fixes action/rule caps at "
+            "4096 tokens, visible JSON caps at 1024/4096 bytes, and the "
+            "prompt tier ceiling at 200000 tokens"
         )
 
     np.random.seed(config.seed)
@@ -1663,7 +2340,7 @@ def build_pilot_checkpoint(
         )
     if call_journal_path is not None and call_journal_path.exists():
         raise ValueError(
-            "v2 provider call journal already exists; restore/resume the "
+            "provider call journal already exists; restore/resume the "
             "sealed checkpoint instead of redispatching"
         )
 
@@ -1674,6 +2351,7 @@ def build_pilot_checkpoint(
         decision_t: int,
         agent_id: int,
         prompt_hash: str,
+        prompt: Optional[str] = None,
     ) -> dict[str, Any]:
         row = _provider_row(
             completion,
@@ -1682,6 +2360,24 @@ def build_pilot_checkpoint(
             agent_id=agent_id,
             prompt_hash=prompt_hash,
         )
+        if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4:
+            if not isinstance(prompt, str):
+                raise PilotCheckpointError(
+                    "v4 provider journal requires the exact dispatched prompt"
+                )
+            row.update(
+                {
+                    "prompt_token_upper_bound": (
+                        validate_prompt_tier_for_dispatch(config, prompt)
+                    ),
+                    "prompt_token_upper_bound_method": (
+                        PROMPT_TIER_UPPER_BOUND_METHOD
+                    ),
+                    "prompt_tier_ceiling_tokens": (
+                        config.prompt_tier_ceiling_tokens
+                    ),
+                }
+            )
         _append_provider_call_journal(
             call_journal_path,
             run_id=config.run_id,
@@ -1728,7 +2424,7 @@ def build_pilot_checkpoint(
     ) -> None:
         """Terminalize every settled response before propagating an overage."""
 
-        if schema_version != PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+        if schema_version not in _JOURNALED_CHECKPOINT_SCHEMAS:
             return
         completions = getattr(error, "structured_completions", None)
         if (
@@ -1762,6 +2458,7 @@ def build_pilot_checkpoint(
                 prompt_hash=hashlib.sha256(
                     prompt.encode("utf-8")
                 ).hexdigest(),
+                prompt=prompt,
             )
             journal_disposition(
                 completion_row,
@@ -1860,7 +2557,7 @@ def build_pilot_checkpoint(
                 f"action denominator mismatch at t={decision_t}"
             )
         action_journal_rows: list[dict[str, Any]] = []
-        if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+        if schema_version in _JOURNALED_CHECKPOINT_SCHEMAS:
             for agent_id, completion in enumerate(completions):
                 prompt_hash = hashlib.sha256(
                     prompts[agent_id].encode("utf-8")
@@ -1872,6 +2569,7 @@ def build_pilot_checkpoint(
                         decision_t=decision_t,
                         agent_id=agent_id,
                         prompt_hash=prompt_hash,
+                        prompt=prompts[agent_id],
                     )
                 )
 
@@ -1888,19 +2586,21 @@ def build_pilot_checkpoint(
         for agent_id, completion in enumerate(completions):
             completion_row: Optional[dict[str, Any]] = None
             journal_row: Optional[dict[str, Any]] = None
-            if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+            if schema_version in _JOURNALED_CHECKPOINT_SCHEMAS:
                 prompt_hash = hashlib.sha256(
                     prompts[agent_id].encode("utf-8")
                 ).hexdigest()
                 journal_row = action_journal_rows[agent_id]
                 try:
-                    completion_row = _v2_completion_audit_row(
+                    completion_row = _journaled_completion_audit_row(
                         completion,
+                        checkpoint_schema=schema_version,
                         call_index=len(provider_call_rows),
                         call_kind="action",
                         decision_t=decision_t,
                         agent_id=agent_id,
                         prompt_hash=prompt_hash,
+                        prompt=prompts[agent_id],
                         max_visible_tokens=config.action_max_tokens,
                         max_visible_json_bytes=(
                             config.action_max_visible_json_bytes
@@ -1945,7 +2645,7 @@ def build_pilot_checkpoint(
                 completion.text, decision
             )
             if (
-                schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2
+                schema_version in _JOURNALED_CHECKPOINT_SCHEMAS
                 and action_parse_mode != "exact_json"
             ):
                 assert journal_row is not None
@@ -1957,7 +2657,8 @@ def build_pilot_checkpoint(
                 )
                 close_later_action_dispositions(agent_id)
                 raise PilotCheckpointError(
-                    f"v2 action is not exact JSON at t={decision_t}, "
+                    f"{schema_version} action is not exact JSON "
+                    f"at t={decision_t}, "
                     f"agent={agent_id}"
                 )
             if config.fail_on_clipped_action and decision.clipped:
@@ -1973,10 +2674,10 @@ def build_pilot_checkpoint(
                 raise PilotCheckpointError(
                     f"clipped prefix action at t={decision_t}, agent={agent_id}"
                 )
-            if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+            if schema_version in _JOURNALED_CHECKPOINT_SCHEMAS:
                 if decision.clipped:
                     raise PilotCheckpointError(
-                        f"v2 clipped action at t={decision_t}, "
+                        f"{schema_version} clipped action at t={decision_t}, "
                         f"agent={agent_id}"
                     )
                 assert completion_row is not None
@@ -2096,6 +2797,8 @@ def build_pilot_checkpoint(
                 memories[agent_id].build_rule_proposal_prompt(max_episodes=6)
                 for agent_id in eligible
             ]
+            for prompt in proposal_prompts:
+                validate_prompt_tier_for_dispatch(config, prompt)
             try:
                 proposal_results = llm.get_multiple_structured_completions(
                     [
@@ -2145,7 +2848,7 @@ def build_pilot_checkpoint(
                     f"semantic denominator mismatch at t={current_t}"
                 )
             semantic_journal_rows: list[dict[str, Any]] = []
-            if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+            if schema_version in _JOURNALED_CHECKPOINT_SCHEMAS:
                 for agent_id, prompt, completion in zip(
                     eligible,
                     proposal_prompts,
@@ -2161,6 +2864,7 @@ def build_pilot_checkpoint(
                             prompt_hash=hashlib.sha256(
                                 prompt.encode("utf-8")
                             ).hexdigest(),
+                            prompt=prompt,
                         )
                     )
 
@@ -2188,16 +2892,18 @@ def build_pilot_checkpoint(
                 completion_row: Optional[dict[str, Any]] = None
                 journal_row: Optional[dict[str, Any]] = None
                 candidate_parse_mode: Optional[str] = None
-                if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+                if schema_version in _JOURNALED_CHECKPOINT_SCHEMAS:
                     journal_row = semantic_journal_rows[batch_index]
                     try:
-                        completion_row = _v2_completion_audit_row(
+                        completion_row = _journaled_completion_audit_row(
                             completion,
+                            checkpoint_schema=schema_version,
                             call_index=len(provider_call_rows),
                             call_kind="semantic",
                             decision_t=current_t,
                             agent_id=agent_id,
                             prompt_hash=prompt_hash,
+                            prompt=prompt,
                             max_visible_tokens=config.rule_max_tokens,
                             max_visible_json_bytes=(
                                 config.rule_max_visible_json_bytes
@@ -2272,7 +2978,7 @@ def build_pilot_checkpoint(
                         semantic_policy=config.semantic_policy,
                     )
                 except CandidateParseError as exc:
-                    if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+                    if schema_version in _JOURNALED_CHECKPOINT_SCHEMAS:
                         assert completion_row is not None
                         assert journal_row is not None
                         assert candidate_parse_mode is not None
@@ -2316,7 +3022,7 @@ def build_pilot_checkpoint(
                         raise
                     continue
                 except Exception as exc:
-                    if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+                    if schema_version in _JOURNALED_CHECKPOINT_SCHEMAS:
                         assert journal_row is not None
                         journal_disposition(
                             journal_row,
@@ -2329,11 +3035,12 @@ def build_pilot_checkpoint(
                         )
                         close_later_semantic_dispositions(batch_index)
                         raise PilotCheckpointError(
-                            f"v2 semantic lifecycle failure at t={current_t}, "
+                            f"{schema_version} semantic lifecycle failure "
+                            f"at t={current_t}, "
                             f"agent={agent_id}: {exc}"
                         ) from exc
                     raise
-                if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+                if schema_version in _JOURNALED_CHECKPOINT_SCHEMAS:
                     assert completion_row is not None
                     assert candidate_parse_mode is not None
                     assert journal_row is not None
@@ -2348,7 +3055,8 @@ def build_pilot_checkpoint(
                         )
                         close_later_semantic_dispositions(batch_index)
                         raise PilotCheckpointError(
-                            "v2 semantic proposal completed without M3 state"
+                            f"{schema_version} semantic proposal completed "
+                            "without M3 state"
                         )
                     event_rows = [
                         event.to_dict()
@@ -2364,7 +3072,8 @@ def build_pilot_checkpoint(
                         )
                         close_later_semantic_dispositions(batch_index)
                         raise PilotCheckpointError(
-                            "v2 semantic proposal has no lifecycle outcome"
+                            f"{schema_version} semantic proposal has no "
+                            "lifecycle outcome"
                         )
                     proposal_outcome = {
                         "call_index": completion_row["call_index"],
@@ -2441,12 +3150,24 @@ def build_pilot_checkpoint(
     expected_proposal_count = min(
         expected_proposal_count, config.max_rule_proposals_per_agent
     )
-    if expected_proposal_count != 2 or any(
+    required_proposal_count = (
+        4
+        if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+        else 2
+    )
+    if expected_proposal_count != required_proposal_count or any(
         count != expected_proposal_count for count in proposals_made.values()
     ):
         raise PilotCheckpointError(
-            "Experiment D checkpoint must contain exactly the outcome-month "
-            "3 and outcome-month 6 proposal attempts for every agent"
+            (
+                "V2.11 long-context preflight must contain exactly the "
+                "outcome-month 3, 6, 9, and 12 proposal attempts for every "
+                "agent"
+                if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+                else "Experiment D checkpoint must contain exactly the "
+                "outcome-month 3 and outcome-month 6 proposal attempts for "
+                "every agent"
+            )
         )
 
     for memory in memories.values():
@@ -2458,10 +3179,25 @@ def build_pilot_checkpoint(
     }
     ledger_records = ledger.records()
     run_config = config.to_dict()
-    v2_provider_totals: Optional[dict[str, Any]] = None
-    v2_budget_snapshot: Optional[dict[str, Any]] = None
-    v2_journal_binding: Optional[dict[str, Any]] = None
-    if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+    journaled_provider_totals: Optional[dict[str, Any]] = None
+    journaled_budget_snapshot: Optional[dict[str, Any]] = None
+    journaled_journal_binding: Optional[dict[str, Any]] = None
+    semantic_parse_failures = 0
+    if schema_version in _JOURNALED_CHECKPOINT_SCHEMAS:
+        schema_label = (
+            "v2"
+            if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2
+            else "v3"
+            if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V3
+            else "v4"
+        )
+        expected_action_calls = config.num_agents * prefix_periods
+        expected_semantic_calls = (
+            config.num_agents * expected_proposal_count
+        )
+        expected_provider_calls = (
+            expected_action_calls + expected_semantic_calls
+        )
         action_rows = [
             row for row in provider_call_rows if row["call_kind"] == "action"
         ]
@@ -2471,31 +3207,32 @@ def build_pilot_checkpoint(
             if row["call_kind"] == "semantic"
         ]
         if (
-            len(provider_call_rows) != 16
-            or len(action_rows) != 12
-            or len(semantic_rows) != 4
+            len(provider_call_rows) != expected_provider_calls
+            or len(action_rows) != expected_action_calls
+            or len(semantic_rows) != expected_semantic_calls
             or [row["call_index"] for row in provider_call_rows]
-            != list(range(16))
+            != list(range(expected_provider_calls))
         ):
             raise PilotCheckpointError(
-                "v2 closed-loop preflight must retain the exact 16-call denominator"
+                f"{schema_label} checkpoint must retain the exact "
+                f"{expected_provider_calls}-call denominator"
             )
         if (
-            len(proposal_outcomes) != 4
+            len(proposal_outcomes) != expected_semantic_calls
             or {
                 row["call_index"] for row in proposal_outcomes
             }
             != {row["call_index"] for row in semantic_rows}
         ):
             raise PilotCheckpointError(
-                "v2 semantic proposal outcomes are not complete"
+                f"{schema_label} semantic proposal outcomes are not complete"
             )
         for outcome in proposal_outcomes:
             if outcome["semantic_events_hash"] != canonical_hash(
                 outcome["semantic_events"]
             ):
                 raise PilotCheckpointError(
-                    "v2 semantic proposal outcome hash mismatch"
+                    f"{schema_label} semantic proposal outcome hash mismatch"
                 )
         if any(
             not isinstance(row.get("parse_disposition"), Mapping)
@@ -2505,7 +3242,8 @@ def build_pilot_checkpoint(
             for row in action_rows
         ):
             raise PilotCheckpointError(
-                "v2 action denominator contains an unaccepted parse outcome"
+                f"{schema_label} action denominator contains an "
+                "unaccepted parse outcome"
             )
         semantic_parse_failures = sum(
             row["parse_disposition"].get("parse_status") == "failure"
@@ -2536,13 +3274,14 @@ def build_pilot_checkpoint(
             for row in semantic_rows
         ):
             raise PilotCheckpointError(
-                "v2 semantic denominator contains a nonterminal parse outcome"
+                f"{schema_label} semantic denominator contains a "
+                "nonterminal parse outcome"
             )
         hosted = any(
             _hosted_provider(str(row["provider"]))
             for row in provider_call_rows
         )
-        v2_provider_totals = {
+        journaled_provider_totals = {
             "call_count": len(provider_call_rows),
             "action_call_count": len(action_rows),
             "semantic_call_count": len(semantic_rows),
@@ -2584,12 +3323,12 @@ def build_pilot_checkpoint(
                 {str(row["served_route"]) for row in provider_call_rows}
             ),
         }
-        if hosted and v2_provider_totals["cost_usd"] <= 0:
+        if hosted and journaled_provider_totals["cost_usd"] <= 0:
             raise PilotCheckpointError(
-                "hosted v2 preflight total cost must be positive"
+                f"hosted {schema_label} prefix total cost must be positive"
             )
         if any(
-            len(v2_provider_totals[name]) != 1
+            len(journaled_provider_totals[name]) != 1
             for name in (
                 "requested_models",
                 "served_models",
@@ -2598,28 +3337,31 @@ def build_pilot_checkpoint(
             )
         ):
             raise PilotCheckpointError(
-                "v2 preflight model/provider/route changed within the run"
+                f"{schema_label} prefix model/provider/route changed "
+                "within the run"
             )
-        v2_budget_snapshot = budget.snapshot().to_dict()
-        accounted = v2_budget_snapshot["accounted_usage"]
+        journaled_budget_snapshot = budget.snapshot().to_dict()
+        accounted = journaled_budget_snapshot["accounted_usage"]
         if (
-            v2_budget_snapshot["completed_calls"] != 16
-            or v2_budget_snapshot["active_calls"] != 0
+            journaled_budget_snapshot["completed_calls"]
+            != expected_provider_calls
+            or journaled_budget_snapshot["active_calls"] != 0
             or int(accounted["prompt_tokens"])
-            != v2_provider_totals["prompt_tokens"]
+            != journaled_provider_totals["prompt_tokens"]
             or int(accounted["completion_tokens"])
-            != v2_provider_totals["completion_tokens"]
+            != journaled_provider_totals["completion_tokens"]
             or abs(
                 float(accounted["cost_usd"])
-                - float(v2_provider_totals["cost_usd"])
+                - float(journaled_provider_totals["cost_usd"])
             )
             > 1e-12
         ):
             raise PilotCheckpointError(
-                "v2 provider rows differ from the run budget ledger"
+                f"{schema_label} provider rows differ from the run "
+                "budget ledger"
             )
         if call_journal_path is None:
-            v2_journal_binding = {
+            journaled_journal_binding = {
                 "enabled": False,
                 "journal_sha256": None,
                 "event_count": 0,
@@ -2648,12 +3390,13 @@ def build_pilot_checkpoint(
                 if event["event_type"] == "parse_disposition"
             ]
             if (
-                len(events) != 32
-                or len(completion_events) != 16
-                or len(disposition_events) != 16
+                len(events) != expected_provider_calls * 2
+                or len(completion_events) != expected_provider_calls
+                or len(disposition_events) != expected_provider_calls
             ):
                 raise PilotCheckpointError(
-                    "v2 provider journal must contain 16 terminal call pairs"
+                    f"{schema_label} provider journal must contain "
+                    f"{expected_provider_calls} terminal call pairs"
                 )
             for row, event in zip(
                 provider_call_rows, completion_events, strict=True
@@ -2663,7 +3406,8 @@ def build_pilot_checkpoint(
                     for key, value in event["payload"].items()
                 ):
                     raise PilotCheckpointError(
-                        "v2 provider journal completion differs from checkpoint row"
+                        f"{schema_label} provider journal completion differs "
+                        "from checkpoint row"
                     )
             for row, event in zip(
                 provider_call_rows,
@@ -2676,10 +3420,10 @@ def build_pilot_checkpoint(
                     for key in ("parse_status", "parse_mode", "accepted")
                 ):
                     raise PilotCheckpointError(
-                        "v2 provider journal disposition differs from "
+                        f"{schema_label} provider journal disposition differs from "
                         "checkpoint evidence"
                     )
-            v2_journal_binding = {
+            journaled_journal_binding = {
                 "enabled": True,
                 "journal_sha256": journal["journal_sha256"],
                 "event_count": len(events),
@@ -2695,7 +3439,7 @@ def build_pilot_checkpoint(
         "foundation_env_config": foundation_config,
         "branch_after_decision_t": prefix_periods - 1,
     }
-    if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+    if schema_version in _JOURNALED_CHECKPOINT_SCHEMAS:
         contract["checkpoint_purpose"] = _checkpoint_purpose
     payload: dict[str, Any] = {
         "schema_version": schema_version,
@@ -2728,7 +3472,7 @@ def build_pilot_checkpoint(
         "ledger_records": ledger_records,
         "ledger_hash": canonical_hash(ledger_records),
     }
-    if schema_version == PILOT_CHECKPOINT_SCHEMA_VERSION_V2:
+    if schema_version in _JOURNALED_CHECKPOINT_SCHEMAS:
         rng_binding = {
             "numpy_rng_before_env_construction": (
                 numpy_rng_before_env_construction
@@ -2769,27 +3513,29 @@ def build_pilot_checkpoint(
                     proposal_outcomes
                 ),
                 "provider_denominator": {
-                    "planned_calls": 16,
+                    "planned_calls": expected_provider_calls,
                     "observed_calls": len(provider_call_rows),
                     "successful_terminal_calls": len(provider_call_rows),
                     "failed_calls": 0,
-                    "action_calls": 12,
-                    "semantic_calls": 4,
+                    "action_calls": expected_action_calls,
+                    "semantic_calls": expected_semantic_calls,
                     "semantic_candidate_parse_failures": (
                         semantic_parse_failures
                     ),
                 },
-                "provider_totals": v2_provider_totals,
+                "provider_totals": journaled_provider_totals,
                 "provider_totals_hash": canonical_hash(
-                    v2_provider_totals
+                    journaled_provider_totals
                 ),
-                "budget_snapshot_at_checkpoint": v2_budget_snapshot,
+                "budget_snapshot_at_checkpoint": journaled_budget_snapshot,
                 "budget_snapshot_hash": canonical_hash(
-                    v2_budget_snapshot
+                    journaled_budget_snapshot
                 ),
-                "provider_call_journal_binding": v2_journal_binding,
+                "provider_call_journal_binding": (
+                    journaled_journal_binding
+                ),
                 "provider_call_journal_binding_hash": canonical_hash(
-                    v2_journal_binding
+                    journaled_journal_binding
                 ),
             }
         )
@@ -2823,6 +3569,520 @@ def build_closed_loop_preflight_checkpoint(
         _checkpoint_purpose=CLOSED_LOOP_PREFLIGHT_CHECKPOINT_PURPOSE,
         _call_journal_path=call_journal_path,
     )
+
+
+def _experiment_d_run_intent_path(checkpoint_path: Path) -> Path:
+    return checkpoint_path.with_suffix(
+        checkpoint_path.suffix + ".run-intent.json"
+    )
+
+
+def _experiment_d_run_intent(
+    *,
+    config: VerifiedRunConfig,
+    llm: MultiModelLLM,
+    checkpoint_path: Path,
+    journal_path: Path,
+) -> dict[str, Any]:
+    value = {
+        "schema_version": EXPERIMENT_D_RUN_INTENT_SCHEMA_VERSION,
+        "checkpoint_schema_version": PILOT_CHECKPOINT_SCHEMA_VERSION_V3,
+        "checkpoint_purpose": (
+            EXPERIMENT_D_SHARED_PREFIX_CHECKPOINT_PURPOSE
+        ),
+        "run_id_sha256": _identity_sha256(config.run_id),
+        "run_config_sha256": canonical_hash(config.to_dict()),
+        "pilot_contract_hash": config.pilot_contract_hash,
+        "model_identity_sha256": _identity_sha256(llm.get_model_name()),
+        "checkpoint_path_sha256": _identity_sha256(str(checkpoint_path)),
+        "journal_path_sha256": _identity_sha256(str(journal_path)),
+        "code_binding_hash": canonical_hash(current_code_binding()),
+    }
+    value["intent_sha256"] = canonical_hash(value)
+    return value
+
+
+def _verify_experiment_d_run_intent(
+    path: Path,
+    *,
+    expected: Mapping[str, Any],
+) -> None:
+    try:
+        observed = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise PilotCheckpointError(
+            "Experiment-D run intent is unreadable; refusing dispatch"
+        ) from exc
+    if not isinstance(observed, Mapping) or observed != expected:
+        raise PilotCheckpointError(
+            "Experiment-D run intent binding differs; refusing dispatch"
+        )
+    body = dict(observed)
+    claimed = body.pop("intent_sha256", None)
+    if (
+        claimed != canonical_hash(body)
+        or observed.get("schema_version")
+        != EXPERIMENT_D_RUN_INTENT_SCHEMA_VERSION
+    ):
+        raise PilotCheckpointError(
+            "Experiment-D run intent hash/schema is invalid"
+        )
+
+
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _create_experiment_d_run_intent(
+    path: Path,
+    *,
+    payload: Mapping[str, Any],
+) -> None:
+    """Durably claim the run before any provider batch can be dispatched."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = (
+        json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    try:
+        descriptor = os.open(path, flags, 0o600)
+    except FileExistsError as exc:
+        raise PilotCheckpointError(
+            "Experiment-D run intent already exists without a sealed "
+            "checkpoint; refusing dispatch"
+        ) from exc
+    try:
+        offset = 0
+        while offset < len(data):
+            written = os.write(descriptor, data[offset:])
+            if written < 1:  # pragma: no cover - OS contract guard
+                raise OSError("short write while sealing run intent")
+            offset += written
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    _fsync_directory(path.parent)
+
+
+def _atomic_write_checkpoint(path: Path, checkpoint: PilotCheckpoint) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    data = (
+        json.dumps(
+            checkpoint.payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=2,
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+    descriptor = os.open(
+        temporary,
+        os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
+        0o600,
+    )
+    try:
+        offset = 0
+        while offset < len(data):
+            written = os.write(descriptor, data[offset:])
+            if written < 1:  # pragma: no cover - OS contract guard
+                raise OSError("short write while sealing checkpoint")
+            offset += written
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    os.replace(temporary, path)
+    _fsync_directory(path.parent)
+
+
+def _remove_experiment_d_run_intent(path: Path) -> None:
+    path.unlink()
+    _fsync_directory(path.parent)
+
+
+def _v211_long_context_preflight_run_intent_path(
+    checkpoint_path: Path,
+) -> Path:
+    return checkpoint_path.with_suffix(
+        checkpoint_path.suffix + ".run-intent.json"
+    )
+
+
+def _v211_long_context_preflight_run_intent(
+    *,
+    config: VerifiedRunConfig,
+    llm: MultiModelLLM,
+    checkpoint_path: Path,
+    journal_path: Path,
+) -> dict[str, Any]:
+    value = {
+        "schema_version": (
+            V211_LONG_CONTEXT_PREFLIGHT_RUN_INTENT_SCHEMA_VERSION
+        ),
+        "checkpoint_schema_version": PILOT_CHECKPOINT_SCHEMA_VERSION_V4,
+        "checkpoint_purpose": (
+            V211_LONG_CONTEXT_PREFLIGHT_CHECKPOINT_PURPOSE
+        ),
+        "run_id_sha256": _identity_sha256(config.run_id),
+        "run_config_sha256": canonical_hash(config.to_dict()),
+        "pilot_contract_hash": config.pilot_contract_hash,
+        "model_identity_sha256": _identity_sha256(llm.get_model_name()),
+        "checkpoint_path_sha256": _identity_sha256(str(checkpoint_path)),
+        "journal_path_sha256": _identity_sha256(str(journal_path)),
+        "code_binding_hash": canonical_hash(current_code_binding()),
+        "num_agents": V211_LONG_CONTEXT_PREFLIGHT_AGENTS,
+        "completed_months": V211_LONG_CONTEXT_PREFLIGHT_MONTHS,
+        "action_call_count": V211_LONG_CONTEXT_PREFLIGHT_ACTION_CALLS,
+        "semantic_call_count": V211_LONG_CONTEXT_PREFLIGHT_SEMANTIC_CALLS,
+        "provider_call_count": V211_LONG_CONTEXT_PREFLIGHT_PROVIDER_CALLS,
+        "prompt_token_upper_bound_method": (
+            PROMPT_TIER_UPPER_BOUND_METHOD
+        ),
+        "prompt_tier_ceiling_tokens": 200_000,
+    }
+    value["intent_sha256"] = canonical_hash(value)
+    return value
+
+
+def _verify_v211_long_context_preflight_run_intent(
+    path: Path,
+    *,
+    expected: Mapping[str, Any],
+) -> None:
+    try:
+        observed = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise PilotCheckpointError(
+            "V2.11 long-context preflight run intent is unreadable; "
+            "refusing dispatch"
+        ) from exc
+    if not isinstance(observed, Mapping) or observed != expected:
+        raise PilotCheckpointError(
+            "V2.11 long-context preflight run intent binding differs; "
+            "refusing dispatch"
+        )
+    body = dict(observed)
+    claimed = body.pop("intent_sha256", None)
+    if (
+        claimed != canonical_hash(body)
+        or observed.get("schema_version")
+        != V211_LONG_CONTEXT_PREFLIGHT_RUN_INTENT_SCHEMA_VERSION
+    ):
+        raise PilotCheckpointError(
+            "V2.11 long-context preflight run intent hash/schema is invalid"
+        )
+
+
+def _create_v211_long_context_preflight_run_intent(
+    path: Path,
+    *,
+    payload: Mapping[str, Any],
+) -> None:
+    _create_experiment_d_run_intent(path, payload=payload)
+
+
+def _remove_v211_long_context_preflight_run_intent(path: Path) -> None:
+    path.unlink()
+    _fsync_directory(path.parent)
+
+
+def build_v211_long_context_preflight_checkpoint(
+    config: VerifiedRunConfig,
+    *,
+    llm: MultiModelLLM,
+    budget: RunBudget,
+    env_config_source: Mapping[str, Any] | str | Path,
+    checkpoint_path: str | Path,
+    call_journal_path: str | Path,
+    resume: bool = False,
+) -> PilotCheckpoint:
+    """Build or resume the exact V2.11 2-agent x 12-month preflight.
+
+    The durable run intent is sealed before the first provider dispatch.  A
+    journal or intent without a sealed checkpoint is an integrity stop, never
+    permission to replay paid calls.  A sealed checkpoint can only be resumed
+    with the same config, environment, model, code, and terminal journal.
+    """
+
+    checkpoint_target = Path(checkpoint_path).resolve()
+    journal_target = Path(call_journal_path).resolve()
+    intent_target = _v211_long_context_preflight_run_intent_path(
+        checkpoint_target
+    )
+    if checkpoint_target == journal_target:
+        raise ValueError("checkpoint and provider journal paths must differ")
+    if intent_target == journal_target:
+        raise ValueError("run intent and provider journal paths must differ")
+    if not isinstance(resume, bool):
+        raise TypeError("resume must be a boolean")
+    expected_intent = _v211_long_context_preflight_run_intent(
+        config=config,
+        llm=llm,
+        checkpoint_path=checkpoint_target,
+        journal_path=journal_target,
+    )
+
+    if checkpoint_target.exists():
+        if not resume:
+            raise ValueError(
+                "V2.11 long-context preflight checkpoint already exists; "
+                "pass resume=True instead of redispatching"
+            )
+        checkpoint = PilotCheckpoint.read_json(checkpoint_target)
+        if (
+            checkpoint.payload["schema_version"]
+            != PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+            or checkpoint.payload.get("checkpoint_purpose")
+            != V211_LONG_CONTEXT_PREFLIGHT_CHECKPOINT_PURPOSE
+        ):
+            raise PilotCheckpointError(
+                "resume target is not a V2.11 long-context preflight "
+                "checkpoint"
+            )
+        if checkpoint.payload["run_config"] != config.to_dict():
+            raise PilotCheckpointError(
+                "resume config differs from the sealed V2.11 checkpoint"
+            )
+        expected_foundation_config = prepare_foundation_env_config(
+            env_config_source,
+            n_agents=config.num_agents,
+            episode_length=config.episode_length,
+            labor_step=config.labor_step,
+            max_labor_hours=config.max_labor_hours,
+            consumption_step=config.consumption_step,
+        )
+        if (
+            checkpoint.payload["foundation_env_config"]
+            != expected_foundation_config
+        ):
+            raise PilotCheckpointError(
+                "resume environment differs from the sealed V2.11 checkpoint"
+            )
+        if checkpoint.payload["code_binding"] != current_code_binding():
+            raise PilotCheckpointError(
+                "resume checkpoint code binding differs from current code"
+            )
+        provider_binding = checkpoint.payload.get("provider_binding")
+        if (
+            not isinstance(provider_binding, Mapping)
+            or provider_binding.get("model_name") != llm.get_model_name()
+        ):
+            raise PilotCheckpointError(
+                "resume provider model differs from the sealed V2.11 "
+                "checkpoint"
+            )
+        binding = checkpoint.payload["provider_call_journal_binding"]
+        if (
+            not journal_target.exists()
+            or binding.get("path_name") != journal_target.name
+        ):
+            raise PilotCheckpointError(
+                "resume provider journal path is missing or mismatched"
+            )
+        journal = verify_provider_call_journal(
+            journal_target,
+            expected_run_id=config.run_id,
+            expected_contract_hash=config.pilot_contract_hash,
+            require_terminal_dispositions=True,
+        )
+        if (
+            journal["journal_sha256"] != binding.get("journal_sha256")
+            or len(journal["events"])
+            != V211_LONG_CONTEXT_PREFLIGHT_PROVIDER_CALLS * 2
+        ):
+            raise PilotCheckpointError(
+                "resume provider journal differs from the sealed V2.11 "
+                "binding"
+            )
+        if intent_target.exists():
+            _verify_v211_long_context_preflight_run_intent(
+                intent_target,
+                expected=expected_intent,
+            )
+            _remove_v211_long_context_preflight_run_intent(intent_target)
+        return checkpoint
+
+    if intent_target.exists():
+        raise PilotCheckpointError(
+            "V2.11 long-context preflight run intent exists without a sealed "
+            "checkpoint; refusing to redispatch"
+        )
+    if journal_target.exists():
+        raise PilotCheckpointError(
+            "V2.11 long-context preflight journal exists without a sealed "
+            "checkpoint; refusing to redispatch settled calls"
+        )
+    _create_v211_long_context_preflight_run_intent(
+        intent_target,
+        payload=expected_intent,
+    )
+    checkpoint = build_pilot_checkpoint(
+        config,
+        llm=llm,
+        budget=budget,
+        env_config_source=env_config_source,
+        prefix_periods=V211_LONG_CONTEXT_PREFLIGHT_MONTHS,
+        _schema_version=PILOT_CHECKPOINT_SCHEMA_VERSION_V4,
+        _checkpoint_purpose=(
+            V211_LONG_CONTEXT_PREFLIGHT_CHECKPOINT_PURPOSE
+        ),
+        _call_journal_path=journal_target,
+        _run_intent_path=intent_target,
+        _run_intent_binding=expected_intent,
+    )
+    _atomic_write_checkpoint(checkpoint_target, checkpoint)
+    _remove_v211_long_context_preflight_run_intent(intent_target)
+    return checkpoint
+
+
+def build_experiment_d_shared_prefix_checkpoint(
+    config: VerifiedRunConfig,
+    *,
+    llm: MultiModelLLM,
+    budget: RunBudget,
+    env_config_source: Mapping[str, Any] | str | Path,
+    checkpoint_path: str | Path,
+    call_journal_path: str | Path,
+    resume: bool = False,
+) -> PilotCheckpoint:
+    """Build or restore one journal-bound 4-agent Experiment-D prefix.
+
+    A terminal journal without its sealed checkpoint is an integrity failure,
+    not permission to replay paid calls.  Conversely, a successful ``resume``
+    reads and validates both artifacts without touching the provider or budget.
+    """
+
+    checkpoint_target = Path(checkpoint_path).resolve()
+    journal_target = Path(call_journal_path).resolve()
+    intent_target = _experiment_d_run_intent_path(checkpoint_target)
+    if checkpoint_target == journal_target:
+        raise ValueError("checkpoint and provider journal paths must differ")
+    if intent_target == journal_target:
+        raise ValueError("run intent and provider journal paths must differ")
+    if not isinstance(resume, bool):
+        raise TypeError("resume must be a boolean")
+    expected_intent = _experiment_d_run_intent(
+        config=config,
+        llm=llm,
+        checkpoint_path=checkpoint_target,
+        journal_path=journal_target,
+    )
+
+    if checkpoint_target.exists():
+        if not resume:
+            raise ValueError(
+                "Experiment-D checkpoint already exists; pass resume=True "
+                "instead of redispatching"
+            )
+        checkpoint = PilotCheckpoint.read_json(checkpoint_target)
+        if (
+            checkpoint.payload["schema_version"]
+            != PILOT_CHECKPOINT_SCHEMA_VERSION_V3
+            or checkpoint.payload.get("checkpoint_purpose")
+            != EXPERIMENT_D_SHARED_PREFIX_CHECKPOINT_PURPOSE
+        ):
+            raise PilotCheckpointError(
+                "resume target is not an Experiment-D shared-prefix checkpoint"
+            )
+        if checkpoint.payload["run_config"] != config.to_dict():
+            raise PilotCheckpointError(
+                "resume config differs from the sealed Experiment-D checkpoint"
+            )
+        expected_foundation_config = prepare_foundation_env_config(
+            env_config_source,
+            n_agents=config.num_agents,
+            episode_length=config.episode_length,
+            labor_step=config.labor_step,
+            max_labor_hours=config.max_labor_hours,
+            consumption_step=config.consumption_step,
+        )
+        if (
+            checkpoint.payload["foundation_env_config"]
+            != expected_foundation_config
+        ):
+            raise PilotCheckpointError(
+                "resume environment differs from the sealed checkpoint"
+            )
+        if checkpoint.payload["code_binding"] != current_code_binding():
+            raise PilotCheckpointError(
+                "resume checkpoint code binding differs from current code"
+            )
+        provider_binding = checkpoint.payload.get("provider_binding")
+        if (
+            not isinstance(provider_binding, Mapping)
+            or provider_binding.get("model_name") != llm.get_model_name()
+        ):
+            raise PilotCheckpointError(
+                "resume provider model differs from the sealed checkpoint"
+            )
+        binding = checkpoint.payload["provider_call_journal_binding"]
+        if (
+            not journal_target.exists()
+            or binding.get("path_name") != journal_target.name
+        ):
+            raise PilotCheckpointError(
+                "resume provider journal path is missing or mismatched"
+            )
+        journal = verify_provider_call_journal(
+            journal_target,
+            expected_run_id=config.run_id,
+            expected_contract_hash=config.pilot_contract_hash,
+            require_terminal_dispositions=True,
+        )
+        if journal["journal_sha256"] != binding.get("journal_sha256"):
+            raise PilotCheckpointError(
+                "resume provider journal differs from the sealed binding"
+            )
+        if intent_target.exists():
+            _verify_experiment_d_run_intent(
+                intent_target,
+                expected=expected_intent,
+            )
+            _remove_experiment_d_run_intent(intent_target)
+        return checkpoint
+
+    if intent_target.exists():
+        raise PilotCheckpointError(
+            "Experiment-D run intent exists without a sealed checkpoint; "
+            "refusing to redispatch"
+        )
+    if journal_target.exists():
+        raise PilotCheckpointError(
+            "Experiment-D prefix journal exists without a sealed checkpoint; "
+            "refusing to redispatch settled calls"
+        )
+    _create_experiment_d_run_intent(
+        intent_target,
+        payload=expected_intent,
+    )
+    checkpoint = build_pilot_checkpoint(
+        config,
+        llm=llm,
+        budget=budget,
+        env_config_source=env_config_source,
+        prefix_periods=DEFAULT_BRANCH_DECISION_T,
+        _schema_version=PILOT_CHECKPOINT_SCHEMA_VERSION_V3,
+        _checkpoint_purpose=EXPERIMENT_D_SHARED_PREFIX_CHECKPOINT_PURPOSE,
+        _call_journal_path=journal_target,
+        _run_intent_path=intent_target,
+        _run_intent_binding=expected_intent,
+    )
+    _atomic_write_checkpoint(checkpoint_target, checkpoint)
+    _remove_experiment_d_run_intent(intent_target)
+    return checkpoint
 
 
 def restore_pilot_checkpoint(
@@ -3224,16 +4484,243 @@ def verify_closed_loop_preflight_checkpoint(
     return receipt
 
 
+def verify_v211_long_context_preflight_checkpoint(
+    checkpoint: PilotCheckpoint | Mapping[str, Any],
+    *,
+    call_journal_path: str | Path,
+    rng_preview_draws: int = 16,
+    strict_code_binding: bool = True,
+) -> dict[str, Any]:
+    """Restore the V2.11 preflight twice with zero provider calls.
+
+    Verification replays Foundation, memory, utility, prefix actions, and both
+    continuation RNG streams twice.  It also verifies the external 64-event
+    provider journal against the hash sealed in the checkpoint.
+    """
+
+    if not isinstance(checkpoint, PilotCheckpoint):
+        checkpoint = PilotCheckpoint.from_dict(checkpoint)
+    if (
+        checkpoint.payload["schema_version"]
+        != PILOT_CHECKPOINT_SCHEMA_VERSION_V4
+        or checkpoint.payload.get("checkpoint_purpose")
+        != V211_LONG_CONTEXT_PREFLIGHT_CHECKPOINT_PURPOSE
+    ):
+        raise PilotCheckpointError(
+            "V2.11 long-context exactness verification requires a v4 "
+            "long-context preflight checkpoint"
+        )
+    if (
+        isinstance(rng_preview_draws, bool)
+        or not isinstance(rng_preview_draws, int)
+        or rng_preview_draws < 1
+    ):
+        raise ValueError("rng_preview_draws must be a positive integer")
+
+    journal_target = Path(call_journal_path).resolve()
+    journal_binding = checkpoint.payload[
+        "provider_call_journal_binding"
+    ]
+    if journal_binding.get("path_name") != journal_target.name:
+        raise PilotCheckpointError(
+            "V2.11 verification journal path differs from the sealed binding"
+        )
+    journal = verify_provider_call_journal(
+        journal_target,
+        expected_run_id=checkpoint.payload["run_config"]["run_id"],
+        expected_contract_hash=checkpoint.payload["run_config"].get(
+            "pilot_contract_hash"
+        ),
+        require_terminal_dispositions=True,
+    )
+    completion_events = [
+        event
+        for event in journal["events"]
+        if event["event_type"] == "completion_received"
+    ]
+    disposition_events = [
+        event
+        for event in journal["events"]
+        if event["event_type"] == "parse_disposition"
+    ]
+    if (
+        journal["journal_sha256"]
+        != journal_binding.get("journal_sha256")
+        or len(journal["events"])
+        != V211_LONG_CONTEXT_PREFLIGHT_PROVIDER_CALLS * 2
+        or len(completion_events)
+        != V211_LONG_CONTEXT_PREFLIGHT_PROVIDER_CALLS
+        or len(disposition_events)
+        != V211_LONG_CONTEXT_PREFLIGHT_PROVIDER_CALLS
+    ):
+        raise PilotCheckpointError(
+            "V2.11 provider journal denominator/hash is not exact"
+        )
+
+    original_numpy_state = np.random.get_state()
+    original_python_state = random.getstate()
+    restored_rows: list[dict[str, Any]] = []
+    try:
+        for _ in range(2):
+            restored = restore_pilot_checkpoint(
+                checkpoint,
+                strict_code_binding=strict_code_binding,
+            )
+            current_numpy_state = encode_numpy_rng_state(
+                np.random.get_state()
+            )
+            current_python_state = encode_python_rng_state(
+                random.getstate()
+            )
+            memories = {
+                str(agent_id): memory.to_dict()
+                for agent_id, memory in restored.memories.items()
+            }
+            proposals = {
+                str(agent_id): count
+                for agent_id, count in restored.proposals_made.items()
+            }
+            last_decisions = {
+                agent_id: decision.to_dict()
+                for agent_id, decision in restored.last_decisions.items()
+            }
+            state = capture_environment_state(restored.env)
+            restored_rows.append(
+                {
+                    "environment_hash": canonical_hash(state),
+                    "foundation_agents_hash": canonical_hash(
+                        state["agents"]
+                    ),
+                    "memories_hash": canonical_hash(memories),
+                    "proposal_counters_hash": canonical_hash(proposals),
+                    "ledger_hash": canonical_hash(
+                        restored.ledger.records()
+                    ),
+                    "last_decisions_hash": canonical_hash(last_decisions),
+                    "prefix_hash": restored.prefix_hash,
+                    "prefix_actions_hash": canonical_hash(
+                        [
+                            step["foundation_actions"]
+                            for step in checkpoint.payload["prefix_steps"]
+                        ]
+                    ),
+                    "numpy_rng_state": current_numpy_state,
+                    "python_rng_state": current_python_state,
+                    "rng_preview": _continuation_rng_preview(
+                        numpy_state=current_numpy_state,
+                        python_state=current_python_state,
+                        draws=rng_preview_draws,
+                    ),
+                }
+            )
+    finally:
+        np.random.set_state(original_numpy_state)
+        random.setstate(original_python_state)
+
+    if restored_rows[0] != restored_rows[1]:
+        raise PilotCheckpointError(
+            "independent V2.11 checkpoint restores are not bit-exact"
+        )
+    row = restored_rows[0]
+    expected = {
+        "environment_hash": checkpoint.payload["previous_state_hash"],
+        "foundation_agents_hash": canonical_hash(
+            checkpoint.payload["previous_state"]["agents"]
+        ),
+        "memories_hash": checkpoint.payload["memories_hash"],
+        "proposal_counters_hash": checkpoint.payload[
+            "proposal_counters_hash"
+        ],
+        "ledger_hash": checkpoint.payload["ledger_hash"],
+        "last_decisions_hash": checkpoint.payload["last_decisions_hash"],
+        "prefix_hash": checkpoint.payload["prefix_hash"],
+        "prefix_actions_hash": checkpoint.payload["prefix_actions_hash"],
+        "numpy_rng_state": checkpoint.payload["numpy_rng_after_prefix"],
+        "python_rng_state": checkpoint.payload["python_rng_after_prefix"],
+    }
+    if {key: row[key] for key in expected} != expected:
+        raise PilotCheckpointError(
+            "restored V2.11 checkpoint components differ from sealed bindings"
+        )
+
+    receipt = {
+        "schema_version": (
+            "finevo-v2.11-long-context-preflight-exactness-receipt-v1"
+        ),
+        "checkpoint_schema_version": checkpoint.payload["schema_version"],
+        "checkpoint_purpose": checkpoint.payload["checkpoint_purpose"],
+        "checkpoint_hash": checkpoint.checkpoint_hash,
+        "num_agents": V211_LONG_CONTEXT_PREFLIGHT_AGENTS,
+        "completed_months": V211_LONG_CONTEXT_PREFLIGHT_MONTHS,
+        "provider_calls_during_verification": 0,
+        "verified_components": {
+            "foundation_environment_and_agents": True,
+            "foundation_reset_and_step_rng": True,
+            "dual_track_agent_memories": True,
+            "four_proposal_attempts_per_agent": True,
+            "utility_ledger_24_rows": True,
+            "previous_state": True,
+            "prefix_12_actions_and_hash": True,
+            "last_decisions": True,
+            "continuation_rng_equality": True,
+            "provider_32_call_denominator": True,
+            "provider_24_action_8_semantic_split": True,
+            "provider_usage_cost_route_finish_dispatch": True,
+            "exact_actions_record_skip_semantics_and_task_caps": True,
+            "prompt_short_tier_bounds": True,
+            "semantic_proposal_outcomes": True,
+            "provider_budget_reconciliation": True,
+            "provider_call_journal_64_events": True,
+        },
+        "component_hashes": {
+            key: value
+            for key, value in expected.items()
+            if key not in {"numpy_rng_state", "python_rng_state"}
+        },
+        "rng_binding_hash": checkpoint.payload["rng_binding_hash"],
+        "provider_calls_hash": checkpoint.payload["provider_calls_hash"],
+        "proposal_outcomes_hash": checkpoint.payload[
+            "proposal_outcomes_hash"
+        ],
+        "provider_totals_hash": checkpoint.payload[
+            "provider_totals_hash"
+        ],
+        "budget_snapshot_hash": checkpoint.payload[
+            "budget_snapshot_hash"
+        ],
+        "provider_call_journal_binding_hash": checkpoint.payload[
+            "provider_call_journal_binding_hash"
+        ],
+        "provider_journal_sha256": journal["journal_sha256"],
+        "provider_journal_event_count": len(journal["events"]),
+        "provider_denominator": _json_copy(
+            checkpoint.payload["provider_denominator"]
+        ),
+        "continuation_rng_preview_hash": row["rng_preview"][
+            "preview_hash"
+        ],
+        "rng_preview_draws": rng_preview_draws,
+    }
+    receipt["receipt_hash"] = canonical_hash(receipt)
+    return receipt
+
+
 __all__ = [
     "CLOSED_LOOP_PREFLIGHT_CHECKPOINT_PURPOSE",
     "DEFAULT_BRANCH_DECISION_T",
+    "EXPERIMENT_D_SHARED_PREFIX_CHECKPOINT_PURPOSE",
     "PILOT_CHECKPOINT_SCHEMA_VERSION",
     "PILOT_CHECKPOINT_SCHEMA_VERSION_V2",
+    "PILOT_CHECKPOINT_SCHEMA_VERSION_V3",
+    "PILOT_CHECKPOINT_SCHEMA_VERSION_V4",
     "PilotCheckpoint",
     "PilotCheckpointError",
+    "PilotCheckpointProviderFailure",
     "RestoredPilotState",
     "build_closed_loop_preflight_checkpoint",
+    "build_experiment_d_shared_prefix_checkpoint",
     "build_pilot_checkpoint",
+    "build_v211_long_context_preflight_checkpoint",
     "canonical_hash",
     "capture_environment_state",
     "config_from_dict",
@@ -3244,4 +4731,12 @@ __all__ = [
     "verify_checkpoint_code_binding_from_annotated_tag",
     "verify_closed_loop_preflight_checkpoint",
     "verify_historical_closed_loop_preflight_checkpoint",
+    "verify_v211_long_context_preflight_checkpoint",
+    "V211_LONG_CONTEXT_PREFLIGHT_ACTION_CALLS",
+    "V211_LONG_CONTEXT_PREFLIGHT_AGENTS",
+    "V211_LONG_CONTEXT_PREFLIGHT_CHECKPOINT_PURPOSE",
+    "V211_LONG_CONTEXT_PREFLIGHT_MONTHS",
+    "V211_LONG_CONTEXT_PREFLIGHT_PROVIDER_CALLS",
+    "V211_LONG_CONTEXT_PREFLIGHT_RUN_INTENT_SCHEMA_VERSION",
+    "V211_LONG_CONTEXT_PREFLIGHT_SEMANTIC_CALLS",
 ]

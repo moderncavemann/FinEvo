@@ -76,6 +76,7 @@ PILOT_CONTRACT_ID_V2_9 = "finevo-pilot-v2.9"
 PILOT_CONTRACT_ID_V2_10 = "finevo-pilot-v2.10"
 PILOT_CONTRACT_ID_V2_10_1 = "finevo-pilot-v2.10.1"
 PILOT_CONTRACT_ID_V2_10_2 = "finevo-pilot-v2.10.2"
+PILOT_CONTRACT_ID_V2_11 = "finevo-pilot-v2.11"
 PILOT_CONTRACT_TAG_V2 = "pilot-v2-science"
 PILOT_CONTRACT_TAG_V2_1 = "pilot-v2.1-science"
 PILOT_CONTRACT_TAG_V2_2 = "pilot-v2.2-science"
@@ -89,6 +90,7 @@ PILOT_CONTRACT_TAG_V2_9 = "pilot-v2.9-science"
 PILOT_CONTRACT_TAG_V2_10 = "pilot-v2.10-science"
 PILOT_CONTRACT_TAG_V2_10_1 = "pilot-v2.10.1-science"
 PILOT_CONTRACT_TAG_V2_10_2 = "pilot-v2.10.2-science"
+PILOT_CONTRACT_TAG_V2_11 = "pilot-v2.11-science"
 _PILOT_V2_4_AUTHORIZED_HARD_CAP_USD = 500.0
 _PILOT_V2_4_HOSTED_STAGE_CAP_USD = 495.787229125
 _PILOT_V2_4_HARD_CAP_STATUS = "authorized-explicit-user-2026-07-27"
@@ -177,6 +179,9 @@ PILOT_V2_10_1_SOURCE_MANIFEST_CONTENT_SHA256: Optional[str] = (
 # exact V2.10.1 terminal lineage, and immutable source manifest.
 PILOT_CONTRACT_V2_10_2_CANONICAL_SHA256: Optional[str] = (
     "b8de8cfb2560d894dad65d68df8ae9126527d12d3807bef045fa52f5e9d4159e"
+)
+PILOT_CONTRACT_V2_11_CANONICAL_SHA256: Optional[str] = (
+    "d65a60ccab684654979fce598f013b72c813f36f5d40d6063b81ac87557c2c36"
 )
 PILOT_V2_10_2_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = (
     "f1d953f5b39ab1032ffeb37b73db7c80d54296fba046eddf7e2485e4dc1cc2bd"
@@ -440,6 +445,12 @@ _SCIENCE_TASK_CAPS = {
     "capability-choice": (2048, 512),
     "capability-proposal": (4096, 4096),
     "actor-action": (2048, 1024),
+    "semantic-proposal": (4096, 4096),
+}
+_SCIENCE_TASK_CAPS_V2_11 = {
+    "capability-choice": (4096, 512),
+    "capability-proposal": (4096, 4096),
+    "actor-action": (4096, 1024),
     "semantic-proposal": (4096, 4096),
 }
 
@@ -801,23 +812,18 @@ class TaskOutputContract:
     def __post_init__(self) -> None:
         task_id = _text(self.task_id, "task output contract task_id")
         object.__setattr__(self, "task_id", task_id)
-        expected = _SCIENCE_TASK_CAPS.get(task_id)
-        if expected is None:
+        if task_id not in _SCIENCE_TASK_CAPS:
             raise PilotContractError(f"unknown science task output contract: {task_id}")
-        cap = _integer(
+        _integer(
             self.max_completion_tokens,
             f"{task_id}.max_completion_tokens",
             minimum=1,
         )
-        byte_limit = _integer(
+        _integer(
             self.max_visible_json_bytes,
             f"{task_id}.max_visible_json_bytes",
             minimum=2,
         )
-        if (cap, byte_limit) != expected:
-            raise PilotContractError(
-                f"{task_id} output limits differ from the frozen V2 task cap"
-            )
         if not _boolean(
             self.visible_token_count_required,
             f"{task_id}.visible_token_count_required",
@@ -1124,6 +1130,7 @@ class ReleaseRequirements:
             PILOT_CONTRACT_TAG_V2_10,
             PILOT_CONTRACT_TAG_V2_10_1,
             PILOT_CONTRACT_TAG_V2_10_2,
+            PILOT_CONTRACT_TAG_V2_11,
         }:
             raise PilotContractError(
                 "V2 release tag must be a registered annotated science tag"
@@ -5220,6 +5227,393 @@ def _validate_v2_10_2_p95_consumer_adapter_retry_amendment(
     return _freeze_json(amendment)
 
 
+def _v2_11_expected_forward_boundary() -> dict[str, Any]:
+    """Exact prospective boundary for the fresh hosted-model denominator."""
+
+    return {
+        "schema_version": (
+            "finevo-pilot-v2.11-hosted-model-boundary-v1"
+        ),
+        "source_manifest": {
+            "path": "experiments/pilot_v2_11_source_manifest.json",
+            "schema_version": "finevo-pilot-v2.11-source-manifest-v1",
+            "file_sha256": (
+                "950f115959ace359984d99285aec60ba794162e666d7ea7c36ec56d6f3d76c1d"
+            ),
+            "content_sha256": (
+                "cea1a1b134f89b98ff515b4deead492f738a9df1b9aa8f2c9b891dce5afab48f"
+            ),
+        },
+        "parent": {
+            "contract_id": PILOT_CONTRACT_ID_V2_10_2,
+            "contract_sha256": (
+                "b8de8cfb2560d894dad65d68df8ae9126527d12d3807bef045fa52f5e9d4159e"
+            ),
+            "science_commit": "2dcc20f8dccc7a6a94a60a00d7f3750a9d61396d",
+            "science_tag": PILOT_CONTRACT_TAG_V2_10_2,
+            "run_ledger_internal_sha256": (
+                "2219a832b9a7dfe235b32db882e126bddc36938f4f201a2ab84ddea6878bb809"
+            ),
+            "budget_ledger_internal_sha256": (
+                "73b1bac2a424147cbfa88bdb4e351d6c924b6e82847050f7cb1d254fe1ea4068"
+            ),
+            "q_ref_content_sha256": (
+                "50d75c846c5e9d2b58fb92faf674da8a06ebb3b0ba7f21a6b1b2ad689034c40c"
+            ),
+            "stage0_selection_content_sha256": (
+                "68c810055fc38683d3a8a7d597c54ffed4fb2c6332c2c02e1964b3ebfb61743c"
+            ),
+        },
+        "calibration_allowlist": {
+            "q_ref": 63.50397933257746,
+            "utility_profile_id": "nu-0.5",
+            "utility_profile": {
+                "rho": 1.0,
+                "labor_weight": 2.0,
+                "inverse_frisch": 0.5,
+                "consumption_scale_multiplier_of_q_ref": 1.0,
+                "discount_factor": 0.99,
+            },
+            "absolute_flow_utility_threshold": 0.05617208967516696,
+        },
+        "parent_budget_debit": {
+            "schema_version": "finevo-parent-budget-debit-v1",
+            "parent_contract_sha256": (
+                "b8de8cfb2560d894dad65d68df8ae9126527d12d3807bef045fa52f5e9d4159e"
+            ),
+            "parent_run_ledger_sha256": (
+                "2219a832b9a7dfe235b32db882e126bddc36938f4f201a2ab84ddea6878bb809"
+            ),
+            "parent_budget_ledger_sha256": (
+                "73b1bac2a424147cbfa88bdb4e351d6c924b6e82847050f7cb1d254fe1ea4068"
+            ),
+            "stage_bucket": "parent_v2102",
+            "cost_usd": 16.044922812500005,
+            "hosted_completions": 816,
+            "storage_bytes": 217010835,
+            "record_sha256": (
+                "c841dc4cbdfdb548c6917fbb2670c31ba3759f3d4f52ffb0fbb5b9d8bcbbc74d"
+            ),
+        },
+        "import_policy": {
+            "imported_effect_cells": 0,
+            "effect_metrics_observed": False,
+            "effect_artifact_paths": [],
+            "imported_p95_authorities": [],
+            "provider_construction_during_import": False,
+            "provider_calls_during_import": 0,
+        },
+        "interface": {
+            "max_completion_tokens_by_role": {
+                task_id: limits[0]
+                for task_id, limits in _SCIENCE_TASK_CAPS_V2_11.items()
+            },
+            "prompt_token_tier_ceiling": 200000,
+            "prompt_token_upper_bound_method": "utf8-bytes-plus-256-v1",
+            "prompt_token_ceiling_comparison": (
+                "reject-upper-bound-greater-than-or-equal-to-ceiling"
+            ),
+            "reserve_multiplier": 1.25,
+            "minimum_action_samples_per_model": 48,
+            "minimum_semantic_samples_per_model": 14,
+            "minimum_raw_p95_headroom_fraction": 0.25,
+            "adaptive_cap_increase": "forbidden-new-amendment-required",
+        },
+        "matrix": {
+            "ledger_cells": 136,
+            "operational_cells": 5,
+            "scientific_cells": 131,
+            "hosted_provider_calls": 5940,
+            "action_calls": 4944,
+            "semantic_calls": 996,
+            "stage_ledger_cells": {
+                "parent-import": 1,
+                "capability-gate": 2,
+                "long-context-preflight": 2,
+                "experiment-c": 25,
+                "experiment-a": 20,
+                "experiment-d": 55,
+                "experiment-b": 25,
+                "cross-model": 6,
+            },
+            "matrix_shrink_after_preflight": False,
+        },
+        "paid_provenance": {
+            "draft_dispatch_allowed": False,
+            "required_annotated_tag": PILOT_CONTRACT_TAG_V2_11,
+            "fresh_capability_and_preflight_required": True,
+            "historical_effect_reclassification": False,
+        },
+    }
+
+
+def _validate_v2_11_forward_boundary(value: Any) -> Mapping[str, Any]:
+    boundary = _mapping(value, "v211_forward_boundary")
+    expected = _v2_11_expected_forward_boundary()
+    _strict_keys(
+        boundary,
+        required=set(expected),
+        name="v211_forward_boundary",
+    )
+    if _json_copy(boundary) != expected:
+        raise PilotContractError("V2.11 prospective forward boundary drifted")
+    return _freeze_json(boundary)
+
+
+def _v2_11_expected_model_roles() -> dict[str, Any]:
+    hosted_roles = [
+        "capability-choice",
+        "capability-proposal",
+        "actor-action",
+        "semantic-proposal",
+    ]
+    return {
+        "gpt52_main": {
+            "profile_id": "gpt52_main",
+            "role": "primary",
+            "dispatch_eligible": True,
+            "ineligibility_reason": None,
+            "allowed_stages": [
+                "capability-gate",
+                "long-context-preflight",
+                "experiment-c",
+                "experiment-a",
+                "experiment-d",
+                "experiment-b",
+            ],
+            "allowed_call_roles": [
+                *hosted_roles,
+                "offline-verifier",
+                "checkpoint-branch",
+            ],
+        },
+        "gpt56_diagnostic": {
+            "profile_id": "gpt56_diagnostic",
+            "role": "secondary_diagnostic",
+            "dispatch_eligible": True,
+            "ineligibility_reason": None,
+            "allowed_stages": [
+                "capability-gate",
+                "long-context-preflight",
+                "cross-model",
+            ],
+            "allowed_call_roles": hosted_roles,
+        },
+        "qref_scripted": {
+            "profile_id": "qref_scripted",
+            "role": "calibration_only",
+            "dispatch_eligible": True,
+            "ineligibility_reason": None,
+            "allowed_stages": ["parent-import"],
+            "allowed_call_roles": ["parent-authority-import"],
+        },
+    }
+
+
+def _v2_11_stage(
+    stage_id: str,
+    *,
+    model_id: str,
+    arms: Sequence[str],
+    seed_set: str,
+    prerequisites: Sequence[str],
+    call_roles: Sequence[str],
+    execution_mode: str = "actor_run",
+    narratives: Sequence[str] = ("none",),
+    budget_bucket: str = "hosted_v211",
+    num_agents: int = 4,
+    episode_length: int = 12,
+) -> dict[str, Any]:
+    return {
+        "stage_id": stage_id,
+        "enabled": True,
+        "budget_bucket": budget_bucket,
+        "num_agents": num_agents,
+        "episode_length": episode_length,
+        "seed_set": seed_set,
+        "utility_profiles": [
+            (
+                "provider-preflight-default"
+                if stage_id in {"parent-import", "capability-gate"}
+                else "stage0-selected"
+            )
+        ],
+        "shock_id": (
+            "baseline-3pct"
+            if stage_id in {"parent-import", "capability-gate"}
+            else "registered-rate-shock"
+        ),
+        "cells": [
+            {
+                "models": [model_id],
+                "arms": list(arms),
+                "narratives": list(narratives),
+                "execution_mode": execution_mode,
+            }
+        ],
+        "prerequisites": list(prerequisites),
+        "reuse": [],
+        "call_roles": list(call_roles),
+    }
+
+
+def _v2_11_expected_stages() -> list[dict[str, Any]]:
+    parent = _v2_11_stage(
+        "parent-import",
+        budget_bucket="parent_v2102",
+        model_id="qref_scripted",
+        arms=["parent-import"],
+        seed_set="preflight",
+        prerequisites=[],
+        call_roles=["parent-authority-import"],
+        execution_mode="parent_authority_import",
+        num_agents=2,
+        episode_length=1,
+    )
+    capability = _v2_11_stage(
+        "capability-gate",
+        model_id="gpt52_main",
+        arms=["capability-probe"],
+        seed_set="preflight",
+        prerequisites=["parent-import"],
+        call_roles=["capability-choice", "capability-proposal"],
+        execution_mode="capability_probe",
+        num_agents=2,
+        episode_length=1,
+    )
+    capability["cells"][0]["models"] = [
+        "gpt52_main",
+        "gpt56_diagnostic",
+    ]
+    preflight = _v2_11_stage(
+        "long-context-preflight",
+        model_id="gpt52_main",
+        arms=["closed-loop-preflight"],
+        seed_set="preflight",
+        prerequisites=["capability-gate"],
+        call_roles=["actor-action", "semantic-proposal"],
+        execution_mode="closed_loop_preflight",
+        num_agents=2,
+    )
+    preflight["cells"][0]["models"] = [
+        "gpt52_main",
+        "gpt56_diagnostic",
+    ]
+    experiment_c = _v2_11_stage(
+        "experiment-c",
+        model_id="gpt52_main",
+        arms=[
+            "full",
+            "unverified-dual",
+            "verified-error-candidate",
+            "verified-error-forced",
+            "unverified-error-forced",
+        ],
+        seed_set="main",
+        prerequisites=["long-context-preflight"],
+        call_roles=[
+            "actor-action",
+            "semantic-proposal",
+            "offline-verifier",
+        ],
+    )
+    experiment_a = _v2_11_stage(
+        "experiment-a",
+        model_id="gpt52_main",
+        arms=["no-context", "prompt-only", "retrieval-only", "full"],
+        seed_set="main",
+        prerequisites=["experiment-c"],
+        call_roles=["actor-action", "semantic-proposal"],
+    )
+    experiment_d = _v2_11_stage(
+        "experiment-d",
+        model_id="gpt52_main",
+        arms=[
+            "matched-a",
+            "matched-b",
+            "no-memory",
+            "shuffled-episodic",
+            "wrong-context",
+            "error-verified",
+            "error-unverified",
+        ],
+        seed_set="main",
+        prerequisites=["experiment-c", "experiment-a"],
+        call_roles=[
+            "actor-action",
+            "semantic-proposal",
+            "checkpoint-branch",
+        ],
+        execution_mode="checkpoint_continuation",
+    )
+    experiment_d["cells"].append(
+        {
+            "models": ["gpt52_main"],
+            "arms": ["narrative-content"],
+            "narratives": ["none", "aligned", "paraphrase", "opposite"],
+            "execution_mode": "checkpoint_continuation",
+        }
+    )
+    experiment_b = _v2_11_stage(
+        "experiment-b",
+        model_id="gpt52_main",
+        arms=[
+            "no-memory",
+            "episodic-only",
+            "semantic-only",
+            "unverified-dual",
+            "full",
+        ],
+        seed_set="main",
+        prerequisites=["experiment-d"],
+        call_roles=["actor-action", "semantic-proposal"],
+    )
+    cross_model = _v2_11_stage(
+        "cross-model",
+        model_id="gpt56_diagnostic",
+        arms=["full", "no-memory"],
+        seed_set="cross-model",
+        prerequisites=["long-context-preflight", "experiment-b"],
+        call_roles=["actor-action", "semantic-proposal"],
+    )
+    return [
+        parent,
+        capability,
+        preflight,
+        experiment_c,
+        experiment_a,
+        experiment_d,
+        experiment_b,
+        cross_model,
+    ]
+
+
+def _v2_11_expected_non_claims() -> list[str]:
+    return [
+        (
+            "V2.10.2 remains an immutable complete-with-no-go denominator; "
+            "no V2.10.2 treatment effect or P95 authority is imported."
+        ),
+        (
+            "The parent-import cell performs zero provider calls and imports "
+            "only hash-bound calibration inputs and cumulative budget debit."
+        ),
+        (
+            "GPT-5.6 is a route/model-ID boundary without an immutable dated "
+            "weight snapshot or a model-specific matched A/A null."
+        ),
+        (
+            "The three-seed GPT-5.6 lane can support only a capability-qualified "
+            "directional small-pilot statement, never backbone independence."
+        ),
+        (
+            "The 4-agent by 12-month mechanism micro-pilot is not the "
+            "10x24x5 confirmatory pilot and does not support 100x240 claims."
+        ),
+        "No paid V2.11 dispatch is authorized while the contract status is draft.",
+    ]
+
+
 @dataclass(frozen=True, slots=True)
 class PilotContract:
     schema_version: str
@@ -5255,6 +5649,7 @@ class PilotContract:
     non_claims: tuple[str, ...]
     canonicalization: str
     declared_sha256: str
+    v211_forward_boundary: Optional[Mapping[str, Any]] = None
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "PilotContract":
@@ -5299,6 +5694,7 @@ class PilotContract:
             is_v2_10 = False
             is_v2_10_1 = False
             is_v2_10_2 = False
+            is_v2_11 = False
         elif schema_version == PILOT_CONTRACT_SCHEMA_VERSION_V2:
             fields = base_fields | v2_fields
             is_v2 = True
@@ -5315,6 +5711,7 @@ class PilotContract:
             is_v2_10 = contract_id == PILOT_CONTRACT_ID_V2_10
             is_v2_10_1 = contract_id == PILOT_CONTRACT_ID_V2_10_1
             is_v2_10_2 = contract_id == PILOT_CONTRACT_ID_V2_10_2
+            is_v2_11 = contract_id == PILOT_CONTRACT_ID_V2_11
             if is_v2_1:
                 fields = fields | {"operational_amendment"}
             elif is_v2_2:
@@ -5406,6 +5803,8 @@ class PilotContract:
                     fields = fields | {
                         "p95_consumer_adapter_retry_amendment",
                     }
+            elif is_v2_11:
+                fields = fields | {"v211_forward_boundary"}
         else:
             raise PilotContractError("unsupported pilot contract schema")
         _strict_keys(value, required=fields, name="pilot contract")
@@ -5423,6 +5822,7 @@ class PilotContract:
                 or is_v2_10
                 or is_v2_10_1
                 or is_v2_10_2
+                or is_v2_11
             )
             and value["status"] == "draft"
         ):
@@ -5501,6 +5901,14 @@ class PilotContract:
             raise PilotContractError(
                 "V2.10.2 cannot be frozen before its canonical hash and CI inventory"
             )
+        if (
+            is_v2_11
+            and value["status"] == "frozen"
+            and PILOT_CONTRACT_V2_11_CANONICAL_SHA256 is None
+        ):
+            raise PilotContractError(
+                "V2.11 cannot be frozen before its canonical hash and CI inventory"
+            )
         if is_v2 and value["contract_id"] not in {
             PILOT_CONTRACT_ID_V2,
             PILOT_CONTRACT_ID_V2_1,
@@ -5515,6 +5923,7 @@ class PilotContract:
             PILOT_CONTRACT_ID_V2_10,
             PILOT_CONTRACT_ID_V2_10_1,
             PILOT_CONTRACT_ID_V2_10_2,
+            PILOT_CONTRACT_ID_V2_11,
         }:
             raise PilotContractError("unsupported V2 contract_id")
         if (
@@ -5567,42 +5976,46 @@ class PilotContract:
         _boolean(implementation["require_clean_worktree"], "require_clean_worktree")
         if is_v2:
             expected_tag = (
-                PILOT_CONTRACT_TAG_V2_10_2
-                if is_v2_10_2
+                PILOT_CONTRACT_TAG_V2_11
+                if is_v2_11
                 else (
-                    PILOT_CONTRACT_TAG_V2_10_1
-                    if is_v2_10_1
+                    PILOT_CONTRACT_TAG_V2_10_2
+                    if is_v2_10_2
                     else (
-                        PILOT_CONTRACT_TAG_V2_10
-                        if is_v2_10
+                        PILOT_CONTRACT_TAG_V2_10_1
+                        if is_v2_10_1
                         else (
-                            PILOT_CONTRACT_TAG_V2_9
-                            if is_v2_9
+                            PILOT_CONTRACT_TAG_V2_10
+                            if is_v2_10
                             else (
-                                PILOT_CONTRACT_TAG_V2_8
-                                if is_v2_8
+                                PILOT_CONTRACT_TAG_V2_9
+                                if is_v2_9
                                 else (
-                                    PILOT_CONTRACT_TAG_V2_7
-                                    if is_v2_7
+                                    PILOT_CONTRACT_TAG_V2_8
+                                    if is_v2_8
                                     else (
-                                        PILOT_CONTRACT_TAG_V2_6
-                                        if is_v2_6
+                                        PILOT_CONTRACT_TAG_V2_7
+                                        if is_v2_7
                                         else (
-                                            PILOT_CONTRACT_TAG_V2_5
-                                            if is_v2_5
+                                            PILOT_CONTRACT_TAG_V2_6
+                                            if is_v2_6
                                             else (
-                                                PILOT_CONTRACT_TAG_V2_4
-                                                if is_v2_4
+                                                PILOT_CONTRACT_TAG_V2_5
+                                                if is_v2_5
                                                 else (
-                                                    PILOT_CONTRACT_TAG_V2_3
-                                                    if is_v2_3
+                                                    PILOT_CONTRACT_TAG_V2_4
+                                                    if is_v2_4
                                                     else (
-                                                        PILOT_CONTRACT_TAG_V2_2
-                                                        if is_v2_2
+                                                        PILOT_CONTRACT_TAG_V2_3
+                                                        if is_v2_3
                                                         else (
-                                                            PILOT_CONTRACT_TAG_V2_1
-                                                            if is_v2_1
-                                                            else PILOT_CONTRACT_TAG_V2
+                                                            PILOT_CONTRACT_TAG_V2_2
+                                                            if is_v2_2
+                                                            else (
+                                                                PILOT_CONTRACT_TAG_V2_1
+                                                                if is_v2_1
+                                                                else PILOT_CONTRACT_TAG_V2
+                                                            )
                                                         )
                                                     )
                                                 )
@@ -5646,6 +6059,7 @@ class PilotContract:
         p95_runner_binding_retry_amendment: Optional[Mapping[str, Any]] = None
         qref_receipt_verifier_retry_amendment: Optional[Mapping[str, Any]] = None
         p95_consumer_adapter_retry_amendment: Optional[Mapping[str, Any]] = None
+        v211_forward_boundary: Optional[Mapping[str, Any]] = None
         if is_v2:
             parameter_dispatch_policy = ParameterDispatchPolicy.from_dict(
                 _mapping(
@@ -5669,6 +6083,21 @@ class PilotContract:
                 raise PilotContractError(
                     "V2 task_output_contracts must define exactly four call roles"
                 )
+            expected_task_caps = (
+                _SCIENCE_TASK_CAPS_V2_11 if is_v2_11 else _SCIENCE_TASK_CAPS
+            )
+            actual_task_caps = {
+                task_id: (
+                    task.max_completion_tokens,
+                    task.max_visible_json_bytes,
+                )
+                for task_id, task in task_output_contracts.items()
+            }
+            if actual_task_caps != expected_task_caps:
+                raise PilotContractError(
+                    f"{value['contract_id']} task output limits differ from "
+                    "the contract-specific frozen caps"
+                )
             role_rows = _mapping(value["model_roles"], "model_roles")
             for profile_id, row in role_rows.items():
                 role = ModelRolePolicy.from_dict(
@@ -5686,42 +6115,46 @@ class PilotContract:
                 _mapping(value["release_requirements"], "release_requirements")
             )
             expected_tag = (
-                PILOT_CONTRACT_TAG_V2_10_2
-                if is_v2_10_2
+                PILOT_CONTRACT_TAG_V2_11
+                if is_v2_11
                 else (
-                    PILOT_CONTRACT_TAG_V2_10_1
-                    if is_v2_10_1
+                    PILOT_CONTRACT_TAG_V2_10_2
+                    if is_v2_10_2
                     else (
-                        PILOT_CONTRACT_TAG_V2_10
-                        if is_v2_10
+                        PILOT_CONTRACT_TAG_V2_10_1
+                        if is_v2_10_1
                         else (
-                            PILOT_CONTRACT_TAG_V2_9
-                            if is_v2_9
+                            PILOT_CONTRACT_TAG_V2_10
+                            if is_v2_10
                             else (
-                                PILOT_CONTRACT_TAG_V2_8
-                                if is_v2_8
+                                PILOT_CONTRACT_TAG_V2_9
+                                if is_v2_9
                                 else (
-                                    PILOT_CONTRACT_TAG_V2_7
-                                    if is_v2_7
+                                    PILOT_CONTRACT_TAG_V2_8
+                                    if is_v2_8
                                     else (
-                                        PILOT_CONTRACT_TAG_V2_6
-                                        if is_v2_6
+                                        PILOT_CONTRACT_TAG_V2_7
+                                        if is_v2_7
                                         else (
-                                            PILOT_CONTRACT_TAG_V2_5
-                                            if is_v2_5
+                                            PILOT_CONTRACT_TAG_V2_6
+                                            if is_v2_6
                                             else (
-                                                PILOT_CONTRACT_TAG_V2_4
-                                                if is_v2_4
+                                                PILOT_CONTRACT_TAG_V2_5
+                                                if is_v2_5
                                                 else (
-                                                    PILOT_CONTRACT_TAG_V2_3
-                                                    if is_v2_3
+                                                    PILOT_CONTRACT_TAG_V2_4
+                                                    if is_v2_4
                                                     else (
-                                                        PILOT_CONTRACT_TAG_V2_2
-                                                        if is_v2_2
+                                                        PILOT_CONTRACT_TAG_V2_3
+                                                        if is_v2_3
                                                         else (
-                                                            PILOT_CONTRACT_TAG_V2_1
-                                                            if is_v2_1
-                                                            else PILOT_CONTRACT_TAG_V2
+                                                            PILOT_CONTRACT_TAG_V2_2
+                                                            if is_v2_2
+                                                            else (
+                                                                PILOT_CONTRACT_TAG_V2_1
+                                                                if is_v2_1
+                                                                else PILOT_CONTRACT_TAG_V2
+                                                            )
                                                         )
                                                     )
                                                 )
@@ -5738,7 +6171,16 @@ class PilotContract:
                 raise PilotContractError(
                     "release tag differs from implementation contract version"
                 )
-            if is_v2_1:
+            if is_v2_11:
+                v211_forward_boundary = _validate_v2_11_forward_boundary(
+                    value["v211_forward_boundary"]
+                )
+                _validate_v2_1_expected_ci_state(
+                    release_requirements.expected_ci,
+                    status=str(value["status"]),
+                    name="release expected_ci",
+                )
+            elif is_v2_1:
                 operational_amendment = _validate_v2_1_operational_amendment(
                     value["operational_amendment"]
                 )
@@ -6155,6 +6597,7 @@ class PilotContract:
                 or is_v2_10
                 or is_v2_10_1
                 or is_v2_10_2
+                or is_v2_11
             ):
                 opus = profiles.get("opus48_no_go")
                 opus_role = model_roles.get("opus48_no_go")
@@ -6202,24 +6645,25 @@ class PilotContract:
                         f"JSON profile {profile_id} must explicitly dispatch "
                         "response_format"
                     )
-            local = profiles.get("llama33_local_controlled")
-            if (
-                local is None
-                or local.transport != "ollama"
-                or local.json_mode != "json_object"
-                or set(dict(local.artifact_identity))
-                != {
-                    "manifest_sha256",
-                    "model_layer_digest",
-                    "model_layer_size_bytes",
-                    "ollama_version",
-                    "adapter",
-                    "base_url",
-                }
-            ):
-                raise PilotContractError(
-                    "controlled local Llama must freeze JSON mode and runtime identity"
-                )
+            if not is_v2_11:
+                local = profiles.get("llama33_local_controlled")
+                if (
+                    local is None
+                    or local.transport != "ollama"
+                    or local.json_mode != "json_object"
+                    or set(dict(local.artifact_identity))
+                    != {
+                        "manifest_sha256",
+                        "model_layer_digest",
+                        "model_layer_size_bytes",
+                        "ollama_version",
+                        "adapter",
+                        "base_url",
+                    }
+                ):
+                    raise PilotContractError(
+                        "controlled local Llama must freeze JSON mode and runtime identity"
+                    )
 
         seeds = _mapping(value["seeds"], "seeds")
         _strict_keys(
@@ -6431,18 +6875,26 @@ class PilotContract:
                         or is_v2_10
                         or is_v2_10_1
                         or is_v2_10_2
+                        or is_v2_11
                     )
                     else 25.0
                 ),
                 "max_provider_completions": 7500,
                 "completion_scope": "hosted-api-only",
                 "max_storage_bytes": 5_000_000_000,
-                "automatic_reserve_usd": 1.0,
+                "automatic_reserve_usd": 0.0 if is_v2_11 else 1.0,
             }
             if any(budgets.get(key) != expected for key, expected in expected_budget.items()):
                 raise PilotContractError("V2 global budget limits drifted")
             caps = _mapping(budgets.get("stage_usd_caps"), "budgets.stage_usd_caps")
             expected_caps = (
+                {
+                    "parent_v2102": 16.044922812500005,
+                    "hosted_v211": 483.9550771875,
+                    "manual_reserve": 0.0,
+                }
+                if is_v2_11
+                else
                 {
                     "parent_v23": 3.212770875,
                     "local": 0.0,
@@ -6657,19 +7109,38 @@ class PilotContract:
                 _mapping(stop_go.get("capability"), "stop_go.capability")
             ) != expected_capability:
                 raise PilotContractError("V2 capability gate contract drifted")
-            expected_preflight = {
-                "action_parse_success": "12/12",
-                "semantic_proposals_all_accounted": True,
-                "clipping_count": 0,
-                "provider_failure_count": 0,
-                "route_metadata_complete": True,
-                "usage_metadata_complete": True,
-                "cost_metadata_complete": True,
-                "served_model_exact": True,
-                "provider_pin_exact": True,
-                "fallback_observed": False,
-                "attempts_per_request": 1,
-            }
+            expected_preflight = (
+                {
+                    "action_parse_success": "24/24",
+                    "semantic_proposal_outcomes_accounted": "8/8",
+                    "provider_rows": 32,
+                    "clipping_count": 0,
+                    "provider_failure_count": 0,
+                    "route_metadata_complete": True,
+                    "usage_metadata_complete": True,
+                    "cost_metadata_complete": True,
+                    "finish_reason_stop_required": True,
+                    "served_model_exact": True,
+                    "provider_pin_exact": True,
+                    "fallback_observed": False,
+                    "attempts_per_request": 1,
+                    "prompt_token_tier_ceiling": 200000,
+                }
+                if is_v2_11
+                else {
+                    "action_parse_success": "12/12",
+                    "semantic_proposals_all_accounted": True,
+                    "clipping_count": 0,
+                    "provider_failure_count": 0,
+                    "route_metadata_complete": True,
+                    "usage_metadata_complete": True,
+                    "cost_metadata_complete": True,
+                    "served_model_exact": True,
+                    "provider_pin_exact": True,
+                    "fallback_observed": False,
+                    "attempts_per_request": 1,
+                }
+            )
             if _json_copy(
                 _mapping(
                     stop_go.get("closed_loop_preflight"),
@@ -6699,18 +7170,23 @@ class PilotContract:
                 "failed_and_missing_runs_remain_in_itt_denominator": True,
             }:
                 raise PilotContractError("V2 core completeness policy drifted")
-            if _json_copy(
-                _mapping(stop_go.get("cross_model"), "stop_go.cross_model")
-            ) != {
+            expected_cross_model = {
                 "reportable_complete_pairs_min": 2,
                 "total_registered_pairs": 3,
                 "direction_replication_complete_pairs": 3,
                 "direction_replication_requires_capability_pass": True,
-                "seed_unsupported_directional_replication_requires_registered_matched_a_a_null": True,
-                "missing_matched_a_a_null_action": (
-                    "uncalibrated-diagnostic-no-registered-matched-a-a-null"
+                "seed_unsupported_directional_replication_requires_registered_matched_a_a_null": (
+                    not is_v2_11
                 ),
-            }:
+                "missing_matched_a_a_null_action": (
+                    "directional-only-no-model-specific-repeatability-null"
+                    if is_v2_11
+                    else "uncalibrated-diagnostic-no-registered-matched-a-a-null"
+                ),
+            }
+            if _json_copy(
+                _mapping(stop_go.get("cross_model"), "stop_go.cross_model")
+            ) != expected_cross_model:
                 raise PilotContractError("V2 cross-model stop/go drifted")
             if _json_copy(
                 _mapping(stop_go.get("global"), "stop_go.global")
@@ -6964,6 +7440,29 @@ class PilotContract:
                     raise PilotContractError(
                         f"model role {role.profile_id} references an unknown call role"
                     )
+        elif is_v2_11:
+            if [stage.to_dict() for stage in stages] != _v2_11_expected_stages():
+                raise PilotContractError(
+                    "V2.11 stages differ from the prospective 136-cell matrix"
+                )
+            if {
+                key: role.to_dict() for key, role in model_roles.items()
+            } != _v2_11_expected_model_roles():
+                raise PilotContractError("V2.11 active model roles drifted")
+            for role in model_roles.values():
+                if not set(role.allowed_stages) <= set(stage_ids):
+                    raise PilotContractError(
+                        f"model role {role.profile_id} references an unknown stage"
+                    )
+                if not set(role.allowed_call_roles) <= {
+                    *task_output_contracts,
+                    "offline-verifier",
+                    "checkpoint-branch",
+                    "parent-authority-import",
+                }:
+                    raise PilotContractError(
+                        f"model role {role.profile_id} references an unknown call role"
+                    )
         if is_v2 and not (
             is_v2_4
             or is_v2_5
@@ -6974,6 +7473,7 @@ class PilotContract:
             or is_v2_10
             or is_v2_10_1
             or is_v2_10_2
+            or is_v2_11
         ):
             expected_stage_order = (
                 "capability-gate",
@@ -7192,6 +7692,55 @@ class PilotContract:
                 raise PilotContractError(
                     "V2.4/V2.5/V2.6 denominator must contain exactly 211 registered cells"
                 )
+        elif is_v2_11:
+            if set(profiles) != {
+                "gpt52_main",
+                "gpt56_diagnostic",
+                "qref_scripted",
+            }:
+                raise PilotContractError(
+                    "V2.11 provider profiles must contain exactly the two "
+                    "fresh hosted routes and the zero-provider import route"
+                )
+            if _json_copy(arms.get("parent-import")) != (
+                _v2_4_expected_parent_import_arm()
+            ):
+                raise PilotContractError("V2.11 parent-import arm drifted")
+            if list(value["non_claims"]) != _v2_11_expected_non_claims():
+                raise PilotContractError("V2.11 non-claim boundary drifted")
+            registered_cells = sum(
+                len(normalized_seed_sets[stage.seed_set])
+                * len(stage.utility_profiles)
+                * sum(
+                    len(cell.models) * len(cell.arms) * len(cell.narratives)
+                    for cell in stage.cells
+                )
+                for stage in stages
+                if stage.enabled
+            )
+            if registered_cells != 136:
+                raise PilotContractError(
+                    "V2.11 denominator must contain exactly 136 registered cells"
+                )
+            operational_stage_ids = {
+                "parent-import",
+                "capability-gate",
+                "long-context-preflight",
+            }
+            scientific_cells = sum(
+                len(normalized_seed_sets[stage.seed_set])
+                * len(stage.utility_profiles)
+                * sum(
+                    len(cell.models) * len(cell.arms) * len(cell.narratives)
+                    for cell in stage.cells
+                )
+                for stage in stages
+                if stage.enabled and stage.stage_id not in operational_stage_ids
+            )
+            if scientific_cells != 131:
+                raise PilotContractError(
+                    "V2.11 denominator must contain exactly 131 scientific cells"
+                )
 
         integrity = _mapping(value["integrity"], "integrity")
         _strict_keys(
@@ -7261,6 +7810,12 @@ class PilotContract:
             and actual != PILOT_CONTRACT_V2_10_2_CANONICAL_SHA256
         ):
             raise PilotContractError("V2.10.2 frozen canonical hash drifted")
+        if (
+            is_v2_11
+            and value["status"] == "frozen"
+            and actual != PILOT_CONTRACT_V2_11_CANONICAL_SHA256
+        ):
+            raise PilotContractError("V2.11 frozen canonical hash drifted")
 
         non_claims = _string_tuple(value["non_claims"], "non_claims")
         return cls(
@@ -7313,6 +7868,7 @@ class PilotContract:
             p95_consumer_adapter_retry_amendment=(
                 p95_consumer_adapter_retry_amendment
             ),
+            v211_forward_boundary=v211_forward_boundary,
             non_claims=non_claims,
             canonicalization=integrity["canonicalization"],
             declared_sha256=declared,
@@ -7458,6 +8014,7 @@ class PilotContract:
             PILOT_CONTRACT_ID_V2_10,
             PILOT_CONTRACT_ID_V2_10_1,
             PILOT_CONTRACT_ID_V2_10_2,
+            PILOT_CONTRACT_ID_V2_11,
         }:
             if self.release_requirements is None:  # pragma: no cover - parser
                 raise PilotContractError(
@@ -7535,7 +8092,36 @@ class PilotContract:
                     "release_requirements": self.release_requirements.to_dict(),
                 }
             )
-            if self.contract_id == PILOT_CONTRACT_ID_V2_1:
+            if self.contract_id == PILOT_CONTRACT_ID_V2_11:
+                if self.v211_forward_boundary is None:
+                    raise PilotContractError(
+                        "V2.11 contract lacks its prospective forward boundary"
+                    )
+                if any(
+                    amendment is not None
+                    for amendment in (
+                        self.operational_amendment,
+                        self.evaluator_amendment,
+                        self.preflight_bootstrap_amendment,
+                        self.matrix_amendment,
+                        self.parent_import_retry_amendment,
+                        self.p95_authority_retry_amendment,
+                        self.stage0_evaluator_retry_amendment,
+                        self.qref_identity_retry_amendment,
+                        self.qref_summary_equivalence_amendment,
+                        self.p95_runner_binding_retry_amendment,
+                        self.qref_receipt_verifier_retry_amendment,
+                        self.p95_consumer_adapter_retry_amendment,
+                    )
+                ):
+                    raise PilotContractError(
+                        "V2.11 is independently canonicalized and cannot carry "
+                        "the V2.1-V2.10.2 amendment chain"
+                    )
+                result["v211_forward_boundary"] = _thaw_json(
+                    self.v211_forward_boundary
+                )
+            elif self.contract_id == PILOT_CONTRACT_ID_V2_1:
                 if self.operational_amendment is None:
                     raise PilotContractError(
                         "V2.1 contract lacks its operational amendment"
@@ -11735,7 +12321,53 @@ def load_pilot_contract(path: str | Path) -> PilotContract:
     ):
         document = _expand_v2_10_2_overlay(document, source=source)
     contract = PilotContract.from_dict(document)
-    if contract.contract_id == PILOT_CONTRACT_ID_V2_4:
+    if contract.contract_id == PILOT_CONTRACT_ID_V2_11:
+        if contract.v211_forward_boundary is None:  # pragma: no cover - parser
+            raise PilotContractError("V2.11 contract lacks its forward boundary")
+        binding = _mapping(
+            contract.v211_forward_boundary.get("source_manifest"),
+            "V2.11 source manifest binding",
+        )
+        manifest_path = source.parent / "pilot_v2_11_source_manifest.json"
+        try:
+            payload = manifest_path.read_bytes()
+        except OSError as exc:
+            raise PilotContractError(
+                "V2.11 source manifest is unavailable"
+            ) from exc
+        if hashlib.sha256(payload).hexdigest() != binding["file_sha256"]:
+            raise PilotContractError("V2.11 source manifest file hash drifted")
+        try:
+            manifest = _mapping(
+                json.loads(
+                    payload.decode("utf-8"),
+                    object_pairs_hook=reject_duplicate_keys,
+                    parse_constant=reject_nonfinite,
+                ),
+                "V2.11 source manifest",
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise PilotContractError(
+                "V2.11 source manifest is not canonical JSON"
+            ) from exc
+        integrity = _mapping(
+            manifest.get("integrity"),
+            "V2.11 source manifest integrity",
+        )
+        if (
+            binding.get("path")
+            != "experiments/pilot_v2_11_source_manifest.json"
+            or manifest.get("schema_version") != binding["schema_version"]
+            or integrity.get("canonicalization")
+            != PILOT_CONTRACT_CANONICALIZATION
+            or integrity.get("content_sha256") != binding["content_sha256"]
+        ):
+            raise PilotContractError("V2.11 source manifest identity drifted")
+        content_payload = _json_copy(manifest)
+        content_payload["integrity"].pop("content_sha256")
+        if canonical_sha256(content_payload) != binding["content_sha256"]:
+            raise PilotContractError("V2.11 source manifest content hash drifted")
+    elif contract.contract_id == PILOT_CONTRACT_ID_V2_4:
         if contract.matrix_amendment is None:  # pragma: no cover - parser guard
             raise PilotContractError("V2.4 contract lacks its matrix amendment")
         _validate_v2_4_parent_source_manifest_file(
@@ -12055,6 +12687,7 @@ __all__ = [
     "PILOT_CONTRACT_ID_V2_10",
     "PILOT_CONTRACT_ID_V2_10_1",
     "PILOT_CONTRACT_ID_V2_10_2",
+    "PILOT_CONTRACT_ID_V2_11",
     "PILOT_CONTRACT_TAG_V2",
     "PILOT_CONTRACT_TAG_V2_1",
     "PILOT_CONTRACT_TAG_V2_2",
@@ -12068,6 +12701,7 @@ __all__ = [
     "PILOT_CONTRACT_TAG_V2_10",
     "PILOT_CONTRACT_TAG_V2_10_1",
     "PILOT_CONTRACT_TAG_V2_10_2",
+    "PILOT_CONTRACT_TAG_V2_11",
     "PILOT_CONTRACT_V2_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_1_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_2_CANONICAL_SHA256",
@@ -12081,6 +12715,7 @@ __all__ = [
     "PILOT_CONTRACT_V2_10_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_10_1_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_10_2_CANONICAL_SHA256",
+    "PILOT_CONTRACT_V2_11_CANONICAL_SHA256",
     "PILOT_V2_9_SOURCE_MANIFEST_FILE_SHA256",
     "PILOT_V2_9_SOURCE_MANIFEST_CONTENT_SHA256",
     "PILOT_V2_10_SOURCE_MANIFEST_FILE_SHA256",

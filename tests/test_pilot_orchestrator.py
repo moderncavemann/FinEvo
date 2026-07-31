@@ -65,6 +65,9 @@ def _utility_fixture(contract, raw: Path) -> None:
         raw / "stage0-calibration" / "stage0_selection.json",
         {
             "schema_version": "finevo-stage0-selection-v1",
+            "contract_sha256": contract.canonical_hash,
+            "diagnostic_only": True,
+            "scientific_evidence": False,
             "selected_utility": {
                 "rho": 1.0,
                 "labor_weight": 2.0,
