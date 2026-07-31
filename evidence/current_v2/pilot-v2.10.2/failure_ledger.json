@@ -1,0 +1,1337 @@
+{
+  "contract_sha256": "b8de8cfb2560d894dad65d68df8ae9126527d12d3807bef045fa52f5e9d4159e",
+  "denominator": {
+    "all_completed_artifacts_validated": true,
+    "all_rows_present": true,
+    "all_rows_terminal": true,
+    "expected_count": 211,
+    "observed_ledger_count": 211,
+    "pass": true,
+    "status_counts": {
+      "complete": 126,
+      "failed": 85
+    }
+  },
+  "rows": [
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1099057501,
+      "failure": {
+        "details": {
+          "agent_id": 0,
+          "attempts": 1,
+          "call_kind": "action",
+          "decision_t": 10,
+          "error_stage": "action_parser",
+          "error_type": "ValueError",
+          "message": "action JSON is missing 'consumption'",
+          "model": "llama3.3:70b-instruct-q4_K_M",
+          "prompt_hash": "299a14075c7a46df74d478a950720b2faa7e84171c9fd4a1c80bb1d9c0c1ebd2",
+          "provider": "ollama",
+          "raw_output_hash": "eacb22ae5ac0eb34554f6734386a9521fefc34d302ec0b2cde6100fbecdfb333",
+          "schema_version": "verified-simulation-runner-v3"
+        },
+        "error_type": "VerifiedRunError",
+        "message": "action JSON is missing 'consumption'",
+        "message_bytes": 36,
+        "message_sha256": "fd6e2c7f43cf127535154bfd6294f21ed387f5053e7f36c7eff26116640f7fa5",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.2--local-experiment-c--llama33_local_controlled--unverified-error-forced--none--stage0-selected--s1099057501",
+      "stage_id": "local-experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "ValueError",
+        "message": "active rule family-1f2a11f104b6bcda272e:v1 does not satisfy activation invariants",
+        "message_bytes": 81,
+        "message_sha256": "adb117ed2b44c8aca0fd0057ba623dd33597b3c35771da2e75e6b6d488512781",
+        "message_truncated": false
+      },
+      "model_id": "llama33_local_controlled",
+      "run_id": "finevo-pilot-v2.10.2--local-experiment-a--llama33_local_controlled--retrieval-only--none--stage0-selected--s1421875452",
+      "stage_id": "local-experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "afe48449c3bfad7e8967c66d7ecf3b7a45fbf444ae20742f03ccc679eb506cf3",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--full--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=2, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "f4a25ab8652231f8ef466bb1b7ffa5893bc687ea41343eb3707c46333c9e78a9",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--full--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=0: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "89877a7d8ab1e6cd88c1838cb0ac2b7978f729ad58461deb80e7fd173451d310",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--full--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=0: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "89877a7d8ab1e6cd88c1838cb0ac2b7978f729ad58461deb80e7fd173451d310",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--full--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "afe48449c3bfad7e8967c66d7ecf3b7a45fbf444ae20742f03ccc679eb506cf3",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--full--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=3: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "bd44bb3fdb977b9de849e0af09e5c00211076a1a9cee8bc1d1a42a70086fab93",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=3: BadRequestError",
+        "message_bytes": 56,
+        "message_sha256": "a53b0132cb6a0042e4cda489f0827e37e2c92c50538c009e3073e3412ade2cc7",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=2, agent=1: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "f5127c63573db342e41d859ff8f52f877420cd1457e4182e5085e19315d91492",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=6, agent=0: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "dc10ad04763ae225079c8ff523d4b59cd66275fbf74e5f811193d726b637c09e",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=0: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "89877a7d8ab1e6cd88c1838cb0ac2b7978f729ad58461deb80e7fd173451d310",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=2, agent=1: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "f5127c63573db342e41d859ff8f52f877420cd1457e4182e5085e19315d91492",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=0: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "89877a7d8ab1e6cd88c1838cb0ac2b7978f729ad58461deb80e7fd173451d310",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=3: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "bd44bb3fdb977b9de849e0af09e5c00211076a1a9cee8bc1d1a42a70086fab93",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=3: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "bd44bb3fdb977b9de849e0af09e5c00211076a1a9cee8bc1d1a42a70086fab93",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=3, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "685fe3ec0927b8a719d9e5cfe9a27e140146b351f6b33244f0473c8ce578c592",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=2, agent=1: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "f5127c63573db342e41d859ff8f52f877420cd1457e4182e5085e19315d91492",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "89b2c0fa996a131d4b05350c999612059f6cc4290b9a8c6bbda276b3ce7a88e3",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s959809858",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=3: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "bd44bb3fdb977b9de849e0af09e5c00211076a1a9cee8bc1d1a42a70086fab93",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s617806385",
+      "stage_id": "experiment-c",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=3: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "10af96c33891b665bbfa240058e68f0c9e1a5206eac5c0c1537c80bd52a4581d",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--no-context--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=0: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "b4a1b2716f466ae842d58e7252b72401ee550593d370d2dec42143fbb89d81db",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--no-context--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=1: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "3026a1bdc4f51b36cc95f67e11b9b2a4f0363c50c50d35eaa467dc49de403fbd",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--no-context--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=0: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "b4a1b2716f466ae842d58e7252b72401ee550593d370d2dec42143fbb89d81db",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--no-context--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "afe48449c3bfad7e8967c66d7ecf3b7a45fbf444ae20742f03ccc679eb506cf3",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--no-context--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=3, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "685fe3ec0927b8a719d9e5cfe9a27e140146b351f6b33244f0473c8ce578c592",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "89b2c0fa996a131d4b05350c999612059f6cc4290b9a8c6bbda276b3ce7a88e3",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "afe48449c3bfad7e8967c66d7ecf3b7a45fbf444ae20742f03ccc679eb506cf3",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=3, agent=0: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "e6adba6aa5dc95586d4e313063bd848c6feafc882ade3f009fbf96d89aa1e23a",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "prompt-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "afe48449c3bfad7e8967c66d7ecf3b7a45fbf444ae20742f03ccc679eb506cf3",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=0: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "89877a7d8ab1e6cd88c1838cb0ac2b7978f729ad58461deb80e7fd173451d310",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=1: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "7e748065a7eeaa80572a3afe8ebccfe4e6f1081c376fd3c604b908eb8769c28f",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "89b2c0fa996a131d4b05350c999612059f6cc4290b9a8c6bbda276b3ce7a88e3",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=0: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "89877a7d8ab1e6cd88c1838cb0ac2b7978f729ad58461deb80e7fd173451d310",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=3: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "bd44bb3fdb977b9de849e0af09e5c00211076a1a9cee8bc1d1a42a70086fab93",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "afe48449c3bfad7e8967c66d7ecf3b7a45fbf444ae20742f03ccc679eb506cf3",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=3: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "bd44bb3fdb977b9de849e0af09e5c00211076a1a9cee8bc1d1a42a70086fab93",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--full--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=0: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "89877a7d8ab1e6cd88c1838cb0ac2b7978f729ad58461deb80e7fd173451d310",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--full--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=1: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "3026a1bdc4f51b36cc95f67e11b9b2a4f0363c50c50d35eaa467dc49de403fbd",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--full--none--stage0-selected--s959809858",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "afe48449c3bfad7e8967c66d7ecf3b7a45fbf444ae20742f03ccc679eb506cf3",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-a--gpt52_main--full--none--stage0-selected--s617806385",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=1, agent=3",
+        "message_bytes": 39,
+        "message_sha256": "2847b2f08c30691fc0d2b172711d8744d536008f6dab92ad38d27de36ebd13f0",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=0",
+        "message_bytes": 39,
+        "message_sha256": "c007d275fc7944f9c9fdd79f822318a92da61503f5fbe5606c25f27eb5bdf604",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=0",
+        "message_bytes": 39,
+        "message_sha256": "c007d275fc7944f9c9fdd79f822318a92da61503f5fbe5606c25f27eb5bdf604",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=1, agent=3",
+        "message_bytes": 39,
+        "message_sha256": "2847b2f08c30691fc0d2b172711d8744d536008f6dab92ad38d27de36ebd13f0",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--matched-a--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=1",
+        "message_bytes": 39,
+        "message_sha256": "13d5b9caa8373d42a1bb35066b131edebd10e603928da8b0421b14154af9fb0e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--matched-a--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=1, agent=3",
+        "message_bytes": 39,
+        "message_sha256": "2847b2f08c30691fc0d2b172711d8744d536008f6dab92ad38d27de36ebd13f0",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=0",
+        "message_bytes": 39,
+        "message_sha256": "c007d275fc7944f9c9fdd79f822318a92da61503f5fbe5606c25f27eb5bdf604",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=0",
+        "message_bytes": 39,
+        "message_sha256": "c007d275fc7944f9c9fdd79f822318a92da61503f5fbe5606c25f27eb5bdf604",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=1, agent=3",
+        "message_bytes": 39,
+        "message_sha256": "2847b2f08c30691fc0d2b172711d8744d536008f6dab92ad38d27de36ebd13f0",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--matched-b--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=1",
+        "message_bytes": 39,
+        "message_sha256": "13d5b9caa8373d42a1bb35066b131edebd10e603928da8b0421b14154af9fb0e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--matched-b--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=1, agent=3",
+        "message_bytes": 39,
+        "message_sha256": "2847b2f08c30691fc0d2b172711d8744d536008f6dab92ad38d27de36ebd13f0",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=0",
+        "message_bytes": 39,
+        "message_sha256": "c007d275fc7944f9c9fdd79f822318a92da61503f5fbe5606c25f27eb5bdf604",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=0",
+        "message_bytes": 39,
+        "message_sha256": "c007d275fc7944f9c9fdd79f822318a92da61503f5fbe5606c25f27eb5bdf604",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=1, agent=3",
+        "message_bytes": 39,
+        "message_sha256": "2847b2f08c30691fc0d2b172711d8744d536008f6dab92ad38d27de36ebd13f0",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--no-memory--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=1",
+        "message_bytes": 39,
+        "message_sha256": "13d5b9caa8373d42a1bb35066b131edebd10e603928da8b0421b14154af9fb0e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--no-memory--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=1, agent=3",
+        "message_bytes": 39,
+        "message_sha256": "2847b2f08c30691fc0d2b172711d8744d536008f6dab92ad38d27de36ebd13f0",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=0",
+        "message_bytes": 39,
+        "message_sha256": "c007d275fc7944f9c9fdd79f822318a92da61503f5fbe5606c25f27eb5bdf604",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=0",
+        "message_bytes": 39,
+        "message_sha256": "c007d275fc7944f9c9fdd79f822318a92da61503f5fbe5606c25f27eb5bdf604",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=1, agent=3",
+        "message_bytes": 39,
+        "message_sha256": "2847b2f08c30691fc0d2b172711d8744d536008f6dab92ad38d27de36ebd13f0",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=1",
+        "message_bytes": 39,
+        "message_sha256": "13d5b9caa8373d42a1bb35066b131edebd10e603928da8b0421b14154af9fb0e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=1, agent=3",
+        "message_bytes": 39,
+        "message_sha256": "2847b2f08c30691fc0d2b172711d8744d536008f6dab92ad38d27de36ebd13f0",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=0",
+        "message_bytes": 39,
+        "message_sha256": "c007d275fc7944f9c9fdd79f822318a92da61503f5fbe5606c25f27eb5bdf604",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=0",
+        "message_bytes": 39,
+        "message_sha256": "c007d275fc7944f9c9fdd79f822318a92da61503f5fbe5606c25f27eb5bdf604",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=1, agent=3",
+        "message_bytes": 39,
+        "message_sha256": "2847b2f08c30691fc0d2b172711d8744d536008f6dab92ad38d27de36ebd13f0",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--error-verified--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=1",
+        "message_bytes": 39,
+        "message_sha256": "13d5b9caa8373d42a1bb35066b131edebd10e603928da8b0421b14154af9fb0e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--error-verified--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=1, agent=3",
+        "message_bytes": 39,
+        "message_sha256": "2847b2f08c30691fc0d2b172711d8744d536008f6dab92ad38d27de36ebd13f0",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=0",
+        "message_bytes": 39,
+        "message_sha256": "c007d275fc7944f9c9fdd79f822318a92da61503f5fbe5606c25f27eb5bdf604",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=0",
+        "message_bytes": 39,
+        "message_sha256": "c007d275fc7944f9c9fdd79f822318a92da61503f5fbe5606c25f27eb5bdf604",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=1, agent=3",
+        "message_bytes": 39,
+        "message_sha256": "2847b2f08c30691fc0d2b172711d8744d536008f6dab92ad38d27de36ebd13f0",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s959809858",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotCheckpointError",
+        "message": "prefix provider failure at t=0, agent=1",
+        "message_bytes": 39,
+        "message_sha256": "13d5b9caa8373d42a1bb35066b131edebd10e603928da8b0421b14154af9fb0e",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s617806385",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=1: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "7e748065a7eeaa80572a3afe8ebccfe4e6f1081c376fd3c604b908eb8769c28f",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--full--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=2, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "f4a25ab8652231f8ef466bb1b7ffa5893bc687ea41343eb3707c46333c9e78a9",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--full--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=2, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "f4a25ab8652231f8ef466bb1b7ffa5893bc687ea41343eb3707c46333c9e78a9",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--full--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=2, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "f4a25ab8652231f8ef466bb1b7ffa5893bc687ea41343eb3707c46333c9e78a9",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--full--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "afe48449c3bfad7e8967c66d7ecf3b7a45fbf444ae20742f03ccc679eb506cf3",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--full--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=4, agent=1: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "ed87d86d7bc551c55d19e2da56bd196cc8d3945fda360aae8dca397b0904288c",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "afe48449c3bfad7e8967c66d7ecf3b7a45fbf444ae20742f03ccc679eb506cf3",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=1: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "3026a1bdc4f51b36cc95f67e11b9b2a4f0363c50c50d35eaa467dc49de403fbd",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=3, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "685fe3ec0927b8a719d9e5cfe9a27e140146b351f6b33244f0473c8ce578c592",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=2, agent=1: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "f5127c63573db342e41d859ff8f52f877420cd1457e4182e5085e19315d91492",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=3: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "bd44bb3fdb977b9de849e0af09e5c00211076a1a9cee8bc1d1a42a70086fab93",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=0: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "b4a1b2716f466ae842d58e7252b72401ee550593d370d2dec42143fbb89d81db",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=3: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "10af96c33891b665bbfa240058e68f0c9e1a5206eac5c0c1537c80bd52a4581d",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=1, agent=3: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "bd44bb3fdb977b9de849e0af09e5c00211076a1a9cee8bc1d1a42a70086fab93",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--no-memory--none--stage0-selected--s959809858",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=0, agent=0: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "89877a7d8ab1e6cd88c1838cb0ac2b7978f729ad58461deb80e7fd173451d310",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.10.2--experiment-b--gpt52_main--no-memory--none--stage0-selected--s617806385",
+      "stage_id": "experiment-b",
+      "status": "failed"
+    }
+  ],
+  "schema_version": "finevo-pilot-failure-ledger-v1"
+}

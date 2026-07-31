@@ -1,0 +1,76 @@
+{
+  "contract_sha256": "b8de8cfb2560d894dad65d68df8ae9126527d12d3807bef045fa52f5e9d4159e",
+  "rows": [
+    {
+      "reason": "the preregistered mechanism gate was not supported",
+      "required_wording": "withdraw or narrow the rule-reliability claim",
+      "scope": "local/experiment-c"
+    },
+    {
+      "reason": "0/5 complete paired seeds; the registered minimum is 4/5",
+      "required_wording": "denominator/failure report only; no effectiveness claim",
+      "scope": "gpt52/experiment-c"
+    },
+    {
+      "reason": "0/5 complete paired seeds; the registered minimum is 4/5",
+      "required_wording": "denominator/failure report only; no effectiveness claim",
+      "scope": "gpt52/experiment-a"
+    },
+    {
+      "reason": "0/5 complete paired seeds; the registered minimum is 4/5",
+      "required_wording": "denominator/failure report only; no effectiveness claim",
+      "scope": "gpt52/experiment-d"
+    },
+    {
+      "reason": "0/5 complete paired seeds; the registered minimum is 4/5",
+      "required_wording": "denominator/failure report only; no effectiveness claim",
+      "scope": "gpt52/experiment-b"
+    },
+    {
+      "reason": "the two independently gated lanes do not establish the same registered primary direction",
+      "required_wording": "cross-backbone mechanism direction is inconclusive; do not pool seed directions",
+      "scope": "cross-lane/experiment-c"
+    },
+    {
+      "reason": "the two independently gated lanes do not establish the same registered primary direction",
+      "required_wording": "cross-backbone mechanism direction is inconclusive; do not pool seed directions",
+      "scope": "cross-lane/experiment-a"
+    },
+    {
+      "reason": "the two independently gated lanes do not establish the same registered primary direction",
+      "required_wording": "cross-backbone mechanism direction is inconclusive; do not pool seed directions",
+      "scope": "cross-lane/experiment-d"
+    },
+    {
+      "reason": "the two independently gated lanes do not establish the same registered primary direction",
+      "required_wording": "cross-backbone mechanism direction is inconclusive; do not pool seed directions",
+      "scope": "cross-lane/experiment-b"
+    },
+    {
+      "reason": "narrative intervention is deferred and unregistered",
+      "required_wording": "no narrative or real-news-understanding claim",
+      "scope": "narrative"
+    },
+    {
+      "reason": "the local and GPT lanes are separate replications",
+      "required_wording": "report each lane's seed directions separately; never pool them",
+      "scope": "cross-lane"
+    },
+    {
+      "reason": "local-experiment-c ITT cells are not all complete and scientifically eligible",
+      "required_wording": "registered descriptive sensitivity unavailable; do not cite or reconstruct an absent sensitivity artifact",
+      "scope": "local/experiment-c-sensitivity"
+    },
+    {
+      "reason": "experiment-c ITT cells are not all complete and scientifically eligible",
+      "required_wording": "registered descriptive sensitivity unavailable; do not cite or reconstruct an absent sensitivity artifact",
+      "scope": "gpt52/experiment-c-sensitivity"
+    },
+    {
+      "reason": "all 6/6 V2.3 directional cells were budget-stopped; V2.10.2 did not redispatch GPT-5.6",
+      "required_wording": "capability/preflight pass is not effectiveness evidence or a negative effect result; use a prospective registered replication",
+      "scope": "historical-model/gpt56_diagnostic"
+    }
+  ],
+  "schema_version": "finevo-pilot-v2.10.2-evidence-package-v1"
+}

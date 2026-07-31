@@ -1,0 +1,237 @@
+{
+  "schema_version": "finevo-pilot-v2.6-source-manifest-v1",
+  "v2_5_terminal_parent": {
+    "contract": {
+      "contract_id": "finevo-pilot-v2.5",
+      "schema_version": "finevo-pilot-contract-v2",
+      "status": "frozen",
+      "path": "experiments/pilot_v2_5.yaml",
+      "file_sha256": "c5ed0c5792cee405be365f62956b1e0718b533080477f84980a67f6e6d513ebc",
+      "canonical_sha256": "1f9809062684a1a2afb96b7342b88a06810e0e87ac883aa63a858a65a81d188d"
+    },
+    "source_manifest": {
+      "path": "experiments/pilot_v2_5_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.5-source-manifest-v1",
+      "file_sha256": "62b01d74d93ae249dab8711ab7748fdd3bcfaad1ee8c5fb39f71c4bd492b81a4",
+      "content_sha256": "4f21ee44514d29e5b7fcbd4ca48daad046dc674fd0dda5f4b2c502c87f346c91"
+    },
+    "release": {
+      "science_tag": "pilot-v2.5-science",
+      "tag_kind": "annotated",
+      "science_tag_object": "fe5e33f221d431c85301e7d101497188018914c0",
+      "science_commit": "a3ec8d96162b50e41e7d4700e0534ce33c1958c3",
+      "raw_root": "experiment_results/pilot-v2.5/raw"
+    },
+    "terminal_denominator": {
+      "registered_cells": 211,
+      "scientific_cells": 209,
+      "terminal_cells": 211,
+      "status_counts": {
+        "complete": 2,
+        "failed": 14,
+        "integrity-stopped": 195
+      },
+      "all_rows_present": true,
+      "all_rows_terminal": true,
+      "scientific_complete": false,
+      "scientific_matrix_complete": false,
+      "scientific_claim_gates_supported": false,
+      "terminal_status": "complete-with-no-go"
+    },
+    "ledgers": {
+      "run": {
+        "path": "experiment_results/pilot-v2.5/raw/run_ledger.json",
+        "file_sha256": "158aa234af442ff9b04520c2153f89213d6a1960bb57c6d997fa76febf496ca1",
+        "internal_sha256": "7d223ddc2cc46b022f051217b9f6767bf9264fb66212b1a63a3498fb6447220f",
+        "event_count": 213,
+        "event_chain_head": "a95b8af98d789259a0916ec9ad4599de331118bac80ebf7aaad74b3722c8c10a"
+      },
+      "budget": {
+        "path": "experiment_results/pilot-v2.5/raw/budget_ledger.json",
+        "file_sha256": "a4ccc451e00e83b668406d911aeb78eb502d2ae1f1bca129d66dda3627fb3a3e",
+        "internal_sha256": "7b448a0ebc002b932150c68f2c4e552e940ce186ea5e58afed8673af627d9162",
+        "event_count": 32,
+        "event_chain_head": "c79501630cd45bf190f79346d75e71c1459a533cd407ae5d99950f3525d64065"
+      }
+    },
+    "failure_root_cause": {
+      "direct_failed_cells": 14,
+      "direct_failure_stage": "stage0-calibration",
+      "direct_failure_model_id": "llama33_local_controlled",
+      "unique_failure_signature_count": 1,
+      "failure_signature": {
+        "error_type": "ValueError",
+        "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+        "message_bytes": 110,
+        "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7",
+        "message_truncated": false,
+        "canonical_sha256": "797666aad2b6073a4d7147301629adb47a80a4cd3baf74a5a43b3f2048348468"
+      },
+      "root_cause_code": "v2.5-inherited-observed-p95-schema-dispatch-gap",
+      "root_cause": "At the frozen V2.5 commit, verified_observed_p95_authority_binding delegated to a verifier that explicitly dispatched the V2.4 inherited schema and the legacy source schema but not finevo-pilot-v2.5-inherited-observed-p95-authority-v1; the V2.5 receipt therefore fell through to the legacy top-level shape check before any model call.",
+      "frozen_verifier_entrypoint": "verified_memory.observed_p95_authority.verified_observed_p95_authority_binding",
+      "missing_dispatch_schema": "finevo-pilot-v2.5-inherited-observed-p95-authority-v1",
+      "frozen_dispatch_schemas": [
+        "finevo-inherited-observed-p95-authority-receipt-v1",
+        "finevo-observed-p95-authority-receipt-v1"
+      ],
+      "downstream_integrity_stopped_cells": 195,
+      "downstream_error_type": "StageExecutionNoGo",
+      "downstream_source_stage": "stage0-calibration",
+      "failure_occurred_before_provider_dispatch": true
+    },
+    "child_usage": {
+      "provider_calls": 0,
+      "hosted_completions": 0,
+      "cost_usd": 0.0,
+      "budget_ledger_accounted_storage_bytes": 998249,
+      "deterministic_q_ref_rows": 48,
+      "deterministic_q_ref_rows_are_provider_calls": false
+    },
+    "raw_snapshot": {
+      "root": "experiment_results/pilot-v2.5/raw",
+      "file_count": 61,
+      "storage_bytes": 1589313,
+      "inventory_schema_version": "finevo-raw-tree-inventory-v1",
+      "inventory_canonicalization": "json-sort-keys-compact-utf8-v1",
+      "inventory_sha256": "49645ac177b04e26655a44ee4c6c627cfaa54fd0d0c2c2448bb751c60904a541"
+    }
+  },
+  "v2_5_published_evidence": {
+    "root": "evidence/current_v2/pilot-v2.5",
+    "schema_version": "finevo-pilot-v2.5-evidence-package-v1",
+    "publication_status": "complete-with-no-go",
+    "contract_id": "finevo-pilot-v2.5",
+    "contract_sha256": "1f9809062684a1a2afb96b7342b88a06810e0e87ac883aa63a858a65a81d188d",
+    "pilot_tag": "pilot-v2.5-science",
+    "resolved_git_commit": "a3ec8d96162b50e41e7d4700e0534ce33c1958c3",
+    "scientific_complete": false,
+    "scientific_matrix_complete": false,
+    "scientific_claim_gates_supported": false,
+    "package_manifest": {
+      "path": "evidence/current_v2/pilot-v2.5/package_manifest.json",
+      "file_sha256": "eec14529e4abca0ada676f08ee9976e9e769ecc04f627fb808109fa9a76624c9",
+      "byte_size": 2006
+    },
+    "checksums": {
+      "path": "evidence/current_v2/pilot-v2.5/checksums.json",
+      "file_sha256": "694404c2bcb8bd73fbfeb53a74d633b9b6cc2527a2a6d6170483c4d53a9d0ad3",
+      "byte_size": 1975
+    },
+    "aggregate": {
+      "path": "evidence/current_v2/pilot-v2.5/aggregate.json",
+      "file_sha256": "741a0f5804d50604361a6b59330c65e2fd38da73cf25136d8478a5bfb2045990",
+      "byte_size": 396210
+    },
+    "failure_ledger": {
+      "path": "evidence/current_v2/pilot-v2.5/failure_ledger.json",
+      "file_sha256": "e8bac56984fee06b556d65587c0bed9bc247bc1414f593d19ba31d2790855ba1",
+      "byte_size": 128292
+    },
+    "copied_v2_5_source_manifest": {
+      "path": "evidence/current_v2/pilot-v2.5/contract/pilot_v2_5_source_manifest.json",
+      "file_sha256": "62b01d74d93ae249dab8711ab7748fdd3bcfaad1ee8c5fb39f71c4bd492b81a4",
+      "content_sha256": "4f21ee44514d29e5b7fcbd4ca48daad046dc674fd0dda5f4b2c502c87f346c91"
+    }
+  },
+  "inherited_observed_p95_authority": {
+    "gpt52_main": {
+      "runtime_model": "openai/gpt-5.2-2025-12-11",
+      "served_model": "gpt-5.2-2025-12-11",
+      "receipt": {
+        "path": "experiment_results/pilot-v2.5/raw/parent-import/observed_p95/gpt52_main/observed_p95_authority_receipt.json",
+        "schema_version": "finevo-pilot-v2.5-inherited-observed-p95-authority-v1",
+        "file_sha256": "5fae513f4c082ecc21e867838188fd2bcac4af267955bf46b128931e74abcabb",
+        "content_sha256": "1fb036f8d0cfe56faa3206235716a195dbdf69b98447208a8ac54d8bef994632",
+        "byte_size": 6310
+      },
+      "projection": {
+        "path": "experiment_results/pilot-v2.5/raw/parent-import/observed_p95/gpt52_main/projection_p95.json",
+        "schema_version": "finevo-pilot-projection-p95-v1",
+        "file_sha256": "51ce6e88335f86d20eaae2e853d1d333f4684548c2575bf171d27867e7d2816d",
+        "content_sha256": "f2981294e2968b16bf2b2cba878b6bb65462f02c9666fee17a221dfaf6f71b86",
+        "byte_size": 1987
+      },
+      "use": "v2.6-scientific-projection-authority-after-source-backed-v2.5-adapter-verification"
+    },
+    "llama33_local_controlled": {
+      "runtime_model": "ollama/llama3.3:70b-instruct-q4_K_M",
+      "served_model": "llama3.3:70b-instruct-q4_K_M",
+      "receipt": {
+        "path": "experiment_results/pilot-v2.5/raw/parent-import/observed_p95/llama33_local_controlled/observed_p95_authority_receipt.json",
+        "schema_version": "finevo-pilot-v2.5-inherited-observed-p95-authority-v1",
+        "file_sha256": "fc673570e4fef22055baf805f3304fd2fd3740f4760cdd401d4cef8a4d48db5b",
+        "content_sha256": "c5bd81af76fad87f600f777dc1d7c0417dbefc8eadfb3fff61317b3464636063",
+        "byte_size": 6419
+      },
+      "projection": {
+        "path": "experiment_results/pilot-v2.5/raw/parent-import/observed_p95/llama33_local_controlled/projection_p95.json",
+        "schema_version": "finevo-pilot-projection-p95-v1",
+        "file_sha256": "558be795b4c9adcb054292e8c94d3c181a5b833a47d91ea35922ad0d6582b6c6",
+        "content_sha256": "a4f9e6d771ea77dab96408c90648f5347c63afdc5cff6243dbb1f018f237d554",
+        "byte_size": 2006
+      },
+      "use": "v2.6-scientific-projection-authority-after-source-backed-v2.5-adapter-verification"
+    }
+  },
+  "parent_import_receipt": {
+    "path": "experiment_results/pilot-v2.5/raw/parent-import/parent_import_receipt.json",
+    "schema_version": "finevo-pilot-v2.5-parent-import-v1",
+    "file_sha256": "9c057bd85d9e8f6e0cd2d8262faab65664193ad80a2e270c541110c0572cea85",
+    "content_sha256": "d19774e3113b88a2cfa210fa6c33bbc349d4b337c69dd513d3be3472fff27443",
+    "byte_size": 8326,
+    "provider_calls": 0,
+    "scientific_evidence": false,
+    "scientific_outcomes_observed_before_amendment": false,
+    "contains_v2_4_or_v2_5_treatment_outcomes": false
+  },
+  "cumulative_budget_debit": {
+    "schema_version": "finevo-parent-budget-debit-v1",
+    "parent_contract_sha256": "1f9809062684a1a2afb96b7342b88a06810e0e87ac883aa63a858a65a81d188d",
+    "parent_run_ledger_sha256": "7d223ddc2cc46b022f051217b9f6767bf9264fb66212b1a63a3498fb6447220f",
+    "parent_budget_ledger_sha256": "7b448a0ebc002b932150c68f2c4e552e940ce186ea5e58afed8673af627d9162",
+    "stage_bucket": "parent_v23",
+    "cost_usd": 3.212770875,
+    "hosted_completions": 184,
+    "storage_bytes": 6303635,
+    "record_sha256": "4f445491738ea756280fca0b8c5c82823f4cefe7574cd368ed0c2c51c6a48802"
+  },
+  "cumulative_budget_debit_basis": {
+    "v2_5_inherited_parent": {
+      "cost_usd": 3.212770875,
+      "hosted_completions": 184,
+      "storage_bytes": 4714322,
+      "record_sha256": "002d0c224af866a2f0f26b5685c22ee850e2a78402012957fe31813d44f00ed9"
+    },
+    "v2_5_incremental": {
+      "cost_usd": 0.0,
+      "hosted_completions": 0,
+      "provider_calls": 0,
+      "raw_snapshot_storage_bytes": 1589313
+    },
+    "storage_accounting": "4714322 + 1589313 = 6303635; the full immutable V2.5 raw snapshot, not only the 998249 finalized-run bytes represented in the V2.5 budget ledger, is debited at the V2.6 boundary."
+  },
+  "inheritance_policy": {
+    "v2_5_contract_is_read_only": true,
+    "v2_5_tag_movement_forbidden": true,
+    "v2_5_raw_is_read_only": true,
+    "v2_5_raw_resume": "forbidden",
+    "v2_5_raw_rewrite": "forbidden",
+    "v2_5_terminal_reclassification": "forbidden",
+    "v2_5_terminal_denominator_preserved": true,
+    "v2_5_failure_records_preserved": true,
+    "v2_5_published_evidence_is_read_only": true,
+    "v2_5_scientific_effect_outcomes_carried_forward": false,
+    "v2_5_scientific_claims_carried_forward": false,
+    "v2_6_raw_root": "experiment_results/pilot-v2.6/raw",
+    "v2_6_raw_must_be_fresh": true,
+    "v2_6_raw_must_not_share_files_with_v2_5": true,
+    "v2_6_scientific_denominator_is_new": true,
+    "provider_redispatch_to_rebuild_v2_5_sources": "forbidden",
+    "v2_6_provider_dispatch_requires_source_backed_v2_5_adapter_verification": true
+  },
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "content_sha256": "78d42a49f16cbbee4fc5e76de17ff26c501a5dcb04a5eb1f79cbe080d2b1b669"
+  }
+}
