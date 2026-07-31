@@ -19790,11 +19790,22 @@ def _execute_stage_locked(
                 ],
                 "provider_calls_during_authority": 0,
             }
+            # Only the sealed global authority may name models eligible for
+            # downstream dispatch.  Local per-model gates are inputs to that
+            # authority, not an independently sufficient dispatch decision.
+            go_models = list(
+                v211_post_gate_receipt["denominator"]["eligible_model_ids"]
+            )
         except Exception as exc:
             stage_artifacts["post_gate_authority_failure"] = {
                 "error_type": type(exc).__name__,
                 "message": str(exc),
             }
+            # A terminal mixed outcome can leave a locally passing model in
+            # ``go_models`` even though the global authority is necessarily
+            # absent.  Publish the fail-closed stage receipt with the same
+            # recomputed empty eligibility set used by its source bindings.
+            go_models = []
             _propagate_stage_no_go(
                 contract,
                 source_stage=stage_id,

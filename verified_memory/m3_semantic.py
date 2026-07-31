@@ -2651,12 +2651,16 @@ class VerifiedSemanticRuleTrack:
                         "exhaustive and reproducible"
                     )
             if rule.status == "active" and not rule.injected:
+                # Activation thresholds are admission-time conditions, not
+                # invariants of the current rule score.  An active rule may
+                # subsequently absorb counterevidence while remaining above
+                # the distinct retirement threshold.  The event-ledger replay
+                # later in this validator proves that the rule crossed every
+                # activation threshold at its unique ``rule_activated``
+                # transition; here retain only the immutable causal witness for
+                # that historical transition.
                 if (
-                    rule.post_proposal_support_count < 1
-                    or len(rule.supporting_episode_ids) < self.activation_min_support
-                    or rule.margin < self.activation_min_margin
-                    or rule.confidence < self.activation_confidence_threshold
-                    or rule.activation_episode_id is None
+                    rule.activation_episode_id is None
                     or episodes_by_id[rule.activation_episode_id].outcome_t
                     <= rule.created_at
                 ):

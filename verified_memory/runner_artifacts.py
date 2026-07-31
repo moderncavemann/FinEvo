@@ -619,14 +619,13 @@ def _validate_current_semantic_rows(
             raise _contract_error(f"rule {rule.rule_id} has inconsistent confidence")
         if rule.status == "active" and not rule.injected:
             activation_id = rule.activation_episode_id
+            # Current scores may legitimately fall below the admission
+            # thresholds while the rule remains above its separately frozen
+            # retirement threshold.  The lifecycle replay below verifies the
+            # historical threshold crossing and unique activation event; this
+            # local check only preserves the post-proposal causal witness.
             if (
-                rule.post_proposal_support_count < 1
-                or len(rule.supporting_episode_ids)
-                < int(effective.get("activation_min_support", 0))
-                or rule.margin < float(effective.get("activation_min_margin", 0.0))
-                or rule.confidence
-                < float(effective.get("activation_confidence_threshold", 0.0))
-                or activation_id is None
+                activation_id is None
                 or episode_objects[activation_id].outcome_t <= rule.created_at
             ):
                 raise _contract_error(

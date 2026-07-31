@@ -2,6 +2,7 @@ from dataclasses import replace
 import hashlib
 import json
 from pathlib import Path
+import re
 import shutil
 
 import pytest
@@ -120,12 +121,45 @@ class _StateBoundScriptedProvider(ScriptedDiagnosticProvider):
         return json.dumps(payload, sort_keys=True)
 
 
+class _HysteresisScriptedProvider(ScriptedDiagnosticProvider):
+    """Activate with support, then add non-retiring counterevidence."""
+
+    @staticmethod
+    def _proposal(prompt: str) -> str:
+        payload = json.loads(ScriptedDiagnosticProvider._proposal(prompt))
+        payload["action_guidance"] = {
+            "target": "labor_hours",
+            "direction": "approximately",
+            "threshold": 64.0,
+            "tolerance": 24.0,
+        }
+        return json.dumps(payload, sort_keys=True)
+
+    @classmethod
+    def _action(cls, prompt: str) -> str:
+        payload = json.loads(ScriptedDiagnosticProvider._action(prompt))
+        match = re.search(r"monthly decision t=(\d+)", prompt)
+        if match is None:  # pragma: no cover - inherited provider contract
+            raise ValueError("decision prompt is missing its timestamp")
+        if int(match.group(1)) >= 4:
+            payload["work"] = 0.75
+        return json.dumps(payload, sort_keys=True)
+
+
 def _versioned_diagnostic_result():
     return _diagnostic_result(
         run_id="versioned-artifact-diagnostic",
         episode_length=6,
         provider=_VersionedScriptedProvider(),
         max_rule_proposals_per_agent=2,
+    )
+
+
+def _hysteresis_diagnostic_result():
+    return _diagnostic_result(
+        run_id="hysteresis-artifact-diagnostic",
+        episode_length=8,
+        provider=_HysteresisScriptedProvider(),
     )
 
 
@@ -200,6 +234,98 @@ def test_diagnostic_result_is_sealed_and_reverified(tmp_path: Path) -> None:
     sealed_config = json.loads((run_dir / "config.json").read_text())
     assert sealed_config["foundation_env"]["n_agents"] == 2
     assert len(sealed_config["foundation_env_hash"]) == 64
+
+
+def test_hysteresis_active_result_is_sealed_and_reverified(
+    tmp_path: Path,
+) -> None:
+    result = _hysteresis_diagnostic_result()
+    active_rules = [
+        row for row in result.stream("semantic_rules") if row["status"] == "active"
+    ]
+    assert active_rules
+    assert all(
+        row["margin"] < result.config["activation_min_margin"]
+        and row["confidence"]
+        < result.config["activation_confidence_threshold"]
+        and row["confidence"]
+        >= result.config["retirement_confidence_threshold"]
+        and row["activation_episode_id"] is not None
+        for row in active_rules
+    )
+
+    run_dir = tmp_path / "hysteresis-active"
+    manifest_path = write_verified_run_artifacts(
+        run_dir,
+        result,
+        provenance={"purpose": "hysteresis seal regression"},
+        git_commit="test-commit",
+        git_dirty=True,
+    )
+
+    assert verify_manifest(run_dir).valid is True
+    loaded = load_verified_run_artifacts(run_dir)
+    assert loaded.stream("semantic_rules") == result.stream("semantic_rules")
+    assert manifest_path == run_dir / "manifest.json"
+
+
+def test_writer_rejects_activation_that_never_crossed_frozen_thresholds(
+    tmp_path: Path,
+) -> None:
+    result = _hysteresis_diagnostic_result()
+    config = json.loads(json.dumps(result.config))
+    config["activation_min_support"] = 4
+    config["effective_semantic_verifier"]["activation_min_support"] = 4
+
+    with pytest.raises(
+        ArtifactValidationError,
+        match="unearned or misplaced lifecycle transition",
+    ):
+        write_verified_run_artifacts(
+            tmp_path / "forged-activation-threshold",
+            replace(result, config=config),
+            provenance={"purpose": "adversarial activation threshold"},
+            git_commit="test-commit",
+            git_dirty=True,
+        )
+
+
+@pytest.mark.parametrize("replacement", ("missing", "preproposal"))
+def test_writer_rejects_active_rule_without_postproposal_activation_evidence(
+    tmp_path: Path,
+    replacement: str,
+) -> None:
+    result = _hysteresis_diagnostic_result()
+    rules = list(result.stream("semantic_rules"))
+    target = next(
+        index for index, row in enumerate(rules) if row["status"] == "active"
+    )
+    activation_episode_id = None
+    if replacement == "preproposal":
+        episodes = {
+            row["episode_id"]: row for row in result.stream("episodes")
+        }
+        activation_episode_id = next(
+            episode_id
+            for episode_id in rules[target]["supporting_episode_ids"]
+            if episodes[episode_id]["outcome_t"] <= rules[target]["created_at"]
+        )
+    rules[target] = {
+        **rules[target],
+        "activation_episode_id": activation_episode_id,
+    }
+
+    with pytest.raises(ArtifactValidationError, match="activation invariants"):
+        write_verified_run_artifacts(
+            tmp_path / f"{replacement}-activation-evidence",
+            replace(
+                result,
+                records={**result.records, "semantic_rules": tuple(rules)},
+            ),
+            provenance={"purpose": "adversarial activation evidence"},
+            git_commit="test-commit",
+            git_dirty=True,
+        )
 
 
 @pytest.mark.parametrize(

@@ -292,6 +292,99 @@ class SemanticRuleTest(unittest.TestCase):
         self.assertEqual(active.activation_episode_id, third.episode_id)
         self.assertEqual(semantic.events[-1].event_type, "rule_activated")
 
+    def test_active_hysteresis_survives_validation_and_restore(self):
+        episodes, semantic = self.make_tracks()
+        active = self.activate_rule(episodes, semantic)
+
+        for decision_t in range(3, 7):
+            counterevidence = add_episode(
+                episodes,
+                decision_t,
+                consumption=0.80,
+                utility=10.0,
+            )
+            active = semantic.observe_episode(
+                active.rule_id,
+                counterevidence.episode_id,
+                current_t=decision_t + 1,
+            )
+
+        self.assertEqual(active.status, "active")
+        self.assertEqual(active.margin, semantic.activation_min_margin)
+        self.assertLess(
+            active.confidence,
+            semantic.activation_confidence_threshold,
+        )
+        self.assertGreaterEqual(
+            active.confidence,
+            semantic.retirement_confidence_threshold,
+        )
+        semantic.validate_referential_integrity()
+
+        serialized = semantic.to_dict()
+        restored = VerifiedSemanticRuleTrack.from_dict(
+            serialized,
+            episodic_track=episodes,
+        )
+        self.assertEqual(restored.to_dict(), serialized)
+
+    def test_restore_rejects_active_rule_that_never_met_activation_thresholds(self):
+        episodes, semantic = self.make_tracks()
+        self.activate_rule(episodes, semantic)
+        serialized = semantic.to_dict()
+        serialized["config"]["activation_min_support"] = 4
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "unearned or misplaced lifecycle transition",
+        ):
+            VerifiedSemanticRuleTrack.from_dict(
+                serialized,
+                episodic_track=episodes,
+            )
+
+    def test_restore_rejects_active_rule_without_activation_evidence(self):
+        episodes, semantic = self.make_tracks()
+        self.activate_rule(episodes, semantic)
+        serialized = semantic.to_dict()
+        serialized["rules"][0]["activation_episode_id"] = None
+
+        with self.assertRaisesRegex(ValueError, "activation invariants"):
+            VerifiedSemanticRuleTrack.from_dict(
+                serialized,
+                episodic_track=episodes,
+            )
+
+    def test_restore_rejects_preproposal_activation_evidence(self):
+        episodes, semantic = self.make_tracks()
+        self.activate_rule(episodes, semantic)
+        serialized = semantic.to_dict()
+        serialized["rules"][0]["activation_episode_id"] = serialized["rules"][0][
+            "supporting_episode_ids"
+        ][0]
+
+        with self.assertRaisesRegex(ValueError, "activation invariants"):
+            VerifiedSemanticRuleTrack.from_dict(
+                serialized,
+                episodic_track=episodes,
+            )
+
+    def test_restore_rejects_active_rule_without_activation_event(self):
+        episodes, semantic = self.make_tracks()
+        self.activate_rule(episodes, semantic)
+        serialized = semantic.to_dict()
+        self.assertEqual(serialized["events"][-1]["event_type"], "rule_activated")
+        serialized["events"].pop()
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "final status does not match its lifecycle|activation/retirement schedule",
+        ):
+            VerifiedSemanticRuleTrack.from_dict(
+                serialized,
+                episodic_track=episodes,
+            )
+
     def test_first_postproposal_contradiction_can_never_activate_rule(self):
         episodes, semantic = self.make_tracks(
             activation_min_support=3,

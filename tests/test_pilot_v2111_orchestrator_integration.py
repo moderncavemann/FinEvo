@@ -382,6 +382,178 @@ def test_v2111_terminal_preflight_failures_publish_no_go_without_authority(
     ).exists()
 
 
+def test_v2111_mixed_preflight_failure_publishes_global_no_go_and_resumes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = _contract()
+    raw_root = tmp_path / "raw"
+    ledger = orchestrator.PilotRunLedger(
+        raw_root / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+        tamper_evident=True,
+    )
+    ledger.register(contract.expand())
+    for stage_id in ("parent-import", "capability-gate"):
+        for spec in contract.expand(stage=stage_id):
+            ledger.finalize(
+                spec.run_id,
+                status="complete",
+                artifact=None,
+            )
+
+    monkeypatch.setattr(
+        orchestrator,
+        "verify_paid_provenance",
+        lambda *_args, **_kwargs: _paid(),
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_persist_release_attestation",
+        lambda root, _paid_value: root / "release_attestation.json",
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_parent_budget_debit",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_assert_prerequisites",
+        lambda *_args, **_kwargs: {
+            "capability-gate": frozenset(
+                {"gpt52_main", "gpt56_diagnostic"}
+            )
+        },
+    )
+
+    def fake_catalog(_contract, *, model_ids):
+        model_id = tuple(model_ids)[0]
+        receipt = {
+            "schema_version": "provider-free-catalog-fixture-v1",
+            "contract_sha256": contract.canonical_hash,
+            "rows": [{"profile_id": model_id}],
+        }
+        receipt["receipt_sha256"] = orchestrator.canonical_sha256(receipt)
+        return receipt
+
+    monkeypatch.setattr(
+        orchestrator,
+        "validate_live_provider_catalog",
+        fake_catalog,
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "verify_provider_catalog_receipt",
+        lambda value, **_kwargs: dict(value),
+    )
+
+    def fake_preflight(_contract, spec, *, raw_root, **_kwargs):
+        if spec.model_id == "gpt52_main":
+            raise ValueError("provider-free mixed preflight failure")
+        gate = {
+            "go": True,
+            "reason": "provider-free local pass",
+        }
+        gate_path = (
+            raw_root
+            / spec.stage_id
+            / "runs"
+            / spec.run_id
+            / "gate_receipt.json"
+        )
+        orchestrator._atomic_json(gate_path, gate)
+        return "complete", gate_path, SimpleNamespace(), gate
+
+    monkeypatch.setattr(
+        orchestrator,
+        "_execute_capability_preflight",
+        fake_preflight,
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_persist_v2111_post_gate_authority",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            orchestrator.PilotOrchestrationError(
+                "provider-free mixed post-gate failure"
+            )
+        ),
+    )
+
+    first = orchestrator._execute_stage_locked(
+        contract_path=CONTRACT_PATH,
+        stage_id="long-context-preflight",
+        resume=False,
+        raw_root=raw_root,
+        repo_root=tmp_path,
+    )
+    receipt_path = raw_root / "long-context-preflight" / "stage_receipt.json"
+    first_bytes = receipt_path.read_bytes()
+    post_gate_path = (
+        raw_root
+        / "long-context-preflight"
+        / orchestrator.PILOT_V211_POST_GATE_AUTHORITY_FILENAME
+    )
+
+    assert first["status"] == "complete-with-no-go"
+    assert first["go"] is False
+    assert first["execution_progression_go"] is False
+    assert first["go_models"] == []
+    assert not post_gate_path.exists()
+
+    terminal = orchestrator.PilotRunLedger(
+        raw_root / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+        tamper_evident=True,
+    )
+    preflight_statuses = {
+        spec.model_id: terminal.status(spec.run_id)
+        for spec in contract.expand(stage="long-context-preflight")
+    }
+    assert preflight_statuses == {
+        "gpt52_main": "failed",
+        "gpt56_diagnostic": "complete",
+    }
+    science_specs = tuple(
+        spec
+        for stage_id in (
+            "experiment-c",
+            "experiment-a",
+            "experiment-d",
+            "experiment-b",
+            "cross-model",
+        )
+        for spec in contract.expand(stage=stage_id)
+    )
+    assert len(science_specs) == 131
+    assert {
+        terminal.status(spec.run_id) for spec in science_specs
+    } == {"integrity-stopped"}
+
+    budget = orchestrator.PilotBudgetLedger(
+        raw_root / "budget_ledger.json",
+        contract_hash=contract.canonical_hash,
+        caps=orchestrator._budget_caps(contract),
+        tamper_evident=True,
+        parent_debit=None,
+    ).snapshot()
+    assert not any(
+        spec.run_id in budget["runs"] for spec in science_specs
+    )
+
+    resumed = orchestrator._execute_stage_locked(
+        contract_path=CONTRACT_PATH,
+        stage_id="long-context-preflight",
+        resume=True,
+        raw_root=raw_root,
+        repo_root=tmp_path,
+    )
+
+    assert resumed == first
+    assert receipt_path.read_bytes() == first_bytes
+    assert not post_gate_path.exists()
+
+
 def test_v2111_post_gate_status_inference_preserves_model_scoped_no_go(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
