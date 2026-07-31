@@ -573,6 +573,233 @@ def test_v2115_c_sensitivity_replay_receives_external_source_root(
     ]
 
 
+def _complete_c_rows() -> list[dict[str, Any]]:
+    contract = _contract()
+    return [
+        {
+            **spec.to_dict(),
+            "status": "complete",
+            "scientific_eligible": True,
+            "artifact_sha256": f"{index + 1:064x}",
+        }
+        for index, spec in enumerate(contract.expand(stage="experiment-c"))
+    ]
+
+
+def _write_c_sensitivity_no_go_receipt(
+    raw: Path,
+    *,
+    failure: dict[str, Any] | None = None,
+) -> Path:
+    contract = _contract()
+    receipt = {
+        "schema_version": "finevo-pilot-stage-receipt-v2",
+        "contract_id": contract.contract_id,
+        "contract_sha256": contract.canonical_hash,
+        "stage_id": "experiment-c",
+        "status": "complete-with-no-go",
+        "terminal": True,
+        "go": False,
+        "execution_progression_go": True,
+        "denominator_terminal": True,
+        "scientific_matrix_complete": True,
+        "registered_run_count": 25,
+        "complete_cell_count": 25,
+        "hard_stop_cell_count": 0,
+        "status_counts": {"complete": 25},
+        "failure": None,
+        "scientific_evidence": None,
+        "artifacts": {
+            "zero_api_rule_sensitivity_failure": (
+                dict(evidence._EXPECTED_C_SENSITIVITY_FAILURE)
+                if failure is None
+                else failure
+            )
+        },
+    }
+    receipt["integrity"] = {
+        "canonicalization": "json-sort-keys-utf8-v1",
+        "content_sha256": evidence.canonical_sha256(receipt),
+    }
+    path = raw / "experiment-c" / "stage_receipt.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(receipt), encoding="utf-8")
+    return path
+
+
+def _diagnostic_source_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    sources = [
+        {
+            "run_id": row["run_id"],
+            "manifest_sha256": row["artifact_sha256"],
+        }
+        for row in rows
+        if row["arm_id"] == "full"
+    ]
+    return {
+        "schema_version": (
+            pilot_orchestrator.PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION
+        ),
+        "status": "pass",
+        "terminal": True,
+        "provider_calls": 0,
+        "descriptive_only": True,
+        "effectiveness_gate": False,
+        "scientific_evidence": True,
+        "source_run_count": 5,
+        "aggregate_cells": [
+            {
+                "alternative_success_weight": weight,
+                "outcome_definition": outcome,
+            }
+            for weight in (0.25, 0.5, 0.75)
+            for outcome in (
+                "utility_advantage_positive",
+                "absolute_flow_utility_threshold",
+                "three_period_cumulative_advantage_positive",
+            )
+        ],
+        "bindings": {
+            "contract_sha256": _contract().canonical_hash,
+            "git_tag": evidence.V2115_SOURCE_TAG,
+            "git_commit": evidence.V2115_SOURCE_COMMIT,
+            "stage0_selection_source_kind": "v2.11.5-sealed-parent-import",
+            "stage0_selection_file_sha256": "a" * 64,
+            "stage0_selection_content_sha256": "b" * 64,
+            "source_manifests": sources,
+            "source_matrix_sha256": "c" * 64,
+        },
+        "claim_boundary": "source replay",
+    }
+
+
+def test_v2115_missing_c_sensitivity_gets_diagnostic_replay_but_stays_no_go(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = _contract()
+    raw = tmp_path / "raw"
+    _write_c_sensitivity_no_go_receipt(raw)
+    rows = _complete_c_rows()
+    paid = object()
+    source_root = tmp_path / "science"
+    calls: list[dict[str, Any]] = []
+
+    def replay(*_args: Any, **kwargs: Any) -> dict[str, Any]:
+        calls.append(kwargs)
+        return _diagnostic_source_payload(rows)
+
+    monkeypatch.setattr(evidence, "_build_experiment_c_sensitivity", replay)
+    diagnostic, control = evidence._validated_v2115_experiment_c_sensitivity(
+        contract,
+        raw_root=raw,
+        rows=rows,
+        common_commit=evidence.V2115_SOURCE_COMMIT,
+        source_repo_root=source_root,
+        paid=paid,
+    )
+
+    assert calls == [
+        {
+            "raw_root": raw,
+            "git_tag": evidence.V2115_SOURCE_TAG,
+            "git_commit": evidence.V2115_SOURCE_COMMIT,
+            "paid": paid,
+            "authority_repo_root": source_root,
+        }
+    ]
+    assert diagnostic is not None
+    assert diagnostic["publication_time_replay"] is True
+    assert diagnostic["stage_authoritative"] is False
+    assert diagnostic["diagnostic_only"] is True
+    assert diagnostic["scientific_evidence"] is False
+    assert diagnostic["original_stage_no_go"]["go"] is False
+    integrity = diagnostic["integrity"]
+    unsealed = dict(diagnostic)
+    unsealed.pop("integrity")
+    assert integrity["content_sha256"] == evidence.canonical_sha256(unsealed)
+    assert control["pass"] is False
+    assert control["infrastructure_no_go"] is True
+    assert control["diagnostic_replay_status"] == "complete"
+    assert control["stage_authoritative"] is True
+
+    supported = {
+        "status": "supported",
+        "scientific_evidence_complete": True,
+        "support_rule_reliability": True,
+        "claim_action": "retain",
+        "reasons": [],
+    }
+    gated = evidence._apply_c_sensitivity_no_go(supported, control)
+    assert gated["status"] == "no-go"
+    assert gated["core_effect_status_before_sensitivity_control"] == "supported"
+    assert gated["support_rule_reliability"] is False
+
+
+def test_v2115_c_diagnostic_replay_failure_still_returns_publishable_no_go(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = _contract()
+    raw = tmp_path / "raw"
+    _write_c_sensitivity_no_go_receipt(raw)
+
+    def fail(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        raise RuntimeError("diagnostic fixture failed")
+
+    monkeypatch.setattr(evidence, "_build_experiment_c_sensitivity", fail)
+    diagnostic, control = evidence._validated_v2115_experiment_c_sensitivity(
+        contract,
+        raw_root=raw,
+        rows=_complete_c_rows(),
+        common_commit=evidence.V2115_SOURCE_COMMIT,
+        source_repo_root=tmp_path / "science",
+        paid=object(),
+    )
+
+    assert diagnostic is None
+    assert control["pass"] is False
+    assert control["diagnostic_replay_status"] == "failed"
+    assert control["diagnostic_replay_failure"] == {
+        "error_type": "RuntimeError",
+        "message": "diagnostic fixture failed",
+    }
+    assert control["original_stage_no_go"]["status"] == "complete-with-no-go"
+
+
+def test_v2115_c_sensitivity_no_go_receipt_tamper_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = _contract()
+    raw = tmp_path / "raw"
+    _write_c_sensitivity_no_go_receipt(
+        raw,
+        failure={
+            "error_type": "PilotOrchestrationError",
+            "message": "changed failure",
+        },
+    )
+    called = False
+
+    def replay(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        nonlocal called
+        called = True
+        return {}
+
+    monkeypatch.setattr(evidence, "_build_experiment_c_sensitivity", replay)
+    with pytest.raises(PilotEvidenceError, match="differs from the frozen"):
+        evidence._validated_v2115_experiment_c_sensitivity(
+            contract,
+            raw_root=raw,
+            rows=_complete_c_rows(),
+            common_commit=evidence.V2115_SOURCE_COMMIT,
+            source_repo_root=tmp_path / "science",
+            paid=object(),
+        )
+    assert called is False
+
+
 def _offline_fixture(
     tmp_path: Path,
 ) -> tuple[Any, Path, list[dict[str, Any]], dict[str, Any], list[Path]]:
@@ -817,6 +1044,8 @@ def test_v2115_complete_matrix_with_negative_claim_gates_still_publishes_no_go(
     }
     post_gate_source = tmp_path / "post_gate_authority.json"
     post_gate_source.write_text("{}", encoding="utf-8")
+    c_stage_receipt = tmp_path / "experiment-c-stage-receipt.json"
+    c_stage_receipt.write_bytes(b'{"status":"complete-with-no-go","go":false}\n')
     release_controls = {
         "resolved_git_commit": evidence.V2115_SOURCE_COMMIT,
         "science_source": {"git_tag": evidence.V2115_SOURCE_TAG},
@@ -829,6 +1058,16 @@ def test_v2115_complete_matrix_with_negative_claim_gates_still_publishes_no_go(
             "path": str(post_gate_source),
         },
         "budget": {"pass": True, "raw_root_storage_bytes": 0},
+        "experiment_c_sensitivity": {
+            "pass": False,
+            "available": False,
+            "original_stage_no_go": {
+                "path": str(c_stage_receipt),
+                "file_sha256": evidence._sha256_file(c_stage_receipt),
+                "status": "complete-with-no-go",
+                "go": False,
+            },
+        },
         "historical_import_boundary": {"scientific_evidence": False},
     }
     offline_audit = {
@@ -856,6 +1095,10 @@ def test_v2115_complete_matrix_with_negative_claim_gates_still_publishes_no_go(
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["scientific_matrix_complete"] is True
+    assert manifest["publication_controls_complete"] is False
     assert manifest["scientific_claim_gates_supported"] is False
     assert manifest["scientific_complete"] is False
+    assert (
+        target / "source_receipts" / "experiment-c-stage_receipt.json"
+    ).read_bytes() == c_stage_receipt.read_bytes()
     assert scientific_complete is False

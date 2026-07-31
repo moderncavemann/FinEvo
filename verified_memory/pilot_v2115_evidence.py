@@ -53,8 +53,10 @@ from .pilot_evidence import (
     _validated_experiment_c_sensitivity,
 )
 from .pilot_orchestrator import (
+    PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION,
     PILOT_OFFLINE_ADMISSION_SCHEMA_VERSION,
     PilotRunLedger,
+    _build_experiment_c_sensitivity,
     _fixed_error_candidate,
 )
 from .pilot_v2112_evidence import (
@@ -79,6 +81,9 @@ V2115_RUN_LEDGER_RECEIPT_SCHEMA_VERSION = "finevo-pilot-v2.11.5-run-ledger-audit
 V2115_BUDGET_RECEIPT_SCHEMA_VERSION = "finevo-pilot-v2.11.5-budget-audit-v1"
 V2115_OFFLINE_ADMISSION_AUDIT_SCHEMA_VERSION = (
     "finevo-pilot-v2.11.5-offline-candidate-admission-audit-v1"
+)
+V2115_C_SENSITIVITY_DIAGNOSTIC_SCHEMA_VERSION = (
+    "finevo-pilot-v2.11.5-publication-time-rule-sensitivity-diagnostic-v1"
 )
 V2115_SOURCE_TAG = "pilot-v2.11.5-science"
 V2115_SOURCE_COMMIT = "2351ac2283f9fedb9dce70067174020be56ed9cc"
@@ -120,6 +125,11 @@ _EXPECTED_STAGE_IDS = (
     "experiment-b",
     "cross-model",
 )
+
+_EXPECTED_C_SENSITIVITY_FAILURE = {
+    "error_type": "PilotOrchestrationError",
+    "message": "V2.11.5 imported Stage-0 selection requires paid provenance",
+}
 _EXPECTED_STAGE_COUNTS = {
     "parent-import": 1,
     "capability-gate": 2,
@@ -381,6 +391,327 @@ def _normalized_stage_receipts(
     )
     value["schema_version"] = V2115_STAGE_RECEIPTS_SCHEMA_VERSION
     return value
+
+
+def _authoritative_c_sensitivity_no_go(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+) -> dict[str, Any]:
+    """Replay the exact immutable C-stage infrastructure no-go receipt."""
+
+    path = raw_root / "experiment-c" / "stage_receipt.json"
+    if _has_symlink_component(raw_root, path):
+        raise PilotEvidenceError("Experiment C stage receipt crosses a symlink")
+    receipt = _strict_json_load(path)
+    integrity = _mapping(receipt.get("integrity"), "Experiment C receipt integrity")
+    content = _json_copy(receipt)
+    content.pop("integrity", None)
+    artifacts = _mapping(receipt.get("artifacts"), "Experiment C receipt artifacts")
+    failure = artifacts.get("zero_api_rule_sensitivity_failure")
+    if (
+        receipt.get("schema_version") != "finevo-pilot-stage-receipt-v2"
+        or receipt.get("contract_id") != contract.contract_id
+        or receipt.get("contract_sha256") != contract.canonical_hash
+        or receipt.get("stage_id") != "experiment-c"
+        or receipt.get("status") != "complete-with-no-go"
+        or receipt.get("terminal") is not True
+        or receipt.get("go") is not False
+        or receipt.get("execution_progression_go") is not True
+        or receipt.get("denominator_terminal") is not True
+        or receipt.get("scientific_matrix_complete") is not True
+        or receipt.get("registered_run_count") != 25
+        or receipt.get("complete_cell_count") != 25
+        or receipt.get("hard_stop_cell_count") != 0
+        or receipt.get("status_counts") != {"complete": 25}
+        or receipt.get("failure") is not None
+        or receipt.get("scientific_evidence") is not None
+        or artifacts.get("zero_api_rule_sensitivity") is not None
+        or failure != _EXPECTED_C_SENSITIVITY_FAILURE
+        or integrity.get("canonicalization") != "json-sort-keys-utf8-v1"
+        or integrity.get("content_sha256") != canonical_sha256(content)
+    ):
+        raise PilotEvidenceError(
+            "Experiment C sensitivity no-go receipt differs from the frozen "
+            "V2.11.5 infrastructure failure"
+        )
+    return {
+        "path": str(path),
+        "file_sha256": _sha256_file(path),
+        "content_sha256": integrity["content_sha256"],
+        "status": receipt["status"],
+        "go": receipt["go"],
+        "execution_progression_go": receipt["execution_progression_go"],
+        "scientific_matrix_complete": receipt["scientific_matrix_complete"],
+        "complete_cell_count": receipt["complete_cell_count"],
+        "failure": _json_copy(failure),
+        "stage_authoritative": True,
+    }
+
+
+def _publication_time_c_sensitivity_replay(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    rows: Sequence[Mapping[str, Any]],
+    common_commit: str,
+    source_repo_root: Path,
+    paid: Any,
+    stage_no_go: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Run the missing zero-provider C replay without changing stage authority."""
+
+    value = _build_experiment_c_sensitivity(
+        contract,
+        raw_root=raw_root,
+        git_tag=V2115_SOURCE_TAG,
+        git_commit=common_commit,
+        paid=paid,
+        authority_repo_root=source_repo_root,
+    )
+    bindings = _mapping(value.get("bindings"), "diagnostic C replay bindings")
+    cells = value.get("aggregate_cells")
+    expected_sources = {
+        row["run_id"]: row["artifact_sha256"]
+        for row in rows
+        if (
+            row["stage_id"] == "experiment-c"
+            and row["model_id"] == "gpt52_main"
+            and row["arm_id"] == "full"
+            and row["status"] == "complete"
+        )
+    }
+    source_rows = bindings.get("source_manifests")
+    observed_sources = (
+        {
+            str(source.get("run_id")): source.get("manifest_sha256")
+            for source in source_rows
+            if isinstance(source, Mapping)
+        }
+        if isinstance(source_rows, Sequence)
+        and not isinstance(source_rows, (str, bytes))
+        else {}
+    )
+    if (
+        value.get("schema_version")
+        != PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION
+        or value.get("status") != "pass"
+        or value.get("terminal") is not True
+        or value.get("provider_calls") != 0
+        or value.get("descriptive_only") is not True
+        or value.get("effectiveness_gate") is not False
+        or bindings.get("contract_sha256") != contract.canonical_hash
+        or bindings.get("git_tag") != V2115_SOURCE_TAG
+        or bindings.get("git_commit") != common_commit
+        or bindings.get("stage0_selection_source_kind")
+        != "v2.11.5-sealed-parent-import"
+        or len(expected_sources) != 5
+        or observed_sources != expected_sources
+        or not isinstance(cells, Sequence)
+        or isinstance(cells, (str, bytes))
+        or len(cells) != 9
+    ):
+        raise PilotEvidenceError(
+            "publication-time Experiment C diagnostic replay is not bound to "
+            "the frozen V2.11.5 inputs"
+        )
+
+    diagnostic = _json_copy(value)
+    diagnostic.update(
+        {
+            "schema_version": V2115_C_SENSITIVITY_DIAGNOSTIC_SCHEMA_VERSION,
+            "source_replay_schema_version": (
+                PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION
+            ),
+            "status": "diagnostic-replay-complete",
+            "publication_time_replay": True,
+            "stage_authoritative": False,
+            "diagnostic_only": True,
+            "scientific_evidence": False,
+            "effectiveness_gate": False,
+            "original_stage_no_go": _json_copy(stage_no_go),
+            "publication_input_bindings": {
+                "contract_sha256": contract.canonical_hash,
+                "science_git_tag": V2115_SOURCE_TAG,
+                "science_git_commit": common_commit,
+                "experiment_c_stage_receipt_file_sha256": stage_no_go[
+                    "file_sha256"
+                ],
+                "experiment_c_stage_receipt_content_sha256": stage_no_go[
+                    "content_sha256"
+                ],
+                "parent_import_file_sha256": bindings[
+                    "stage0_selection_file_sha256"
+                ],
+                "parent_import_content_sha256": bindings[
+                    "stage0_selection_content_sha256"
+                ],
+                "source_matrix_sha256": bindings["source_matrix_sha256"],
+            },
+            "claim_boundary": (
+                "Publication-time deterministic diagnostic only. The immutable "
+                "Experiment C receipt remains complete-with-no-go/go=false; "
+                "this replay is not stage-authoritative or scientific evidence "
+                "and cannot restore the rule-reliability claim."
+            ),
+        }
+    )
+    diagnostic["integrity"] = {
+        "canonicalization": "json-sort-keys-utf8-v1",
+        "content_sha256": canonical_sha256(diagnostic),
+    }
+    return diagnostic
+
+
+def _validated_v2115_experiment_c_sensitivity(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    rows: Sequence[Mapping[str, Any]],
+    common_commit: str,
+    source_repo_root: Path,
+    paid: Any,
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    """Preserve C's no-go while optionally adding a diagnostic-only replay."""
+
+    c_rows = [row for row in rows if row["stage_id"] == "experiment-c"]
+    c_complete = bool(c_rows) and all(
+        row["status"] == "complete" and row["scientific_eligible"] is True
+        for row in c_rows
+    )
+    path = raw_root / "experiment-c" / "rule_sensitivity.json"
+    if not c_complete:
+        return _validated_experiment_c_sensitivity(
+            contract,
+            raw_root=raw_root,
+            rows=rows,
+            common_commit=common_commit,
+            source_repo_root=source_repo_root,
+        )
+    if path.exists():
+        # A source artifact is authoritative only when the source receipt also
+        # registered it.  V2.11.5's frozen receipt instead registered failure,
+        # so an added file would be unbound mutation and must fail closed.
+        _authoritative_c_sensitivity_no_go(contract, raw_root=raw_root)
+        raise PilotEvidenceError(
+            "Experiment C sensitivity file exists despite its immutable "
+            "failure receipt"
+        )
+
+    stage_no_go = _authoritative_c_sensitivity_no_go(
+        contract,
+        raw_root=raw_root,
+    )
+    control: dict[str, Any] = {
+        "pass": False,
+        "available": False,
+        "path": str(path),
+        "provider_calls": 0,
+        "infrastructure_no_go": True,
+        "publication_time_replay": True,
+        "stage_authoritative": True,
+        "scientific_evidence": False,
+        "diagnostic_only": False,
+        "original_stage_no_go": _json_copy(stage_no_go),
+        "reason": (
+            "the immutable Experiment C stage did not seal its preregistered "
+            "zero-API sensitivity artifact"
+        ),
+    }
+    try:
+        diagnostic = _publication_time_c_sensitivity_replay(
+            contract,
+            raw_root=raw_root,
+            rows=rows,
+            common_commit=common_commit,
+            source_repo_root=source_repo_root,
+            paid=paid,
+            stage_no_go=stage_no_go,
+        )
+    except Exception as exc:  # diagnostic failure cannot erase the ITT package
+        control.update(
+            {
+                "diagnostic_replay_available": False,
+                "diagnostic_replay_status": "failed",
+                "diagnostic_replay_failure": {
+                    "error_type": type(exc).__name__,
+                    "message": str(exc),
+                },
+                "claim_boundary": (
+                    "Experiment C remains complete-with-no-go. Publication-time "
+                    "diagnostic recovery also failed and contributes no evidence."
+                ),
+            }
+        )
+        return None, control
+    control.update(
+        {
+            "diagnostic_replay_available": True,
+            "diagnostic_replay_status": "complete",
+            "diagnostic_content_sha256": diagnostic["integrity"][
+                "content_sha256"
+            ],
+            "diagnostic_source_run_count": diagnostic.get("source_run_count"),
+            "diagnostic_grid_cell_count": len(diagnostic["aggregate_cells"]),
+            "claim_boundary": diagnostic["claim_boundary"],
+        }
+    )
+    return diagnostic, control
+
+
+def _apply_c_sensitivity_no_go(
+    gate: Mapping[str, Any],
+    sensitivity_control: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Keep the C claim fail-closed when its preregistered control is absent."""
+
+    result = _json_copy(gate)
+    if sensitivity_control.get("pass") is True:
+        return result
+    prior_status = result.get("status")
+    prior_support = result.get("support_rule_reliability")
+    stage_no_go = sensitivity_control.get("original_stage_no_go", {})
+    reasons = list(result.get("reasons", []))
+    reasons.append(
+        "preregistered zero-API rule sensitivity was not sealed by the "
+        "authoritative Experiment C stage"
+    )
+    result.update(
+        {
+            "status": "no-go",
+            "scientific_evidence_complete": False,
+            "support_rule_reliability": False,
+            "core_effect_status_before_sensitivity_control": prior_status,
+            "core_effect_support_before_sensitivity_control": prior_support,
+            "formal_stage_status": (
+                stage_no_go.get("status")
+                if isinstance(stage_no_go, Mapping)
+                else None
+            ),
+            "formal_stage_go": (
+                stage_no_go.get("go")
+                if isinstance(stage_no_go, Mapping)
+                else None
+            ),
+            "experiment_c_sensitivity": _json_copy(sensitivity_control),
+            "retirement_delay_boundary": (
+                "Retirement delay is reported only when both paired values "
+                "are observed; terminal-active/null values are never encoded "
+                "as zero or infinity."
+            ),
+            "candidate_admission_boundary": (
+                "The five deterministic candidate-admission fixture rows are "
+                "a fixed mechanism check, not independent random repetitions."
+            ),
+            "claim_action": (
+                "withdraw or narrow the rule-reliability claim; the immutable "
+                "Experiment C receipt is complete-with-no-go and any "
+                "publication-time replay is diagnostic only"
+            ),
+            "reasons": reasons,
+        }
+    )
+    return result
 
 
 def _validated_post_gate(
@@ -799,9 +1130,12 @@ def _validate_offline_candidate_admission(
         "provider_calls": 0,
         "execution_time_full_detail_receipt_bound": False,
         "publication_time_deterministic_revalidation": True,
+        "independent_random_repetitions": False,
         "claim_boundary": (
             "publication-time deterministic seal of the fixed zero-provider "
-            "candidate-admission trace; not an execution-time full-detail hash"
+            "candidate-admission trace; the five seed-indexed fixture rows are "
+            "not independent random repetitions and this is not an "
+            "execution-time full-detail hash"
         ),
         "rows": audit_rows,
     }
@@ -817,6 +1151,10 @@ def _report(
     cross_model: Mapping[str, Any],
     release_controls: Mapping[str, Any],
 ) -> str:
+    sensitivity_control = release_controls.get(
+        "experiment_c_sensitivity",
+        {"pass": False, "available": False},
+    )
     lines = [
         "# FinEvo V2.11.5 preregistered mechanism micro-pilot",
         "",
@@ -840,6 +1178,29 @@ def _report(
         lines.append(f"- `{name}`: `{gate['status']}` — {boundary}")
     lines.extend(
         [
+            "",
+            (
+                "- Experiment C sensitivity control: "
+                f"`{json.dumps(sensitivity_control, sort_keys=True)}`"
+            ),
+            (
+                "- The source Experiment C receipt remains authoritative as "
+                "`complete-with-no-go/go=false`; a publication-time replay, "
+                "when available, is diagnostic only and cannot restore the claim. "
+                "The exact source receipt is copied to "
+                "`source_receipts/experiment-c-stage_receipt.json`."
+            ),
+            (
+                "- Experiment C core effect gate before the missing sensitivity "
+                "control: `"
+                f"{gates['experiment_c'].get('core_effect_status_before_sensitivity_control')}`; "
+                "formal publication decision: `no-go`."
+            ),
+            (
+                "- Retirement-delay null/terminal-active values are not recoded "
+                "as 0 or infinity; the five deterministic candidate-admission "
+                "fixture rows are not independent random repetitions."
+            ),
             "",
             "Experiment B is descriptive; no arm is selected by wealth alone.",
             "",
@@ -986,6 +1347,29 @@ def _write_package(
         ("offline_candidate_admission_audit.json", offline_audit),
     ):
         _atomic_bytes(target / name, _pretty_bytes(value))
+    sensitivity_release = release_controls.get("experiment_c_sensitivity")
+    if isinstance(sensitivity_release, Mapping):
+        original_stage = sensitivity_release.get("original_stage_no_go")
+        if isinstance(original_stage, Mapping) and isinstance(
+            original_stage.get("path"), str
+        ):
+            source_receipt = Path(original_stage["path"])
+            if (
+                not source_receipt.is_file()
+                or source_receipt.is_symlink()
+                or _sha256_file(source_receipt) != original_stage.get("file_sha256")
+            ):
+                raise PilotEvidenceError(
+                    "authoritative Experiment C no-go receipt changed before copy"
+                )
+            copied_receipt = (
+                target / "source_receipts" / "experiment-c-stage_receipt.json"
+            )
+            _atomic_bytes(copied_receipt, source_receipt.read_bytes())
+            if _sha256_file(copied_receipt) != original_stage.get("file_sha256"):
+                raise PilotEvidenceError(
+                    "authoritative Experiment C no-go receipt changed during copy"
+                )
     _atomic_bytes(target / "audit" / "run_ledger.json", _pretty_bytes(run_ledger))
     _atomic_bytes(target / "audit" / "budget_ledger.json", _pretty_bytes(budget_ledger))
     for relative, payload in offline_payloads.items():
@@ -998,8 +1382,13 @@ def _write_package(
             ),
         )
     if rule_sensitivity is not None:
+        sensitivity_name = (
+            "experiment_c_rule_sensitivity_diagnostic.json"
+            if rule_sensitivity.get("publication_time_replay") is True
+            else "experiment_c_rule_sensitivity.json"
+        )
         _atomic_bytes(
-            target / "experiment_c_rule_sensitivity.json",
+            target / sensitivity_name,
             _pretty_bytes(rule_sensitivity),
         )
     _atomic_bytes(
@@ -1033,7 +1422,15 @@ def _write_package(
         gates[name].get("status") == "supported"
         for name in ("experiment_a", "experiment_c", "experiment_d", "narrative")
     )
-    scientific_complete = bool(scientific_matrix_complete and claim_gates_supported)
+    publication_controls_complete = bool(
+        isinstance(sensitivity_release, Mapping)
+        and sensitivity_release.get("pass") is True
+    )
+    scientific_complete = bool(
+        scientific_matrix_complete
+        and publication_controls_complete
+        and claim_gates_supported
+    )
     published_files = sorted(
         path.relative_to(target).as_posix()
         for path in target.rglob("*")
@@ -1048,6 +1445,7 @@ def _write_package(
         "resolved_git_commit": release_controls["resolved_git_commit"],
         "publisher_commit": release_controls["publisher"]["git_commit"],
         "scientific_matrix_complete": scientific_matrix_complete,
+        "publication_controls_complete": publication_controls_complete,
         "scientific_claim_gates_supported": claim_gates_supported,
         "scientific_complete": scientific_complete,
         "claim_gates": _json_copy(gates),
@@ -1066,6 +1464,11 @@ def _write_package(
         "offline_detail_exception": (
             "five deterministic zero-provider candidate-admission details are "
             "copied after publication-time replay"
+        ),
+        "experiment_c_sensitivity_boundary": _json_copy(
+            sensitivity_release
+            if isinstance(sensitivity_release, Mapping)
+            else {"pass": False, "available": False}
         ),
     }
     manifest_path = target / "package_manifest.json"
@@ -1215,7 +1618,7 @@ def build_pilot_v2115_evidence_package(
         ledger=ledger,
     )
 
-    gates = {
+    gates: dict[str, Any] = {
         "experiment_a": _experiment_a_gate(contract, rows),
         "experiment_c": _experiment_c_gate(contract, rows),
         "experiment_d": _experiment_d_gate(contract, rows),
@@ -1224,12 +1627,19 @@ def build_pilot_v2115_evidence_package(
     capability = _v2115_capability_by_model(rows, contract)
     cross_model = _cross_model_summary(contract, rows, capability)
     experiment_b = _experiment_b_summary(rows)
-    rule_sensitivity, sensitivity_control = _validated_experiment_c_sensitivity(
-        contract,
-        raw_root=raw,
-        rows=rows,
-        common_commit=commit,
-        source_repo_root=source,
+    rule_sensitivity, sensitivity_control = (
+        _validated_v2115_experiment_c_sensitivity(
+            contract,
+            raw_root=raw,
+            rows=rows,
+            common_commit=commit,
+            source_repo_root=source,
+            paid=paid,
+        )
+    )
+    gates["experiment_c"] = _apply_c_sensitivity_no_go(
+        gates["experiment_c"],
+        sensitivity_control,
     )
     release_controls = {
         "pass": True,
@@ -1295,6 +1705,7 @@ def build_pilot_v2115_evidence_package(
 
 
 __all__ = [
+    "V2115_C_SENSITIVITY_DIAGNOSTIC_SCHEMA_VERSION",
     "V2115_CONTRACT_ID",
     "V2115_EVIDENCE_SCHEMA_VERSION",
     "build_pilot_v2115_evidence_package",

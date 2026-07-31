@@ -16005,6 +16005,7 @@ def _build_experiment_c_sensitivity(
     git_commit: str,
     stage_id: str = "experiment-c",
     model_id: str | None = None,
+    paid: GitProvenance | None = None,
     authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Recompute descriptive C sensitivity from the frozen full-control arm."""
@@ -16021,7 +16022,7 @@ def _build_experiment_c_sensitivity(
     selection = _load_verified_stage0_selection(
         contract,
         raw_root=raw_root,
-        paid=None,
+        paid=paid,
         authority_repo_root=authority_repo_root,
     )
     threshold = selection.get("absolute_flow_utility_threshold")
@@ -16197,7 +16198,25 @@ def _build_experiment_c_sensitivity(
                 }
             )
 
-    selection_path = raw_root / "stage0-calibration" / "stage0_selection.json"
+    if contract.contract_id == V2115_CONTRACT_ID:
+        # V2.11.5 intentionally imports its outcome-blind Stage-0 authority
+        # through the sealed parent-import receipt instead of materialising a
+        # child ``stage0_selection.json``.  Bind the replay to that actual
+        # authority file; pretending the absent child path exists was the
+        # execution-time infrastructure failure recorded by Experiment C.
+        selection_path = raw_root / "parent-import" / "parent_import_receipt.json"
+        selection_binding_extension = {
+            "stage0_selection_source_kind": "v2.11.5-sealed-parent-import"
+        }
+        selection_content_sha256 = selection["bindings"][
+            "parent_import_content_sha256"
+        ]
+    else:
+        selection_path = raw_root / "stage0-calibration" / "stage0_selection.json"
+        # Preserve the historical sensitivity schema byte-for-byte for older
+        # contracts whose artifact already binds this conventional path.
+        selection_binding_extension = {}
+        selection_content_sha256 = selection["integrity"]["content_sha256"]
     return {
         "schema_version": PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION,
         "status": "pass",
@@ -16219,7 +16238,8 @@ def _build_experiment_c_sensitivity(
             "git_tag": git_tag,
             "git_commit": git_commit,
             "stage0_selection": str(selection_path),
-            "stage0_selection_content_sha256": selection["integrity"]["content_sha256"],
+            **selection_binding_extension,
+            "stage0_selection_content_sha256": selection_content_sha256,
             "stage0_selection_file_sha256": _file_sha256(selection_path),
             "source_stage": source_stage,
             "source_arm": "full",
@@ -16266,6 +16286,7 @@ def _load_verified_experiment_c_sensitivity(
         git_commit=str(bindings["git_commit"]),
         stage_id=stage_id,
         model_id=model_id,
+        **({"paid": paid} if contract.contract_id == V2115_CONTRACT_ID else {}),
         authority_repo_root=authority_repo_root,
     )
     actual_without_integrity = _json_copy(value)
@@ -16305,6 +16326,7 @@ def _write_experiment_c_sensitivity(
         git_commit=paid.head_commit,
         stage_id=stage_id,
         model_id=model_id,
+        **({"paid": paid} if contract.contract_id == V2115_CONTRACT_ID else {}),
         authority_repo_root=authority_repo_root,
     )
     _atomic_bound_json(output, _seal_bound_payload(payload))
