@@ -1,0 +1,64 @@
+{
+  "aggregate_file_sha256": "d2fe85e42d6f4b7a318a3450b51e38726da7519d6babe674a5dfd78713992232",
+  "checks": {
+    "fresh_v2_10_2_effects_only": true,
+    "parent_contract_exact": true,
+    "parent_failure_preserved": true,
+    "parent_observation_boundary_disclosed": true,
+    "parent_terminal_denominator_preserved": true,
+    "prerequisite_only_import": true,
+    "repair_is_narrow": true
+  },
+  "checksums_file_sha256": "092af0afc03bb88d1c4ccc45e7dad41f5df6d57c9fa4b535b0c69ae3e7b21b54",
+  "consumer_adapter_failure_verified": true,
+  "contract_id": "finevo-pilot-v2.10.2",
+  "contract_sha256": "b8de8cfb2560d894dad65d68df8ae9126527d12d3807bef045fa52f5e9d4159e",
+  "failure_ledger_file_sha256": "93c208129a203196628b0bf47f6662f52fd244902de19d72041c7bcbcc2c40e8",
+  "implementation_no_go_verified": true,
+  "inventory_verified": true,
+  "offline_candidate_disclosure_verified": true,
+  "package_manifest_file_sha256": "f471a6e3f7a5cd024ac0c34ff9ef1cd42e333e5f141ef01db67f23f088fd3590",
+  "parent_actor_performance_treatment_outcome_blind": true,
+  "parent_completed_cell_breakdown": {
+    "actor_performance": 0,
+    "offline_candidate_admission": 10,
+    "prerequisites": 16
+  },
+  "parent_offline_candidate_metrics_inspected": true,
+  "parent_offline_candidate_metrics_observed": true,
+  "parent_package_rewritten": false,
+  "parent_registered_cells": 211,
+  "parent_rows_imported_into_v2_10_2_effect_aggregate": 0,
+  "parent_status_counts": {
+    "complete": 26,
+    "failed": 185
+  },
+  "pass": true,
+  "provider_boundary_verified": true,
+  "raw_inventory": {
+    "file_count": 966,
+    "inventory_sha256": "63385589f81342822f705c47fe09ce10629a1ccc667ec13e47e7de36cec31413",
+    "storage_bytes": 23559957
+  },
+  "reference_kind": "immutable-external-package-reference",
+  "reviewer_report_file_sha256": "53e448bff6e958f14b96e27ec09ef7e17a286ad44ae615f5f570ffbce8cca5cb",
+  "root_cause": {
+    "code": "observed-p95-consumer-schema-dispatch-gap",
+    "failure_phase": "before-provider-construction-and-dispatch",
+    "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+    "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7"
+  },
+  "schema_version": "finevo-pilot-v2.10.2-parent-evidence-reference-v1",
+  "semantic_binding_verified": true,
+  "source_contract_id": "finevo-pilot-v2.10.1",
+  "source_contract_sha256": "1f9c642c155d5256815cb14a68335b65a25497523c14210c36f89070b3c8d996",
+  "source_evidence_commit": "b7001a0174d1a420b592cd68976a3ca8388cb748",
+  "source_evidence_merge_commit": "a730d0d97118a6d5cf79df66cb97cb1a32c510d9",
+  "source_evidence_namespace": "evidence/current_v2/pilot-v2.10.1",
+  "source_evidence_status": "complete-with-no-go",
+  "source_package_copied": false,
+  "source_package_path": "evidence/current_v2/pilot-v2.10.1",
+  "source_release_commit": "b5bfa9b86d3cdb706cea5be707597bef8ac85aed",
+  "source_release_tag": "pilot-v2.10.1-science",
+  "source_release_tag_object": "2e6137cb5f4c3c8e5dc174efe8813cf04f2490f5"
+}

@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 import json
 from pathlib import Path
+import shutil
 from types import SimpleNamespace
 from typing import Any
 
@@ -71,21 +72,40 @@ def _denominator(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _release_controls() -> dict[str, Any]:
+def _release_controls(
+    *,
+    base_pass: bool = True,
+    sensitivity_available: bool = False,
+) -> dict[str, Any]:
     sensitivities = {
         lane_id: {
             **evidence._v210_sensitivity_lane_definition(lane_id),
-            "pass": False,
-            "available": False,
+            "pass": sensitivity_available,
+            "available": sensitivity_available,
             "provider_calls": 0,
             "descriptive_only": True,
             "effectiveness_gate": False,
-            "reason": "fixture A-D rows are terminal but incomplete",
+            **(
+                {
+                    "path": (
+                        f"/fixture/{lane_id}/"
+                        "experiment_c_rule_sensitivity.json"
+                    ),
+                    "file_sha256": "a" * 64,
+                    "content_sha256": "b" * 64,
+                    "source_run_count": 5,
+                    "grid_cell_count": 9,
+                }
+                if sensitivity_available
+                else {
+                    "reason": "fixture A-D rows are terminal but incomplete"
+                }
+            ),
         }
         for lane_id in evidence._V210_C_SENSITIVITY_FILES
     }
     return {
-        "pass": False,
+        "pass": base_pass,
         "experiment_c_rule_sensitivities": sensitivities,
         "budget_ledger": {
             "pass": True,
@@ -176,11 +196,18 @@ def test_v2102_is_active_prerequisite_family_with_own_wire_identity() -> None:
 def test_v2102_aggregate_uses_only_fresh_child_effect_rows() -> None:
     contract = load_pilot_contract(CONTRACT_PATH)
     rows = _rows(contract)
+    historical_model_boundaries = (
+        evidence._validated_v2102_historical_model_boundaries(
+            contract,
+            repository_root=ROOT,
+        )
+    )
     aggregate = evidence.aggregate_v24_evidence(
         contract,
         rows,
         denominator=_denominator(rows),
         release_controls=_release_controls(),
+        historical_model_boundaries=historical_model_boundaries,
     )
 
     assert aggregate["schema_version"] == (
@@ -215,11 +242,171 @@ def test_v2102_aggregate_uses_only_fresh_child_effect_rows() -> None:
     assert aggregate["inherited_budget_boundary"][
         "expected_cumulative_prior"
     ]["storage_bytes"] == 92_541_342
+    assert aggregate["release_controls"]["pass"] is True
+    assert "release-stage0-budget" not in {
+        row["scope"] for row in aggregate["claim_narrowing"]
+    }
+    assert {
+        row["scope"]
+        for row in aggregate["claim_narrowing"]
+        if row["scope"].endswith("/experiment-c-sensitivity")
+    } == {
+        "local/experiment-c-sensitivity",
+        "gpt52/experiment-c-sensitivity",
+    }
+    sensitivity_claims = [
+        row
+        for row in aggregate["claims"]
+        if row["lane"] in {"local", "gpt52"}
+        and "zero-API Experiment C rule sensitivity" in row["claim"]
+    ]
+    assert len(sensitivity_claims) == 2
+    assert all(row["status"] == "no-go" for row in sensitivity_claims)
+    assert all("is available" not in row["claim"] for row in sensitivity_claims)
+    assert all(
+        row["artifact"].startswith(
+            "aggregate.json#/experiment_c_rule_sensitivities/"
+        )
+        for row in sensitivity_claims
+    )
+    gpt56 = aggregate["historical_model_boundaries"]["gpt56_diagnostic"]
+    assert gpt56["capability_tasks_passed"] == 30
+    assert gpt56["closed_loop_preflight_calls_accounted"] == 16
+    assert gpt56["directional_cell_status_counts"] == {
+        "budget-stopped": 6
+    }
+    assert gpt56["matched_a_a_null_registered"] is False
+    assert gpt56["paired_delta"] is None
+    assert gpt56["directional_micro_pilot_replication"] is False
+    assert gpt56["v2_10_2_redispatched"] is False
+    assert gpt56["v2_10_2_effect_rows_imported"] == 0
+    assert aggregate["claim_narrowing"][-1]["scope"] == (
+        "historical-model/gpt56_diagnostic"
+    )
     assert "implementation_failure" not in aggregate
     report = evidence._report_markdown(aggregate)
     assert "V2.10.1 generated no actor performance treatment-effect outcome" in report
     assert "## Terminal implementation failure" not in report
+    assert "## Frozen model choice and historical GPT-5.6 boundary" in report
+    assert "`frozen historical diagnostic only`" in report
+    assert "not a V2.10.2 treatment lane" in report
+    assert "`6/6 budget-stopped`" in report
+    assert "no paired delta, no matched A/A null" in report
+    assert "GPT-5.6 was not redispatched" in report
+    assert "not a negative effect result" in report
+    assert "prospective registered GPT-5.6 replication lane" in report
+    assert "backbone-independent claim" in report
     evidence._require_publishable_terminal_denominator(aggregate)
+
+
+def test_v2102_sensitivity_controls_do_not_mask_a_real_base_failure() -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    rows = _rows(contract)
+    aggregate = evidence.aggregate_v24_evidence(
+        contract,
+        rows,
+        denominator=_denominator(rows),
+        release_controls=_release_controls(
+            base_pass=False,
+            sensitivity_available=True,
+        ),
+    )
+
+    assert aggregate["release_controls"]["pass"] is False
+    assert {
+        row["scope"]
+        for row in aggregate["claim_narrowing"]
+        if row["scope"] == "release-stage0-budget"
+    } == {"release-stage0-budget"}
+    assert not any(
+        row["scope"].endswith("/experiment-c-sensitivity")
+        for row in aggregate["claim_narrowing"]
+    )
+
+
+def test_v2102_available_sensitivities_remain_descriptive() -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    rows = _rows(contract)
+    aggregate = evidence.aggregate_v24_evidence(
+        contract,
+        rows,
+        denominator=_denominator(rows),
+        release_controls=_release_controls(sensitivity_available=True),
+    )
+
+    assert aggregate["release_controls"]["pass"] is True
+    claims = [
+        row
+        for row in aggregate["claims"]
+        if row["lane"] in {"local", "gpt52"}
+        and "zero-API Experiment C rule sensitivity" in row["claim"]
+    ]
+    assert len(claims) == 2
+    assert all(row["status"] == "complete-descriptive" for row in claims)
+    assert all(row["artifact"].endswith(".json") for row in claims)
+    assert not any(
+        row["scope"].endswith("/experiment-c-sensitivity")
+        for row in aggregate["claim_narrowing"]
+    )
+
+
+def test_v2102_aggregate_rejects_forged_gpt56_effect_boundary() -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    rows = _rows(contract)
+    historical = evidence._validated_v2102_historical_model_boundaries(
+        contract,
+        repository_root=ROOT,
+    )
+    assert historical is not None
+    forged = deepcopy(historical)
+    forged["gpt56_diagnostic"]["v2_10_2_effect_rows_imported"] = 1
+
+    with pytest.raises(
+        PilotEvidenceError,
+        match="historical GPT-5.6 boundary summary drifted",
+    ):
+        evidence.aggregate_v24_evidence(
+            contract,
+            rows,
+            denominator=_denominator(rows),
+            release_controls=_release_controls(),
+            historical_model_boundaries=forged,
+        )
+
+
+def test_v2102_historical_gpt56_boundary_rejects_tampered_v23_aggregate(
+    tmp_path: Path,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    repository_root = tmp_path / "repo"
+    source_manifest = (
+        repository_root
+        / "experiments"
+        / "pilot_v2_4_parent_source_manifest.json"
+    )
+    source_manifest.parent.mkdir(parents=True)
+    shutil.copyfile(
+        ROOT / "experiments" / "pilot_v2_4_parent_source_manifest.json",
+        source_manifest,
+    )
+    package_root = (
+        repository_root / "evidence" / "current_v2" / "pilot-v2.3"
+    )
+    shutil.copytree(
+        ROOT / "evidence" / "current_v2" / "pilot-v2.3",
+        package_root,
+    )
+    aggregate_path = package_root / "aggregate.json"
+    aggregate_path.write_bytes(aggregate_path.read_bytes() + b"\n")
+
+    with pytest.raises(
+        PilotEvidenceError,
+        match="aggregate file hash mismatch",
+    ):
+        evidence._validated_v2102_historical_model_boundaries(
+            contract,
+            repository_root=repository_root,
+        )
 
 
 def test_v2101_failure_signature_cannot_become_v2102_failure_summary() -> None:
@@ -463,3 +650,138 @@ def test_v2102_parent_terminal_uses_new_receipt_verifier_boundary(
             "commit": "b" * 40,
         }
     ]
+
+
+def test_v2102_runner_rebuild_forwards_external_authority_root(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(stage="local-experiment-a")[0]
+    source_root = (tmp_path / "science-source").resolve()
+    source_root.mkdir()
+    raw_root = source_root / "experiment_results/pilot-v2.10.2/raw"
+    raw_root.mkdir(parents=True)
+    observed: dict[str, Any] = {
+        "reservation_calls": 0,
+        "config_calls": 0,
+    }
+
+    def reservations(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        observed["reservation_calls"] += 1
+        observed["reservation_authority"] = kwargs.get("authority_repo_root")
+        return {}
+
+    def config_for_spec(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        observed["config_calls"] += 1
+        observed["config_authority"] = kwargs.get("authority_repo_root")
+        return {"fixture": True}
+
+    monkeypatch.setattr(
+        pilot_orchestrator,
+        "_runner_p95_reservations",
+        reservations,
+    )
+    monkeypatch.setattr(
+        pilot_orchestrator,
+        "config_for_spec",
+        config_for_spec,
+    )
+    monkeypatch.setattr(
+        "verified_memory.runner.build_sealed_run_config",
+        lambda *args, **kwargs: {"schema_version": "fixture-runner-v3"},
+    )
+    monkeypatch.setattr(
+        pilot_evidence,
+        "_validate_provider_usage_rows",
+        lambda *args, **kwargs: None,
+    )
+
+    profile = contract.provider_profiles[spec.model_id]
+    commit = "b" * 40
+    for _ in range(2):
+        pilot_evidence._validate_standard_run_contract(
+            contract,
+            spec.to_dict(),
+            config={"schema_version": "fixture-runner-v3"},
+            summary={"provider_model": f"ollama/{profile.requested_model}"},
+            records={"api_usage": []},
+            provenance_git={
+                "git_tag": contract.implementation["required_git_tag"],
+                "head_commit": commit,
+                "tag_commit": commit,
+                "tag_object_type": "tag",
+                "worktree_clean": True,
+                "contract_binding": {},
+            },
+            raw_root=raw_root,
+            source_repo_root=source_root,
+        )
+
+    assert observed == {
+        "reservation_calls": 2,
+        "config_calls": 2,
+        "reservation_authority": source_root,
+        "config_authority": source_root,
+    }
+
+
+def test_v2102_config_forwards_external_authority_to_utility_replay(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    spec = contract.expand(stage="local-experiment-a")[0]
+    source_root = (tmp_path / "science-source").resolve()
+    source_root.mkdir()
+    raw_root = source_root / "experiment_results/pilot-v2.10.2/raw"
+    raw_root.mkdir(parents=True)
+    observed: dict[str, Any] = {}
+
+    def stage0_selection(
+        called_contract: Any,
+        *,
+        raw_root: Path,
+        paid: Any,
+        authority_repo_root: Path,
+    ) -> dict[str, Any]:
+        observed.update(
+            {
+                "contract": called_contract,
+                "raw_root": raw_root,
+                "paid": paid,
+                "authority_repo_root": authority_repo_root,
+            }
+        )
+        return {
+            "selected_utility": {
+                "rho": 1.0,
+                "labor_weight": 2.0,
+                "inverse_frisch": 0.5,
+                "consumption_scale": 63.50397933257746,
+                "discount_factor": 0.99,
+            }
+        }
+
+    monkeypatch.setattr(
+        pilot_orchestrator,
+        "_load_verified_stage0_selection",
+        stage0_selection,
+    )
+
+    config = pilot_orchestrator.config_for_spec(
+        contract,
+        spec,
+        raw_root=raw_root,
+        paid_provenance=None,
+        authority_repo_root=source_root,
+        diagnostic_override=True,
+    )
+
+    assert observed == {
+        "contract": contract,
+        "raw_root": raw_root,
+        "paid": None,
+        "authority_repo_root": source_root,
+    }
+    assert config.utility.consumption_scale == 63.50397933257746

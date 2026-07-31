@@ -1,0 +1,248 @@
+{
+  "ancestral_retry_source_manifest": {
+    "content_sha256": "fc781697a9260fa63d0535eafa24b87a8386a76dca55f3ce95ba59e12ceb4224",
+    "file_sha256": "8540bde06f364aa9ccf2a6937b78dec1f0d3b2c66b9e4943f9a3d2e20e4b19a7",
+    "package_path": "contract/pilot_v2_10_source_manifest.json",
+    "path": "experiments/pilot_v2_10_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.10-source-manifest-v1"
+  },
+  "base_contract": {
+    "canonical_sha256": "1f9c642c155d5256815cb14a68335b65a25497523c14210c36f89070b3c8d996",
+    "contract_id": "finevo-pilot-v2.10.1",
+    "package_path": "contract/pilot_v2_10_1.yaml",
+    "path": "pilot_v2_10_1.yaml",
+    "schema_version": "finevo-pilot-contract-v2"
+  },
+  "contract_id": "finevo-pilot-v2.10.2",
+  "contract_sha256": "b8de8cfb2560d894dad65d68df8ae9126527d12d3807bef045fa52f5e9d4159e",
+  "deep_ancestral_retry_source_manifest": {
+    "content_sha256": "f1cc3e150ae506e933233d42d7e8725c4c91e05a46c48e71c74e098eabeed3b4",
+    "file_sha256": "1e95025be3466faa38936a3c4617ace0c625fa198eb506f1431a0b6401c4e1f8",
+    "package_path": "contract/pilot_v2_8_source_manifest.json",
+    "path": "experiments/pilot_v2_8_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.8-source-manifest-v1"
+  },
+  "deepest_ancestral_retry_source_manifest": {
+    "content_sha256": "f195661d01d0aa6742d9e2f2658b6b1acb38715ddbd43e4e5fd375309d78dbe4",
+    "file_sha256": "ee0ef62f5dcde9fc820aef6d23d1ce5a8c5bca7b9f20486bf42233f18763a1c8",
+    "package_path": "contract/pilot_v2_7_source_manifest.json",
+    "path": "experiments/pilot_v2_7_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.7-source-manifest-v1"
+  },
+  "direction_counts_merged": false,
+  "evidence_namespace": "current_v2/pilot-v2.10.2",
+  "excluded_sources": [
+    "historical_pre_p0_v1",
+    "V2.3 scientific outcomes",
+    "pooled local/GPT direction counts",
+    "unregistered narrative intervention",
+    "raw prompts and raw provider outputs",
+    "V2.10.1 actor rows or inspected offline candidate metrics as V2.10.2 treatment-effect evidence"
+  ],
+  "experiment_c_rule_sensitivities": {
+    "gpt52": {
+      "available": false,
+      "descriptive_only": true,
+      "effectiveness_gate": false,
+      "lane_id": "gpt52",
+      "model_id": "gpt52_main",
+      "package_path": "experiment_c_rule_sensitivity.json",
+      "pass": false,
+      "provider_calls": 0,
+      "published": false,
+      "reason": "experiment-c ITT cells are not all complete and scientifically eligible",
+      "stage_id": "experiment-c"
+    },
+    "local": {
+      "available": false,
+      "descriptive_only": true,
+      "effectiveness_gate": false,
+      "lane_id": "local",
+      "model_id": "llama33_local_controlled",
+      "package_path": "local_experiment_c_rule_sensitivity.json",
+      "pass": false,
+      "provider_calls": 0,
+      "published": false,
+      "reason": "local-experiment-c ITT cells are not all complete and scientifically eligible",
+      "stage_id": "local-experiment-c"
+    }
+  },
+  "great_ancestral_retry_source_manifest": {
+    "content_sha256": "d0e0aaf9da4c2d7fb64521250305eec2433b8866792d273d0c9b5678041b8760",
+    "file_sha256": "9e228bcf3f6a1d636bca7aeef5ab0daab1ce3b3667d0b91f6722388876676eb4",
+    "package_path": "contract/pilot_v2_9_source_manifest.json",
+    "path": "experiments/pilot_v2_9_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.9-source-manifest-v1"
+  },
+  "inherited_retry_source_manifest": {
+    "content_sha256": "11447dd0c231140102411eb231b8716c8f1581d0fa1533e98ccc51c3afb31426",
+    "file_sha256": "e9360d9754cd054386ff03264c331091404555379457a59a7b01344f4a8f2d8f",
+    "package_path": "contract/pilot_v2_10_1_source_manifest.json",
+    "path": "experiments/pilot_v2_10_1_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.10.1-source-manifest-v1"
+  },
+  "lane_separated": true,
+  "narrative_status": "deferred-unregistered",
+  "parent_evidence_reference": {
+    "aggregate_file_sha256": "d2fe85e42d6f4b7a318a3450b51e38726da7519d6babe674a5dfd78713992232",
+    "checks": {
+      "fresh_v2_10_2_effects_only": true,
+      "parent_contract_exact": true,
+      "parent_failure_preserved": true,
+      "parent_observation_boundary_disclosed": true,
+      "parent_terminal_denominator_preserved": true,
+      "prerequisite_only_import": true,
+      "repair_is_narrow": true
+    },
+    "checksums_file_sha256": "092af0afc03bb88d1c4ccc45e7dad41f5df6d57c9fa4b535b0c69ae3e7b21b54",
+    "consumer_adapter_failure_verified": true,
+    "failure_ledger_file_sha256": "93c208129a203196628b0bf47f6662f52fd244902de19d72041c7bcbcc2c40e8",
+    "implementation_no_go_verified": true,
+    "inventory_verified": true,
+    "offline_candidate_disclosure_verified": true,
+    "package_manifest_file_sha256": "f471a6e3f7a5cd024ac0c34ff9ef1cd42e333e5f141ef01db67f23f088fd3590",
+    "package_path": "parent_evidence_reference.json",
+    "parent_actor_performance_treatment_outcome_blind": true,
+    "parent_completed_cell_breakdown": {
+      "actor_performance": 0,
+      "offline_candidate_admission": 10,
+      "prerequisites": 16
+    },
+    "parent_offline_candidate_metrics_inspected": true,
+    "parent_offline_candidate_metrics_observed": true,
+    "parent_package_rewritten": false,
+    "parent_registered_cells": 211,
+    "parent_rows_imported_into_v2_10_2_effect_aggregate": 0,
+    "parent_status_counts": {
+      "complete": 26,
+      "failed": 185
+    },
+    "pass": true,
+    "provider_boundary_verified": true,
+    "raw_inventory": {
+      "file_count": 966,
+      "inventory_sha256": "63385589f81342822f705c47fe09ce10629a1ccc667ec13e47e7de36cec31413",
+      "storage_bytes": 23559957
+    },
+    "reference_kind": "immutable-external-package-reference",
+    "reviewer_report_file_sha256": "53e448bff6e958f14b96e27ec09ef7e17a286ad44ae615f5f570ffbce8cca5cb",
+    "root_cause": {
+      "code": "observed-p95-consumer-schema-dispatch-gap",
+      "failure_phase": "before-provider-construction-and-dispatch",
+      "message": "source-backed observed p95 receipt verification failed: observed-p95 receipt top-level shape or schema drifted",
+      "message_sha256": "39cb7f19f94e435d9eb4873df49beac2507703522f2ad9ffa7f688a5f6b92ef7"
+    },
+    "semantic_binding_verified": true,
+    "source_contract_id": "finevo-pilot-v2.10.1",
+    "source_contract_sha256": "1f9c642c155d5256815cb14a68335b65a25497523c14210c36f89070b3c8d996",
+    "source_evidence_commit": "b7001a0174d1a420b592cd68976a3ca8388cb748",
+    "source_evidence_merge_commit": "a730d0d97118a6d5cf79df66cb97cb1a32c510d9",
+    "source_evidence_namespace": "evidence/current_v2/pilot-v2.10.1",
+    "source_evidence_status": "complete-with-no-go",
+    "source_package_copied": false,
+    "source_package_path": "evidence/current_v2/pilot-v2.10.1",
+    "source_release_commit": "b5bfa9b86d3cdb706cea5be707597bef8ac85aed",
+    "source_release_tag": "pilot-v2.10.1-science",
+    "source_release_tag_object": "2e6137cb5f4c3c8e5dc174efe8813cf04f2490f5"
+  },
+  "parent_source_manifest": {
+    "content_sha256": "7ae427fe6eac5aa6e04eddd3efa9e63405e128c782013ed3f67c35808be3cec5",
+    "file_sha256": "d6a867cd7add43818127af7778a447d579ac1ab31ed6d053bcd29d69b3cf0f33",
+    "package_path": "contract/pilot_v2_4_parent_source_manifest.json",
+    "path": "experiments/pilot_v2_4_parent_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.4-parent-source-manifest-v1"
+  },
+  "pilot_tag": "pilot-v2.10.2-science",
+  "publication_status": "complete-with-no-go",
+  "published_files": [
+    "aggregate.csv",
+    "aggregate.json",
+    "claim_metric_artifact.json",
+    "claim_narrowing.json",
+    "contract/pilot_v2_10_1.yaml",
+    "contract/pilot_v2_10_1_source_manifest.json",
+    "contract/pilot_v2_10_2.yaml",
+    "contract/pilot_v2_10_2_source_manifest.json",
+    "contract/pilot_v2_10_source_manifest.json",
+    "contract/pilot_v2_4_parent_source_manifest.json",
+    "contract/pilot_v2_5_source_manifest.json",
+    "contract/pilot_v2_6_source_manifest.json",
+    "contract/pilot_v2_7_source_manifest.json",
+    "contract/pilot_v2_8_source_manifest.json",
+    "contract/pilot_v2_9_source_manifest.json",
+    "failure_ledger.json",
+    "method_differences_scaffold.json",
+    "parent_evidence_reference.json",
+    "reviewer_report.md"
+  ],
+  "resolved_git_commit": "2dcc20f8dccc7a6a94a60a00d7f3750a9d61396d",
+  "retry_source_manifest": {
+    "content_sha256": "cafbc2cef89c3d605b7242327b9e7aa418ef26ce14eb37c3c89cf2996600f130",
+    "file_sha256": "f1d953f5b39ab1032ffeb37b73db7c80d54296fba046eddf7e2485e4dc1cc2bd",
+    "package_path": "contract/pilot_v2_10_2_source_manifest.json",
+    "path": "experiments/pilot_v2_10_2_source_manifest.json",
+    "schema_version": "finevo-pilot-v2.10.2-source-manifest-v1"
+  },
+  "schema_version": "finevo-pilot-v2.10.2-evidence-package-v1",
+  "scientific_claim_gates_supported": false,
+  "scientific_complete": false,
+  "scientific_matrix_complete": false,
+  "source_manifest_chain": [
+    {
+      "content_sha256": "cafbc2cef89c3d605b7242327b9e7aa418ef26ce14eb37c3c89cf2996600f130",
+      "file_sha256": "f1d953f5b39ab1032ffeb37b73db7c80d54296fba046eddf7e2485e4dc1cc2bd",
+      "package_path": "contract/pilot_v2_10_2_source_manifest.json",
+      "path": "experiments/pilot_v2_10_2_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.10.2-source-manifest-v1"
+    },
+    {
+      "content_sha256": "11447dd0c231140102411eb231b8716c8f1581d0fa1533e98ccc51c3afb31426",
+      "file_sha256": "e9360d9754cd054386ff03264c331091404555379457a59a7b01344f4a8f2d8f",
+      "package_path": "contract/pilot_v2_10_1_source_manifest.json",
+      "path": "experiments/pilot_v2_10_1_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.10.1-source-manifest-v1"
+    },
+    {
+      "content_sha256": "fc781697a9260fa63d0535eafa24b87a8386a76dca55f3ce95ba59e12ceb4224",
+      "file_sha256": "8540bde06f364aa9ccf2a6937b78dec1f0d3b2c66b9e4943f9a3d2e20e4b19a7",
+      "package_path": "contract/pilot_v2_10_source_manifest.json",
+      "path": "experiments/pilot_v2_10_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.10-source-manifest-v1"
+    },
+    {
+      "content_sha256": "d0e0aaf9da4c2d7fb64521250305eec2433b8866792d273d0c9b5678041b8760",
+      "file_sha256": "9e228bcf3f6a1d636bca7aeef5ab0daab1ce3b3667d0b91f6722388876676eb4",
+      "package_path": "contract/pilot_v2_9_source_manifest.json",
+      "path": "experiments/pilot_v2_9_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.9-source-manifest-v1"
+    },
+    {
+      "content_sha256": "f1cc3e150ae506e933233d42d7e8725c4c91e05a46c48e71c74e098eabeed3b4",
+      "file_sha256": "1e95025be3466faa38936a3c4617ace0c625fa198eb506f1431a0b6401c4e1f8",
+      "package_path": "contract/pilot_v2_8_source_manifest.json",
+      "path": "experiments/pilot_v2_8_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.8-source-manifest-v1"
+    },
+    {
+      "content_sha256": "f195661d01d0aa6742d9e2f2658b6b1acb38715ddbd43e4e5fd375309d78dbe4",
+      "file_sha256": "ee0ef62f5dcde9fc820aef6d23d1ce5a8c5bca7b9f20486bf42233f18763a1c8",
+      "package_path": "contract/pilot_v2_7_source_manifest.json",
+      "path": "experiments/pilot_v2_7_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.7-source-manifest-v1"
+    },
+    {
+      "content_sha256": "78d42a49f16cbbee4fc5e76de17ff26c501a5dcb04a5eb1f79cbe080d2b1b669",
+      "file_sha256": "f84778ed279b8ca98b9b61e26619669fade54b95d0c3e4f17874733acbc84efe",
+      "package_path": "contract/pilot_v2_6_source_manifest.json",
+      "path": "experiments/pilot_v2_6_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.6-source-manifest-v1"
+    },
+    {
+      "content_sha256": "4f21ee44514d29e5b7fcbd4ca48daad046dc674fd0dda5f4b2c502c87f346c91",
+      "file_sha256": "62b01d74d93ae249dab8711ab7748fdd3bcfaad1ee8c5fb39f71c4bd492b81a4",
+      "package_path": "contract/pilot_v2_5_source_manifest.json",
+      "path": "experiments/pilot_v2_5_source_manifest.json",
+      "schema_version": "finevo-pilot-v2.5-source-manifest-v1"
+    }
+  ]
+}

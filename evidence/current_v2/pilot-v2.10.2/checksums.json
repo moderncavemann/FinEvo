@@ -1,0 +1,106 @@
+{
+  "contract_sha256": "b8de8cfb2560d894dad65d68df8ae9126527d12d3807bef045fa52f5e9d4159e",
+  "files": [
+    {
+      "byte_size": 45928120,
+      "path": "aggregate.csv",
+      "sha256": "9a320b526b7b0ea43e2d37be7851ef68745c86940948039b12a9610b44e4f477"
+    },
+    {
+      "byte_size": 13429340,
+      "path": "aggregate.json",
+      "sha256": "4aad9e0030f8f7f66416fcb8471684e5ae1203eef645aa8060ca8838500d7869"
+    },
+    {
+      "byte_size": 8494,
+      "path": "claim_metric_artifact.json",
+      "sha256": "5c742206b99572a6ad1ddafbf06d12372b62ea548ead58b84549a3dc624f67e3"
+    },
+    {
+      "byte_size": 3583,
+      "path": "claim_narrowing.json",
+      "sha256": "d6b35821848a4385be974a7203d84c2af6499a11371d294bfc1dbda15a155d65"
+    },
+    {
+      "byte_size": 125119,
+      "path": "contract/pilot_v2_10_1.yaml",
+      "sha256": "662e17490791675778ba83a31bcaa85bd128233bd20cd0485b23c5f85fde29c8"
+    },
+    {
+      "byte_size": 90918,
+      "path": "contract/pilot_v2_10_1_source_manifest.json",
+      "sha256": "e9360d9754cd054386ff03264c331091404555379457a59a7b01344f4a8f2d8f"
+    },
+    {
+      "byte_size": 132890,
+      "path": "contract/pilot_v2_10_2.yaml",
+      "sha256": "39a199e5443e3cd5c7e8938c0741a57d5e732c778b4f004ee4b038f37c343e56"
+    },
+    {
+      "byte_size": 92336,
+      "path": "contract/pilot_v2_10_2_source_manifest.json",
+      "sha256": "f1d953f5b39ab1032ffeb37b73db7c80d54296fba046eddf7e2485e4dc1cc2bd"
+    },
+    {
+      "byte_size": 89237,
+      "path": "contract/pilot_v2_10_source_manifest.json",
+      "sha256": "8540bde06f364aa9ccf2a6937b78dec1f0d3b2c66b9e4943f9a3d2e20e4b19a7"
+    },
+    {
+      "byte_size": 7357,
+      "path": "contract/pilot_v2_4_parent_source_manifest.json",
+      "sha256": "d6a867cd7add43818127af7778a447d579ac1ab31ed6d053bcd29d69b3cf0f33"
+    },
+    {
+      "byte_size": 6885,
+      "path": "contract/pilot_v2_5_source_manifest.json",
+      "sha256": "62b01d74d93ae249dab8711ab7748fdd3bcfaad1ee8c5fb39f71c4bd492b81a4"
+    },
+    {
+      "byte_size": 11534,
+      "path": "contract/pilot_v2_6_source_manifest.json",
+      "sha256": "f84778ed279b8ca98b9b61e26619669fade54b95d0c3e4f17874733acbc84efe"
+    },
+    {
+      "byte_size": 52371,
+      "path": "contract/pilot_v2_7_source_manifest.json",
+      "sha256": "ee0ef62f5dcde9fc820aef6d23d1ce5a8c5bca7b9f20486bf42233f18763a1c8"
+    },
+    {
+      "byte_size": 69075,
+      "path": "contract/pilot_v2_8_source_manifest.json",
+      "sha256": "1e95025be3466faa38936a3c4617ace0c625fa198eb506f1431a0b6401c4e1f8"
+    },
+    {
+      "byte_size": 87002,
+      "path": "contract/pilot_v2_9_source_manifest.json",
+      "sha256": "9e228bcf3f6a1d636bca7aeef5ab0daab1ce3b3667d0b91f6722388876676eb4"
+    },
+    {
+      "byte_size": 52731,
+      "path": "failure_ledger.json",
+      "sha256": "df31ae42b0b20f43f96377810801823113a20ceda154224e1758f50fb54685ec"
+    },
+    {
+      "byte_size": 7272,
+      "path": "method_differences_scaffold.json",
+      "sha256": "d4a8888da5f0afc57fc80b209e7bcc1958d316c4b50462594704acfdbb1f633f"
+    },
+    {
+      "byte_size": 12023,
+      "path": "package_manifest.json",
+      "sha256": "a46cfeafcaccae02d50c11a7ae5671b46a732b9760ce4915017e98d43e82dd79"
+    },
+    {
+      "byte_size": 3058,
+      "path": "parent_evidence_reference.json",
+      "sha256": "8e5c496a82980a35e207b696043e5419fd03df54683d1abea2003dee18e89340"
+    },
+    {
+      "byte_size": 13917,
+      "path": "reviewer_report.md",
+      "sha256": "316e4f0c358c37499ec948eaad62e4a0c1c58375176a7466c9fc0b5bd3c76476"
+    }
+  ],
+  "schema_version": "finevo-pilot-package-checksums-v1"
+}

@@ -4114,6 +4114,7 @@ def _validate_standard_run_contract(
                 expected_spec,
                 raw_root=raw_root,
                 paid_provenance=paid,
+                authority_repo_root=source_repo_root,
                 verify_bound_inputs=True,
                 preflight_p95_reservations=reservations,
             )

@@ -1,0 +1,1645 @@
+{
+  "cumulative_budget_debit": {
+    "cost_usd": 3.212770875,
+    "hosted_completions": 184,
+    "parent_budget_ledger_sha256": "a03b87a18aae4ddcbcc2f546bf142745969a6225922d7b2da327c7f9730d3f6a",
+    "parent_contract_sha256": "d1b54c14d016c2b157db9e334d054ab9c7e86371d3fb9662a95fb94e50ce964b",
+    "parent_run_ledger_sha256": "ef2a7a1d003e4b876749cf87e7a49bd5080e1096b7d6beedb797d6adde149db6",
+    "record_sha256": "4837821a5f059714ef8fa6f8b22522bc693c8adb0edc7603367823a870e94510",
+    "schema_version": "finevo-parent-budget-debit-v1",
+    "stage_bucket": "parent_v23",
+    "storage_bytes": 70035938
+  },
+  "import_policy": {
+    "child_raw_namespace": "experiment_results/pilot-v2.10.1/raw",
+    "child_snapshot_namespace": "experiment_results/pilot-v2.10.1/raw/parent-import/v2_9_raw_snapshot",
+    "exact_full_v2_9_raw_snapshot_copy": true,
+    "failed_actor_cells_retried_via_import": 0,
+    "hosted_cost_usd_during_import": 0.0,
+    "hosted_provider_calls_during_import": 0,
+    "imported_cell_breakdown": {
+      "parent-import": 1,
+      "q-ref-resolution": 1,
+      "stage0-calibration": 14
+    },
+    "imported_cell_count": 16,
+    "offline_candidate_admission_cells_imported": 0,
+    "prerequisites_are_treatment_effect_evidence": false,
+    "provider_calls_during_import": 0,
+    "provider_construction_during_import": false,
+    "q_ref_value": 63.50397933257746,
+    "source_raw_namespace": "experiment_results/pilot-v2.9/raw",
+    "stage0_selected_profile_id": "nu-0.5",
+    "v2_10_current_wrapper_imported_as_authority": false,
+    "v2_10_terminal_lineage_verified": true
+  },
+  "imported_complete_cells": [
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "parent_import_receipt": {
+          "byte_size": 13712,
+          "content_sha256": "8177945a75628431e2d2663f6f485d72b34031578c61f5d2584af19d3fabc37b",
+          "file_sha256": "89bd63d0b2c88fd01815944f19366066b68950dbb26e1269249c159082a98250",
+          "path": "experiment_results/pilot-v2.9/raw/parent-import/parent_import_receipt.json"
+        },
+        "stage_receipt": {
+          "byte_size": 72235,
+          "content_sha256": "bb7ac6ddebbfba893ecfc57b9eecf687ed85d85adb26651596e008c2853912ab",
+          "file_sha256": "36aa0e1705d87dac61763d0708bd7d501afa1e0a5d2e12429ac4f7b545dafa34",
+          "path": "experiment_results/pilot-v2.9/raw/parent-import/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "f7fa53848072b87a5195ef5b1dab425790c8ad6acece67ea3ac352c2cf7b7048",
+          "file_sha256": "5fda2cc998b3ead14ff660416a3ddf161b05166777c141e2f5e5810795685712",
+          "path": "experiment_results/pilot-v2.9/raw/parent-import/summaries/finevo-pilot-v2.9--parent-import--qref_scripted--parent-import--none--provider-preflight-default--s2010922376.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--parent-import--qref_scripted--parent-import--none--provider-preflight-default--s2010922376",
+      "source_spec": {
+        "arm_id": "parent-import",
+        "budget_bucket": "parent_v23",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": null,
+        "environment_seed": 2010922376,
+        "episode_length": 1,
+        "execution_mode": "parent_authority_import",
+        "model_id": "qref_scripted",
+        "narrative_id": "none",
+        "num_agents": 2,
+        "requested_model": "qref-scripted-v1",
+        "run_id": "finevo-pilot-v2.9--parent-import--qref_scripted--parent-import--none--provider-preflight-default--s2010922376",
+        "shock_id": "baseline-3pct",
+        "stage_id": "parent-import",
+        "utility_profile_id": "provider-preflight-default"
+      },
+      "stage_id": "parent-import",
+      "target_run_id": "finevo-pilot-v2.10.1--parent-import--qref_scripted--parent-import--none--provider-preflight-default--s2010922376",
+      "target_spec": {
+        "arm_id": "parent-import",
+        "budget_bucket": "parent_v23",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": null,
+        "environment_seed": 2010922376,
+        "episode_length": 1,
+        "execution_mode": "parent_authority_import",
+        "model_id": "qref_scripted",
+        "narrative_id": "none",
+        "num_agents": 2,
+        "requested_model": "qref-scripted-v1",
+        "run_id": "finevo-pilot-v2.10.1--parent-import--qref_scripted--parent-import--none--provider-preflight-default--s2010922376",
+        "shock_id": "baseline-3pct",
+        "stage_id": "parent-import",
+        "utility_profile_id": "provider-preflight-default"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "q_ref_resolution": {
+          "byte_size": 151719,
+          "content_sha256": "915acce4b6e662b37e17068343da7078adbcfd1d6684efc2efa6bfbc866bdca1",
+          "file_sha256": "de37e678cb426d25343df92711216145ea84f14660008f2ae9004f79f7c542bc",
+          "path": "experiment_results/pilot-v2.9/raw/q-ref-resolution/q_ref_resolution.json"
+        },
+        "run_manifest": {
+          "byte_size": 33130,
+          "file_sha256": "fa974acbb3abaefb5c1202eab7354139ea3645ffebafd67e2b50d506cebcc86d",
+          "path": "experiment_results/pilot-v2.9/raw/q-ref-resolution/runs/finevo-pilot-v2.9--q-ref-resolution--qref_scripted--qref-scripted--none--provider-preflight-default--s2010922376/manifest.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/q-ref-resolution/runs/finevo-pilot-v2.9--q-ref-resolution--qref_scripted--qref-scripted--none--provider-preflight-default--s2010922376",
+        "stage_receipt": {
+          "byte_size": 2584,
+          "content_sha256": "e9865c91ec078043489592813f62e72ca4f1d19239cf935a31699637e9f37d57",
+          "file_sha256": "fbbb88c56514b6fecf02e15c724dfd15b7b5a163e04fb8f3b587f3ee49aceb93",
+          "path": "experiment_results/pilot-v2.9/raw/q-ref-resolution/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "6736b2409a21cd4fe77780db558016d41a44e897ed85873b6271fedf772bbcfa",
+          "file_sha256": "9134435822aca04a02ba9ebc564862d4ad273b11f57961b569267ba496809b37",
+          "path": "experiment_results/pilot-v2.9/raw/q-ref-resolution/summaries/finevo-pilot-v2.9--q-ref-resolution--qref_scripted--qref-scripted--none--provider-preflight-default--s2010922376.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--q-ref-resolution--qref_scripted--qref-scripted--none--provider-preflight-default--s2010922376",
+      "source_spec": {
+        "arm_id": "qref-scripted",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": null,
+        "environment_seed": 2010922376,
+        "episode_length": 12,
+        "execution_mode": "q_ref_resolution",
+        "model_id": "qref_scripted",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "qref-scripted-v1",
+        "run_id": "finevo-pilot-v2.9--q-ref-resolution--qref_scripted--qref-scripted--none--provider-preflight-default--s2010922376",
+        "shock_id": "baseline-3pct",
+        "stage_id": "q-ref-resolution",
+        "utility_profile_id": "provider-preflight-default"
+      },
+      "stage_id": "q-ref-resolution",
+      "target_run_id": "finevo-pilot-v2.10.1--q-ref-resolution--qref_scripted--qref-scripted--none--provider-preflight-default--s2010922376",
+      "target_spec": {
+        "arm_id": "qref-scripted",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": null,
+        "environment_seed": 2010922376,
+        "episode_length": 12,
+        "execution_mode": "q_ref_resolution",
+        "model_id": "qref_scripted",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "qref-scripted-v1",
+        "run_id": "finevo-pilot-v2.10.1--q-ref-resolution--qref_scripted--qref-scripted--none--provider-preflight-default--s2010922376",
+        "shock_id": "baseline-3pct",
+        "stage_id": "q-ref-resolution",
+        "utility_profile_id": "provider-preflight-default"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7445,
+          "content_sha256": "3214a6f05b6a3934addf041d5112f77ff8ef07f77d4b542e6f77f8d8ed600b0a",
+          "file_sha256": "18a9d15775acce355e3d497c144926a7284978a730a2b9481efb3c59aab51ab0",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s1942013315/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s1942013315",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "2bcb1bc7a203eb672bb13960dc9d932561620efebffc3f343291e3c6e7aff99f",
+          "file_sha256": "d693cbc18142c2322ab19f33d9b94232f9946aac36a9d905193f417686be127d",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s1942013315.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s1942013315",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "center"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s1942013315",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "center"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7413,
+          "content_sha256": "b815b6fce8d34f5b4a63fe3a7e3e0564fcaa129773f396173c3fc821cff2bd39",
+          "file_sha256": "fdde9a59c9119f425dd316e44c08bb2fa0e03ae15adb6868a88d07249637a26b",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s760687867/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s760687867",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "6ed200862302214a21f209a238c879a5cc17b994d931553fa5982c134a6d138a",
+          "file_sha256": "5e3c13ad08f4c55d9475e0e4e8811e5bcd4c1dfa7bcb1c82164abfd42eb9cece",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s760687867.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s760687867",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "center"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s760687867",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--center--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "center"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7366,
+          "content_sha256": "5b0ae6bfcd7474050cfd578e9208ef4e70da6f49a3f0418514abd1ade3592f4a",
+          "file_sha256": "599b71a3552d55e3cb602db56c0e10778d1135d20f7674deac16ae946a584c78",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s1942013315/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s1942013315",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "1029ef0b8c4e520d44d5986912f611d2ae8002bb77e456077f4f5ce2fa81c359",
+          "file_sha256": "15a80aa6c9fe8da7a0b6f54677c9aa8ba9c51d0410199822383c9c88519e5dd1",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s1942013315.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s1942013315",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "nu-0.5"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s1942013315",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "nu-0.5"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7414,
+          "content_sha256": "3d8509f928e35f5ac5b26be5f5354dbd2af73bc05e559b5c5b3fdf64535dc713",
+          "file_sha256": "efd4bc5bab1e0307412b9ce7fb2bad214c77fd6e22cac220b878e28bd1971d0b",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s760687867/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s760687867",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "37f34bb1cdff676462adfc942151bf5cb7cf665d9ed27865c3655055707ed049",
+          "file_sha256": "446d10bc7deb38250fe66234cdb871bb408645c042bb7b8743cdfeb6051b9979",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s760687867.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s760687867",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "nu-0.5"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s760687867",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-0.5--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "nu-0.5"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7426,
+          "content_sha256": "36867ff0ea34276ad63c6f39702cb724c34213b1dad16061cffcb76e00014019",
+          "file_sha256": "40edbd30b9dbf1c28f7c75db33558d643aa3ebd1cc283b8fc26eda144fa49cd4",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s1942013315/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s1942013315",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "757b8931d9b5c0ca209ef3e0c9e23935bf085bddb6545c3cfd2b0f8292578961",
+          "file_sha256": "e012582b8c4e4d074d1daaaf2fa6f292705cbde8059630b14df28a4f684495dd",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s1942013315.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s1942013315",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "nu-2"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s1942013315",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "nu-2"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7394,
+          "content_sha256": "179692d2a8cd59875e51a677fee4de2e461843b494d9ef9bb24d8c3e5d6ebf8b",
+          "file_sha256": "292f3cad570c2f45e52caffe175862b63b2f3ab45fed7b7aea73415f01a481dc",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s760687867/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s760687867",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "5dfb8395baf8ecc162643aaf1908ee1e45d0cb3fa71fa3c7ff50452cdae18b2b",
+          "file_sha256": "5075b09e200ae103fe0bd8ebfd15763dcf6f331f24129bf4f05737bbff1ab9c6",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s760687867.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s760687867",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "nu-2"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s760687867",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--nu-2--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "nu-2"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7435,
+          "content_sha256": "d140542c2f5a83b7d4d734511bae0ff80950c6085f57b18535e40809852cbb71",
+          "file_sha256": "fef28a6e77411f73c5fed9181bc0264745a8da814ac7aa3cea2293f71d84a6a2",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s1942013315/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s1942013315",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "dff2dbeb1cbccd407a0e225177a4e6438900ee34d9373eca398dd2c72d68803b",
+          "file_sha256": "dc6794b5cb76131c7a3f3577ebce92a201c4ccc9ea5b26ea54b27967ecb84373",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s1942013315.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s1942013315",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "psi-1"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s1942013315",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "psi-1"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7404,
+          "content_sha256": "9c1de195bb422f5a77f34700c76cd5b450852819f06e84031bb8c7628d52055d",
+          "file_sha256": "f04cf0043a237e3763fc32e50bcf581530358951b91124a5481d513d39d91ecf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s760687867/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s760687867",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "448173670b0b1435c649043dbc84827117415a0721d9ec09ca4e4b524f407f5e",
+          "file_sha256": "68d7b65049048f08d54c57fe5d1f6c3f32d6b0150ab4926fcb79bc4c193610f5",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s760687867.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s760687867",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "psi-1"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s760687867",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-1--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "psi-1"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7455,
+          "content_sha256": "0e49e68c7aade617a953da5ef748ececcb07094ab6dee062c7a9348b4e4a6edc",
+          "file_sha256": "c09a3406a8bc4c1694f83d22e7bc906bfea1bc8d2b6534e030bf69527b5c7779",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s1942013315/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s1942013315",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "bc054913a47d5750c2c7e641c3f133355c6eb691ae35f8d7845b145b854cfbf0",
+          "file_sha256": "ef3d3758ab17b542ef5a5a6ab22086e541e6b93c33cf8f1afea14876d9ef181b",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s1942013315.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s1942013315",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "psi-4"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s1942013315",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "psi-4"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7403,
+          "content_sha256": "0126cdb6251219c3cd0173b71c6c3a8a3852829ee96db323cdbc008a2f8b37ff",
+          "file_sha256": "b33e6c710188e2c3c91253b4800c9e034fa99b83357ad5b8c95a2fcd3a159f05",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s760687867/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s760687867",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "fe313ce4cb3d445dc070a5a65f3baed63b5cd380328375910db9399c7ffdf11f",
+          "file_sha256": "1435ec9f134b5e5686a9a3325224c7c7aac59aac2d90dfa8045844826ef8513c",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s760687867.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s760687867",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "psi-4"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s760687867",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--psi-4--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "psi-4"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7456,
+          "content_sha256": "602272ac3e97134ed748e04afa1017a123d8348b5e5effdfe90c91d2f9ddc030",
+          "file_sha256": "2005f84a0372e668aaac13691357c343c55665090600e74ec8f37594c36f1dd6",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s1942013315/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s1942013315",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "66fd435b0996e87bfa7d450b07c3239f1a9eb3601610063235f23752b9689dd8",
+          "file_sha256": "34acb0642232b7bf4ad28998b2b3cd4f0ed420790b0a23e7b425967748f7889f",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s1942013315.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s1942013315",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "q0-0.5x"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s1942013315",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "q0-0.5x"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7424,
+          "content_sha256": "eaf98fe50bd3adff171d91ee691046afb57c78db3e569f0a84926099111c9a2f",
+          "file_sha256": "1887c6e54b3d79e30e28ebc063c584549bde8266a53db88d07273faab1a65968",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s760687867/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s760687867",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "f11b365698d64f3ea68faa2d7f8a15be516c5183b4c900c6dffc454068335587",
+          "file_sha256": "7d60f59c8a1d27b2687f05e7d9bfd97b0b6d68c443d4bc6af142b66e3b7e71eb",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s760687867.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s760687867",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "q0-0.5x"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s760687867",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-0.5x--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "q0-0.5x"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7416,
+          "content_sha256": "072377b692b0838e5068c2cd513d5eafac50f1ce63372ed80594b2c0fed14589",
+          "file_sha256": "2dd149dc30b42efba4f5724f68329dfc47e0ceeb9b12573846d069be5a77a0c4",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s1942013315/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s1942013315",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "5d54693f5e82aa9146606ec0898e93ea629b3e9bccfca1d1c3a8229025ab00c6",
+          "file_sha256": "4e998fc68cf4e5d00b88c878273e7109dc67658bd4c59c2d2687ff20105d2540",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s1942013315.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s1942013315",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "q0-2x"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s1942013315",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 1942013315,
+        "environment_seed": 1942013315,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s1942013315",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "q0-2x"
+      },
+      "treatment_effect_evidence": false
+    },
+    {
+      "provider_calls_during_import": 0,
+      "provider_construction_during_import": false,
+      "source_artifacts": {
+        "imported_run_envelope": {
+          "byte_size": 7403,
+          "content_sha256": "dd4c2e89f389bba3790d609d96adc658410bdb28bf77f86985c8f89994b416a3",
+          "file_sha256": "14e006d3ed64146392f25185d1d2bb5bd31306b9c4c6b1009345e2301c3cb298",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s760687867/imported_run_envelope.json"
+        },
+        "run_root": "experiment_results/pilot-v2.9/raw/stage0-calibration/runs/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s760687867",
+        "stage0_selection": {
+          "byte_size": 29818,
+          "content_sha256": "8b072648bcf6b1e0648770ea45617a40f41b0ebf8d3646b240fdb20d49278792",
+          "file_sha256": "21edaa5939524dcb21c095a6905d35a4aa9cecdc225051d957dc6785cb13d9cf",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage0_selection.json"
+        },
+        "stage_receipt": {
+          "byte_size": 15985,
+          "content_sha256": "fc45635bbac056f9a72f3d8235286aa743592c793382192c156f7fc0c42c45d5",
+          "file_sha256": "7b444074f5fe94e7133a14a145485697d0fd02ef61be05bce95eea0ec6e18833",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/stage_receipt.json"
+        },
+        "summary": {
+          "content_sha256": "8b0aa2b1f546135b98867b27e077d8c8359226290a19c57a3925f07a276ffd2e",
+          "file_sha256": "27c869a81bee4c7c5c4df6296045f3a886ac80766fa60bac0cbfdc028a814477",
+          "path": "experiment_results/pilot-v2.9/raw/stage0-calibration/summaries/finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s760687867.json",
+          "schema_version": "finevo-pilot-terminal-summary-v1"
+        }
+      },
+      "source_authority_contract_id": "finevo-pilot-v2.9",
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "source_run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s760687867",
+      "source_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.9",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.9--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "q0-2x"
+      },
+      "stage_id": "stage0-calibration",
+      "target_run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s760687867",
+      "target_spec": {
+        "arm_id": "stage0-no-memory-no-context",
+        "budget_bucket": "local",
+        "contract_id": "finevo-pilot-v2.10.1",
+        "decoding_seed": 760687867,
+        "environment_seed": 760687867,
+        "episode_length": 12,
+        "execution_mode": "actor_run",
+        "model_id": "llama33_local_controlled",
+        "narrative_id": "none",
+        "num_agents": 4,
+        "requested_model": "llama3.3:70b-instruct-q4_K_M",
+        "run_id": "finevo-pilot-v2.10.1--stage0-calibration--llama33_local_controlled--stage0-no-memory-no-context--none--q0-2x--s760687867",
+        "shock_id": "baseline-3pct",
+        "stage_id": "stage0-calibration",
+        "utility_profile_id": "q0-2x"
+      },
+      "treatment_effect_evidence": false
+    }
+  ],
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "content_sha256": "11447dd0c231140102411eb231b8716c8f1581d0fa1533e98ccc51c3afb31426"
+  },
+  "observation_boundary": {
+    "a_d_actor_cells_fresh_in_v2_10_1": 195,
+    "failed_seed_replacement": "forbidden",
+    "v2_10_actor_treatment_effect_outcomes_generated": false,
+    "v2_10_incremental_hosted_cost_usd": 0.0,
+    "v2_10_incremental_provider_calls": 0,
+    "v2_10_no_go_observed_before_repair": true,
+    "v2_9_prerequisites_preserved_without_relabelling": true
+  },
+  "p95_reseal_policy": {
+    "current_release_flat_runner_binding_required": true,
+    "current_release_receipt_and_projection_required": true,
+    "source_origin_contract_id": "finevo-pilot-v2.8",
+    "source_origin_contract_sha256": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+    "source_reservation_values_unchanged": true,
+    "source_via_exact_v2_9_snapshot": true,
+    "v2_10_current_wrapper_direct_reuse": "forbidden",
+    "validation_before_provider_construction": true
+  },
+  "published_v2_10_evidence": {
+    "aggregate_file_sha256": "dfd0d347d0995ceb95b89f2f010cfbc3ccf49a6ccdc5536ec9892dc3298f83b1",
+    "checksums_file_sha256": "b117c3e9d2555af9582c22de08b6e39f1366876d9bc0c6a84b37728533748695",
+    "failure_ledger_file_sha256": "e573f49d4ee6963fd73595f256438d52d504784bc4fca0abb46fbd399ed1226f",
+    "merge_commit": "2c4f4750d02c9c6b90051cfaa4f16b8ab16aa637",
+    "package_manifest_file_sha256": "9aa7d07d1d813a5acdea39401e017d5cefe9d85f9127917b119d2453ff972806",
+    "publication_commit": "1e96373fa847b44e3418a777c1ed74165ecf2bac",
+    "reviewer_report_file_sha256": "f4b299162f38c97b30a32c73751794180a6b81607c815873ec54f55a87853187",
+    "root": "evidence/current_v2/pilot-v2.10",
+    "scientific_claim_gates_supported": false,
+    "status_counts": {
+      "complete": 1,
+      "integrity-stopped": 210
+    },
+    "terminal_status": "complete-with-no-go",
+    "v2_10_hosted_completions": 0,
+    "v2_10_hosted_stage_cost_usd": 0.0
+  },
+  "schema_version": "finevo-pilot-v2.10.1-source-manifest-v1",
+  "v2_10_terminal_parent": {
+    "contract": {
+      "canonical_sha256": "d1b54c14d016c2b157db9e334d054ab9c7e86371d3fb9662a95fb94e50ce964b",
+      "contract_id": "finevo-pilot-v2.10",
+      "file_sha256": "8d0f3a7db8c4a0e68bf1721ef97eb79e12a797ee8762b4efc830d1a33e7574ec",
+      "path": "experiments/pilot_v2_10.yaml",
+      "schema_version": "finevo-pilot-contract-v2",
+      "status": "frozen"
+    },
+    "ledgers": {
+      "budget": {
+        "event_chain_head": "4de53486715dfcb44741e050efa415f27e07b3d6d4e9c9cbaf7470862bde443a",
+        "event_count": 6,
+        "file_sha256": "60c7244c22d397884784f6a06b540e9291bfc0bb105a2f83c88bad96c3b925cb",
+        "internal_sha256": "a03b87a18aae4ddcbcc2f546bf142745969a6225922d7b2da327c7f9730d3f6a",
+        "path": "experiment_results/pilot-v2.10/raw/budget_ledger.json"
+      },
+      "run": {
+        "event_chain_head": "8d2c04c0510030d298b57f90d45861119d2f1c830adeb85d9518a7729ef04d12",
+        "event_count": 213,
+        "file_sha256": "04baa9aef59481d330e7ffe88f174156df32d4ee600eea365b9ceb2bf1b623d9",
+        "internal_sha256": "ef2a7a1d003e4b876749cf87e7a49bd5080e1096b7d6beedb797d6adde149db6",
+        "path": "experiment_results/pilot-v2.10/raw/run_ledger.json"
+      }
+    },
+    "qref_failure_receipt": {
+      "content_sha256": "48ae5807da2c3175b3fd427cc023796e7bd81c5b77695789a900474e023da098",
+      "failure_message_sha256": "0d30e7fcfc850e1934d87a3c23b64221bdac6fb1dc96ff7126fa58ed094d5ce4",
+      "file_sha256": "66dac19579be01cb617fda51c6636a7a27cb3dff5f65d82e66cafb7a3da60823",
+      "path": "experiment_results/pilot-v2.10/raw/q-ref-resolution/stage_receipt.json",
+      "status": "integrity-stopped"
+    },
+    "raw_snapshot": {
+      "file_count": 637,
+      "inventory_canonicalization": "json-sort-keys-compact-utf8-v1",
+      "inventory_schema_version": "finevo-raw-tree-inventory-v1",
+      "inventory_sha256": "d8964a15abed0d77598d2c2cf80136e438b67559796cc93f8566dca17e584baa",
+      "root": "experiment_results/pilot-v2.10/raw",
+      "storage_bytes": 20126496
+    },
+    "release": {
+      "raw_root": "experiment_results/pilot-v2.10/raw",
+      "science_commit": "1584629a5f8fd60f42bba878d2a0fcb0eca4bdcf",
+      "science_tag": "pilot-v2.10-science",
+      "science_tag_object": "7ef3cfa37e1dc2a1c9f49cafe77988624b9f23a9",
+      "tag_kind": "annotated"
+    },
+    "terminal_denominator": {
+      "all_rows_present": true,
+      "all_rows_terminal": true,
+      "hosted_stage_cost_usd": 0.0,
+      "provider_calls": 0,
+      "registered_cells": 211,
+      "scientific_claim_gates_supported": false,
+      "scientific_complete": false,
+      "scientific_matrix_complete": false,
+      "status_counts": {
+        "complete": 1,
+        "integrity-stopped": 210
+      },
+      "terminal_cells": 211,
+      "terminal_status": "complete-with-no-go"
+    }
+  },
+  "v2_9_exact_source": {
+    "declared_root": "experiment_results/pilot-v2.9/raw",
+    "file_count": 623,
+    "inventory_sha256": "ae478634a83a98bd206bcafa03f87636fcc392f8dd1e8e234f84696f245ef22f",
+    "source_path": "experiment_results/pilot-v2.10/raw/parent-import/v2_9_raw_snapshot",
+    "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+    "storage_bytes": 19288343,
+    "v2_10_wrapper_is_current_authority": false
+  },
+  "v2_9_p95_sources_for_current_release_reseal": {
+    "gpt52_main": {
+      "normalized_v2_9_binding": {
+        "git_commit": "1988f10b5a06c3b9b3093b969c99593676721a09",
+        "receipt_content_sha256": "25034146171fd9a6e21459a906cb7f5d2b76aa042e403513f203776aa8ee56c6",
+        "receipt_file_sha256": "914e0b72735098677efd2fadf06b98060975eab6390236306464f77cd5984bb3",
+        "receipt_path": "experiment_results/pilot-v2.9/raw/parent-import/v2_8_raw_snapshot/parent-import/observed_p95/gpt52_main/observed_p95_authority_receipt.json",
+        "reservations": {
+          "openai/gpt-5.2-2025-12-11": {
+            "action": {
+              "authority": {
+                "authority_id": "finevo-closed-loop-observed-p95-v1",
+                "pilot_contract_hash": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+                "pilot_tag": "pilot-v2.8-science",
+                "source_execution_artifact_sha256": "48b50a8190641e44ac4e7fbff04ca5f78a1aab66ba406efb5b522e442a821460",
+                "source_kind": "sealed-closed-loop-observed-p95",
+                "source_model_id": "gpt52_main",
+                "source_preflight_run_id": "finevo-pilot-v2.3--closed-loop-preflight--gpt52_main--closed-loop-preflight--none--provider-preflight-default--s2010922376",
+                "source_preflight_run_spec_sha256": "b64434c45890fa8a13ec7f4e2570b37a2e065374b6fbaac4f39e5b81a1269934",
+                "source_projection_content_sha256": "88a964e42cfff6cdd7b1aa1f6082abe5165f854d297414444ea3a0c1ab9d3a7b",
+                "source_projection_file_sha256": "87b5f31e91b1ad7d75b2dbd9f3558a6893a23225b6e5f867a43cd04f1a7a12e3",
+                "source_projection_schema_version": "finevo-pilot-projection-p95-v1",
+                "source_provider_call_journal_sha256": "fcdac72a2d2cf92a13c555eaece540fca83b81a13cbf97a55c1bf878a48ca3fc",
+                "source_served_model": "gpt-5.2-2025-12-11"
+              },
+              "reservation": {
+                "raw_p95": {
+                  "completion_tokens": 1999.0,
+                  "cost_usd": 0.02908325,
+                  "prompt_tokens": 910.0,
+                  "total_tokens": 2909.0
+                },
+                "reserve_multiplier": 1.25,
+                "reserved_p95": {
+                  "completion_tokens": 2499,
+                  "cost_usd": 0.0363540625,
+                  "prompt_tokens": 1138,
+                  "total_tokens": 3637
+                },
+                "sample_count": 36
+              }
+            },
+            "semantic": {
+              "authority": {
+                "authority_id": "finevo-closed-loop-observed-p95-v1",
+                "pilot_contract_hash": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+                "pilot_tag": "pilot-v2.8-science",
+                "source_execution_artifact_sha256": "48b50a8190641e44ac4e7fbff04ca5f78a1aab66ba406efb5b522e442a821460",
+                "source_kind": "sealed-closed-loop-observed-p95",
+                "source_model_id": "gpt52_main",
+                "source_preflight_run_id": "finevo-pilot-v2.3--closed-loop-preflight--gpt52_main--closed-loop-preflight--none--provider-preflight-default--s2010922376",
+                "source_preflight_run_spec_sha256": "b64434c45890fa8a13ec7f4e2570b37a2e065374b6fbaac4f39e5b81a1269934",
+                "source_projection_content_sha256": "88a964e42cfff6cdd7b1aa1f6082abe5165f854d297414444ea3a0c1ab9d3a7b",
+                "source_projection_file_sha256": "87b5f31e91b1ad7d75b2dbd9f3558a6893a23225b6e5f867a43cd04f1a7a12e3",
+                "source_projection_schema_version": "finevo-pilot-projection-p95-v1",
+                "source_provider_call_journal_sha256": "fcdac72a2d2cf92a13c555eaece540fca83b81a13cbf97a55c1bf878a48ca3fc",
+                "source_served_model": "gpt-5.2-2025-12-11"
+              },
+              "reservation": {
+                "raw_p95": {
+                  "completion_tokens": 1103.0,
+                  "cost_usd": 0.01799175,
+                  "prompt_tokens": 2414.0,
+                  "total_tokens": 3517.0
+                },
+                "reserve_multiplier": 1.25,
+                "reserved_p95": {
+                  "completion_tokens": 1379,
+                  "cost_usd": 0.0224896875,
+                  "prompt_tokens": 3018,
+                  "total_tokens": 4397
+                },
+                "sample_count": 10
+              }
+            }
+          }
+        }
+      },
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "v2_8_observed_p95_origin": {
+        "authority": {
+          "content_sha256": "25034146171fd9a6e21459a906cb7f5d2b76aa042e403513f203776aa8ee56c6",
+          "file_sha256": "914e0b72735098677efd2fadf06b98060975eab6390236306464f77cd5984bb3",
+          "path": "experiment_results/pilot-v2.9/raw/parent-import/v2_8_raw_snapshot/parent-import/observed_p95/gpt52_main/observed_p95_authority_receipt.json",
+          "schema_version": "finevo-pilot-v2.8-inherited-observed-p95-authority-v1"
+        },
+        "profile_id": "gpt52_main",
+        "projection": {
+          "content_sha256": "dcd5b321c3dfb669aac8a1880cae3e5378d96176d60633baa124854b13b5d42c",
+          "file_sha256": "0aa429ee3b732383a0305fd16176733a27c6f7890a7c68cf9253ae29fff4856a",
+          "path": "experiment_results/pilot-v2.9/raw/parent-import/v2_8_raw_snapshot/parent-import/observed_p95/gpt52_main/projection_p95.json",
+          "schema_version": "finevo-pilot-projection-p95-v1"
+        },
+        "reservations": {
+          "openai/gpt-5.2-2025-12-11": {
+            "action": {
+              "authority": {
+                "authority_id": "finevo-closed-loop-observed-p95-v1",
+                "pilot_contract_hash": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+                "pilot_tag": "pilot-v2.8-science",
+                "source_execution_artifact_sha256": "48b50a8190641e44ac4e7fbff04ca5f78a1aab66ba406efb5b522e442a821460",
+                "source_kind": "sealed-closed-loop-observed-p95",
+                "source_model_id": "gpt52_main",
+                "source_preflight_run_id": "finevo-pilot-v2.3--closed-loop-preflight--gpt52_main--closed-loop-preflight--none--provider-preflight-default--s2010922376",
+                "source_preflight_run_spec_sha256": "b64434c45890fa8a13ec7f4e2570b37a2e065374b6fbaac4f39e5b81a1269934",
+                "source_projection_content_sha256": "88a964e42cfff6cdd7b1aa1f6082abe5165f854d297414444ea3a0c1ab9d3a7b",
+                "source_projection_file_sha256": "87b5f31e91b1ad7d75b2dbd9f3558a6893a23225b6e5f867a43cd04f1a7a12e3",
+                "source_projection_schema_version": "finevo-pilot-projection-p95-v1",
+                "source_provider_call_journal_sha256": "fcdac72a2d2cf92a13c555eaece540fca83b81a13cbf97a55c1bf878a48ca3fc",
+                "source_served_model": "gpt-5.2-2025-12-11"
+              },
+              "reservation": {
+                "raw_p95": {
+                  "completion_tokens": 1999.0,
+                  "cost_usd": 0.02908325,
+                  "prompt_tokens": 910.0,
+                  "total_tokens": 2909.0
+                },
+                "reserve_multiplier": 1.25,
+                "reserved_p95": {
+                  "completion_tokens": 2499,
+                  "cost_usd": 0.0363540625,
+                  "prompt_tokens": 1138,
+                  "total_tokens": 3637
+                },
+                "sample_count": 36
+              }
+            },
+            "semantic": {
+              "authority": {
+                "authority_id": "finevo-closed-loop-observed-p95-v1",
+                "pilot_contract_hash": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+                "pilot_tag": "pilot-v2.8-science",
+                "source_execution_artifact_sha256": "48b50a8190641e44ac4e7fbff04ca5f78a1aab66ba406efb5b522e442a821460",
+                "source_kind": "sealed-closed-loop-observed-p95",
+                "source_model_id": "gpt52_main",
+                "source_preflight_run_id": "finevo-pilot-v2.3--closed-loop-preflight--gpt52_main--closed-loop-preflight--none--provider-preflight-default--s2010922376",
+                "source_preflight_run_spec_sha256": "b64434c45890fa8a13ec7f4e2570b37a2e065374b6fbaac4f39e5b81a1269934",
+                "source_projection_content_sha256": "88a964e42cfff6cdd7b1aa1f6082abe5165f854d297414444ea3a0c1ab9d3a7b",
+                "source_projection_file_sha256": "87b5f31e91b1ad7d75b2dbd9f3558a6893a23225b6e5f867a43cd04f1a7a12e3",
+                "source_projection_schema_version": "finevo-pilot-projection-p95-v1",
+                "source_provider_call_journal_sha256": "fcdac72a2d2cf92a13c555eaece540fca83b81a13cbf97a55c1bf878a48ca3fc",
+                "source_served_model": "gpt-5.2-2025-12-11"
+              },
+              "reservation": {
+                "raw_p95": {
+                  "completion_tokens": 1103.0,
+                  "cost_usd": 0.01799175,
+                  "prompt_tokens": 2414.0,
+                  "total_tokens": 3517.0
+                },
+                "reserve_multiplier": 1.25,
+                "reserved_p95": {
+                  "completion_tokens": 1379,
+                  "cost_usd": 0.0224896875,
+                  "prompt_tokens": 3018,
+                  "total_tokens": 4397
+                },
+                "sample_count": 10
+              }
+            }
+          }
+        },
+        "runtime_model": "openai/gpt-5.2-2025-12-11",
+        "served_model": "gpt-5.2-2025-12-11",
+        "source_contract_id": "finevo-pilot-v2.8",
+        "source_contract_sha256": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+        "source_git_commit": "1988f10b5a06c3b9b3093b969c99593676721a09",
+        "source_git_tag": "pilot-v2.8-science"
+      },
+      "v2_9_terminal_parent": {
+        "contract_id": "finevo-pilot-v2.9",
+        "contract_sha256": "0b07881aaceeb020dc5943ede647a665f9e9bf786a1cac109ab720e05d81d361",
+        "implementation_root_cause": "imported-p95-runner-binding-shape-mismatch",
+        "raw_file_count": 623,
+        "raw_inventory_sha256": "ae478634a83a98bd206bcafa03f87636fcc392f8dd1e8e234f84696f245ef22f",
+        "raw_storage_bytes": 19288343,
+        "science_commit": "2349ccd41560383965da8880744cf4df366c9ee5",
+        "science_tag": "pilot-v2.9-science",
+        "terminal_status": "complete-with-no-go"
+      }
+    },
+    "llama33_local_controlled": {
+      "normalized_v2_9_binding": {
+        "git_commit": "1988f10b5a06c3b9b3093b969c99593676721a09",
+        "receipt_content_sha256": "3c887a64d255fc0428dbbd34ec8dc2de1ea6c86d21b358c384d2a5316cd44cdd",
+        "receipt_file_sha256": "0b3536bdd0e28930d9f3f7598a372c0285ace5d9945904a7d4a10bc7f66e9bf7",
+        "receipt_path": "experiment_results/pilot-v2.9/raw/parent-import/v2_8_raw_snapshot/parent-import/observed_p95/llama33_local_controlled/observed_p95_authority_receipt.json",
+        "reservations": {
+          "ollama/llama3.3:70b-instruct-q4_K_M": {
+            "action": {
+              "authority": {
+                "authority_id": "finevo-closed-loop-observed-p95-v1",
+                "pilot_contract_hash": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+                "pilot_tag": "pilot-v2.8-science",
+                "source_execution_artifact_sha256": "4aa64b7e12dfafad9d2b0e054c6f812e1d5f8b467133758c8eca230e72e1d600",
+                "source_kind": "sealed-closed-loop-observed-p95",
+                "source_model_id": "llama33_local_controlled",
+                "source_preflight_run_id": "finevo-pilot-v2.3--closed-loop-preflight--llama33_local_controlled--closed-loop-preflight--none--provider-preflight-default--s2010922376",
+                "source_preflight_run_spec_sha256": "e27609907a940f38e73490f1b8d9e3902a18800203c29c78036b212050d68dcd",
+                "source_projection_content_sha256": "6ed39de17f7a5f4f17e58cf0e4a29581201c6dfd1c13b21e964371df3f35c09d",
+                "source_projection_file_sha256": "8d6c9867ed7ac5a2968069eeb2df0bb1205ed5fce48b9640c5619fff72ea7ba0",
+                "source_projection_schema_version": "finevo-pilot-projection-p95-v1",
+                "source_provider_call_journal_sha256": "a99c9d4385c8666c784490418b98d267cb4a4a310020f0e95d92d269add77514",
+                "source_served_model": "llama3.3:70b-instruct-q4_K_M"
+              },
+              "reservation": {
+                "raw_p95": {
+                  "completion_tokens": 33.0,
+                  "cost_usd": 0.0,
+                  "prompt_tokens": 907.0,
+                  "total_tokens": 940.0
+                },
+                "reserve_multiplier": 1.25,
+                "reserved_p95": {
+                  "completion_tokens": 42,
+                  "cost_usd": 0.0,
+                  "prompt_tokens": 1134,
+                  "total_tokens": 1176
+                },
+                "sample_count": 36
+              }
+            },
+            "semantic": {
+              "authority": {
+                "authority_id": "finevo-closed-loop-observed-p95-v1",
+                "pilot_contract_hash": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+                "pilot_tag": "pilot-v2.8-science",
+                "source_execution_artifact_sha256": "4aa64b7e12dfafad9d2b0e054c6f812e1d5f8b467133758c8eca230e72e1d600",
+                "source_kind": "sealed-closed-loop-observed-p95",
+                "source_model_id": "llama33_local_controlled",
+                "source_preflight_run_id": "finevo-pilot-v2.3--closed-loop-preflight--llama33_local_controlled--closed-loop-preflight--none--provider-preflight-default--s2010922376",
+                "source_preflight_run_spec_sha256": "e27609907a940f38e73490f1b8d9e3902a18800203c29c78036b212050d68dcd",
+                "source_projection_content_sha256": "6ed39de17f7a5f4f17e58cf0e4a29581201c6dfd1c13b21e964371df3f35c09d",
+                "source_projection_file_sha256": "8d6c9867ed7ac5a2968069eeb2df0bb1205ed5fce48b9640c5619fff72ea7ba0",
+                "source_projection_schema_version": "finevo-pilot-projection-p95-v1",
+                "source_provider_call_journal_sha256": "a99c9d4385c8666c784490418b98d267cb4a4a310020f0e95d92d269add77514",
+                "source_served_model": "llama3.3:70b-instruct-q4_K_M"
+              },
+              "reservation": {
+                "raw_p95": {
+                  "completion_tokens": 345.0,
+                  "cost_usd": 0.0,
+                  "prompt_tokens": 2499.0,
+                  "total_tokens": 2844.0
+                },
+                "reserve_multiplier": 1.25,
+                "reserved_p95": {
+                  "completion_tokens": 432,
+                  "cost_usd": 0.0,
+                  "prompt_tokens": 3124,
+                  "total_tokens": 3556
+                },
+                "sample_count": 10
+              }
+            }
+          }
+        }
+      },
+      "source_path_kind": "byte-exact-v2.9-raw-inside-v2.10-terminal-snapshot",
+      "v2_8_observed_p95_origin": {
+        "authority": {
+          "content_sha256": "3c887a64d255fc0428dbbd34ec8dc2de1ea6c86d21b358c384d2a5316cd44cdd",
+          "file_sha256": "0b3536bdd0e28930d9f3f7598a372c0285ace5d9945904a7d4a10bc7f66e9bf7",
+          "path": "experiment_results/pilot-v2.9/raw/parent-import/v2_8_raw_snapshot/parent-import/observed_p95/llama33_local_controlled/observed_p95_authority_receipt.json",
+          "schema_version": "finevo-pilot-v2.8-inherited-observed-p95-authority-v1"
+        },
+        "profile_id": "llama33_local_controlled",
+        "projection": {
+          "content_sha256": "eda5fb22bd59f2fb7593208b5eab6c6dacf2ef15a169809cc2f8e55923a2c3cb",
+          "file_sha256": "05e4c02b3307d4928ceb568bd45b1cd5adce5532b83b005f85735579bbd9c6ad",
+          "path": "experiment_results/pilot-v2.9/raw/parent-import/v2_8_raw_snapshot/parent-import/observed_p95/llama33_local_controlled/projection_p95.json",
+          "schema_version": "finevo-pilot-projection-p95-v1"
+        },
+        "reservations": {
+          "ollama/llama3.3:70b-instruct-q4_K_M": {
+            "action": {
+              "authority": {
+                "authority_id": "finevo-closed-loop-observed-p95-v1",
+                "pilot_contract_hash": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+                "pilot_tag": "pilot-v2.8-science",
+                "source_execution_artifact_sha256": "4aa64b7e12dfafad9d2b0e054c6f812e1d5f8b467133758c8eca230e72e1d600",
+                "source_kind": "sealed-closed-loop-observed-p95",
+                "source_model_id": "llama33_local_controlled",
+                "source_preflight_run_id": "finevo-pilot-v2.3--closed-loop-preflight--llama33_local_controlled--closed-loop-preflight--none--provider-preflight-default--s2010922376",
+                "source_preflight_run_spec_sha256": "e27609907a940f38e73490f1b8d9e3902a18800203c29c78036b212050d68dcd",
+                "source_projection_content_sha256": "6ed39de17f7a5f4f17e58cf0e4a29581201c6dfd1c13b21e964371df3f35c09d",
+                "source_projection_file_sha256": "8d6c9867ed7ac5a2968069eeb2df0bb1205ed5fce48b9640c5619fff72ea7ba0",
+                "source_projection_schema_version": "finevo-pilot-projection-p95-v1",
+                "source_provider_call_journal_sha256": "a99c9d4385c8666c784490418b98d267cb4a4a310020f0e95d92d269add77514",
+                "source_served_model": "llama3.3:70b-instruct-q4_K_M"
+              },
+              "reservation": {
+                "raw_p95": {
+                  "completion_tokens": 33.0,
+                  "cost_usd": 0.0,
+                  "prompt_tokens": 907.0,
+                  "total_tokens": 940.0
+                },
+                "reserve_multiplier": 1.25,
+                "reserved_p95": {
+                  "completion_tokens": 42,
+                  "cost_usd": 0.0,
+                  "prompt_tokens": 1134,
+                  "total_tokens": 1176
+                },
+                "sample_count": 36
+              }
+            },
+            "semantic": {
+              "authority": {
+                "authority_id": "finevo-closed-loop-observed-p95-v1",
+                "pilot_contract_hash": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+                "pilot_tag": "pilot-v2.8-science",
+                "source_execution_artifact_sha256": "4aa64b7e12dfafad9d2b0e054c6f812e1d5f8b467133758c8eca230e72e1d600",
+                "source_kind": "sealed-closed-loop-observed-p95",
+                "source_model_id": "llama33_local_controlled",
+                "source_preflight_run_id": "finevo-pilot-v2.3--closed-loop-preflight--llama33_local_controlled--closed-loop-preflight--none--provider-preflight-default--s2010922376",
+                "source_preflight_run_spec_sha256": "e27609907a940f38e73490f1b8d9e3902a18800203c29c78036b212050d68dcd",
+                "source_projection_content_sha256": "6ed39de17f7a5f4f17e58cf0e4a29581201c6dfd1c13b21e964371df3f35c09d",
+                "source_projection_file_sha256": "8d6c9867ed7ac5a2968069eeb2df0bb1205ed5fce48b9640c5619fff72ea7ba0",
+                "source_projection_schema_version": "finevo-pilot-projection-p95-v1",
+                "source_provider_call_journal_sha256": "a99c9d4385c8666c784490418b98d267cb4a4a310020f0e95d92d269add77514",
+                "source_served_model": "llama3.3:70b-instruct-q4_K_M"
+              },
+              "reservation": {
+                "raw_p95": {
+                  "completion_tokens": 345.0,
+                  "cost_usd": 0.0,
+                  "prompt_tokens": 2499.0,
+                  "total_tokens": 2844.0
+                },
+                "reserve_multiplier": 1.25,
+                "reserved_p95": {
+                  "completion_tokens": 432,
+                  "cost_usd": 0.0,
+                  "prompt_tokens": 3124,
+                  "total_tokens": 3556
+                },
+                "sample_count": 10
+              }
+            }
+          }
+        },
+        "runtime_model": "ollama/llama3.3:70b-instruct-q4_K_M",
+        "served_model": "llama3.3:70b-instruct-q4_K_M",
+        "source_contract_id": "finevo-pilot-v2.8",
+        "source_contract_sha256": "948eac04516dd2c292d68beb732f97532b13e667a180e8c2db16fbb927f92f19",
+        "source_git_commit": "1988f10b5a06c3b9b3093b969c99593676721a09",
+        "source_git_tag": "pilot-v2.8-science"
+      },
+      "v2_9_terminal_parent": {
+        "contract_id": "finevo-pilot-v2.9",
+        "contract_sha256": "0b07881aaceeb020dc5943ede647a665f9e9bf786a1cac109ab720e05d81d361",
+        "implementation_root_cause": "imported-p95-runner-binding-shape-mismatch",
+        "raw_file_count": 623,
+        "raw_inventory_sha256": "ae478634a83a98bd206bcafa03f87636fcc392f8dd1e8e234f84696f245ef22f",
+        "raw_storage_bytes": 19288343,
+        "science_commit": "2349ccd41560383965da8880744cf4df366c9ee5",
+        "science_tag": "pilot-v2.9-science",
+        "terminal_status": "complete-with-no-go"
+      }
+    }
+  }
+}
