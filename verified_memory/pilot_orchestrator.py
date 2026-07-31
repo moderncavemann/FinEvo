@@ -20785,12 +20785,8 @@ def _execute_v2113_preflight_authority_import_stage_impl(
                 .get("bindings", {})
                 .get("contract_sha256")
                 != contract.canonical_hash
-                or not _resealed_reservations_match_source_wrapper(
-                    source_wrapper=wrapper,
-                    resealed_reservations=authority_binding["reservations"][
-                        runtime_model
-                    ],
-                )
+                or wrapper.get("reservations")
+                != authority_binding["reservations"][runtime_model]
             ):
                 raise PilotOrchestrationError(
                     f"{spec.run_id} V2.11.3 resealed authority drifted"

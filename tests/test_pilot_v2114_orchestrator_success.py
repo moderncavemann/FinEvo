@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import inspect
 import json
 from pathlib import Path
 from typing import Any, Mapping
@@ -111,6 +112,16 @@ def test_v2114_reseal_normalization_accepts_only_four_receipt_fields() -> None:
         source_wrapper=wrappers["gpt52_main"],
         resealed_reservations=drifted,
     )
+
+    frozen_v2113 = inspect.getsource(
+        orchestrator._execute_v2113_preflight_authority_import_stage_impl
+    )
+    normalized_v2114 = inspect.getsource(
+        orchestrator._execute_v2114_preflight_authority_import_stage_impl
+    )
+    assert "_resealed_reservations_match_source_wrapper" not in frozen_v2113
+    assert 'wrapper.get("reservations")' in frozen_v2113
+    assert "_resealed_reservations_match_source_wrapper" in normalized_v2114
 
 
 def test_v2114_preflight_reseal_success_is_zero_provider_and_keeps_science_fresh(
