@@ -25,11 +25,40 @@ from .scientific_release_attestation import (
     canonical_sha256,
     sealed_manifest_inventory,
 )
+from .pilot_contract import PilotContractError, load_pilot_contract
 
 
 COLLECTION_INVENTORY_SCHEMA_VERSION = "finevo-ci-test-collection-v1"
 COMPILED_SOURCE_INVENTORY_SCHEMA_VERSION = "finevo-ci-python-sources-v1"
+SCIENTIFIC_SOURCE_MANIFEST_INVENTORY_SCHEMA_VERSION = (
+    "finevo-ci-scientific-source-manifests-v1"
+)
 _WORKFLOW_FILE = ".github/workflows/verified-memory-ci.yml"
+_EXPECTED_CI_FIELDS = frozenset(
+    {
+        "test_count",
+        "test_collection_sha256",
+        "compiled_source_count",
+        "compiled_source_inventory_sha256",
+        "sealed_manifest_inventory_sha256",
+    }
+)
+
+# Source manifests are preregistration/import authorities, not sealed run
+# manifests.  Keep this inventory separate from the six historical manifests
+# consumed by ``sealed_manifest_inventory`` and its stable receipt schema.
+SCIENTIFIC_SOURCE_MANIFEST_ANCHORS: tuple[Mapping[str, str], ...] = (
+    {
+        "path": "experiments/pilot_v2_11_3_source_manifest.json",
+        "schema_version": "finevo-pilot-v2.11.3-source-manifest-v1",
+        "file_sha256": (
+            "f05dbac4951e99476c06883e3c1b792e7ccb459c16eb4d78ac15ddf7905598de"
+        ),
+        "content_sha256": (
+            "5c8e554d1a00803b81deb4f31b4a87ddf54a272861a7c750985cd72b18a95f00"
+        ),
+    },
+)
 
 
 class CIReleaseReceiptError(RuntimeError):
@@ -40,24 +69,19 @@ def build_collection_inventory(nodeids: Sequence[str]) -> dict[str, Any]:
     """Return a deterministic inventory from pytest collection node IDs."""
 
     rows = list(nodeids)
-    if (
-        not rows
-        or any(
-            not isinstance(row, str)
-            or not row
-            or row != row.strip()
-            or "\n" in row
-            or "\r" in row
-            for row in rows
-        )
+    if not rows or any(
+        not isinstance(row, str)
+        or not row
+        or row != row.strip()
+        or "\n" in row
+        or "\r" in row
+        for row in rows
     ):
         raise CIReleaseReceiptError(
             "pytest collection must contain normalized non-empty node IDs"
         )
     if len(set(rows)) != len(rows):
-        raise CIReleaseReceiptError(
-            "pytest collection contains duplicate node IDs"
-        )
+        raise CIReleaseReceiptError("pytest collection contains duplicate node IDs")
     return {
         "schema_version": COLLECTION_INVENTORY_SCHEMA_VERSION,
         "test_count": len(rows),
@@ -82,6 +106,90 @@ def build_source_inventory(paths: Sequence[str]) -> dict[str, Any]:
         "schema_version": COMPILED_SOURCE_INVENTORY_SCHEMA_VERSION,
         "compiled_source_count": len(rows),
         "compiled_source_inventory_sha256": canonical_sha256(rows),
+    }
+
+
+def build_scientific_source_manifest_inventory(
+    repo_root: Path | str,
+    *,
+    anchors: Sequence[Mapping[str, str]] = SCIENTIFIC_SOURCE_MANIFEST_ANCHORS,
+) -> dict[str, Any]:
+    """Verify and inventory release-critical scientific source manifests.
+
+    These JSON authorities use an embedded canonical-content seal and an
+    exact file-byte anchor.  They deliberately remain outside the sealed-run
+    manifest inventory because :func:`sealed_manifest_inventory` expects the
+    artifact-manifest schema and re-hashes the referenced run directory.
+    """
+
+    root = Path(repo_root).resolve()
+    normalized = tuple(_validate_source_manifest_anchor(row) for row in anchors)
+    paths = tuple(row["path"] for row in normalized)
+    if not paths or paths != tuple(sorted(paths)) or len(set(paths)) != len(paths):
+        raise CIReleaseReceiptError(
+            "scientific source manifest anchors must be non-empty, sorted, and unique"
+        )
+    tracked = discover_tracked_files(root, paths)
+    if tracked != paths:
+        raise CIReleaseReceiptError(
+            "scientific source manifest inventory is not exactly tracked"
+        )
+
+    rows: list[dict[str, str]] = []
+    for anchor in normalized:
+        relative = anchor["path"]
+        source = _guarded_regular_file(root, relative)
+        raw = source.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != anchor["file_sha256"]:
+            raise CIReleaseReceiptError(
+                f"scientific source manifest file hash drifted: {relative}"
+            )
+        value = _strict_json_object(raw, f"scientific source manifest {relative}")
+        if value.get("schema_version") != anchor["schema_version"]:
+            raise CIReleaseReceiptError(
+                f"scientific source manifest schema drifted: {relative}"
+            )
+        canonical = (
+            json.dumps(
+                value,
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+        if raw != canonical:
+            raise CIReleaseReceiptError(
+                f"scientific source manifest bytes are not canonical: {relative}"
+            )
+        integrity = value.get("integrity")
+        if not isinstance(integrity, Mapping):
+            raise CIReleaseReceiptError(
+                f"scientific source manifest integrity is missing: {relative}"
+            )
+        claimed = integrity.get("content_sha256")
+        if (
+            set(integrity) != {"canonicalization", "content_sha256"}
+            or integrity.get("canonicalization") != "json-sort-keys-utf8-v1"
+            or claimed != anchor["content_sha256"]
+        ):
+            raise CIReleaseReceiptError(
+                f"scientific source manifest content anchor drifted: {relative}"
+            )
+        candidate = json.loads(json.dumps(value, sort_keys=True, allow_nan=False))
+        candidate["integrity"].pop("content_sha256")
+        if canonical_sha256(candidate) != claimed:
+            raise CIReleaseReceiptError(
+                f"scientific source manifest content seal drifted: {relative}"
+            )
+        rows.append(dict(anchor))
+
+    return {
+        "schema_version": SCIENTIFIC_SOURCE_MANIFEST_INVENTORY_SCHEMA_VERSION,
+        "source_manifest_count": len(rows),
+        "source_manifests": rows,
+        "source_manifest_inventory_sha256": canonical_sha256(rows),
     }
 
 
@@ -138,9 +246,7 @@ def build_ci_job_receipt(
     for key in ("failure_count", "error_count", "skipped_count"):
         value = junit_summary.get(key)
         if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-            raise CIReleaseReceiptError(
-                f"JUnit {key} must be a non-negative integer"
-            )
+            raise CIReleaseReceiptError(f"JUnit {key} must be a non-negative integer")
     if junit_summary["failure_count"] or junit_summary["error_count"]:
         raise CIReleaseReceiptError("cannot seal a failing CI test receipt")
 
@@ -160,18 +266,14 @@ def build_ci_job_receipt(
         )
     }
     run_id = _positive_decimal(env["GITHUB_RUN_ID"], "GITHUB_RUN_ID")
-    run_attempt = _positive_decimal(
-        env["GITHUB_RUN_ATTEMPT"], "GITHUB_RUN_ATTEMPT"
-    )
+    run_attempt = _positive_decimal(env["GITHUB_RUN_ATTEMPT"], "GITHUB_RUN_ATTEMPT")
     if env["GITHUB_WORKFLOW_SHA"] != env["GITHUB_SHA"]:
         raise CIReleaseReceiptError(
             "workflow source SHA must equal the checked-out release SHA"
         )
     workflow = root / workflow_file
     if workflow.is_symlink() or not workflow.is_file():
-        raise CIReleaseReceiptError(
-            "workflow file is missing or is not regular"
-        )
+        raise CIReleaseReceiptError("workflow file is missing or is not regular")
     workflow_bytes = workflow.read_bytes()
     workflow_sha256 = hashlib.sha256(workflow_bytes).hexdigest()
     workflow_blob_oid = _git_line(
@@ -181,13 +283,9 @@ def build_ci_job_receipt(
         root, ("git", "rev-parse", "--verify", "HEAD^{commit}")
     )
     if checked_out_head != env["GITHUB_SHA"]:
-        raise CIReleaseReceiptError(
-            "checked-out HEAD does not equal GITHUB_SHA"
-        )
+        raise CIReleaseReceiptError("checked-out HEAD does not equal GITHUB_SHA")
 
-    rows, manifest_inventory_sha256 = sealed_manifest_inventory(
-        root, manifest_paths
-    )
+    rows, manifest_inventory_sha256 = sealed_manifest_inventory(root, manifest_paths)
     payload = {
         "schema_version": CI_JOB_RECEIPT_SCHEMA_VERSION,
         "status": "pass",
@@ -205,18 +303,95 @@ def build_ci_job_receipt(
         "workflow_file_sha256": workflow_sha256,
         "workflow_blob_oid": workflow_blob_oid,
         "test_count": collection["test_count"],
-        "test_collection_sha256": collection[
-            "test_collection_sha256"
-        ],
+        "test_collection_sha256": collection["test_collection_sha256"],
         "skipped_test_count": junit_summary["skipped_count"],
         "compiled_source_count": sources["compiled_source_count"],
-        "compiled_source_inventory_sha256": sources[
-            "compiled_source_inventory_sha256"
-        ],
+        "compiled_source_inventory_sha256": sources["compiled_source_inventory_sha256"],
         "sealed_manifest_count": len(rows),
         "sealed_manifest_inventory_sha256": manifest_inventory_sha256,
     }
     return {**payload, "receipt_sha256": canonical_sha256(payload)}
+
+
+def verify_expected_ci_matches_receipt(
+    expected_ci: Mapping[str, Any],
+    receipt: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Require one CI receipt to reproduce the frozen contract inventory.
+
+    This check intentionally runs inside each matrix job, before a merge
+    commit can be treated as taggable release evidence.  The later scientific
+    launch attestation repeats the same comparison against downloaded job
+    receipts; keeping both checks makes an inventory mistake fail before an
+    immutable science tag is created.
+    """
+
+    if not isinstance(expected_ci, Mapping) or set(expected_ci) != _EXPECTED_CI_FIELDS:
+        raise CIReleaseReceiptError(
+            "frozen contract expected_ci fields differ from the CI schema"
+        )
+    if not isinstance(receipt, Mapping):
+        raise CIReleaseReceiptError("CI receipt must be a mapping")
+    normalized = {
+        "test_count": _positive_int(expected_ci.get("test_count"), "test_count"),
+        "test_collection_sha256": _sha256(
+            expected_ci.get("test_collection_sha256"),
+            "test_collection_sha256",
+        ),
+        "compiled_source_count": _positive_int(
+            expected_ci.get("compiled_source_count"),
+            "compiled_source_count",
+        ),
+        "compiled_source_inventory_sha256": _sha256(
+            expected_ci.get("compiled_source_inventory_sha256"),
+            "compiled_source_inventory_sha256",
+        ),
+        "sealed_manifest_inventory_sha256": _sha256(
+            expected_ci.get("sealed_manifest_inventory_sha256"),
+            "sealed_manifest_inventory_sha256",
+        ),
+    }
+    observed = {field: receipt.get(field) for field in _EXPECTED_CI_FIELDS}
+    if observed != normalized:
+        drifted = sorted(
+            field
+            for field in _EXPECTED_CI_FIELDS
+            if observed[field] != normalized[field]
+        )
+        raise CIReleaseReceiptError(
+            "CI receipt differs from frozen expected_ci: " + ", ".join(drifted)
+        )
+    return normalized
+
+
+def verify_contract_ci_receipt(
+    contract_path: Path | str,
+    receipt: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Load one pinned frozen contract and verify its CI inventory now."""
+
+    source = Path(contract_path)
+    if source.is_symlink() or not source.is_file():
+        raise CIReleaseReceiptError(
+            "release contract is missing or is not a regular file"
+        )
+    try:
+        contract = load_pilot_contract(source)
+    except (OSError, ValueError, PilotContractError) as exc:
+        raise CIReleaseReceiptError("release contract failed validation") from exc
+    if contract.status != "frozen" or contract.release_requirements is None:
+        raise CIReleaseReceiptError(
+            "CI inventory comparison requires a frozen release contract"
+        )
+    verify_expected_ci_matches_receipt(
+        contract.release_requirements.expected_ci,
+        receipt,
+    )
+    return {
+        "contract_id": contract.contract_id,
+        "contract_sha256": contract.canonical_hash,
+        "status": "pass",
+    }
 
 
 def discover_tracked_files(
@@ -241,13 +416,9 @@ def discover_tracked_files(
             if raw
         ]
     except UnicodeDecodeError as exc:
-        raise CIReleaseReceiptError(
-            "tracked file inventory is not UTF-8"
-        ) from exc
+        raise CIReleaseReceiptError("tracked file inventory is not UTF-8") from exc
     if rows != sorted(rows) or len(set(rows)) != len(rows):
-        raise CIReleaseReceiptError(
-            "tracked file inventory is not sorted and unique"
-        )
+        raise CIReleaseReceiptError("tracked file inventory is not sorted and unique")
     return tuple(rows)
 
 
@@ -277,9 +448,7 @@ def collect_tests(output: Path | str) -> dict[str, Any]:
     return inventory
 
 
-def compile_sources(
-    repo_root: Path | str, output: Path | str
-) -> dict[str, Any]:
+def compile_sources(repo_root: Path | str, output: Path | str) -> dict[str, Any]:
     """Compile every tracked Python source and persist its inventory hash."""
 
     root = Path(repo_root).resolve()
@@ -288,9 +457,7 @@ def compile_sources(
     failures = [
         relative
         for relative in sources
-        if not compileall.compile_file(
-            root / relative, force=True, quiet=1
-        )
+        if not compileall.compile_file(root / relative, force=True, quiet=1)
     ]
     if failures:
         raise CIReleaseReceiptError(
@@ -307,6 +474,7 @@ def emit_ci_job_receipt(
     source_path: Path | str,
     junit_path: Path | str,
     output_path: Path | str,
+    contract_path: Path | str,
     environment: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     """Seal one job receipt, write it, and print one canonical safe log line."""
@@ -330,6 +498,10 @@ def emit_ci_job_receipt(
         environment=os.environ if environment is None else environment,
         manifest_paths=manifests,
     )
+    contract_source = Path(contract_path)
+    if not contract_source.is_absolute():
+        contract_source = root / contract_source
+    verify_contract_ci_receipt(contract_source, receipt)
     _write_json(Path(output_path), receipt)
     print(
         CI_JOB_RECEIPT_LOG_PREFIX
@@ -354,9 +526,7 @@ def _validate_collection_inventory(
     }:
         raise CIReleaseReceiptError("collection inventory keys mismatch")
     if value.get("schema_version") != COLLECTION_INVENTORY_SCHEMA_VERSION:
-        raise CIReleaseReceiptError(
-            "collection inventory schema mismatch"
-        )
+        raise CIReleaseReceiptError("collection inventory schema mismatch")
     return {
         "schema_version": COLLECTION_INVENTORY_SCHEMA_VERSION,
         "test_count": _positive_int(value.get("test_count"), "test_count"),
@@ -376,10 +546,7 @@ def _validate_source_inventory(
         "compiled_source_inventory_sha256",
     }:
         raise CIReleaseReceiptError("source inventory keys mismatch")
-    if (
-        value.get("schema_version")
-        != COMPILED_SOURCE_INVENTORY_SCHEMA_VERSION
-    ):
+    if value.get("schema_version") != COMPILED_SOURCE_INVENTORY_SCHEMA_VERSION:
         raise CIReleaseReceiptError("source inventory schema mismatch")
     return {
         "schema_version": COMPILED_SOURCE_INVENTORY_SCHEMA_VERSION,
@@ -404,6 +571,89 @@ def _read_json(path: Path, name: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise CIReleaseReceiptError(f"{name} must be a JSON object")
     return value
+
+
+def _strict_json_object(raw: bytes, name: str) -> dict[str, Any]:
+    def pairs(rows: list[tuple[str, Any]]) -> dict[str, Any]:
+        value: dict[str, Any] = {}
+        for key, item in rows:
+            if key in value:
+                raise CIReleaseReceiptError(
+                    f"{name} contains duplicate JSON key {key!r}"
+                )
+            value[key] = item
+        return value
+
+    def reject_constant(value: str) -> None:
+        raise ValueError(f"non-finite JSON constant {value}")
+
+    try:
+        value = json.loads(
+            raw.decode("utf-8", "strict"),
+            object_pairs_hook=pairs,
+            parse_constant=reject_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise CIReleaseReceiptError(f"{name} is not strict JSON") from exc
+    if not isinstance(value, dict):
+        raise CIReleaseReceiptError(f"{name} must contain one JSON object")
+    return value
+
+
+def _validate_source_manifest_anchor(value: Mapping[str, str]) -> dict[str, str]:
+    if set(value) != {
+        "path",
+        "schema_version",
+        "file_sha256",
+        "content_sha256",
+    }:
+        raise CIReleaseReceiptError("scientific source manifest anchor keys mismatch")
+    path = value.get("path")
+    schema = value.get("schema_version")
+    if (
+        not isinstance(path, str)
+        or not path.startswith("experiments/")
+        or not path.endswith("_source_manifest.json")
+        or "\\" in path
+        or "\x00" in path
+        or path != Path(path).as_posix()
+        or Path(path).is_absolute()
+        or any(part in {"", ".", ".."} for part in Path(path).parts)
+    ):
+        raise CIReleaseReceiptError(
+            "scientific source manifest path must be normalized below experiments/"
+        )
+    if (
+        not isinstance(schema, str)
+        or not schema
+        or schema != schema.strip()
+        or "\n" in schema
+        or "\r" in schema
+    ):
+        raise CIReleaseReceiptError(
+            "scientific source manifest schema must be normalized text"
+        )
+    return {
+        "path": path,
+        "schema_version": schema,
+        "file_sha256": _sha256(value.get("file_sha256"), "file_sha256"),
+        "content_sha256": _sha256(value.get("content_sha256"), "content_sha256"),
+    }
+
+
+def _guarded_regular_file(root: Path, relative: str) -> Path:
+    current = root
+    for part in Path(relative).parts:
+        current = current / part
+        if current.is_symlink():
+            raise CIReleaseReceiptError(
+                f"scientific source manifest path contains a symlink: {relative}"
+            )
+    if not current.is_file():
+        raise CIReleaseReceiptError(
+            f"scientific source manifest is missing or not regular: {relative}"
+        )
+    return current
 
 
 def _write_json(path: Path, value: Mapping[str, Any]) -> None:
@@ -437,10 +687,7 @@ def _git_line(root: Path, argv: Sequence[str]) -> str:
         value = completed.stdout.decode("utf-8", "strict").strip()
     except UnicodeDecodeError as exc:
         raise CIReleaseReceiptError("Git output is not UTF-8") from exc
-    if (
-        len(completed.stdout.decode("utf-8", "strict").splitlines()) != 1
-        or not value
-    ):
+    if len(completed.stdout.decode("utf-8", "strict").splitlines()) != 1 or not value:
         raise CIReleaseReceiptError("Git output is not one normalized line")
     return value
 
@@ -476,9 +723,7 @@ def _sha256(value: Any, name: str) -> str:
         or len(value) != 64
         or any(character not in "0123456789abcdef" for character in value)
     ):
-        raise CIReleaseReceiptError(
-            f"{name} must be a lowercase SHA-256 digest"
-        )
+        raise CIReleaseReceiptError(f"{name} must be a lowercase SHA-256 digest")
     return value
 
 
@@ -489,11 +734,14 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     collect_parser.add_argument("--output", required=True)
     compile_parser = subparsers.add_parser("compile-sources")
     compile_parser.add_argument("--output", required=True)
+    source_manifest_parser = subparsers.add_parser("verify-source-manifests")
+    source_manifest_parser.add_argument("--output", required=True)
     emit_parser = subparsers.add_parser("emit")
     emit_parser.add_argument("--collection", required=True)
     emit_parser.add_argument("--sources", required=True)
     emit_parser.add_argument("--junit", required=True)
     emit_parser.add_argument("--output", required=True)
+    emit_parser.add_argument("--contract", required=True)
     return parser.parse_args(argv)
 
 
@@ -504,6 +752,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             collect_tests(args.output)
         elif args.command == "compile-sources":
             compile_sources(Path.cwd(), args.output)
+        elif args.command == "verify-source-manifests":
+            inventory = build_scientific_source_manifest_inventory(Path.cwd())
+            _write_json(Path(args.output), inventory)
         else:
             emit_ci_job_receipt(
                 Path.cwd(),
@@ -511,6 +762,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 source_path=args.sources,
                 junit_path=args.junit,
                 output_path=args.output,
+                contract_path=args.contract,
             )
     except (
         CIReleaseReceiptError,
@@ -529,9 +781,14 @@ __all__ = [
     "CIReleaseReceiptError",
     "COLLECTION_INVENTORY_SCHEMA_VERSION",
     "COMPILED_SOURCE_INVENTORY_SCHEMA_VERSION",
+    "SCIENTIFIC_SOURCE_MANIFEST_ANCHORS",
+    "SCIENTIFIC_SOURCE_MANIFEST_INVENTORY_SCHEMA_VERSION",
     "build_ci_job_receipt",
     "build_collection_inventory",
+    "build_scientific_source_manifest_inventory",
     "build_source_inventory",
+    "verify_contract_ci_receipt",
+    "verify_expected_ci_matches_receipt",
     "collect_tests",
     "compile_sources",
     "discover_tracked_files",
