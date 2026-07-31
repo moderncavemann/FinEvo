@@ -55,6 +55,14 @@ jobs:
           test "$(git cat-file -t pilot-v2.11.3-science)" = tag
           test "$(git rev-parse 'pilot-v2.11.3-science^{commit}')" = "${expected_commit}"
 
+      - name: Verify immutable V2.11.4 pre-dispatch no-go tag anchor
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_commit=74f6c05dafc58fadf8d1b658ef3764d244676f76
+          test "$(git cat-file -t pilot-v2.11.4-science)" = tag
+          test "$(git rev-parse 'pilot-v2.11.4-science^{commit}')" = "${expected_commit}"
+
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
@@ -146,7 +154,7 @@ jobs:
               )
           PY
 
-      - name: Verify V2.11.3 and V2.11.4 scientific source manifests
+      - name: Verify V2.11.3 through V2.11.5 scientific source manifests
         run: >-
           python -m verified_memory.ci_release_receipt verify-source-manifests
           --output "${RUNNER_TEMP}/finevo-source-manifests.json"
@@ -384,5 +392,5 @@ jobs:
           --collection "${RUNNER_TEMP}/finevo-test-collection.json"
           --sources "${RUNNER_TEMP}/finevo-python-sources.json"
           --junit "${RUNNER_TEMP}/finevo-test-results.xml"
-          --contract experiments/pilot_v2_11_4.yaml
+          --contract experiments/pilot_v2_11_5.yaml
           --output "${RUNNER_TEMP}/finevo-ci-release-receipt.json"
