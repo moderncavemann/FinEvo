@@ -130,6 +130,41 @@ _EXPECTED_C_SENSITIVITY_FAILURE = {
     "error_type": "PilotOrchestrationError",
     "message": "V2.11.5 imported Stage-0 selection requires paid provenance",
 }
+_EXPECTED_C_STAGE_RECEIPT_FILE_SHA256 = (
+    "958cb161785c144c89861da3e9536e53069e8f1070a64c03f54647cbfe05b322"
+)
+_EXPECTED_C_STAGE_RECEIPT_CONTENT_SHA256 = (
+    "39a9d35f4961fee4b0bc59ac67f7a9a2da0c3f95fddf77a418b92e518b6e2eba"
+)
+_EXPECTED_C_STAGE_RECEIPT_KEYS = frozenset(
+    {
+        "artifacts",
+        "bindings",
+        "complete_cell_count",
+        "contract_id",
+        "contract_sha256",
+        "created_at",
+        "denominator_terminal",
+        "diagnostic_only",
+        "execution_progression_go",
+        "failure",
+        "go",
+        "go_models",
+        "hard_stop_cell_count",
+        "integrity",
+        "registered_run_count",
+        "schema_version",
+        "scientific_evidence",
+        "scientific_matrix_complete",
+        "stage_id",
+        "status",
+        "status_counts",
+        "terminal",
+    }
+)
+_EXPECTED_C_STAGE_ARTIFACT_KEYS = frozenset(
+    {"zero_api_rule_sensitivity_failure"}
+)
 _EXPECTED_STAGE_COUNTS = {
     "parent-import": 1,
     "capability-gate": 2,
@@ -410,7 +445,10 @@ def _authoritative_c_sensitivity_no_go(
     artifacts = _mapping(receipt.get("artifacts"), "Experiment C receipt artifacts")
     failure = artifacts.get("zero_api_rule_sensitivity_failure")
     if (
-        receipt.get("schema_version") != "finevo-pilot-stage-receipt-v2"
+        set(receipt) != _EXPECTED_C_STAGE_RECEIPT_KEYS
+        or set(artifacts) != _EXPECTED_C_STAGE_ARTIFACT_KEYS
+        or _sha256_file(path) != _EXPECTED_C_STAGE_RECEIPT_FILE_SHA256
+        or receipt.get("schema_version") != "finevo-pilot-stage-receipt-v2"
         or receipt.get("contract_id") != contract.contract_id
         or receipt.get("contract_sha256") != contract.canonical_hash
         or receipt.get("stage_id") != "experiment-c"
@@ -429,7 +467,9 @@ def _authoritative_c_sensitivity_no_go(
         or artifacts.get("zero_api_rule_sensitivity") is not None
         or failure != _EXPECTED_C_SENSITIVITY_FAILURE
         or integrity.get("canonicalization") != "json-sort-keys-utf8-v1"
-        or integrity.get("content_sha256") != canonical_sha256(content)
+        or integrity.get("content_sha256")
+        != _EXPECTED_C_STAGE_RECEIPT_CONTENT_SHA256
+        or canonical_sha256(content) != _EXPECTED_C_STAGE_RECEIPT_CONTENT_SHA256
     ):
         raise PilotEvidenceError(
             "Experiment C sensitivity no-go receipt differs from the frozen "
@@ -471,6 +511,17 @@ def _publication_time_c_sensitivity_replay(
     )
     bindings = _mapping(value.get("bindings"), "diagnostic C replay bindings")
     cells = value.get("aggregate_cells")
+    sensitivity_contract = _mapping(
+        contract.stop_go["experiment_c"]["zero_api_sensitivity"],
+        "Experiment C sensitivity contract",
+    )
+    expected_weights = list(sensitivity_contract["alternative_success_weights"])
+    expected_outcomes = list(sensitivity_contract["outcome_definitions"])
+    expected_grid = {
+        (weight, outcome)
+        for weight in expected_weights
+        for outcome in expected_outcomes
+    }
     expected_sources = {
         row["run_id"]: row["artifact_sha256"]
         for row in rows
@@ -482,15 +533,41 @@ def _publication_time_c_sensitivity_replay(
         )
     }
     source_rows = bindings.get("source_manifests")
+    valid_source_sequence = (
+        isinstance(source_rows, Sequence)
+        and not isinstance(source_rows, (str, bytes))
+        and len(source_rows) == 5
+        and all(isinstance(source, Mapping) for source in source_rows)
+    )
     observed_sources = (
         {
             str(source.get("run_id")): source.get("manifest_sha256")
             for source in source_rows
             if isinstance(source, Mapping)
         }
-        if isinstance(source_rows, Sequence)
-        and not isinstance(source_rows, (str, bytes))
+        if valid_source_sequence
         else {}
+    )
+    valid_cell_sequence = (
+        isinstance(cells, Sequence)
+        and not isinstance(cells, (str, bytes))
+        and len(cells) == len(expected_grid)
+        and all(
+            isinstance(cell, Mapping) and cell.get("source_run_count") == 5
+            for cell in cells
+        )
+    )
+    observed_grid = (
+        {
+            (
+                cell.get("alternative_success_weight"),
+                cell.get("outcome_definition"),
+            )
+            for cell in cells
+            if isinstance(cell, Mapping)
+        }
+        if valid_cell_sequence
+        else set()
     )
     if (
         value.get("schema_version")
@@ -500,16 +577,20 @@ def _publication_time_c_sensitivity_replay(
         or value.get("provider_calls") != 0
         or value.get("descriptive_only") is not True
         or value.get("effectiveness_gate") is not False
+        or value.get("source_run_count") != 5
+        or value.get("alternative_success_weights") != expected_weights
+        or value.get("outcome_definitions") != expected_outcomes
         or bindings.get("contract_sha256") != contract.canonical_hash
         or bindings.get("git_tag") != V2115_SOURCE_TAG
         or bindings.get("git_commit") != common_commit
         or bindings.get("stage0_selection_source_kind")
         != "v2.11.5-sealed-parent-import"
         or len(expected_sources) != 5
+        or not valid_source_sequence
+        or len(observed_sources) != 5
         or observed_sources != expected_sources
-        or not isinstance(cells, Sequence)
-        or isinstance(cells, (str, bytes))
-        or len(cells) != 9
+        or not valid_cell_sequence
+        or observed_grid != expected_grid
     ):
         raise PilotEvidenceError(
             "publication-time Experiment C diagnostic replay is not bound to "

@@ -589,7 +589,10 @@ def _complete_c_rows() -> list[dict[str, Any]]:
 def _write_c_sensitivity_no_go_receipt(
     raw: Path,
     *,
+    monkeypatch: pytest.MonkeyPatch,
     failure: dict[str, Any] | None = None,
+    extra_top_level: dict[str, Any] | None = None,
+    extra_artifact: dict[str, Any] | None = None,
 ) -> Path:
     contract = _contract()
     receipt = {
@@ -609,6 +612,10 @@ def _write_c_sensitivity_no_go_receipt(
         "status_counts": {"complete": 25},
         "failure": None,
         "scientific_evidence": None,
+        "bindings": {},
+        "created_at": "2026-07-31T21:53:14.954232+00:00",
+        "diagnostic_only": False,
+        "go_models": [],
         "artifacts": {
             "zero_api_rule_sensitivity_failure": (
                 dict(evidence._EXPECTED_C_SENSITIVITY_FAILURE)
@@ -617,6 +624,8 @@ def _write_c_sensitivity_no_go_receipt(
             )
         },
     }
+    receipt.update(extra_top_level or {})
+    receipt["artifacts"].update(extra_artifact or {})
     receipt["integrity"] = {
         "canonicalization": "json-sort-keys-utf8-v1",
         "content_sha256": evidence.canonical_sha256(receipt),
@@ -624,10 +633,23 @@ def _write_c_sensitivity_no_go_receipt(
     path = raw / "experiment-c" / "stage_receipt.json"
     path.parent.mkdir(parents=True)
     path.write_text(json.dumps(receipt), encoding="utf-8")
+    monkeypatch.setattr(
+        evidence,
+        "_EXPECTED_C_STAGE_RECEIPT_FILE_SHA256",
+        evidence._sha256_file(path),
+    )
+    monkeypatch.setattr(
+        evidence,
+        "_EXPECTED_C_STAGE_RECEIPT_CONTENT_SHA256",
+        receipt["integrity"]["content_sha256"],
+    )
     return path
 
 
 def _diagnostic_source_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    sensitivity = _contract().stop_go["experiment_c"]["zero_api_sensitivity"]
+    weights = list(sensitivity["alternative_success_weights"])
+    outcomes = list(sensitivity["outcome_definitions"])
     sources = [
         {
             "run_id": row["run_id"],
@@ -647,17 +669,16 @@ def _diagnostic_source_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "effectiveness_gate": False,
         "scientific_evidence": True,
         "source_run_count": 5,
+        "alternative_success_weights": weights,
+        "outcome_definitions": outcomes,
         "aggregate_cells": [
             {
                 "alternative_success_weight": weight,
                 "outcome_definition": outcome,
+                "source_run_count": 5,
             }
-            for weight in (0.25, 0.5, 0.75)
-            for outcome in (
-                "utility_advantage_positive",
-                "absolute_flow_utility_threshold",
-                "three_period_cumulative_advantage_positive",
-            )
+            for weight in weights
+            for outcome in outcomes
         ],
         "bindings": {
             "contract_sha256": _contract().canonical_hash,
@@ -679,7 +700,7 @@ def test_v2115_missing_c_sensitivity_gets_diagnostic_replay_but_stays_no_go(
 ) -> None:
     contract = _contract()
     raw = tmp_path / "raw"
-    _write_c_sensitivity_no_go_receipt(raw)
+    _write_c_sensitivity_no_go_receipt(raw, monkeypatch=monkeypatch)
     rows = _complete_c_rows()
     paid = object()
     source_root = tmp_path / "science"
@@ -742,7 +763,7 @@ def test_v2115_c_diagnostic_replay_failure_still_returns_publishable_no_go(
 ) -> None:
     contract = _contract()
     raw = tmp_path / "raw"
-    _write_c_sensitivity_no_go_receipt(raw)
+    _write_c_sensitivity_no_go_receipt(raw, monkeypatch=monkeypatch)
 
     def fail(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
         raise RuntimeError("diagnostic fixture failed")
@@ -775,6 +796,7 @@ def test_v2115_c_sensitivity_no_go_receipt_tamper_fails_closed(
     raw = tmp_path / "raw"
     _write_c_sensitivity_no_go_receipt(
         raw,
+        monkeypatch=monkeypatch,
         failure={
             "error_type": "PilotOrchestrationError",
             "message": "changed failure",
@@ -798,6 +820,142 @@ def test_v2115_c_sensitivity_no_go_receipt_tamper_fails_closed(
             paid=object(),
         )
     assert called is False
+
+
+def test_v2115_c_sensitivity_receipt_hashes_are_frozen() -> None:
+    assert evidence._EXPECTED_C_STAGE_RECEIPT_FILE_SHA256 == (
+        "958cb161785c144c89861da3e9536e53069e8f1070a64c03f54647cbfe05b322"
+    )
+    assert evidence._EXPECTED_C_STAGE_RECEIPT_CONTENT_SHA256 == (
+        "39a9d35f4961fee4b0bc59ac67f7a9a2da0c3f95fddf77a418b92e518b6e2eba"
+    )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("duplicate-grid", "top-source-count", "cell-source-count", "six-sources"),
+)
+def test_v2115_c_publication_replay_rejects_cardinality_exploits(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    contract = _contract()
+    rows = _complete_c_rows()
+    payload = _diagnostic_source_payload(rows)
+    if mutation == "duplicate-grid":
+        payload["aggregate_cells"] = [dict(payload["aggregate_cells"][0])] * 9
+    elif mutation == "top-source-count":
+        payload["source_run_count"] = 999
+    elif mutation == "cell-source-count":
+        payload["aggregate_cells"][0]["source_run_count"] = 999
+    else:
+        payload["bindings"]["source_manifests"].append(
+            dict(payload["bindings"]["source_manifests"][0])
+        )
+
+    monkeypatch.setattr(
+        evidence,
+        "_build_experiment_c_sensitivity",
+        lambda *_args, **_kwargs: payload,
+    )
+    with pytest.raises(PilotEvidenceError, match="not bound to the frozen"):
+        evidence._publication_time_c_sensitivity_replay(
+            contract,
+            raw_root=tmp_path / "raw",
+            rows=rows,
+            common_commit=evidence.V2115_SOURCE_COMMIT,
+            source_repo_root=tmp_path / "science",
+            paid=object(),
+            stage_no_go={
+                "file_sha256": "d" * 64,
+                "content_sha256": "e" * 64,
+                "status": "complete-with-no-go",
+                "go": False,
+            },
+        )
+
+
+@pytest.mark.parametrize(
+    ("extra_top_level", "extra_artifact"),
+    (({"unexpected": "self-rehashed"}, None), (None, {"unexpected": {}})),
+)
+def test_v2115_c_receipt_rejects_self_rehashed_extra_keys(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    extra_top_level: dict[str, Any] | None,
+    extra_artifact: dict[str, Any] | None,
+) -> None:
+    raw = tmp_path / "raw"
+    _write_c_sensitivity_no_go_receipt(
+        raw,
+        monkeypatch=monkeypatch,
+        extra_top_level=extra_top_level,
+        extra_artifact=extra_artifact,
+    )
+    with pytest.raises(PilotEvidenceError, match="differs from the frozen"):
+        evidence._authoritative_c_sensitivity_no_go(_contract(), raw_root=raw)
+
+
+def test_v2115_c_receipt_rejects_self_rehashed_created_at_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw = tmp_path / "raw"
+    path = _write_c_sensitivity_no_go_receipt(
+        raw,
+        monkeypatch=monkeypatch,
+    )
+    receipt = json.loads(path.read_text(encoding="utf-8"))
+    receipt["created_at"] = "2099-01-01T00:00:00+00:00"
+    receipt.pop("integrity")
+    receipt["integrity"] = {
+        "canonicalization": "json-sort-keys-utf8-v1",
+        "content_sha256": evidence.canonical_sha256(receipt),
+    }
+    path.write_text(json.dumps(receipt), encoding="utf-8")
+
+    with pytest.raises(PilotEvidenceError, match="differs from the frozen"):
+        evidence._authoritative_c_sensitivity_no_go(_contract(), raw_root=raw)
+
+
+def test_v2115_direct_sensitivity_writer_cannot_mutate_frozen_source_raw(
+    tmp_path: Path,
+) -> None:
+    contract = _contract()
+    raw = tmp_path / "source-raw"
+    raw.mkdir()
+    marker = raw / "immutable-marker.json"
+    marker.write_bytes(b'{"frozen":true}\n')
+    before = {
+        path.relative_to(raw).as_posix(): (
+            path.read_bytes(),
+            path.stat().st_mtime_ns,
+        )
+        for path in raw.rglob("*")
+        if path.is_file()
+    }
+
+    with pytest.raises(
+        pilot_orchestrator.PilotOrchestrationError,
+        match="frozen as an authoritative stage no-go",
+    ):
+        pilot_orchestrator._write_experiment_c_sensitivity(
+            contract,
+            raw_root=raw,
+            paid=object(),
+        )
+
+    after = {
+        path.relative_to(raw).as_posix(): (
+            path.read_bytes(),
+            path.stat().st_mtime_ns,
+        )
+        for path in raw.rglob("*")
+        if path.is_file()
+    }
+    assert after == before
+    assert not (raw / "experiment-c" / "rule_sensitivity.json").exists()
 
 
 def _offline_fixture(

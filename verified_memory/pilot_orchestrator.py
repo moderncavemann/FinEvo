@@ -16308,6 +16308,12 @@ def _write_experiment_c_sensitivity(
     model_id: str | None = None,
     authority_repo_root: str | Path | None = None,
 ) -> Path:
+    if contract.contract_id == V2115_CONTRACT_ID:
+        raise PilotOrchestrationError(
+            "V2.11.5 Experiment C sensitivity is frozen as an authoritative "
+            "stage no-go and cannot be materialized or resumed; use the "
+            "provider-free publication diagnostic namespace"
+        )
     output = _experiment_c_sensitivity_path(raw_root, stage_id)
     if output.exists():
         _load_verified_experiment_c_sensitivity(
