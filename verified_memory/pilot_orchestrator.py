@@ -3744,6 +3744,7 @@ def _load_verified_v2112_calibration(
     raw_root: Path,
     paid: GitProvenance,
     authority_repo_root: str | Path | None = None,
+    release_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Replay V2.11.1 and expose only the V2.11.2 calibration wrapper."""
 
@@ -3758,7 +3759,11 @@ def _load_verified_v2112_calibration(
     try:
         receipt = verify_v2112_parent_import_receipt(
             receipt_path,
-            repo_root=Path(__file__).resolve().parents[1],
+            repo_root=(
+                Path(__file__).resolve().parents[1]
+                if release_repo_root is None
+                else Path(release_repo_root).resolve(strict=True)
+            ),
             child_contract_sha256=contract.canonical_hash,
             child_git_tag=paid.git_tag,
             child_git_commit=paid.head_commit,
@@ -11173,6 +11178,7 @@ def _load_verified_projection(
             model_id,
             raw_root=raw_root,
             paid=paid,
+            authority_repo_root=authority_repo_root,
         )
         runtime_model = _runtime_model_for_profile(contract.provider_profiles[model_id])
         receipt_reservations = receipt_binding.get("reservations")
@@ -12890,6 +12896,7 @@ def _v2_capability_semantic_go(
     *,
     raw_root: Path,
     paid: GitProvenance | None,
+    authority_repo_root: str | Path | None = None,
 ) -> bool:
     status = str(row.get("status"))
     artifact = row.get("artifact")
@@ -12969,9 +12976,14 @@ def _v2_capability_semantic_go(
                     f"{spec.run_id} has the wrong V2.11.2 wrapper schema"
                 )
             try:
+                release_root = (
+                    Path(__file__).resolve().parents[1]
+                    if authority_repo_root is None
+                    else Path(authority_repo_root).resolve(strict=True)
+                )
                 parent_receipt = verify_v2112_parent_import_receipt(
                     raw_root / "parent-import" / "parent_import_receipt.json",
-                    repo_root=Path(__file__).resolve().parents[1],
+                    repo_root=release_root,
                     child_contract_sha256=contract.canonical_hash,
                     child_git_tag=paid.git_tag,
                     child_git_commit=paid.head_commit,
@@ -13075,7 +13087,11 @@ def _v2_capability_semantic_go(
             }
             parent_receipt = verify_v2112_parent_import_receipt(
                 raw_root / "parent-import" / "parent_import_receipt.json",
-                repo_root=Path(__file__).resolve().parents[1],
+                repo_root=(
+                    Path(__file__).resolve().parents[1]
+                    if authority_repo_root is None
+                    else Path(authority_repo_root).resolve(strict=True)
+                ),
                 child_contract_sha256=contract.canonical_hash,
                 child_git_tag=paid.git_tag if paid is not None else "",
                 child_git_commit=paid.head_commit if paid is not None else "",
@@ -13217,6 +13233,7 @@ def _v2_capability_semantic_go(
             spec.model_id,
             raw_root=raw_root,
             paid=paid,
+            authority_repo_root=authority_repo_root,
         )
         del projection
         checkpoint_path = run_dir / "preflight_checkpoint.json"
@@ -13440,6 +13457,7 @@ def _v2_stage_receipt_bindings(
     raw_root: Path,
     ledger: PilotRunLedger,
     paid: GitProvenance | None,
+    authority_repo_root: str | Path | None = None,
 ) -> tuple[dict[str, Any], tuple[str, ...]]:
     specs, rows, snapshot = _v2_stage_rows(contract, stage_id, ledger)
     source_files: list[dict[str, Any]] = []
@@ -13475,6 +13493,7 @@ def _v2_stage_receipt_bindings(
                 rows[spec.run_id],
                 raw_root=raw_root,
                 paid=paid,
+                authority_repo_root=authority_repo_root,
             ):
                 go_models.append(spec.model_id)
     if (
@@ -13536,6 +13555,7 @@ def _v2_control_gate_ok(
     *,
     raw_root: Path,
     paid: GitProvenance | None,
+    release_repo_root: str | Path | None = None,
 ) -> bool:
     if (
         contract.contract_id in V211_FAMILY_CONTRACT_IDS
@@ -13586,6 +13606,7 @@ def _v2_control_gate_ok(
                 contract,
                 raw_root=raw_root,
                 paid=paid,
+                release_repo_root=release_repo_root,
             )
         elif contract.contract_id == V2111_CONTRACT_ID:
             _load_verified_v2111_calibration(
@@ -13750,6 +13771,7 @@ def _v2_recomputed_stage_fields(
     raw_root: Path,
     ledger: PilotRunLedger,
     paid: GitProvenance | None,
+    authority_repo_root: str | Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     specs, rows, _ = _v2_stage_rows(contract, stage_id, ledger)
     bindings, go_models = _v2_stage_receipt_bindings(
@@ -13758,6 +13780,7 @@ def _v2_recomputed_stage_fields(
         raw_root=raw_root,
         ledger=ledger,
         paid=paid,
+        authority_repo_root=authority_repo_root,
     )
     counts: dict[str, int] = {}
     for row in rows.values():
@@ -13778,6 +13801,7 @@ def _v2_recomputed_stage_fields(
             stage_id,
             raw_root=raw_root,
             paid=paid,
+            release_repo_root=authority_repo_root,
         )
         if matrix_complete or (v211_post_gate_stage and terminal)
         else False
@@ -13834,6 +13858,7 @@ def _verify_v2_stage_receipt(
     raw_root: Path,
     ledger: PilotRunLedger,
     paid: GitProvenance | None,
+    authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     if (
         receipt.get("schema_version") != PILOT_STAGE_RECEIPT_SCHEMA_VERSION_V2
@@ -13859,6 +13884,7 @@ def _verify_v2_stage_receipt(
         raw_root=raw_root,
         ledger=ledger,
         paid=paid,
+        authority_repo_root=authority_repo_root,
     )
     bindings = receipt.get("bindings")
     if not isinstance(bindings, Mapping):

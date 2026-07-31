@@ -1,0 +1,643 @@
+{
+  "authority_sources": {
+    "gpt52_main": {
+      "source_capability_wrapper_content_sha256": "b1a219116f62fe48a5c0ae72b7e93be8a2127fd3b77f4853f0269ff277b554d1",
+      "source_execution_artifact_sha256": "5578ba3e5029c7df55739be11d968c6846273a3266c8b8fcd9aa0b8fa1c621fc",
+      "source_model_id": "gpt52_main",
+      "source_preflight_run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376",
+      "source_preflight_run_spec_sha256": "cfbdb7c7dc27078335cf2857fb0ddcc9a02648a34fe8a185dbe416b12a5f603f",
+      "source_provider_call_journal_sha256": "2af6faa1f8e214fb606a87ed764253535f9895fb7bbbe0680f1f76f020ab68c3",
+      "source_served_model": "gpt-5.2-2025-12-11"
+    },
+    "gpt56_diagnostic": {
+      "source_capability_wrapper_content_sha256": "4c02591927046fcdc40cb9ced402dfabaa95dd2f754f25aa5f35ef342e646004",
+      "source_execution_artifact_sha256": "47e69aa79a842c431e6410dfd797bff5271db560660af2daf1427d4d2673c31a",
+      "source_model_id": "gpt56_diagnostic",
+      "source_preflight_run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376",
+      "source_preflight_run_spec_sha256": "542879e77287c54ce469038cca6d36c7873f3d7720e7c7714fa203893cb6d75c",
+      "source_provider_call_journal_sha256": "c7bbc0d9056f8dd22a57bf990cdb62010e2a917db13842ae35b2f69d245f2dba",
+      "source_served_model": "gpt-5.6-sol"
+    }
+  },
+  "bindings": {
+    "gate_artifacts": {
+      "gpt52_main": {
+        "fresh_preflight": {
+          "checkpoint_artifact_sha256": "5578ba3e5029c7df55739be11d968c6846273a3266c8b8fcd9aa0b8fa1c621fc",
+          "checkpoint_content_sha256": "a846f7631710f5ab02364f37300f26ef109e99c022fb20519bee91010061b460",
+          "checkpoint_run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376--actor-preflight",
+          "checkpoint_schema_version": "finevo-pilot-checkpoint-v4",
+          "exactness_artifact_sha256": "9f499ac2146ab56bce897cdea24b3bbf6e5e740037b6d18f04a40e6e2594a429",
+          "exactness_content_sha256": "d431b330fffa666bcd77bb7c57ac1e438a8d5a9f13233b804f9269de1595d8ef",
+          "exactness_schema_version": "finevo-v2.11.2-long-context-preflight-exactness-receipt-v1",
+          "ledger_run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376",
+          "provider_call_journal_artifact_sha256": "22db42a0c282d39eb10abd8ab1b6b17ca62f75f6b0f60a2111112f0dac1d1262",
+          "provider_call_journal_sha256": "2af6faa1f8e214fb606a87ed764253535f9895fb7bbbe0680f1f76f020ab68c3",
+          "run_spec_sha256": "cfbdb7c7dc27078335cf2857fb0ddcc9a02648a34fe8a185dbe416b12a5f603f"
+        },
+        "inherited_capability": {
+          "historical_source_calls": 30,
+          "run_id": "finevo-pilot-v2.11.1--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376",
+          "schema_version": "finevo-pilot-v2.11.2-imported-capability-wrapper-v1",
+          "wrapper_content_sha256": "b1a219116f62fe48a5c0ae72b7e93be8a2127fd3b77f4853f0269ff277b554d1"
+        }
+      },
+      "gpt56_diagnostic": {
+        "fresh_preflight": {
+          "checkpoint_artifact_sha256": "47e69aa79a842c431e6410dfd797bff5271db560660af2daf1427d4d2673c31a",
+          "checkpoint_content_sha256": "fbbf6b5cbe3a8697f93204f5a6d2f5ec8ff3d6d64d35f5decce2d9d327102b17",
+          "checkpoint_run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376--actor-preflight",
+          "checkpoint_schema_version": "finevo-pilot-checkpoint-v4",
+          "exactness_artifact_sha256": "57c0c7a142b4369a56df927594efa71caf8ac206a50e0d2470417b5b1fe06583",
+          "exactness_content_sha256": "792fbd329976f2021cfbf9ce5f004b1513a2f192526a744ae2ebba55accf3f57",
+          "exactness_schema_version": "finevo-v2.11.2-long-context-preflight-exactness-receipt-v1",
+          "ledger_run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376",
+          "provider_call_journal_artifact_sha256": "0896950bcb8e862549eae3a917f6518484f71341ef291e62f09ecc8e93af213d",
+          "provider_call_journal_sha256": "c7bbc0d9056f8dd22a57bf990cdb62010e2a917db13842ae35b2f69d245f2dba",
+          "run_spec_sha256": "542879e77287c54ce469038cca6d36c7873f3d7720e7c7714fa203893cb6d75c"
+        },
+        "inherited_capability": {
+          "historical_source_calls": 30,
+          "run_id": "finevo-pilot-v2.11.1--capability-gate--gpt56_diagnostic--capability-probe--none--provider-preflight-default--s2010922376",
+          "schema_version": "finevo-pilot-v2.11.2-imported-capability-wrapper-v1",
+          "wrapper_content_sha256": "4c02591927046fcdc40cb9ced402dfabaa95dd2f754f25aa5f35ef342e646004"
+        }
+      }
+    },
+    "ledger_event_chain_head": "d2a8403773e3fe64fd2c5f4ecb40fea06cd9c20011fc53684eafb32e06d8c66d",
+    "parent_import_receipt": {
+      "content_sha256": "7526789523225235b73808af13053b68bb7d39d278883f98c49dbe0394b57b19",
+      "file_sha256": "e73d12c47d8d773a732bd4d55679f46f2c0c69e510e3b4d815455f2208fa066d",
+      "path": "experiment_results/pilot-v2.11.2/raw/parent-import/parent_import_receipt.json"
+    },
+    "source_manifest": {
+      "content_sha256": "4143655b99feba414c319b951578dd652d4bcae550391ea83acdd4d74c00c9d3",
+      "file_sha256": "f38fb442b04ab9a0a85a246954b486f11e6c6571434336d3650b89833c70e90f",
+      "path": "experiments/pilot_v2_11_2_source_manifest.json"
+    }
+  },
+  "bootstrap_envelope_used_as_observed_p95": false,
+  "claim_boundary": "This zero-provider receipt authorizes normal scientific dispatch only from sealed V2.11.2 fresh long-context observed p95. Exactly 24 action and 8 semantic fresh samples per model contribute to dispatch. The direct V2.11.1 capability wrappers contribute exactly 24 action and 6 semantic samples per model to capability audit only, never to dispatch, and remain charged only through the parent debit. V2.11.1 failed preflight samples, bootstrap reservations, checkpoints, journals, and P95 authorities are forbidden. Any mixed terminal status or global cap failure is a matrix-wide no-go.",
+  "contract_id": "finevo-pilot-v2.11.2",
+  "contract_sha256": "c04f7d4c5ae0962a4a64b0ac543d890a1475b6f184f516534eeb8ff026505a37",
+  "denominator": {
+    "cumulative_full_matrix_calls": 6820,
+    "eligible_model_ids": [
+      "gpt52_main",
+      "gpt56_diagnostic"
+    ],
+    "fresh_preflight_calls": 64,
+    "gate_evidence_calls": 124,
+    "inherited_capability_evidence_calls": 60,
+    "locally_eligible_model_ids": [
+      "gpt52_main",
+      "gpt56_diagnostic"
+    ],
+    "no_go_science_run_ids_by_model": {
+      "gpt52_main": [],
+      "gpt56_diagnostic": []
+    },
+    "parent_debit_calls": 940,
+    "registered_call_headroom": 680,
+    "registered_fresh_full_matrix_calls": 5880,
+    "registered_remaining_science_calls": 5816,
+    "registered_science_cells": 131,
+    "science_run_ids_by_model": {
+      "gpt52_main": [
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--full--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--full--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--full--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--full--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--full--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--no-context--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--no-context--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--no-context--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--no-context--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--no-context--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--full--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--full--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--full--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-a--gpt52_main--full--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--matched-a--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--matched-a--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--matched-b--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--matched-b--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--no-memory--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--no-memory--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--error-verified--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--error-verified--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--no-memory--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--no-memory--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s617806385",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--full--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--full--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--full--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--full--none--stage0-selected--s959809858",
+        "finevo-pilot-v2.11.2--experiment-b--gpt52_main--full--none--stage0-selected--s617806385"
+      ],
+      "gpt56_diagnostic": [
+        "finevo-pilot-v2.11.2--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1769977770",
+        "finevo-pilot-v2.11.2--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1099057501",
+        "finevo-pilot-v2.11.2--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1421875452",
+        "finevo-pilot-v2.11.2--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1769977770"
+      ]
+    },
+    "science_run_ids_sha256": "e7a30d3a8e6ea279979cfbadd1e85ff669d4ab7c61d6813ec030627af0a23490"
+  },
+  "dispatch_reservations": {
+    "gpt52_main": {
+      "action": {
+        "raw_p95": {
+          "completion_tokens": 2601.0,
+          "cost_usd": 0.037905,
+          "prompt_tokens": 892.0,
+          "total_tokens": 3493.0
+        },
+        "reserve_multiplier": 1.25,
+        "reserved_p95": {
+          "completion_tokens": 3252,
+          "cost_usd": 0.04738125,
+          "prompt_tokens": 1115,
+          "total_tokens": 4367
+        },
+        "sample_count": 24
+      },
+      "semantic": {
+        "raw_p95": {
+          "completion_tokens": 1093.0,
+          "cost_usd": 0.019626249999999998,
+          "prompt_tokens": 2475.0,
+          "total_tokens": 3568.0
+        },
+        "reserve_multiplier": 1.25,
+        "reserved_p95": {
+          "completion_tokens": 1367,
+          "cost_usd": 0.024532812499999997,
+          "prompt_tokens": 3094,
+          "total_tokens": 4461
+        },
+        "sample_count": 8
+      }
+    },
+    "gpt56_diagnostic": {
+      "action": {
+        "raw_p95": {
+          "completion_tokens": 1250.0,
+          "cost_usd": 0.041555,
+          "prompt_tokens": 859.0,
+          "total_tokens": 2109.0
+        },
+        "reserve_multiplier": 1.25,
+        "reserved_p95": {
+          "completion_tokens": 1563,
+          "cost_usd": 0.051943750000000004,
+          "prompt_tokens": 1074,
+          "total_tokens": 2637
+        },
+        "sample_count": 24
+      },
+      "semantic": {
+        "raw_p95": {
+          "completion_tokens": 927.0,
+          "cost_usd": 0.040245,
+          "prompt_tokens": 2487.0,
+          "total_tokens": 3414.0
+        },
+        "reserve_multiplier": 1.25,
+        "reserved_p95": {
+          "completion_tokens": 1159,
+          "cost_usd": 0.050306250000000004,
+          "prompt_tokens": 3109,
+          "total_tokens": 4268
+        },
+        "sample_count": 8
+      }
+    }
+  },
+  "evidence_actuals": {
+    "combined_gate_evidence": {
+      "budget_treatment": "evidence-only-never-added-as-one-budget-row",
+      "hosted_completions": 124,
+      "usage": {
+        "completion_tokens": 110586,
+        "cost_usd": 2.533422,
+        "prompt_tokens": 121921,
+        "total_tokens": 232507
+      }
+    },
+    "fresh_preflight": {
+      "budget_treatment": "current-attempt-actual",
+      "hosted_completions": 64,
+      "usage": {
+        "completion_tokens": 60408,
+        "cost_usd": 1.41182075,
+        "prompt_tokens": 69667,
+        "total_tokens": 130075
+      }
+    },
+    "inherited_capability": {
+      "budget_treatment": "already-in-parent-debit",
+      "hosted_completions": 60,
+      "usage": {
+        "completion_tokens": 50178,
+        "cost_usd": 1.1216012499999999,
+        "prompt_tokens": 52254,
+        "total_tokens": 102432
+      }
+    }
+  },
+  "go": true,
+  "model_decisions": {
+    "gpt52_main": {
+      "capability_pass": true,
+      "eligible_for_science_dispatch": true,
+      "interface_gates": {
+        "action": {
+          "call_kind": "action",
+          "capacity": {
+            "call_kind": "action",
+            "headroom_fraction": 0.364990234375,
+            "headroom_tokens": 1495,
+            "minimum_headroom_fraction": 0.25,
+            "minimum_sample_count": 24,
+            "passed": true,
+            "raw_p95_completion_tokens": 2601,
+            "reasons": [],
+            "reserve_multiplier": 1.25,
+            "reserved_p95_completion_tokens": 3252,
+            "sample_count": 24,
+            "wire_cap_tokens": 4096
+          },
+          "expected_sample_count": 24,
+          "failed_sample_indices": [],
+          "maximum_prompt_tokens": 892,
+          "observed_sample_count": 24,
+          "passed": true,
+          "prompt_tier_ceiling_tokens": 200000,
+          "reasons": []
+        },
+        "semantic": {
+          "call_kind": "semantic",
+          "capacity": {
+            "call_kind": "semantic",
+            "headroom_fraction": 0.733154296875,
+            "headroom_tokens": 3003,
+            "minimum_headroom_fraction": 0.25,
+            "minimum_sample_count": 8,
+            "passed": true,
+            "raw_p95_completion_tokens": 1093,
+            "reasons": [],
+            "reserve_multiplier": 1.25,
+            "reserved_p95_completion_tokens": 1367,
+            "sample_count": 8,
+            "wire_cap_tokens": 4096
+          },
+          "expected_sample_count": 8,
+          "failed_sample_indices": [],
+          "maximum_prompt_tokens": 2475,
+          "observed_sample_count": 8,
+          "passed": true,
+          "prompt_tier_ceiling_tokens": 200000,
+          "reasons": []
+        }
+      },
+      "interface_pass": true,
+      "locally_eligible_for_science_dispatch": true,
+      "no_go_science_cell_count": 0,
+      "sample_counts": {
+        "action": 24,
+        "semantic": 8
+      },
+      "sample_hashes": {
+        "action": "68c11265fb8a2414136369025bdafa1d9763b4faf91f1684c943df9d08cafb20",
+        "semantic": "55a426298953a43f90e3efa012e1db70474520ab0c2237360f1eeae4047e9790"
+      },
+      "terminal_status": "eligible"
+    },
+    "gpt56_diagnostic": {
+      "capability_pass": true,
+      "eligible_for_science_dispatch": true,
+      "interface_gates": {
+        "action": {
+          "call_kind": "action",
+          "capacity": {
+            "call_kind": "action",
+            "headroom_fraction": 0.69482421875,
+            "headroom_tokens": 2846,
+            "minimum_headroom_fraction": 0.25,
+            "minimum_sample_count": 24,
+            "passed": true,
+            "raw_p95_completion_tokens": 1250,
+            "reasons": [],
+            "reserve_multiplier": 1.25,
+            "reserved_p95_completion_tokens": 1563,
+            "sample_count": 24,
+            "wire_cap_tokens": 4096
+          },
+          "expected_sample_count": 24,
+          "failed_sample_indices": [],
+          "maximum_prompt_tokens": 859,
+          "observed_sample_count": 24,
+          "passed": true,
+          "prompt_tier_ceiling_tokens": 200000,
+          "reasons": []
+        },
+        "semantic": {
+          "call_kind": "semantic",
+          "capacity": {
+            "call_kind": "semantic",
+            "headroom_fraction": 0.773681640625,
+            "headroom_tokens": 3169,
+            "minimum_headroom_fraction": 0.25,
+            "minimum_sample_count": 8,
+            "passed": true,
+            "raw_p95_completion_tokens": 927,
+            "reasons": [],
+            "reserve_multiplier": 1.25,
+            "reserved_p95_completion_tokens": 1159,
+            "sample_count": 8,
+            "wire_cap_tokens": 4096
+          },
+          "expected_sample_count": 8,
+          "failed_sample_indices": [],
+          "maximum_prompt_tokens": 2487,
+          "observed_sample_count": 8,
+          "passed": true,
+          "prompt_tier_ceiling_tokens": 200000,
+          "reasons": []
+        }
+      },
+      "interface_pass": true,
+      "locally_eligible_for_science_dispatch": true,
+      "no_go_science_cell_count": 0,
+      "sample_counts": {
+        "action": 24,
+        "semantic": 8
+      },
+      "sample_hashes": {
+        "action": "6d9a7b11767ec569afd6341211ec4736eade7f19d2d3cde57734fbc567f6be51",
+        "semantic": "0c857a47dd2ada83342fdbaf162d6db63567cf62cfca40f6724137872b1f04e5"
+      },
+      "terminal_status": "eligible"
+    }
+  },
+  "observed_reservations": {
+    "gpt52_main": {
+      "action": {
+        "raw_p95": {
+          "completion_tokens": 2601.0,
+          "cost_usd": 0.037905,
+          "prompt_tokens": 892.0,
+          "total_tokens": 3493.0
+        },
+        "reserve_multiplier": 1.25,
+        "reserved_p95": {
+          "completion_tokens": 3252,
+          "cost_usd": 0.04738125,
+          "prompt_tokens": 1115,
+          "total_tokens": 4367
+        },
+        "sample_count": 24
+      },
+      "semantic": {
+        "raw_p95": {
+          "completion_tokens": 1093.0,
+          "cost_usd": 0.019626249999999998,
+          "prompt_tokens": 2475.0,
+          "total_tokens": 3568.0
+        },
+        "reserve_multiplier": 1.25,
+        "reserved_p95": {
+          "completion_tokens": 1367,
+          "cost_usd": 0.024532812499999997,
+          "prompt_tokens": 3094,
+          "total_tokens": 4461
+        },
+        "sample_count": 8
+      }
+    },
+    "gpt56_diagnostic": {
+      "action": {
+        "raw_p95": {
+          "completion_tokens": 1250.0,
+          "cost_usd": 0.041555,
+          "prompt_tokens": 859.0,
+          "total_tokens": 2109.0
+        },
+        "reserve_multiplier": 1.25,
+        "reserved_p95": {
+          "completion_tokens": 1563,
+          "cost_usd": 0.051943750000000004,
+          "prompt_tokens": 1074,
+          "total_tokens": 2637
+        },
+        "sample_count": 24
+      },
+      "semantic": {
+        "raw_p95": {
+          "completion_tokens": 927.0,
+          "cost_usd": 0.040245,
+          "prompt_tokens": 2487.0,
+          "total_tokens": 3414.0
+        },
+        "reserve_multiplier": 1.25,
+        "reserved_p95": {
+          "completion_tokens": 1159,
+          "cost_usd": 0.050306250000000004,
+          "prompt_tokens": 3109,
+          "total_tokens": 4268
+        },
+        "sample_count": 8
+      }
+    }
+  },
+  "projection": {
+    "caps": {
+      "cost_usd": 500.0,
+      "hosted_completions": 7500,
+      "storage_bytes": 5000000000
+    },
+    "cumulative_full_matrix": {
+      "hosted_completions": 6820,
+      "projected_cost_usd": 276.00140806250005,
+      "projected_storage_bytes": 2140245652,
+      "remaining_hosted_completion_headroom": 680
+    },
+    "current_attempt_pre_science": {
+      "storage_bytes": 2407027
+    },
+    "fresh_full_matrix": {
+      "projected_storage_bytes": 1922407027,
+      "projected_usage": {
+        "completion_tokens": 16652944,
+        "cost_usd": 257.41500825,
+        "prompt_tokens": 8459091,
+        "total_tokens": 25112035
+      },
+      "registered_hosted_completions": 5880
+    },
+    "fresh_preflight": {
+      "hosted_completions": 64,
+      "usage": {
+        "completion_tokens": 60408,
+        "cost_usd": 1.41182075,
+        "prompt_tokens": 69667,
+        "total_tokens": 130075
+      }
+    },
+    "go": true,
+    "parent_debit": {
+      "cost_usd": 18.586399812500005,
+      "hosted_completions": 940,
+      "parent_budget_ledger_sha256": "df9ccffbba39ac6d86375be433c4a34f4e3b51f60a4e0e10d42d31b7c2886330",
+      "parent_contract_sha256": "818607de5cd512cee60ece06c3f81612e6945cf7ff6d1e48ca643d2109cd7410",
+      "parent_run_ledger_sha256": "ed9c0210791627128dc0e9942df2cd46269acbbd28a6c52af33454172a4b76c9",
+      "record_sha256": "678fc5b795e66f1aa358ea7941bebb9167097158f2aed8cee4044567109c5582",
+      "schema_version": "finevo-parent-budget-debit-v1",
+      "stage_bucket": "parent_v2111",
+      "storage_bytes": 217838625
+    },
+    "reasons": [],
+    "remaining_science": {
+      "by_model": {
+        "gpt52_main": {
+          "eligible_for_dispatch": true,
+          "registered_science_calls": 5480,
+          "reserved_science_usage": {
+            "completion_tokens": 16086760,
+            "cost_usd": 238.6286875,
+            "prompt_tokens": 7930880,
+            "total_tokens": 24017640
+          }
+        },
+        "gpt56_diagnostic": {
+          "eligible_for_dispatch": true,
+          "registered_science_calls": 336,
+          "reserved_science_usage": {
+            "completion_tokens": 505776,
+            "cost_usd": 17.3745,
+            "prompt_tokens": 458544,
+            "total_tokens": 964320
+          }
+        }
+      },
+      "registered_cells": 131,
+      "registered_hosted_completions": 5816,
+      "reserved_usage": {
+        "completion_tokens": 16592536,
+        "cost_usd": 256.0031875,
+        "prompt_tokens": 8389424,
+        "total_tokens": 24981960
+      },
+      "storage_reservation_bytes": 1920000000
+    },
+    "schema_version": "finevo-pilot-v2.11.2-full-matrix-projection-v1"
+  },
+  "provider_calls_during_authority": 0,
+  "provider_construction_during_authority": false,
+  "reasons": [],
+  "receipt_sha256": "0d95374c3e2db9fc5bf5c6156fb7bcdf0a9c94e26ed9995f74a2a542a8961aaa",
+  "release": {
+    "commit": "78870956b528946d415a9be5f5769b0893d16d74",
+    "tag": "pilot-v2.11.2-science"
+  },
+  "schema_version": "finevo-pilot-v2.11.2-post-gate-authority-v1",
+  "scientific_evidence": false
+}

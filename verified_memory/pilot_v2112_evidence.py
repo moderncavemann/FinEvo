@@ -173,7 +173,11 @@ def _terminal_summary_header(
     expected_scope = {
         "parent-import": "preregistered_parent_authority_import",
         "capability-gate": "preregistered_task_capability_gate",
-        "long-context-preflight": "preregistered_task_capability_gate",
+        # The closed-loop preflight is a method/interface gate, not one of the
+        # imported 30-task capability probes.  The runner has always sealed
+        # this narrower scope in its terminal summaries; evidence publication
+        # must replay that exact value instead of conflating the two gates.
+        "long-context-preflight": "preregistered_capability_gate",
     }[stage_id]
     if (
         value.get("diagnostic_only") is not False
@@ -392,6 +396,7 @@ def _validate_stage_receipts(
     raw_root: Path,
     ledger: PilotRunLedger,
     paid: GitProvenance,
+    authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
     receipts: dict[str, Any] = {}
     ledger_rows = ledger.snapshot()["runs"]
@@ -446,6 +451,7 @@ def _validate_stage_receipts(
                 raw_root=raw_root,
                 ledger=ledger,
                 paid=paid,
+                authority_repo_root=authority_repo_root,
             )
         except (PilotOrchestrationError, PilotEvidenceError) as exc:
             raise PilotEvidenceError(
@@ -789,6 +795,12 @@ def _write_package(
     contract_target = target / "contract" / contract_path.name
     contract_target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(contract_path, contract_target)
+    # ``load_pilot_contract`` fail-closes V2.11.2 against its tracked source
+    # inventory.  The reviewer package therefore needs the sibling manifest,
+    # not only the YAML contract, for a self-contained replay.
+    source_manifest = contract_path.with_name("pilot_v2_11_2_source_manifest.json")
+    source_manifest_target = contract_target.with_name(source_manifest.name)
+    shutil.copyfile(source_manifest, source_manifest_target)
     if load_pilot_contract(contract_target).canonical_hash != contract.canonical_hash:
         raise PilotEvidenceError("copied V2.11.2 contract failed revalidation")
 
@@ -1043,6 +1055,7 @@ def build_pilot_v2112_evidence_package(
         raw_root=raw,
         ledger=ledger_object,
         paid=paid,
+        authority_repo_root=repo_root,
     )
     post_gate = _validate_post_gate(
         contract,

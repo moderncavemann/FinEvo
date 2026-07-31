@@ -1,0 +1,49 @@
+{
+  "contract_sha256": "c04f7d4c5ae0962a4a64b0ac543d890a1475b6f184f516534eeb8ff026505a37",
+  "denominator": {
+    "all_completed_artifacts_validated": true,
+    "all_rows_present": true,
+    "all_rows_terminal": true,
+    "expected_count": 136,
+    "itt_failures_retained": 126,
+    "observed_ledger_count": 136,
+    "pass": true,
+    "stage_status_counts": {
+      "capability-gate": {
+        "complete": 2
+      },
+      "cross-model": {
+        "failed": 6
+      },
+      "experiment-a": {
+        "failed": 20
+      },
+      "experiment-b": {
+        "failed": 25
+      },
+      "experiment-c": {
+        "complete": 5,
+        "failed": 20
+      },
+      "experiment-d": {
+        "failed": 55
+      },
+      "long-context-preflight": {
+        "complete": 2
+      },
+      "parent-import": {
+        "complete": 1
+      }
+    },
+    "status_counts": {
+      "complete": 10,
+      "failed": 126
+    }
+  },
+  "event_chain_head": "17d8cd912f96377ddf86faeb30e4a0f63f588af6479b46040d80b33c70b40b17",
+  "event_count": 138,
+  "file_sha256": "d8ec96c5aba434368b3d97a1bcc0d6a0116c62325161eae6ce13c9c581198625",
+  "ledger_sha256": "686d7f528268e0d9d6ac97ae27d483af9c2eb93be53bd329b4fd621c0ec2ae25",
+  "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-2-science/experiment_results/pilot-v2.11.2/raw/run_ledger.json",
+  "schema_version": "finevo-pilot-v2.11.2-run-ledger-audit-v1"
+}

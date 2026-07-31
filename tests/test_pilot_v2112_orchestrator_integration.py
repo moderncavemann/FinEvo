@@ -468,6 +468,71 @@ def test_v2112_family_verifier_is_selected_over_older_verifiers(
     assert observed == ["v2112"]
 
 
+def test_v2112_calibration_loader_keeps_release_and_parent_roots_distinct(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = _contract()
+    boundary = contract.v2112_forward_boundary
+    assert boundary is not None
+    calibration = boundary["calibration_allowlist"]
+    release_root = tmp_path / "release"
+    parent_root = tmp_path / "parent-science"
+    release_root.mkdir()
+    parent_root.mkdir()
+    observed: dict[str, Any] = {}
+    receipt = {"integrity": {"content_sha256": "a" * 64}}
+    wrapper = {
+        "calibration": {
+            "q_ref": calibration["q_ref"],
+            "selected_utility_profile": {
+                "profile_id": calibration["utility_profile_id"],
+                "rho": calibration["utility_profile"]["rho"],
+                "labor_weight": calibration["utility_profile"]["labor_weight"],
+                "inverse_frisch": calibration["utility_profile"]["inverse_frisch"],
+                "consumption_scale": (
+                    calibration["q_ref"]
+                    * calibration["utility_profile"][
+                        "consumption_scale_multiplier_of_q_ref"
+                    ]
+                ),
+                "discount_factor": calibration["utility_profile"][
+                    "discount_factor"
+                ],
+            },
+            "stage0_absolute_flow_utility_threshold": {
+                "value": calibration["absolute_flow_utility_threshold"],
+                "treatment_outcomes_inspected": False,
+            },
+        },
+        "provider_calls_current_attempt": 0,
+        "scientific_evidence": False,
+    }
+
+    def verify(_path: Path, **kwargs: Any) -> dict[str, Any]:
+        observed.update(kwargs)
+        return receipt
+
+    monkeypatch.setattr(orchestrator, "verify_v2112_parent_import_receipt", verify)
+    monkeypatch.setattr(
+        orchestrator,
+        "calibration_wrapper_from_v2112_receipt",
+        lambda value: wrapper if value is receipt else None,
+    )
+
+    loaded = orchestrator._load_verified_v2112_calibration(
+        contract,
+        raw_root=tmp_path / "raw",
+        paid=_paid(),
+        authority_repo_root=parent_root,
+        release_repo_root=release_root,
+    )
+
+    assert observed["repo_root"] == release_root.resolve()
+    assert observed["parent_science_root"] == parent_root
+    assert loaded["q_ref"] == calibration["q_ref"]
+
+
 @pytest.mark.parametrize(
     ("stage_id", "selected_name", "forbidden_name"),
     [

@@ -80,6 +80,58 @@ def test_v2112_nonterminal_ledger_is_not_publishable(tmp_path: Path) -> None:
         )
 
 
+def test_v2112_long_context_summary_uses_closed_loop_gate_scope(
+    tmp_path: Path,
+) -> None:
+    contract = _frozen_test_contract()
+    spec = contract.expand(stage="long-context-preflight")[0].to_dict()
+    commit = "a" * 40
+    summary = {
+        "schema_version": evidence.PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION,
+        "contract_id": contract.contract_id,
+        "contract_sha256": contract.canonical_hash,
+        "run_spec": spec,
+        "provenance": {
+            **contract.validate_provenance(
+                commit,
+                str(contract.implementation["required_git_tag"]),
+            ),
+            "tag_object_type": "tag",
+            "worktree_clean": True,
+        },
+        "diagnostic_only": False,
+        "scientific_evidence": False,
+        "evidence_scope": "preregistered_capability_gate",
+        "payload": {},
+    }
+    summary["integrity"] = {
+        "canonicalization": "json-sort-keys-utf8-v1",
+        "content_sha256": evidence.canonical_sha256(summary),
+    }
+    path = tmp_path / "summary.json"
+    path.write_text(json.dumps(summary, sort_keys=True) + "\n", encoding="utf-8")
+
+    assert evidence._terminal_summary_header(
+        contract,
+        spec,
+        path,
+        expected_commit=commit,
+    )["evidence_scope"] == "preregistered_capability_gate"
+
+    summary["evidence_scope"] = "preregistered_task_capability_gate"
+    unsigned = dict(summary)
+    unsigned.pop("integrity")
+    summary["integrity"]["content_sha256"] = evidence.canonical_sha256(unsigned)
+    path.write_text(json.dumps(summary, sort_keys=True) + "\n", encoding="utf-8")
+    with pytest.raises(PilotEvidenceError, match="falsely claims scientific evidence"):
+        evidence._terminal_summary_header(
+            contract,
+            spec,
+            path,
+            expected_commit=commit,
+        )
+
+
 def test_v2112_cross_model_direction_requires_capability_and_three_pairs() -> None:
     contract = _draft_contract()
     seeds = tuple(int(seed) for seed in contract.seeds["sets"]["cross-model"])
@@ -225,6 +277,11 @@ def test_provider_free_terminal_failure_fixture_preserves_all_itt_rows(
     assert failures["denominator"]["itt_failures_retained"] == 136
     manifest = json.loads(package.manifest_path.read_text(encoding="utf-8"))
     assert manifest["scientific_matrix_complete"] is False
+    assert (
+        package.package_dir
+        / "contract"
+        / "pilot_v2_11_2_source_manifest.json"
+    ).is_file()
     assert any(
         "V2.11.1 failed-preflight" in item for item in manifest["excluded_sources"]
     )
