@@ -6552,6 +6552,42 @@
         }
       },
       "file_sha256": "52ade890b123cd030b3d7242aa8347d7dc3a7040fe5f56de0b95938daa029312",
+      "fresh_parse_dispositions": {
+        "gpt52_main": {
+          "action": {
+            "accepted": 24,
+            "parse_failures": 0,
+            "registered": 24
+          },
+          "checkpoint_file_sha256": "fe5d8f4561e80449723616f3d511a4168f644921addad4ed59101ceab8cf01aa",
+          "checkpoint_hash": "a846f7631710f5ab02364f37300f26ef109e99c022fb20519bee91010061b460",
+          "raw_outputs_copied": false,
+          "scientific_evidence": false,
+          "semantic": {
+            "accepted": 8,
+            "parse_failure_policy": "record-and-skip",
+            "recorded_and_skipped": 0,
+            "registered": 8
+          }
+        },
+        "gpt56_diagnostic": {
+          "action": {
+            "accepted": 24,
+            "parse_failures": 0,
+            "registered": 24
+          },
+          "checkpoint_file_sha256": "7c88f1a06d7b4a08a97479849011cb235fec6bd709232737075e6bbe2effb36d",
+          "checkpoint_hash": "fbbf6b5cbe3a8697f93204f5a6d2f5ec8ff3d6d64d35f5decce2d9d327102b17",
+          "raw_outputs_copied": false,
+          "scientific_evidence": false,
+          "semantic": {
+            "accepted": 7,
+            "parse_failure_policy": "record-and-skip",
+            "recorded_and_skipped": 1,
+            "registered": 8
+          }
+        }
+      },
       "go": true,
       "model_decisions": {
         "gpt52_main": {
