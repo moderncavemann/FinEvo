@@ -58,6 +58,16 @@ SCIENTIFIC_SOURCE_MANIFEST_ANCHORS: tuple[Mapping[str, str], ...] = (
             "5c8e554d1a00803b81deb4f31b4a87ddf54a272861a7c750985cd72b18a95f00"
         ),
     },
+    {
+        "path": "experiments/pilot_v2_11_4_source_manifest.json",
+        "schema_version": "finevo-pilot-v2.11.4-source-manifest-v1",
+        "file_sha256": (
+            "fd37e5f7a6cfa0178fa0baec74fb0d18f058a361586296d50d4bcf611e13839d"
+        ),
+        "content_sha256": (
+            "594b1a00910a1dbecd5e36fcac4397df5341e92b5a9802ce4ca781434b747760"
+        ),
+    },
 )
 
 

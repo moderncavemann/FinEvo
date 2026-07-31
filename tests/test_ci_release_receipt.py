@@ -191,30 +191,32 @@ def test_scientific_source_manifest_rejects_symlink_path(tmp_path: Path):
         build_scientific_source_manifest_inventory(tmp_path, anchors=(anchor,))
 
 
-def test_v2113_source_manifest_anchor_matches_release_bytes():
-    assert len(SCIENTIFIC_SOURCE_MANIFEST_ANCHORS) == 1
-    anchor = SCIENTIFIC_SOURCE_MANIFEST_ANCHORS[0]
-    assert anchor["path"] == ("experiments/pilot_v2_11_3_source_manifest.json")
-    raw = (ROOT / anchor["path"]).read_bytes()
-    assert hashlib.sha256(raw).hexdigest() == anchor["file_sha256"]
-    value = json.loads(raw)
-    assert value["schema_version"] == anchor["schema_version"]
-    assert value["integrity"]["content_sha256"] == anchor["content_sha256"]
+def test_scientific_source_manifest_anchors_match_release_bytes():
+    assert [anchor["path"] for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS] == [
+        "experiments/pilot_v2_11_3_source_manifest.json",
+        "experiments/pilot_v2_11_4_source_manifest.json",
+    ]
+    for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS:
+        raw = (ROOT / anchor["path"]).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == anchor["file_sha256"]
+        value = json.loads(raw)
+        assert value["schema_version"] == anchor["schema_version"]
+        assert value["integrity"]["content_sha256"] == anchor["content_sha256"]
 
 
 def test_verify_source_manifests_cli_smoke(tmp_path: Path):
-    anchor = SCIENTIFIC_SOURCE_MANIFEST_ANCHORS[0]
-    source = ROOT / anchor["path"]
-    target = tmp_path / anchor["path"]
-    target.parent.mkdir(parents=True)
-    target.write_bytes(source.read_bytes())
     subprocess.run(("git", "init", "-q"), cwd=tmp_path, check=True, capture_output=True)
-    subprocess.run(
-        ("git", "add", "--", anchor["path"]),
-        cwd=tmp_path,
-        check=True,
-        capture_output=True,
-    )
+    for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS:
+        source = ROOT / anchor["path"]
+        target = tmp_path / anchor["path"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(source.read_bytes())
+        subprocess.run(
+            ("git", "add", "--", anchor["path"]),
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
     output = tmp_path / "source-manifest-inventory.json"
     environment = dict(os.environ)
     environment["PYTHONPATH"] = str(ROOT)
@@ -236,7 +238,9 @@ def test_verify_source_manifests_cli_smoke(tmp_path: Path):
 
     assert completed.returncode == 0, completed.stderr
     inventory = json.loads(output.read_text(encoding="utf-8"))
-    assert inventory["source_manifest_count"] == 1
+    assert inventory["source_manifest_count"] == len(
+        SCIENTIFIC_SOURCE_MANIFEST_ANCHORS
+    )
     assert inventory["source_manifests"] == list(SCIENTIFIC_SOURCE_MANIFEST_ANCHORS)
 
 
@@ -419,12 +423,12 @@ def test_ci_contract_gate_requires_frozen_contract_and_exact_inventory(
         verify_contract_ci_receipt(contract_path, EXPECTED_CI)
 
 
-def test_verified_memory_ci_checks_v2113_contract_before_emitting_receipt() -> None:
+def test_verified_memory_ci_checks_v2114_contract_before_emitting_receipt() -> None:
     workflow = (ROOT / ".github/workflows/verified-memory-ci.yml").read_text(
         encoding="utf-8"
     )
     emit = workflow.split("- name: Emit scientific release CI receipt", 1)[1]
-    assert "--contract experiments/pilot_v2_11_3.yaml" in emit
+    assert "--contract experiments/pilot_v2_11_4.yaml" in emit
 
 
 def test_tracked_v2113_frozen_contract_accepts_its_exact_ci_inventory() -> None:
