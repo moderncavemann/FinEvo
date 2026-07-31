@@ -4,6 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import sys
@@ -60,6 +61,32 @@ V23_TEST_COMMIT = "1" * 40
 GPT52_MODEL_ID = "gpt52_main"
 GPT52_RUNTIME_MODEL = "openai/gpt-5.2-2025-12-11"
 GPT52_SERVED_MODEL = "gpt-5.2-2025-12-11"
+
+
+@pytest.fixture(scope="session")
+def v2112_parent_release_root() -> Path:
+    """Return the local ignored V2.11.2 release, or skip exact-replay tests.
+
+    The annotated tag and tracked source manifest are verified on every CI
+    platform, but the 205-file parent raw tree is intentionally ignored and is
+    not reconstructible from a Git checkout.  The clean-tag parent-import stage
+    remains the mandatory zero-call integration gate before any provider key is
+    loaded.  Local release worktrees that retain the hash-bound raw tree execute
+    these exact-replay tests instead of skipping them.
+    """
+
+    configured = os.environ.get("FINEVO_V2112_PARENT_RELEASE_ROOT")
+    root = (
+        Path(configured).expanduser().absolute()
+        if configured
+        else ROOT.parent / "finevo-pilot-v2-11-2-science"
+    )
+    raw_root = root / "experiment_results" / "pilot-v2.11.2" / "raw"
+    if not raw_root.is_dir():
+        pytest.skip(
+            "exact V2.11.2 replay requires the ignored hash-bound parent raw tree"
+        )
+    return root
 
 
 def _write_json(path: Path, value: Any) -> None:

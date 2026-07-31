@@ -226,6 +226,15 @@ unless the collected-test, tracked-Python, and six-manifest inventories exactly
 match all five `release_requirements.expected_ci` values. This comparison must
 pass before the annotated tag is created; the clean-tag launch attestation
 repeats it later as an independent gate.
+
+A generic GitHub checkout contains the annotated V2.11.2 tag but intentionally
+does not contain its ignored 205-file raw tree. CI therefore verifies the exact
+parent tag anchor and tracked source-manifest seals, while the 12 tests that
+replay those ignored bytes report an explicit `requires the ignored hash-bound
+parent raw tree` skip. They must pass, not skip, in the local release worktree
+and in the clean-tag zero-call `parent-import` gate. A green CI job alone cannot
+replace that parent replay or authorize a provider call.
+
 Only then create and push the annotated tag and create the detached clean
 science worktree:
 

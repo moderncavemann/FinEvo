@@ -24,7 +24,6 @@ from verified_memory.pilot_v2113_parent_import import (
 
 
 REPO = Path(__file__).resolve().parents[1]
-PARENT = REPO.parent / "finevo-pilot-v2-11-2-science"
 SOURCE_MANIFEST = REPO / "experiments" / "pilot_v2_11_3_source_manifest.json"
 
 
@@ -40,10 +39,12 @@ def frozen_contract() -> FrozenContract:
     return FrozenContract()
 
 
-def test_source_manifest_is_exact_replay_with_standard_seal() -> None:
+def test_source_manifest_is_exact_replay_with_standard_seal(
+    v2112_parent_release_root: Path,
+) -> None:
     tracked = json.loads(SOURCE_MANIFEST.read_text(encoding="utf-8"))
     rebuilt = build_v2113_source_manifest(
-        parent_science_root=PARENT,
+        parent_science_root=v2112_parent_release_root,
         evidence_repo_root=REPO,
     )
     assert rebuilt == tracked
@@ -92,12 +93,13 @@ def test_parent_debit_is_exact_and_scoped(frozen_contract: FrozenContract) -> No
 
 def test_parent_receipt_rejects_resealed_scientific_substitution(
     frozen_contract: FrozenContract,
+    v2112_parent_release_root: Path,
 ) -> None:
     receipt = build_v2113_parent_import(
         repo_root=REPO,
         contract=frozen_contract,
         child_git_commit="b" * 40,
-        parent_science_root=PARENT,
+        parent_science_root=v2112_parent_release_root,
         evidence_repo_root=REPO,
     )
     validate_v2113_parent_import_receipt(
@@ -138,6 +140,7 @@ def test_parent_receipt_rejects_resealed_scientific_substitution(
 def test_parent_persist_owns_only_parent_receipt(
     tmp_path: Path,
     frozen_contract: FrozenContract,
+    v2112_parent_release_root: Path,
 ) -> None:
     (tmp_path / "experiments").mkdir()
     (tmp_path / "experiments" / SOURCE_MANIFEST.name).write_bytes(
@@ -148,7 +151,7 @@ def test_parent_persist_owns_only_parent_receipt(
         raw_root=tmp_path / "experiment_results" / "pilot-v2.11.3" / "raw",
         contract=frozen_contract,
         git_commit="b" * 40,
-        source_repo_root=PARENT,
+        source_repo_root=v2112_parent_release_root,
         evidence_repo_root=REPO,
     )
     receipt = Path(result["receipt"])

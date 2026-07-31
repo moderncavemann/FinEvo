@@ -33,7 +33,6 @@ from verified_memory.pilot_v2113_parent_import import (
 
 
 REPO = Path(__file__).resolve().parents[1]
-PARENT = REPO.parent / "finevo-pilot-v2-11-2-science"
 SOURCE_MANIFEST = REPO / "experiments" / "pilot_v2_11_3_source_manifest.json"
 
 
@@ -76,7 +75,10 @@ class FrozenContract:
 
 
 @pytest.fixture(scope="module")
-def release(tmp_path_factory: pytest.TempPathFactory):
+def release(
+    tmp_path_factory: pytest.TempPathFactory,
+    v2112_parent_release_root: Path,
+):
     root = tmp_path_factory.mktemp("v2113-release")
     (root / "experiments").mkdir()
     (root / "experiments" / SOURCE_MANIFEST.name).write_bytes(
@@ -120,7 +122,7 @@ def release(tmp_path_factory: pytest.TempPathFactory):
         repo_root=root,
         contract=contract,
         child_git_commit=commit,
-        parent_science_root=PARENT,
+        parent_science_root=v2112_parent_release_root,
         evidence_repo_root=REPO,
     )
     parent_path = (
