@@ -613,3 +613,43 @@ def test_existing_v2_stage_receipt_returns_after_prefix_verification(
 
     assert result == output
     assert verified == [existing]
+
+
+def test_v211_terminal_preflight_failure_can_bind_no_go_without_authority(
+    tmp_path: Path,
+) -> None:
+    contract = load_pilot_contract(CONTRACT_PATH)
+    raw_root = tmp_path / "experiment_results" / "pilot-v2.11" / "raw"
+    run_ledger = orchestrator.PilotRunLedger(
+        raw_root / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+        tamper_evident=True,
+    )
+    run_ledger.register(contract.expand())
+    failure = {
+        "error_type": "VerifiedRunError",
+        "message": "preflight failed before provider dispatch",
+    }
+    for spec in contract.expand(stage="long-context-preflight"):
+        run_ledger.finalize(
+            spec.run_id,
+            status="failed",
+            artifact=None,
+            failure=failure,
+        )
+
+    bindings, go_models = orchestrator._v2_stage_receipt_bindings(
+        contract,
+        "long-context-preflight",
+        raw_root=raw_root,
+        ledger=run_ledger,
+        paid=_paid(),
+    )
+
+    assert go_models == ()
+    assert bindings["source_files"] == []
+    assert not (
+        raw_root
+        / "long-context-preflight"
+        / orchestrator.PILOT_V211_POST_GATE_AUTHORITY_FILENAME
+    ).exists()

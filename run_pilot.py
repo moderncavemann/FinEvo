@@ -31,6 +31,9 @@ Examples:
     python run_pilot.py --contract experiments/pilot_v2_11.yaml \
         --stage parent-import \
         --parent-repo-root ../finevo-pilot-v2-10-2-science --resume
+    python run_pilot.py --contract experiments/pilot_v2_11_1.yaml \
+        --stage parent-import \
+        --parent-repo-root ../finevo-pilot-v2-11-science --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
         --stage capability-gate --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
@@ -74,6 +77,10 @@ Pilot-v2.11 starts a fresh 136-cell hosted-model denominator. Its zero-provider
 parent import consumes only V2.10.2 q-ref, nu-0.5 utility calibration,
 absolute-flow threshold, and cumulative budget debit; capability, long-context
 preflight, observed p95, A--D, and cross-model evidence must all be fresh.
+Pilot-v2.11.1 freezes V2.11's zero-dispatch preflight no-go, imports its two
+passed capability cells without new provider calls, and retries only the exact
+2x12 long-context preflight under a conservative contract-envelope bootstrap.
+All later science still requires the newly sealed observed-p95 authority.
 """
 
 from __future__ import annotations
@@ -85,6 +92,7 @@ import sys
 
 from verified_memory.pilot_contract import (
     PILOT_CONTRACT_ID_V2_11,
+    PILOT_CONTRACT_ID_V2_11_1,
     load_pilot_contract,
 )
 from verified_memory.pilot_evidence import build_pilot_evidence_package
@@ -153,10 +161,10 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "read-only parent source/raw checkout required only by the "
             "V2.4/V2.5/V2.6/V2.7/V2.8/V2.9/V2.10/V2.10.1/V2.10.2/V2.11 "
-            "zero-provider "
-            "parent-import stage; for V2.11 this is the immutable V2.10.2 "
-            "science checkout (the evidence checkout remains source-manifest "
-            "bound)"
+            "or V2.11.1 zero-provider parent-import stage; for V2.11 this "
+            "is the immutable V2.10.2 science checkout, and for V2.11.1 "
+            "this is the immutable V2.11 science checkout (the evidence "
+            "checkout remains source-manifest bound)"
         ),
     )
     parser.add_argument(
@@ -193,12 +201,19 @@ def execute(args: argparse.Namespace) -> dict:
     if args.stage == "parent-import":
         selected_contract = load_pilot_contract(args.contract)
         if (
-            selected_contract.contract_id == PILOT_CONTRACT_ID_V2_11
+            selected_contract.contract_id
+            in {PILOT_CONTRACT_ID_V2_11, PILOT_CONTRACT_ID_V2_11_1}
             and parent_repo_root is None
         ):
+            contract_label = (
+                "V2.11"
+                if selected_contract.contract_id == PILOT_CONTRACT_ID_V2_11
+                else "V2.11.1"
+            )
             raise PilotOrchestrationError(
-                "V2.11 parent-import requires --parent-repo-root pointing "
-                "to the immutable V2.10.2 science checkout"
+                f"{contract_label} parent-import requires "
+                "--parent-repo-root pointing to its immutable parent science "
+                "checkout"
             )
     source_repo_root = getattr(args, "source_repo_root", None)
     if source_repo_root is not None and args.stage != "publish-evidence":

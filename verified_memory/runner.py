@@ -99,6 +99,28 @@ PROMPT_TIER_UPPER_BOUND_METHOD = "utf8-bytes-plus-256-v1"
 OBSERVED_P95_AUTHORITY_ID = "finevo-closed-loop-observed-p95-v1"
 OBSERVED_P95_SOURCE_KIND = "sealed-closed-loop-observed-p95"
 OBSERVED_P95_PROJECTION_SCHEMA_VERSION = "finevo-pilot-projection-p95-v1"
+V2111_CONTRACT_ENVELOPE_AUTHORITY_ID = (
+    "finevo-v2.11.1-contract-envelope-bootstrap-v1"
+)
+V2111_CONTRACT_ID = "finevo-pilot-v2.11.1"
+V2111_RELEASE_TAG = "pilot-v2.11.1-science"
+V2111_SOURCE_CONTRACT_ID = "finevo-pilot-v2.11"
+V2111_SOURCE_RELEASE_TAG = "pilot-v2.11-science"
+V2111_PREFLIGHT_SEED = 2010922376
+V2111_PREFLIGHT_PROMPT_ENVELOPE_TOKENS = 200_000
+V2111_PREFLIGHT_COMPLETION_ENVELOPE_TOKENS = 4_096
+V2111_PREFLIGHT_CAPABILITY_SAMPLE_COUNTS = {
+    "action": 24,
+    "semantic": 6,
+}
+V2111_RUNTIME_MODEL_BY_MODEL_ID = {
+    "gpt52_main": "openai/gpt-5.2-2025-12-11",
+    "gpt56_diagnostic": "openai/gpt-5.6-sol",
+}
+V2111_PREFLIGHT_ENVELOPE_COST_USD = {
+    "openai/gpt-5.2-2025-12-11": 0.407344,
+    "openai/gpt-5.6-sol": 1.12288,
+}
 CONTEXT_FEATURES = (
     "log_price",
     "interest_rate",
@@ -1008,6 +1030,329 @@ class ContractBootstrapReservation:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class ContractEnvelopeBootstrapReservation:
+    """V2.11.1 capability audit plus a separate contract-max envelope.
+
+    The capability projection remains an exact observed-p95-plus-25-percent
+    audit of one same-model 30-call V2.11 capability cell.  It is deliberately
+    not the effective dispatch reservation: the 2x12 long-context prompt
+    distribution is not exchangeable with the capability task distribution.
+    The effective reservation is instead the frozen V2.11.1 contract envelope.
+    """
+
+    capability_projection: PreflightP95Reservation
+    envelope_usage: UsageRecord
+    authority_id: str
+    target_contract_id: str
+    pilot_contract_hash: str
+    pilot_tag: str
+    pilot_commit: str
+    model_id: str
+    authorized_run_id: str
+    authorized_seed: int
+    authorized_config_sha256: str
+    target_run_spec_sha256: str
+    source_contract_id: str
+    source_contract_hash: str
+    source_tag: str
+    source_commit: str
+    source_run_id: str
+    source_run_spec_sha256: str
+    source_capability_file_sha256: str
+    source_capability_payload_sha256: str
+    source_group_sha256: str
+    capability_projection_sha256: str
+    policy_sha256: str
+    provider_profile_sha256: str
+    price_snapshot_sha256: str
+    source_projection_sha256: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(
+            self.capability_projection,
+            PreflightP95Reservation,
+        ):
+            raise TypeError(
+                "contract-envelope bootstrap capability projection must be "
+                "a preflight p95 value"
+            )
+        if not isinstance(self.envelope_usage, UsageRecord):
+            raise TypeError(
+                "contract-envelope bootstrap must wrap an envelope usage value"
+            )
+        if self.authority_id != V2111_CONTRACT_ENVELOPE_AUTHORITY_ID:
+            raise ValueError("unsupported contract-envelope bootstrap authority")
+        if (
+            self.target_contract_id != V2111_CONTRACT_ID
+            or self.pilot_tag != V2111_RELEASE_TAG
+            or self.source_contract_id != V2111_SOURCE_CONTRACT_ID
+            or self.source_tag != V2111_SOURCE_RELEASE_TAG
+        ):
+            raise ValueError(
+                "contract-envelope bootstrap contract/tag lineage drifted"
+            )
+        expected_runtime_model = V2111_RUNTIME_MODEL_BY_MODEL_ID.get(
+            self.model_id
+        )
+        if (
+            expected_runtime_model is None
+            or self.capability_projection.model != expected_runtime_model
+        ):
+            raise ValueError(
+                "contract-envelope bootstrap same-model binding drifted"
+            )
+        if self.capability_projection.sample_count != (
+            V2111_PREFLIGHT_CAPABILITY_SAMPLE_COUNTS[
+                self.capability_projection.call_kind
+            ]
+        ):
+            raise ValueError(
+                "contract-envelope bootstrap capability denominator drifted"
+            )
+        if (
+            self.envelope_usage.prompt_tokens
+            != V2111_PREFLIGHT_PROMPT_ENVELOPE_TOKENS
+            or self.envelope_usage.completion_tokens
+            != V2111_PREFLIGHT_COMPLETION_ENVELOPE_TOKENS
+        ):
+            raise ValueError(
+                "contract-envelope bootstrap must reserve the exact "
+                "200000-token prompt and 4096-token completion envelope"
+            )
+        expected_cost = V2111_PREFLIGHT_ENVELOPE_COST_USD[
+            expected_runtime_model
+        ]
+        if not math.isclose(
+            self.envelope_usage.cost_usd,
+            expected_cost,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ):
+            raise ValueError(
+                "contract-envelope bootstrap cost differs from the exact "
+                "frozen provider-profile price"
+            )
+        if (
+            self.authorized_seed != V2111_PREFLIGHT_SEED
+            or not self.authorized_run_id.startswith(
+                f"{V2111_CONTRACT_ID}--long-context-preflight--"
+            )
+            or not self.authorized_run_id.endswith("--actor-preflight")
+            or not self.source_run_id.startswith(
+                f"{V2111_SOURCE_CONTRACT_ID}--capability-gate--"
+            )
+        ):
+            raise ValueError(
+                "contract-envelope bootstrap run/seed scope drifted"
+            )
+        for name in ("pilot_commit", "source_commit"):
+            value = getattr(self, name)
+            if (
+                not isinstance(value, str)
+                or re.fullmatch(r"[0-9a-f]{40}", value) is None
+            ):
+                raise ValueError(f"{name} must be a lowercase 40-hex commit")
+        for name in (
+            "pilot_contract_hash",
+            "authorized_config_sha256",
+            "target_run_spec_sha256",
+            "source_contract_hash",
+            "source_run_spec_sha256",
+            "source_capability_file_sha256",
+            "source_capability_payload_sha256",
+            "source_group_sha256",
+            "capability_projection_sha256",
+            "policy_sha256",
+            "provider_profile_sha256",
+            "price_snapshot_sha256",
+            "source_projection_sha256",
+        ):
+            value = getattr(self, name)
+            if (
+                not isinstance(value, str)
+                or re.fullmatch(r"[0-9a-f]{64}", value) is None
+            ):
+                raise ValueError(f"{name} must be a lowercase SHA-256 digest")
+
+    @property
+    def model(self) -> str:
+        return self.capability_projection.model
+
+    @property
+    def call_kind(self) -> str:
+        return self.capability_projection.call_kind
+
+    @property
+    def reserved_usage(self) -> UsageRecord:
+        """Return the contract envelope, never the capability p95 projection."""
+
+        return self.envelope_usage
+
+    @property
+    def authority_binding(self) -> tuple[Any, ...]:
+        """Return fields that must be identical across action and semantic."""
+
+        return (
+            self.authority_id,
+            self.target_contract_id,
+            self.pilot_contract_hash,
+            self.pilot_tag,
+            self.pilot_commit,
+            self.model_id,
+            self.authorized_run_id,
+            self.authorized_seed,
+            self.authorized_config_sha256,
+            self.target_run_spec_sha256,
+            self.source_contract_id,
+            self.source_contract_hash,
+            self.source_tag,
+            self.source_commit,
+            self.source_run_id,
+            self.source_run_spec_sha256,
+            self.source_capability_file_sha256,
+            self.source_capability_payload_sha256,
+            self.source_group_sha256,
+            self.capability_projection_sha256,
+            self.policy_sha256,
+            self.provider_profile_sha256,
+            self.price_snapshot_sha256,
+            self.source_projection_sha256,
+        )
+
+    @classmethod
+    def from_dict(
+        cls,
+        *,
+        model: str,
+        call_kind: str,
+        value: Mapping[str, Any],
+    ) -> "ContractEnvelopeBootstrapReservation":
+        if not isinstance(value, Mapping):
+            raise TypeError(
+                "contract-envelope bootstrap entry must be a mapping"
+            )
+        if set(value) != {
+            "authority",
+            "capability_projection",
+            "contract_envelope",
+        }:
+            raise ValueError(
+                "contract-envelope bootstrap entry fields drifted"
+            )
+        authority = value["authority"]
+        expected_authority_fields = {
+            "authority_id",
+            "target_contract_id",
+            "pilot_contract_hash",
+            "pilot_tag",
+            "pilot_commit",
+            "model_id",
+            "authorized_run_id",
+            "authorized_seed",
+            "authorized_config_sha256",
+            "target_run_spec_sha256",
+            "source_contract_id",
+            "source_contract_hash",
+            "source_tag",
+            "source_commit",
+            "source_run_id",
+            "source_run_spec_sha256",
+            "source_capability_file_sha256",
+            "source_capability_payload_sha256",
+            "source_group_sha256",
+            "capability_projection_sha256",
+            "policy_sha256",
+            "provider_profile_sha256",
+            "price_snapshot_sha256",
+            "source_projection_sha256",
+        }
+        if (
+            not isinstance(authority, Mapping)
+            or set(authority) != expected_authority_fields
+        ):
+            raise ValueError(
+                "contract-envelope bootstrap authority fields drifted"
+            )
+        envelope = value["contract_envelope"]
+        if not isinstance(envelope, Mapping) or set(envelope) != {
+            "prompt_tokens",
+            "completion_tokens",
+            "total_tokens",
+            "cost_usd",
+        }:
+            raise ValueError(
+                "contract-envelope bootstrap usage fields drifted"
+            )
+        for name in ("prompt_tokens", "completion_tokens", "total_tokens"):
+            item = envelope[name]
+            if isinstance(item, bool) or not isinstance(item, int):
+                raise TypeError(
+                    f"contract-envelope bootstrap {name} must be an integer"
+                )
+        cost = envelope["cost_usd"]
+        if isinstance(cost, bool) or not isinstance(cost, (int, float)):
+            raise TypeError(
+                "contract-envelope bootstrap cost_usd must be numeric"
+            )
+        envelope_usage = UsageRecord(
+            prompt_tokens=envelope["prompt_tokens"],
+            completion_tokens=envelope["completion_tokens"],
+            cost_usd=float(cost),
+        )
+        if envelope["total_tokens"] != envelope_usage.total_tokens:
+            raise ValueError(
+                "contract-envelope bootstrap total_tokens is not additive"
+            )
+        return cls(
+            capability_projection=PreflightP95Reservation.from_dict(
+                model=model,
+                call_kind=call_kind,
+                value=value["capability_projection"],
+            ),
+            envelope_usage=envelope_usage,
+            **{name: authority[name] for name in expected_authority_fields},
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "authority": {
+                "authority_id": self.authority_id,
+                "target_contract_id": self.target_contract_id,
+                "pilot_contract_hash": self.pilot_contract_hash,
+                "pilot_tag": self.pilot_tag,
+                "pilot_commit": self.pilot_commit,
+                "model_id": self.model_id,
+                "authorized_run_id": self.authorized_run_id,
+                "authorized_seed": self.authorized_seed,
+                "authorized_config_sha256": self.authorized_config_sha256,
+                "target_run_spec_sha256": self.target_run_spec_sha256,
+                "source_contract_id": self.source_contract_id,
+                "source_contract_hash": self.source_contract_hash,
+                "source_tag": self.source_tag,
+                "source_commit": self.source_commit,
+                "source_run_id": self.source_run_id,
+                "source_run_spec_sha256": self.source_run_spec_sha256,
+                "source_capability_file_sha256": (
+                    self.source_capability_file_sha256
+                ),
+                "source_capability_payload_sha256": (
+                    self.source_capability_payload_sha256
+                ),
+                "source_group_sha256": self.source_group_sha256,
+                "capability_projection_sha256": (
+                    self.capability_projection_sha256
+                ),
+                "policy_sha256": self.policy_sha256,
+                "provider_profile_sha256": self.provider_profile_sha256,
+                "price_snapshot_sha256": self.price_snapshot_sha256,
+                "source_projection_sha256": self.source_projection_sha256,
+            },
+            "capability_projection": self.capability_projection.to_dict(),
+            "contract_envelope": self.envelope_usage.to_dict(),
+        }
+
+
 def _normalize_preflight_p95_reservations(
     value: Any,
 ) -> tuple[
@@ -1072,10 +1417,15 @@ def _normalize_preflight_p95_reservations(
 
 def _normalize_contract_bootstrap_reservations(
     value: Any,
-) -> tuple[ContractBootstrapReservation, ...]:
+) -> tuple[
+    ContractBootstrapReservation | ContractEnvelopeBootstrapReservation,
+    ...,
+]:
     if value is None:
         return ()
-    entries: list[ContractBootstrapReservation] = []
+    entries: list[
+        ContractBootstrapReservation | ContractEnvelopeBootstrapReservation
+    ] = []
     if isinstance(value, Mapping):
         for model, by_kind in value.items():
             if not isinstance(by_kind, Mapping):
@@ -1083,8 +1433,20 @@ def _normalize_contract_bootstrap_reservations(
                     "contract bootstrap model values must be mappings"
                 )
             for call_kind, item in by_kind.items():
+                authority = (
+                    item.get("authority")
+                    if isinstance(item, Mapping)
+                    else None
+                )
+                reservation_type = (
+                    ContractEnvelopeBootstrapReservation
+                    if isinstance(authority, Mapping)
+                    and authority.get("authority_id")
+                    == V2111_CONTRACT_ENVELOPE_AUTHORITY_ID
+                    else ContractBootstrapReservation
+                )
                 entries.append(
-                    ContractBootstrapReservation.from_dict(
+                    reservation_type.from_dict(
                         model=str(model),
                         call_kind=str(call_kind),
                         value=item,
@@ -1102,12 +1464,18 @@ def _normalize_contract_bootstrap_reservations(
                 "contract bootstrap reservations must be a mapping or iterable"
             ) from exc
         if any(
-            not isinstance(item, ContractBootstrapReservation)
+            not isinstance(
+                item,
+                (
+                    ContractBootstrapReservation,
+                    ContractEnvelopeBootstrapReservation,
+                ),
+            )
             for item in raw_entries
         ):
             raise TypeError(
                 "contract bootstrap iterable must contain "
-                "ContractBootstrapReservation values"
+                "contract bootstrap reservation values"
             )
         entries.extend(raw_entries)
     keys = [(item.model, item.call_kind) for item in entries]
@@ -1259,7 +1627,8 @@ class VerifiedRunConfig:
         PreflightP95Reservation | ObservedPreflightP95Reservation, ...
     ] = ()
     contract_bootstrap_reservations: tuple[
-        ContractBootstrapReservation, ...
+        ContractBootstrapReservation | ContractEnvelopeBootstrapReservation,
+        ...,
     ] = ()
     preflight_measurement_role: Optional[str] = None
     prompt_tier_ceiling_tokens: Optional[int] = None
@@ -1581,11 +1950,65 @@ class VerifiedRunConfig:
                 or self.scientific_scope
                 != "preregistered_mechanism_micro_pilot"
                 or self.num_agents != 2
-                or self.episode_length != 6
             ):
+                raise ValueError(
+                    "contract bootstrap authority is restricted to a registered "
+                    "2-agent scientific closed-loop preflight"
+                )
+            legacy_bootstrap = all(
+                isinstance(item, ContractBootstrapReservation)
+                for item in self.contract_bootstrap_reservations
+            )
+            envelope_bootstrap = all(
+                isinstance(item, ContractEnvelopeBootstrapReservation)
+                for item in self.contract_bootstrap_reservations
+            )
+            if legacy_bootstrap == envelope_bootstrap:
+                raise ValueError(
+                    "contract bootstrap authority types cannot be mixed"
+                )
+            if legacy_bootstrap and self.episode_length != 6:
                 raise ValueError(
                     "contract bootstrap authority is restricted to the exact "
                     "2-agent x 6-month closed-loop preflight"
+                )
+            if envelope_bootstrap and (
+                self.episode_length != 12
+                or self.seed != V2111_PREFLIGHT_SEED
+                or self.pilot_tag != V2111_RELEASE_TAG
+                or not self.run_id.startswith(
+                    f"{V2111_CONTRACT_ID}--long-context-preflight--"
+                )
+                or not self.run_id.endswith("--actor-preflight")
+                or self.context_mode != "full"
+                or not self.enable_episodic_retrieval
+                or not self.enable_semantic
+                or self.retrieval_k != 5
+                or self.rule_budget != 3
+                or self.send_decoding_seed
+                or self.temperature != 0.0
+                or self.top_p != 1.0
+                or self.prompt_tier_ceiling_tokens
+                != V2111_PREFLIGHT_PROMPT_ENVELOPE_TOKENS
+                or self.action_max_tokens
+                != V2111_PREFLIGHT_COMPLETION_ENVELOPE_TOKENS
+                or self.rule_max_tokens
+                != V2111_PREFLIGHT_COMPLETION_ENVELOPE_TOKENS
+                or self.action_max_visible_json_bytes != 1_024
+                or self.rule_max_visible_json_bytes != 4_096
+                or self.accepted_action_parse_modes != ("exact_json",)
+                or self.accepted_semantic_parse_modes != ("exact_json",)
+                or self.max_rule_proposals_per_agent != 4
+                or self.freeze_new_proposals_after != 12
+                or self.semantic_proposal_after != 3
+                or self.semantic_proposal_interval != 3
+                or self.max_retries != 1
+                or not self.fail_on_clipped_action
+                or self.semantic_parse_failure_policy != "record-and-skip"
+            ):
+                raise ValueError(
+                    "contract-envelope bootstrap authority is restricted to "
+                    "the exact V2.11.1 2-agent x 12-month long-context preflight"
                 )
             bootstrap_models = {
                 item.model for item in self.contract_bootstrap_reservations
@@ -1593,23 +2016,34 @@ class VerifiedRunConfig:
             bootstrap_kinds = {
                 item.call_kind for item in self.contract_bootstrap_reservations
             }
-            authority_bindings = {
-                (
-                    item.authority_id,
-                    item.pilot_contract_hash,
-                    item.pilot_tag,
-                    item.authorized_run_id,
-                    item.authorized_seed,
-                    item.authorized_config_sha256,
-                    item.target_run_spec_sha256,
-                    item.source_run_id,
-                    item.source_capability_file_sha256,
-                    item.source_group_sha256,
-                    item.policy_sha256,
-                    item.source_projection_sha256,
-                )
-                for item in self.contract_bootstrap_reservations
-            }
+            if legacy_bootstrap:
+                authority_bindings = {
+                    (
+                        item.authority_id,
+                        item.pilot_contract_hash,
+                        item.pilot_tag,
+                        item.authorized_run_id,
+                        item.authorized_seed,
+                        item.authorized_config_sha256,
+                        item.target_run_spec_sha256,
+                        item.source_run_id,
+                        item.source_capability_file_sha256,
+                        item.source_group_sha256,
+                        item.policy_sha256,
+                        item.source_projection_sha256,
+                    )
+                    for item in self.contract_bootstrap_reservations
+                    if isinstance(item, ContractBootstrapReservation)
+                }
+            else:
+                authority_bindings = {
+                    item.authority_binding
+                    for item in self.contract_bootstrap_reservations
+                    if isinstance(
+                        item,
+                        ContractEnvelopeBootstrapReservation,
+                    )
+                }
             if (
                 len(bootstrap_models) != 1
                 or bootstrap_kinds != {"action", "semantic"}
@@ -1941,7 +2375,10 @@ def _reservation_index(
 
 def _bootstrap_reservation_index(
     config: VerifiedRunConfig,
-) -> dict[tuple[str, str], ContractBootstrapReservation]:
+) -> dict[
+    tuple[str, str],
+    ContractBootstrapReservation | ContractEnvelopeBootstrapReservation,
+]:
     return {
         (item.model, item.call_kind): item
         for item in config.contract_bootstrap_reservations
@@ -3952,6 +4389,7 @@ __all__ = [
     "ERROR_RULE_MODES",
     "FIXED_ERRONEOUS_RULE",
     "ContractBootstrapReservation",
+    "ContractEnvelopeBootstrapReservation",
     "ObservedPreflightP95Reservation",
     "OBSERVED_P95_AUTHORITY_ID",
     "OBSERVED_P95_PROJECTION_SCHEMA_VERSION",
@@ -3968,6 +4406,17 @@ __all__ = [
     "SEMANTIC_POLICIES",
     "SHOCK_EVENT_SCHEMA_VERSION",
     "ShockEvent",
+    "V2111_CONTRACT_ENVELOPE_AUTHORITY_ID",
+    "V2111_CONTRACT_ID",
+    "V2111_PREFLIGHT_CAPABILITY_SAMPLE_COUNTS",
+    "V2111_PREFLIGHT_COMPLETION_ENVELOPE_TOKENS",
+    "V2111_PREFLIGHT_ENVELOPE_COST_USD",
+    "V2111_PREFLIGHT_PROMPT_ENVELOPE_TOKENS",
+    "V2111_PREFLIGHT_SEED",
+    "V2111_RELEASE_TAG",
+    "V2111_RUNTIME_MODEL_BY_MODEL_ID",
+    "V2111_SOURCE_CONTRACT_ID",
+    "V2111_SOURCE_RELEASE_TAG",
     "VerifiedRunConfig",
     "VerifiedRunError",
     "VerifiedRunResult",
