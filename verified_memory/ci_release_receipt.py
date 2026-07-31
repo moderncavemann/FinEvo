@@ -52,6 +52,7 @@ _V2115_SCIENCE_CONTRACT_SHA256 = (
 )
 _V2115_SCIENCE_TAG = "pilot-v2.11.5-science"
 _V2115_SCIENCE_COMMIT = "2351ac2283f9fedb9dce70067174020be56ed9cc"
+V2115_SCIENCE_TAG_OBJECT = "bccfb13cee7d592470d1873cfacc3b12bed38be4"
 _V2115_REPOSITORY = "moderncavemann/FinEvo"
 _WORKFLOW_FILE = ".github/workflows/verified-memory-ci.yml"
 _EXPECTED_CI_FIELDS = frozenset(
@@ -545,6 +546,7 @@ def load_publication_consumer_ci_authority(
         "contract_id": _V2115_SCIENCE_CONTRACT_ID,
         "contract_sha256": _V2115_SCIENCE_CONTRACT_SHA256,
         "git_tag": _V2115_SCIENCE_TAG,
+        "git_tag_object": V2115_SCIENCE_TAG_OBJECT,
         "git_commit": _V2115_SCIENCE_COMMIT,
     }
     if not isinstance(science, Mapping) or dict(science) != expected_science:
@@ -603,13 +605,22 @@ def load_publication_consumer_ci_authority(
             "publication consumer CI authority does not match the frozen contract"
         )
 
-    if _git_line(root, ("git", "cat-file", "-t", _V2115_SCIENCE_TAG)) != "tag":
+    tag_ref = f"refs/tags/{_V2115_SCIENCE_TAG}"
+    if _git_line(root, ("git", "cat-file", "-t", tag_ref)) != "tag":
         raise CIReleaseReceiptError(
             "publication consumer CI science tag is not annotated"
         )
+    tag_object = _git_line(
+        root,
+        ("git", "rev-parse", "--verify", f"{tag_ref}^{{object}}"),
+    )
+    if tag_object != V2115_SCIENCE_TAG_OBJECT:
+        raise CIReleaseReceiptError(
+            "publication consumer CI science tag object drifted"
+        )
     resolved_science = _git_line(
         root,
-        ("git", "rev-parse", "--verify", f"{_V2115_SCIENCE_TAG}^{{commit}}"),
+        ("git", "rev-parse", "--verify", f"{tag_ref}^{{commit}}"),
     )
     if resolved_science != _V2115_SCIENCE_COMMIT:
         raise CIReleaseReceiptError(
@@ -1304,6 +1315,7 @@ __all__ = [
     "PUBLICATION_CONSUMER_CI_AUTHORITY_SCHEMA_VERSION",
     "PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX",
     "PUBLICATION_CONSUMER_CI_RECEIPT_SCHEMA_VERSION",
+    "V2115_SCIENCE_TAG_OBJECT",
     "SCIENTIFIC_SOURCE_MANIFEST_ANCHORS",
     "SCIENTIFIC_SOURCE_MANIFEST_INVENTORY_SCHEMA_VERSION",
     "build_ci_job_receipt",

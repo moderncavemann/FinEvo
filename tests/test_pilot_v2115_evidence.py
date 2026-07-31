@@ -185,8 +185,7 @@ def _git_values(root: Path) -> dict[tuple[str, ...], str]:
         (
             "rev-parse",
             f"refs/tags/{evidence.V2115_SOURCE_TAG}^{{object}}",
-        ): "1"
-        * 40,
+        ): evidence.V2115_SOURCE_TAG_OBJECT,
         (
             "rev-parse",
             f"refs/tags/{evidence.V2115_SOURCE_TAG}^{{commit}}",
@@ -218,6 +217,7 @@ def test_v2115_source_git_requires_detached_clean_annotated_exact_tag(
     )
     assert result["detached_head"] is True
     assert result["tracked_worktree_clean"] is True
+    assert result["tag_object"] == evidence.V2115_SOURCE_TAG_OBJECT
 
 
 @pytest.mark.parametrize(
@@ -229,6 +229,13 @@ def test_v2115_source_git_requires_detached_clean_annotated_exact_tag(
             (
                 "rev-parse",
                 f"refs/tags/{evidence.V2115_SOURCE_TAG}^{{commit}}",
+            ),
+            "3" * 40,
+        ),
+        (
+            (
+                "rev-parse",
+                f"refs/tags/{evidence.V2115_SOURCE_TAG}^{{object}}",
             ),
             "3" * 40,
         ),

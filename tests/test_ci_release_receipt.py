@@ -16,6 +16,7 @@ from verified_memory.ci_release_receipt import (
     PUBLICATION_CONSUMER_CI_RECEIPT_SCHEMA_VERSION,
     SCIENTIFIC_SOURCE_MANIFEST_ANCHORS,
     SCIENTIFIC_SOURCE_MANIFEST_INVENTORY_SCHEMA_VERSION,
+    V2115_SCIENCE_TAG_OBJECT,
     build_ci_job_receipt,
     build_collection_inventory,
     build_publication_consumer_ci_receipt,
@@ -65,6 +66,7 @@ def _publication_authority(
                 "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef"
             ),
             "git_tag": "pilot-v2.11.5-science",
+            "git_tag_object": V2115_SCIENCE_TAG_OBJECT,
             "git_commit": science_commit,
         },
         "scope": {
@@ -138,6 +140,8 @@ def _publication_ci_job(
 
 def _mock_publication_authority_dependencies(
     monkeypatch: pytest.MonkeyPatch,
+    *,
+    tag_object: str = V2115_SCIENCE_TAG_OBJECT,
 ) -> None:
     contract = SimpleNamespace(
         status="frozen",
@@ -156,9 +160,15 @@ def _mock_publication_authority_dependencies(
     monkeypatch.setattr(ci_receipts, "_git_success", lambda *_args: None)
 
     def git_line(_root: Path, argv: tuple[str, ...]) -> str:
-        if argv[1:4] == ("cat-file", "-t", "pilot-v2.11.5-science"):
+        if argv[1:4] == (
+            "cat-file",
+            "-t",
+            "refs/tags/pilot-v2.11.5-science",
+        ):
             return "tag"
-        if "pilot-v2.11.5-science^{commit}" in argv:
+        if "refs/tags/pilot-v2.11.5-science^{object}" in argv:
+            return tag_object
+        if "refs/tags/pilot-v2.11.5-science^{commit}" in argv:
             return V2115_SCIENCE_COMMIT
         if argv[-1] == "HEAD^{commit}":
             return V2115_CONSUMER_HEAD
@@ -610,6 +620,18 @@ def test_publication_consumer_authority_rejects_wrong_science_anchor_after_resea
     _mock_publication_authority_dependencies(monkeypatch)
 
     with pytest.raises(CIReleaseReceiptError, match="science anchor drifted"):
+        load_publication_consumer_ci_authority(tmp_path, authority_path)
+
+
+def test_publication_consumer_authority_rejects_same_commit_retag(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    authority_path = _publication_authority(tmp_path)
+    # The peeled commit remains exact; only the annotated tag object changed.
+    _mock_publication_authority_dependencies(monkeypatch, tag_object="9" * 40)
+
+    with pytest.raises(CIReleaseReceiptError, match="tag object drifted"):
         load_publication_consumer_ci_authority(tmp_path, authority_path)
 
 

@@ -27,6 +27,7 @@ from typing import Any, Mapping, Sequence
 from .ci_release_receipt import (
     CIReleaseReceiptError,
     PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
+    V2115_SCIENCE_TAG_OBJECT,
     load_publication_consumer_ci_authority,
 )
 from .m2_episodic import EvidenceLinkedEpisodicTrack
@@ -92,6 +93,7 @@ V2115_C_SENSITIVITY_DIAGNOSTIC_SCHEMA_VERSION = (
 )
 V2115_SOURCE_TAG = "pilot-v2.11.5-science"
 V2115_SOURCE_COMMIT = "2351ac2283f9fedb9dce70067174020be56ed9cc"
+V2115_SOURCE_TAG_OBJECT = V2115_SCIENCE_TAG_OBJECT
 V2115_RAW_RELATIVE = Path("experiment_results/pilot-v2.11.5/raw")
 V2115_CONTRACT_RELATIVE = Path("experiments/pilot_v2_11_5.yaml")
 V2115_SOURCE_MANIFEST_RELATIVE = Path("experiments/pilot_v2_11_5_source_manifest.json")
@@ -369,7 +371,7 @@ def _validate_source_git(
         or head != expected_commit
         or peeled != expected_commit
         or tag_type != "tag"
-        or tag_object == expected_commit
+        or tag_object != V2115_SOURCE_TAG_OBJECT
         or branch != "HEAD"
         or tracked_status
     ):
