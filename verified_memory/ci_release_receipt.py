@@ -33,6 +33,26 @@ COMPILED_SOURCE_INVENTORY_SCHEMA_VERSION = "finevo-ci-python-sources-v1"
 SCIENTIFIC_SOURCE_MANIFEST_INVENTORY_SCHEMA_VERSION = (
     "finevo-ci-scientific-source-manifests-v1"
 )
+PUBLICATION_CONSUMER_CI_AUTHORITY_SCHEMA_VERSION = (
+    "finevo-publication-consumer-ci-authority-v1"
+)
+PUBLICATION_CONSUMER_CI_RECEIPT_SCHEMA_VERSION = (
+    "finevo-publication-consumer-ci-job-receipt-v1"
+)
+PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX = (
+    "FINEVO_PUBLICATION_CONSUMER_CI_RECEIPT="
+)
+PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE = (
+    "experiments/pilot_v2_11_5_publication_consumer_ci.json"
+)
+_V2115_SCIENCE_CONTRACT_RELATIVE = "experiments/pilot_v2_11_5.yaml"
+_V2115_SCIENCE_CONTRACT_ID = "finevo-pilot-v2.11.5"
+_V2115_SCIENCE_CONTRACT_SHA256 = (
+    "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef"
+)
+_V2115_SCIENCE_TAG = "pilot-v2.11.5-science"
+_V2115_SCIENCE_COMMIT = "2351ac2283f9fedb9dce70067174020be56ed9cc"
+_V2115_REPOSITORY = "moderncavemann/FinEvo"
 _WORKFLOW_FILE = ".github/workflows/verified-memory-ci.yml"
 _EXPECTED_CI_FIELDS = frozenset(
     {
@@ -41,6 +61,33 @@ _EXPECTED_CI_FIELDS = frozenset(
         "compiled_source_count",
         "compiled_source_inventory_sha256",
         "sealed_manifest_inventory_sha256",
+    }
+)
+_CI_JOB_RECEIPT_FIELDS = frozenset(
+    {
+        "schema_version",
+        "status",
+        "repository",
+        "head_sha",
+        "run_id",
+        "run_attempt",
+        "job_name",
+        "job_key",
+        "runner_os",
+        "workflow_name",
+        "workflow_file",
+        "workflow_ref",
+        "workflow_source_sha",
+        "workflow_file_sha256",
+        "workflow_blob_oid",
+        "test_count",
+        "test_collection_sha256",
+        "skipped_test_count",
+        "compiled_source_count",
+        "compiled_source_inventory_sha256",
+        "sealed_manifest_count",
+        "sealed_manifest_inventory_sha256",
+        "receipt_sha256",
     }
 )
 
@@ -414,6 +461,363 @@ def verify_contract_ci_receipt(
     }
 
 
+def load_publication_consumer_ci_authority(
+    repo_root: Path | str,
+    authority_path: Path | str = PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
+) -> dict[str, Any]:
+    """Load the tracked non-scientific CI authority for a descendant consumer.
+
+    The V2.11.5 science contract remains authoritative only for its exact
+    science commit.  Publication code added later necessarily has a different
+    test/source inventory, so this separate authority binds that inventory to
+    the immutable science tag without granting scientific-dispatch authority.
+    """
+
+    root = Path(repo_root).resolve()
+    source = Path(authority_path)
+    if source.is_absolute():
+        try:
+            relative = source.resolve().relative_to(root).as_posix()
+        except ValueError as exc:
+            raise CIReleaseReceiptError(
+                "publication consumer CI authority must be below the repository"
+            ) from exc
+    else:
+        relative = source.as_posix()
+        source = root / source
+    if relative != PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE:
+        raise CIReleaseReceiptError(
+            "publication consumer CI authority path is not the registered path"
+        )
+    source = _guarded_authority_file(root, relative)
+    if discover_tracked_files(root, (relative,)) != (relative,):
+        raise CIReleaseReceiptError(
+            "publication consumer CI authority is not exactly tracked"
+        )
+    _git_success(
+        root,
+        ("git", "diff", "--quiet", "HEAD", "--", relative),
+        "publication consumer CI authority differs from HEAD",
+    )
+
+    raw = source.read_bytes()
+    value = _strict_json_object(raw, "publication consumer CI authority")
+    canonical = (
+        json.dumps(
+            value,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+    if raw != canonical:
+        raise CIReleaseReceiptError(
+            "publication consumer CI authority bytes are not canonical"
+        )
+    if set(value) != {
+        "schema_version",
+        "status",
+        "authority_id",
+        "science_anchor",
+        "scope",
+        "expected_ci",
+        "integrity",
+    }:
+        raise CIReleaseReceiptError(
+            "publication consumer CI authority keys mismatch"
+        )
+    if (
+        value.get("schema_version")
+        != PUBLICATION_CONSUMER_CI_AUTHORITY_SCHEMA_VERSION
+        or value.get("status") != "frozen"
+        or value.get("authority_id")
+        != "finevo-pilot-v2.11.5-evidence-consumer-ci"
+    ):
+        raise CIReleaseReceiptError(
+            "publication consumer CI authority identity drifted"
+        )
+
+    science = value.get("science_anchor")
+    expected_science = {
+        "contract_path": _V2115_SCIENCE_CONTRACT_RELATIVE,
+        "contract_id": _V2115_SCIENCE_CONTRACT_ID,
+        "contract_sha256": _V2115_SCIENCE_CONTRACT_SHA256,
+        "git_tag": _V2115_SCIENCE_TAG,
+        "git_commit": _V2115_SCIENCE_COMMIT,
+    }
+    if not isinstance(science, Mapping) or dict(science) != expected_science:
+        raise CIReleaseReceiptError(
+            "publication consumer CI science anchor drifted"
+        )
+    scope = value.get("scope")
+    expected_scope = {
+        "purpose": "publication-consumer-ci",
+        "scientific_evidence": False,
+        "provider_calls": 0,
+        "science_dispatch_authority": False,
+    }
+    if not isinstance(scope, Mapping) or dict(scope) != expected_scope:
+        raise CIReleaseReceiptError(
+            "publication consumer CI scope must remain non-scientific and zero-call"
+        )
+    expected_ci = value.get("expected_ci")
+    # Validate every expected field before any comparison against a job.
+    normalized_ci = verify_expected_ci_matches_receipt(expected_ci, expected_ci)
+    integrity = value.get("integrity")
+    if (
+        not isinstance(integrity, Mapping)
+        or set(integrity) != {"canonicalization", "content_sha256"}
+        or integrity.get("canonicalization") != "json-sort-keys-utf8-v1"
+    ):
+        raise CIReleaseReceiptError(
+            "publication consumer CI authority integrity keys mismatch"
+        )
+    claimed_content = _sha256(
+        integrity.get("content_sha256"),
+        "publication consumer CI authority content_sha256",
+    )
+    candidate = json.loads(json.dumps(value, sort_keys=True, allow_nan=False))
+    candidate["integrity"].pop("content_sha256")
+    if canonical_sha256(candidate) != claimed_content:
+        raise CIReleaseReceiptError(
+            "publication consumer CI authority self-hash mismatch"
+        )
+
+    contract_path = root / _V2115_SCIENCE_CONTRACT_RELATIVE
+    try:
+        contract = load_pilot_contract(contract_path)
+    except (OSError, ValueError, PilotContractError) as exc:
+        raise CIReleaseReceiptError(
+            "publication consumer CI science contract failed validation"
+        ) from exc
+    if (
+        contract.status != "frozen"
+        or contract.contract_id != _V2115_SCIENCE_CONTRACT_ID
+        or contract.canonical_hash != _V2115_SCIENCE_CONTRACT_SHA256
+        or contract.release_requirements is None
+        or contract.release_requirements.tag != _V2115_SCIENCE_TAG
+    ):
+        raise CIReleaseReceiptError(
+            "publication consumer CI authority does not match the frozen contract"
+        )
+
+    if _git_line(root, ("git", "cat-file", "-t", _V2115_SCIENCE_TAG)) != "tag":
+        raise CIReleaseReceiptError(
+            "publication consumer CI science tag is not annotated"
+        )
+    resolved_science = _git_line(
+        root,
+        ("git", "rev-parse", "--verify", f"{_V2115_SCIENCE_TAG}^{{commit}}"),
+    )
+    if resolved_science != _V2115_SCIENCE_COMMIT:
+        raise CIReleaseReceiptError(
+            "publication consumer CI science tag resolves to the wrong commit"
+        )
+    head = _git_line(root, ("git", "rev-parse", "--verify", "HEAD^{commit}"))
+    if head == _V2115_SCIENCE_COMMIT:
+        raise CIReleaseReceiptError(
+            "publication consumer CI authority requires a descendant consumer commit"
+        )
+    _git_success(
+        root,
+        ("git", "merge-base", "--is-ancestor", _V2115_SCIENCE_COMMIT, head),
+        "publication consumer HEAD does not descend from the science commit",
+    )
+    return {
+        "schema_version": PUBLICATION_CONSUMER_CI_AUTHORITY_SCHEMA_VERSION,
+        "authority_status": "frozen",
+        "validation_status": "pass",
+        "ci_execution_status": "unverified",
+        "authority_id": value["authority_id"],
+        "authority_path": relative,
+        "authority_file_sha256": hashlib.sha256(raw).hexdigest(),
+        "authority_content_sha256": claimed_content,
+        "science_anchor": dict(science),
+        "consumer_head_sha": head,
+        "expected_ci": normalized_ci,
+        "scientific_evidence": False,
+        "provider_calls": 0,
+        "science_dispatch_authority": False,
+    }
+
+
+def verify_publication_consumer_ci_receipt(
+    repo_root: Path | str,
+    authority_path: Path | str,
+    receipt: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Verify a CI job against the descendant publication authority."""
+
+    root = Path(repo_root).resolve()
+    authority = load_publication_consumer_ci_authority(root, authority_path)
+    normalized = _validate_complete_ci_job_receipt(root, receipt)
+    verify_expected_ci_matches_receipt(authority["expected_ci"], normalized)
+    if normalized["head_sha"] != authority["consumer_head_sha"]:
+        raise CIReleaseReceiptError(
+            "publication consumer CI receipt HEAD differs from the verified consumer"
+        )
+    return {
+        **authority,
+        "ci_execution_status": "current-job-pass",
+        "verified_job": {
+            "run_id": normalized["run_id"],
+            "run_attempt": normalized["run_attempt"],
+            "job_name": normalized["job_name"],
+            "runner_os": normalized["runner_os"],
+            "head_sha": normalized["head_sha"],
+            "receipt_sha256": normalized["receipt_sha256"],
+        },
+    }
+
+
+def _validate_complete_ci_job_receipt(
+    repo_root: Path,
+    receipt: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not isinstance(receipt, Mapping) or set(receipt) != _CI_JOB_RECEIPT_FIELDS:
+        raise CIReleaseReceiptError(
+            "publication consumer CI job receipt keys mismatch"
+        )
+    try:
+        normalized = json.loads(json.dumps(receipt, sort_keys=True, allow_nan=False))
+    except (TypeError, ValueError) as exc:
+        raise CIReleaseReceiptError(
+            "publication consumer CI job receipt is not finite JSON"
+        ) from exc
+    claimed = _sha256(
+        normalized.pop("receipt_sha256", None),
+        "publication consumer CI job receipt receipt_sha256",
+    )
+    if canonical_sha256(normalized) != claimed:
+        raise CIReleaseReceiptError(
+            "publication consumer CI job receipt self-hash mismatch"
+        )
+    if (
+        normalized.get("schema_version") != CI_JOB_RECEIPT_SCHEMA_VERSION
+        or normalized.get("status") != "pass"
+    ):
+        raise CIReleaseReceiptError(
+            "publication consumer CI job receipt identity or status drifted"
+        )
+    for key in (
+        "repository",
+        "head_sha",
+        "job_name",
+        "job_key",
+        "runner_os",
+        "workflow_name",
+        "workflow_file",
+        "workflow_ref",
+        "workflow_source_sha",
+        "workflow_blob_oid",
+    ):
+        _environment_text(normalized, key)
+    for key in (
+        "run_id",
+        "run_attempt",
+        "test_count",
+        "compiled_source_count",
+        "sealed_manifest_count",
+    ):
+        _positive_int(normalized.get(key), key)
+    skipped = normalized.get("skipped_test_count")
+    if (
+        isinstance(skipped, bool)
+        or not isinstance(skipped, int)
+        or skipped < 0
+        or skipped > normalized["test_count"]
+    ):
+        raise CIReleaseReceiptError(
+            "publication consumer CI skipped_test_count is invalid"
+        )
+    for key in (
+        "test_collection_sha256",
+        "compiled_source_inventory_sha256",
+        "sealed_manifest_inventory_sha256",
+        "workflow_file_sha256",
+    ):
+        _sha256(normalized.get(key), key)
+    for key in ("head_sha", "workflow_source_sha", "workflow_blob_oid"):
+        value = normalized[key]
+        if len(value) not in {40, 64} or any(
+            character not in "0123456789abcdef" for character in value
+        ):
+            raise CIReleaseReceiptError(f"publication consumer CI {key} is invalid")
+    if (
+        normalized["repository"] != _V2115_REPOSITORY
+        or normalized["workflow_name"] != "Verified memory CI"
+        or normalized["workflow_file"] != _WORKFLOW_FILE
+        or normalized["workflow_source_sha"] != normalized["head_sha"]
+        or normalized["job_key"] != "verify"
+    ):
+        raise CIReleaseReceiptError(
+            "publication consumer CI workflow identity drifted"
+        )
+    workflow_ref_prefix = f"{_V2115_REPOSITORY}/{_WORKFLOW_FILE}@refs/"
+    if (
+        not normalized["workflow_ref"].startswith(workflow_ref_prefix)
+        or normalized["workflow_ref"] == workflow_ref_prefix
+    ):
+        raise CIReleaseReceiptError(
+            "publication consumer CI workflow ref drifted"
+        )
+    expected_job_by_os = {
+        "Linux": "Python 3.12.7 / ubuntu-24.04",
+        "macOS": "Python 3.12.7 / macos-14",
+    }
+    if normalized["job_name"] != expected_job_by_os.get(normalized["runner_os"]):
+        raise CIReleaseReceiptError(
+            "publication consumer CI runner and job identity differ"
+        )
+    workflow = repo_root / _WORKFLOW_FILE
+    if workflow.is_symlink() or not workflow.is_file():
+        raise CIReleaseReceiptError(
+            "publication consumer CI workflow is missing or not regular"
+        )
+    if hashlib.sha256(workflow.read_bytes()).hexdigest() != normalized[
+        "workflow_file_sha256"
+    ]:
+        raise CIReleaseReceiptError(
+            "publication consumer CI workflow file hash drifted"
+        )
+    workflow_blob = _git_line(
+        repo_root,
+        ("git", "rev-parse", "--verify", f"HEAD:{_WORKFLOW_FILE}"),
+    )
+    if workflow_blob != normalized["workflow_blob_oid"]:
+        raise CIReleaseReceiptError(
+            "publication consumer CI workflow blob drifted"
+        )
+    return {**normalized, "receipt_sha256": claimed}
+
+
+def build_publication_consumer_ci_receipt(
+    repo_root: Path | str,
+    *,
+    authority_path: Path | str,
+    ci_job_receipt: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Wrap a passing job receipt in an explicitly non-scientific envelope."""
+
+    authority = verify_publication_consumer_ci_receipt(
+        repo_root,
+        authority_path,
+        ci_job_receipt,
+    )
+    payload = {
+        "schema_version": PUBLICATION_CONSUMER_CI_RECEIPT_SCHEMA_VERSION,
+        "status": "pass",
+        "scientific_evidence": False,
+        "provider_calls": 0,
+        "science_dispatch_authority": False,
+        "authority": authority,
+        "ci_job_receipt": dict(ci_job_receipt),
+    }
+    return {**payload, "receipt_sha256": canonical_sha256(payload)}
+
+
 def discover_tracked_files(
     repo_root: Path | str, patterns: Sequence[str]
 ) -> tuple[str, ...]:
@@ -525,6 +929,59 @@ def emit_ci_job_receipt(
     _write_json(Path(output_path), receipt)
     print(
         CI_JOB_RECEIPT_LOG_PREFIX
+        + json.dumps(
+            receipt,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    )
+    return receipt
+
+
+def emit_publication_consumer_ci_receipt(
+    repo_root: Path | str,
+    *,
+    collection_path: Path | str,
+    source_path: Path | str,
+    junit_path: Path | str,
+    output_path: Path | str,
+    authority_path: Path | str,
+    environment: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    """Seal one descendant-consumer job under its non-scientific authority."""
+
+    root = Path(repo_root).resolve()
+    collection = _read_json(Path(collection_path), "collection inventory")
+    sources = _read_json(Path(source_path), "source inventory")
+    junit = parse_junit_summary(junit_path)
+    manifests = discover_tracked_files(
+        root,
+        (
+            "artifacts/verified_replays/*/manifest.json",
+            "artifacts/verified_runs/*/manifest.json",
+        ),
+    )
+    ci_job_receipt = build_ci_job_receipt(
+        root,
+        collection_inventory=collection,
+        source_inventory=sources,
+        junit_summary=junit,
+        environment=os.environ if environment is None else environment,
+        manifest_paths=manifests,
+    )
+    authority_source = Path(authority_path)
+    if not authority_source.is_absolute():
+        authority_source = root / authority_source
+    receipt = build_publication_consumer_ci_receipt(
+        root,
+        authority_path=authority_source,
+        ci_job_receipt=ci_job_receipt,
+    )
+    _write_json(Path(output_path), receipt)
+    print(
+        PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX
         + json.dumps(
             receipt,
             ensure_ascii=False,
@@ -676,6 +1133,21 @@ def _guarded_regular_file(root: Path, relative: str) -> Path:
     return current
 
 
+def _guarded_authority_file(root: Path, relative: str) -> Path:
+    current = root
+    for part in Path(relative).parts:
+        current = current / part
+        if current.is_symlink():
+            raise CIReleaseReceiptError(
+                "publication consumer CI authority path contains a symlink"
+            )
+    if not current.is_file():
+        raise CIReleaseReceiptError(
+            "publication consumer CI authority is missing or not regular"
+        )
+    return current
+
+
 def _write_json(path: Path, value: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     data = (
@@ -710,6 +1182,18 @@ def _git_line(root: Path, argv: Sequence[str]) -> str:
     if len(completed.stdout.decode("utf-8", "strict").splitlines()) != 1 or not value:
         raise CIReleaseReceiptError("Git output is not one normalized line")
     return value
+
+
+def _git_success(root: Path, argv: Sequence[str], message: str) -> None:
+    completed = subprocess.run(
+        tuple(argv),
+        cwd=root,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if completed.returncode != 0 or completed.stdout or completed.stderr:
+        raise CIReleaseReceiptError(message)
 
 
 def _environment_text(environment: Mapping[str, str], key: str) -> str:
@@ -762,6 +1246,12 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     emit_parser.add_argument("--junit", required=True)
     emit_parser.add_argument("--output", required=True)
     emit_parser.add_argument("--contract", required=True)
+    publication_parser = subparsers.add_parser("emit-publication-consumer")
+    publication_parser.add_argument("--collection", required=True)
+    publication_parser.add_argument("--sources", required=True)
+    publication_parser.add_argument("--junit", required=True)
+    publication_parser.add_argument("--output", required=True)
+    publication_parser.add_argument("--authority", required=True)
     return parser.parse_args(argv)
 
 
@@ -775,7 +1265,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif args.command == "verify-source-manifests":
             inventory = build_scientific_source_manifest_inventory(Path.cwd())
             _write_json(Path(args.output), inventory)
-        else:
+        elif args.command == "emit":
             emit_ci_job_receipt(
                 Path.cwd(),
                 collection_path=args.collection,
@@ -783,6 +1273,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 junit_path=args.junit,
                 output_path=args.output,
                 contract_path=args.contract,
+            )
+        else:
+            emit_publication_consumer_ci_receipt(
+                Path.cwd(),
+                collection_path=args.collection,
+                source_path=args.sources,
+                junit_path=args.junit,
+                output_path=args.output,
+                authority_path=args.authority,
             )
     except (
         CIReleaseReceiptError,
@@ -801,10 +1300,15 @@ __all__ = [
     "CIReleaseReceiptError",
     "COLLECTION_INVENTORY_SCHEMA_VERSION",
     "COMPILED_SOURCE_INVENTORY_SCHEMA_VERSION",
+    "PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE",
+    "PUBLICATION_CONSUMER_CI_AUTHORITY_SCHEMA_VERSION",
+    "PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX",
+    "PUBLICATION_CONSUMER_CI_RECEIPT_SCHEMA_VERSION",
     "SCIENTIFIC_SOURCE_MANIFEST_ANCHORS",
     "SCIENTIFIC_SOURCE_MANIFEST_INVENTORY_SCHEMA_VERSION",
     "build_ci_job_receipt",
     "build_collection_inventory",
+    "build_publication_consumer_ci_receipt",
     "build_scientific_source_manifest_inventory",
     "build_source_inventory",
     "verify_contract_ci_receipt",
@@ -813,5 +1317,8 @@ __all__ = [
     "compile_sources",
     "discover_tracked_files",
     "emit_ci_job_receipt",
+    "emit_publication_consumer_ci_receipt",
+    "load_publication_consumer_ci_authority",
     "parse_junit_summary",
+    "verify_publication_consumer_ci_receipt",
 ]

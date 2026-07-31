@@ -24,6 +24,11 @@ import subprocess
 import tempfile
 from typing import Any, Mapping, Sequence
 
+from .ci_release_receipt import (
+    CIReleaseReceiptError,
+    PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
+    load_publication_consumer_ci_authority,
+)
 from .m2_episodic import EvidenceLinkedEpisodicTrack
 from .m3_semantic import VerifiedSemanticRuleTrack
 from .pilot_contract import PilotContract, canonical_sha256, load_pilot_contract
@@ -102,6 +107,7 @@ _SOURCE_REQUIRED_TRACKED_FILES = (
 )
 _PUBLISHER_REQUIRED_TRACKED_FILES = (
     ".github/workflows/verified-memory-ci.yml",
+    PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
     "run_pilot.py",
     "verified_memory/m2_episodic.py",
     "verified_memory/m3_semantic.py",
@@ -399,12 +405,23 @@ def _publisher_provenance(code_root: Path) -> dict[str, Any]:
         )
     _git(code_root, "merge-base", "--is-ancestor", V2115_SOURCE_COMMIT, head)
     tracked_blobs = _tracked_head_blobs(code_root, _PUBLISHER_REQUIRED_TRACKED_FILES)
+    try:
+        consumer_ci = load_publication_consumer_ci_authority(code_root)
+    except CIReleaseReceiptError as exc:
+        raise PilotEvidenceError(
+            "V2.11.5 publisher publication-consumer CI authority failed validation"
+        ) from exc
+    if consumer_ci.get("consumer_head_sha") != head:
+        raise PilotEvidenceError(
+            "V2.11.5 publisher commit differs from its consumer CI authority audit"
+        )
     return {
         "repository_root": str(code_root),
         "git_commit": head,
         "branch": _git(code_root, "rev-parse", "--abbrev-ref", "HEAD"),
         "tracked_worktree_clean": True,
         "required_tracked_head_blobs": tracked_blobs,
+        "publication_consumer_ci": consumer_ci,
         "provider_calls": 0,
     }
 

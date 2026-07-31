@@ -344,10 +344,25 @@ def test_v2115_publisher_is_a_clean_committed_descendant(
         "_git",
         lambda _root, *args: values[tuple(args)],
     )
+    consumer_ci = {
+        "consumer_head_sha": publisher_commit,
+        "authority_status": "frozen",
+        "validation_status": "pass",
+        "ci_execution_status": "unverified",
+        "scientific_evidence": False,
+        "provider_calls": 0,
+        "science_dispatch_authority": False,
+    }
+    monkeypatch.setattr(
+        evidence,
+        "load_publication_consumer_ci_authority",
+        lambda _root: consumer_ci,
+    )
     result = evidence._publisher_provenance(tmp_path)
     assert result["git_commit"] == publisher_commit
     assert result["tracked_worktree_clean"] is True
     assert result["provider_calls"] == 0
+    assert result["publication_consumer_ci"] == consumer_ci
 
 
 def test_v2115_publisher_rejects_untracked_adapter(
