@@ -1,0 +1,30 @@
+{
+  "authority_id": "finevo-pilot-v2.11.5-evidence-consumer-ci",
+  "expected_ci": {
+    "compiled_source_count": 283,
+    "compiled_source_inventory_sha256": "74cb819ca63225f2fde2e89a26b661181804fb8624476ac2d48ce4840f6f9a09",
+    "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
+    "test_collection_sha256": "7f2b5f0a197a5d8db815c86644809a7a5dfcbf01c29cada4437fcd9c64750ec8",
+    "test_count": 1872
+  },
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "content_sha256": "0f36b79f9d3cc41d29990097b32d27700c261e157e76ae4d7f53d0b900482a37"
+  },
+  "schema_version": "finevo-publication-consumer-ci-authority-v1",
+  "science_anchor": {
+    "contract_id": "finevo-pilot-v2.11.5",
+    "contract_path": "experiments/pilot_v2_11_5.yaml",
+    "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+    "git_commit": "2351ac2283f9fedb9dce70067174020be56ed9cc",
+    "git_tag": "pilot-v2.11.5-science",
+    "git_tag_object": "bccfb13cee7d592470d1873cfacc3b12bed38be4"
+  },
+  "scope": {
+    "provider_calls": 0,
+    "purpose": "publication-consumer-ci",
+    "science_dispatch_authority": false,
+    "scientific_evidence": false
+  },
+  "status": "frozen"
+}

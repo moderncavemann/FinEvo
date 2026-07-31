@@ -8,20 +8,31 @@ from types import SimpleNamespace
 
 import pytest
 
+import verified_memory.ci_release_receipt as ci_receipts
+import verified_memory.scientific_release_attestation as science_attestation
 from verified_memory.ci_release_receipt import (
     CIReleaseReceiptError,
+    PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
+    PUBLICATION_CONSUMER_CI_AUTHORITY_SCHEMA_VERSION,
+    PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX,
+    PUBLICATION_CONSUMER_CI_RECEIPT_SCHEMA_VERSION,
     SCIENTIFIC_SOURCE_MANIFEST_ANCHORS,
     SCIENTIFIC_SOURCE_MANIFEST_INVENTORY_SCHEMA_VERSION,
+    V2115_SCIENCE_TAG_OBJECT,
     build_ci_job_receipt,
     build_collection_inventory,
+    build_publication_consumer_ci_receipt,
     build_scientific_source_manifest_inventory,
     build_source_inventory,
     parse_junit_summary,
+    load_publication_consumer_ci_authority,
     verify_contract_ci_receipt,
     verify_expected_ci_matches_receipt,
+    verify_publication_consumer_ci_receipt,
 )
 from verified_memory.scientific_release_attestation import (
     CI_JOB_RECEIPT_SCHEMA_VERSION,
+    ScientificReleaseAttestationError,
     canonical_sha256,
 )
 
@@ -37,6 +48,138 @@ EXPECTED_CI = {
     "compiled_source_inventory_sha256": "5" * 64,
     "sealed_manifest_inventory_sha256": "6" * 64,
 }
+V2115_SCIENCE_COMMIT = "2351ac2283f9fedb9dce70067174020be56ed9cc"
+V2115_CONSUMER_HEAD = "7" * 40
+
+
+def _publication_authority(
+    tmp_path: Path,
+    *,
+    science_commit: str = V2115_SCIENCE_COMMIT,
+    extra_top_level: bool = False,
+) -> Path:
+    value = {
+        "schema_version": PUBLICATION_CONSUMER_CI_AUTHORITY_SCHEMA_VERSION,
+        "status": "frozen",
+        "authority_id": "finevo-pilot-v2.11.5-evidence-consumer-ci",
+        "science_anchor": {
+            "contract_path": "experiments/pilot_v2_11_5.yaml",
+            "contract_id": "finevo-pilot-v2.11.5",
+            "contract_sha256": (
+                "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef"
+            ),
+            "git_tag": "pilot-v2.11.5-science",
+            "git_tag_object": V2115_SCIENCE_TAG_OBJECT,
+            "git_commit": science_commit,
+        },
+        "scope": {
+            "purpose": "publication-consumer-ci",
+            "scientific_evidence": False,
+            "provider_calls": 0,
+            "science_dispatch_authority": False,
+        },
+        "expected_ci": dict(EXPECTED_CI),
+        "integrity": {"canonicalization": "json-sort-keys-utf8-v1"},
+    }
+    if extra_top_level:
+        value["unexpected"] = "self-rehashed but invalid"
+    value["integrity"]["content_sha256"] = canonical_sha256(value)
+    path = tmp_path / PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    workflow = tmp_path / ".github/workflows/verified-memory-ci.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text("name: Verified memory CI\n", encoding="utf-8")
+    return path
+
+
+def _publication_ci_job(
+    tmp_path: Path,
+    *,
+    head: str = V2115_CONSUMER_HEAD,
+    runner_os: str = "Linux",
+) -> dict[str, object]:
+    workflow = tmp_path / ".github/workflows/verified-memory-ci.yml"
+    payload: dict[str, object] = {
+        "schema_version": CI_JOB_RECEIPT_SCHEMA_VERSION,
+        "status": "pass",
+        "repository": "moderncavemann/FinEvo",
+        "head_sha": head,
+        "run_id": 19821,
+        "run_attempt": 3,
+        "job_name": (
+            "Python 3.12.7 / ubuntu-24.04"
+            if runner_os == "Linux"
+            else "Python 3.12.7 / macos-14"
+        ),
+        "job_key": "verify",
+        "runner_os": runner_os,
+        "workflow_name": "Verified memory CI",
+        "workflow_file": ".github/workflows/verified-memory-ci.yml",
+        "workflow_ref": (
+            "moderncavemann/FinEvo/.github/workflows/"
+            "verified-memory-ci.yml@refs/heads/main"
+        ),
+        "workflow_source_sha": head,
+        "workflow_file_sha256": hashlib.sha256(workflow.read_bytes()).hexdigest(),
+        "workflow_blob_oid": WORKFLOW_BLOB,
+        "test_count": EXPECTED_CI["test_count"],
+        "test_collection_sha256": EXPECTED_CI["test_collection_sha256"],
+        "skipped_test_count": 0,
+        "compiled_source_count": EXPECTED_CI["compiled_source_count"],
+        "compiled_source_inventory_sha256": EXPECTED_CI[
+            "compiled_source_inventory_sha256"
+        ],
+        "sealed_manifest_count": 6,
+        "sealed_manifest_inventory_sha256": EXPECTED_CI[
+            "sealed_manifest_inventory_sha256"
+        ],
+    }
+    return {**payload, "receipt_sha256": canonical_sha256(payload)}
+
+
+def _mock_publication_authority_dependencies(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    tag_object: str = V2115_SCIENCE_TAG_OBJECT,
+) -> None:
+    contract = SimpleNamespace(
+        status="frozen",
+        contract_id="finevo-pilot-v2.11.5",
+        canonical_hash=(
+            "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef"
+        ),
+        release_requirements=SimpleNamespace(tag="pilot-v2.11.5-science"),
+    )
+    monkeypatch.setattr(ci_receipts, "load_pilot_contract", lambda _path: contract)
+    monkeypatch.setattr(
+        ci_receipts,
+        "discover_tracked_files",
+        lambda _root, patterns: tuple(patterns),
+    )
+    monkeypatch.setattr(ci_receipts, "_git_success", lambda *_args: None)
+
+    def git_line(_root: Path, argv: tuple[str, ...]) -> str:
+        if argv[1:4] == (
+            "cat-file",
+            "-t",
+            "refs/tags/pilot-v2.11.5-science",
+        ):
+            return "tag"
+        if "refs/tags/pilot-v2.11.5-science^{object}" in argv:
+            return tag_object
+        if "refs/tags/pilot-v2.11.5-science^{commit}" in argv:
+            return V2115_SCIENCE_COMMIT
+        if argv[-1] == "HEAD^{commit}":
+            return V2115_CONSUMER_HEAD
+        if argv[-1] == "HEAD:.github/workflows/verified-memory-ci.yml":
+            return WORKFLOW_BLOB
+        raise AssertionError(argv)
+
+    monkeypatch.setattr(ci_receipts, "_git_line", git_line)
 
 
 def _environment() -> dict[str, str]:
@@ -424,12 +567,273 @@ def test_ci_contract_gate_requires_frozen_contract_and_exact_inventory(
         verify_contract_ci_receipt(contract_path, EXPECTED_CI)
 
 
-def test_verified_memory_ci_checks_v2115_contract_before_emitting_receipt() -> None:
+def test_publication_consumer_authority_binds_science_and_non_scientific_scope(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    authority_path = _publication_authority(tmp_path)
+    _mock_publication_authority_dependencies(monkeypatch)
+
+    authority = load_publication_consumer_ci_authority(tmp_path, authority_path)
+
+    assert authority["consumer_head_sha"] == V2115_CONSUMER_HEAD
+    assert authority["science_anchor"]["git_commit"] == V2115_SCIENCE_COMMIT
+    assert authority["expected_ci"] == EXPECTED_CI
+    assert authority["authority_status"] == "frozen"
+    assert authority["validation_status"] == "pass"
+    assert authority["ci_execution_status"] == "unverified"
+    assert authority["scientific_evidence"] is False
+    assert authority["science_dispatch_authority"] is False
+    assert authority["provider_calls"] == 0
+
+
+def test_publication_consumer_authority_rejects_tampering_without_reseal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    authority_path = _publication_authority(tmp_path)
+    value = json.loads(authority_path.read_text(encoding="utf-8"))
+    value["expected_ci"]["test_count"] += 1
+    authority_path.write_text(
+        json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    _mock_publication_authority_dependencies(monkeypatch)
+
+    with pytest.raises(CIReleaseReceiptError, match="self-hash mismatch"):
+        load_publication_consumer_ci_authority(tmp_path, authority_path)
+
+
+def test_publication_consumer_authority_rejects_self_rehashed_extra_keys(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    authority_path = _publication_authority(tmp_path, extra_top_level=True)
+    _mock_publication_authority_dependencies(monkeypatch)
+
+    with pytest.raises(CIReleaseReceiptError, match="keys mismatch"):
+        load_publication_consumer_ci_authority(tmp_path, authority_path)
+
+
+def test_publication_consumer_authority_rejects_wrong_science_anchor_after_reseal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    authority_path = _publication_authority(tmp_path, science_commit="8" * 40)
+    _mock_publication_authority_dependencies(monkeypatch)
+
+    with pytest.raises(CIReleaseReceiptError, match="science anchor drifted"):
+        load_publication_consumer_ci_authority(tmp_path, authority_path)
+
+
+def test_publication_consumer_authority_rejects_same_commit_retag(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    authority_path = _publication_authority(tmp_path)
+    # The peeled commit remains exact; only the annotated tag object changed.
+    _mock_publication_authority_dependencies(monkeypatch, tag_object="9" * 40)
+
+    with pytest.raises(CIReleaseReceiptError, match="tag object drifted"):
+        load_publication_consumer_ci_authority(tmp_path, authority_path)
+
+
+@pytest.mark.parametrize("field", sorted(EXPECTED_CI))
+def test_publication_consumer_receipt_rejects_every_inventory_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+) -> None:
+    authority_path = _publication_authority(tmp_path)
+    _mock_publication_authority_dependencies(monkeypatch)
+    receipt = _publication_ci_job(tmp_path)
+    receipt.pop("receipt_sha256")
+    receipt[field] = (
+        receipt[field] + 1
+        if field in {"test_count", "compiled_source_count"}
+        else "9" * 64
+    )
+    receipt["receipt_sha256"] = canonical_sha256(receipt)
+
+    with pytest.raises(CIReleaseReceiptError, match=field):
+        verify_publication_consumer_ci_receipt(
+            tmp_path,
+            authority_path,
+            receipt,
+        )
+
+
+def test_publication_consumer_receipt_has_distinct_non_scientific_envelope(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    authority_path = _publication_authority(tmp_path)
+    _mock_publication_authority_dependencies(monkeypatch)
+    ci_job = _publication_ci_job(tmp_path)
+
+    receipt = build_publication_consumer_ci_receipt(
+        tmp_path,
+        authority_path=authority_path,
+        ci_job_receipt=ci_job,
+    )
+
+    assert receipt["schema_version"] == PUBLICATION_CONSUMER_CI_RECEIPT_SCHEMA_VERSION
+    assert receipt["scientific_evidence"] is False
+    assert receipt["science_dispatch_authority"] is False
+    assert receipt["provider_calls"] == 0
+    assert receipt["authority"]["ci_execution_status"] == "current-job-pass"
+    assert receipt["authority"]["verified_job"]["runner_os"] == "Linux"
+    assert receipt["receipt_sha256"] == canonical_sha256(
+        {key: value for key, value in receipt.items() if key != "receipt_sha256"}
+    )
+
+
+def test_science_parser_rejects_valid_publication_consumer_prefix(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    authority_path = _publication_authority(tmp_path)
+    _mock_publication_authority_dependencies(monkeypatch)
+    receipt = build_publication_consumer_ci_receipt(
+        tmp_path,
+        authority_path=authority_path,
+        ci_job_receipt=_publication_ci_job(tmp_path),
+    )
+    publication_only_log = (
+        PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX
+        + json.dumps(receipt, sort_keys=True, separators=(",", ":"))
+        + "\n"
+    ).encode("utf-8")
+
+    with pytest.raises(
+        ScientificReleaseAttestationError,
+        match="exactly one release receipt log line",
+    ):
+        science_attestation._parse_ci_job_log(
+            publication_only_log,
+            required_job=None,
+            requirements=None,
+            selection=None,
+            repository="moderncavemann/FinEvo",
+            head=V2115_CONSUMER_HEAD,
+            workflow_sha256="8" * 64,
+            workflow_blob_oid=WORKFLOW_BLOB,
+            inventory_sha256=INVENTORY_SHA,
+            inventory_count=6,
+        )
+
+
+def test_publication_consumer_rejects_incomplete_ci_job_receipt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    authority_path = _publication_authority(tmp_path)
+    _mock_publication_authority_dependencies(monkeypatch)
+
+    with pytest.raises(CIReleaseReceiptError, match="job receipt keys mismatch"):
+        build_publication_consumer_ci_receipt(
+            tmp_path,
+            authority_path=authority_path,
+            ci_job_receipt={**EXPECTED_CI, "head_sha": V2115_CONSUMER_HEAD},
+        )
+    extra = {**_publication_ci_job(tmp_path), "unexpected": "field"}
+    with pytest.raises(CIReleaseReceiptError, match="job receipt keys mismatch"):
+        build_publication_consumer_ci_receipt(
+            tmp_path,
+            authority_path=authority_path,
+            ci_job_receipt=extra,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement", "error"),
+    (
+        ("schema_version", "finevo-ci-job-receipt-v0", "identity or status"),
+        ("status", "failure", "identity or status"),
+        ("receipt_sha256", "9" * 64, "self-hash mismatch"),
+    ),
+)
+def test_publication_consumer_rejects_ci_job_identity_and_seal_tampering(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    replacement: str,
+    error: str,
+) -> None:
+    authority_path = _publication_authority(tmp_path)
+    _mock_publication_authority_dependencies(monkeypatch)
+    receipt = _publication_ci_job(tmp_path)
+    receipt[field] = replacement
+    if field != "receipt_sha256":
+        receipt.pop("receipt_sha256")
+        receipt["receipt_sha256"] = canonical_sha256(receipt)
+
+    with pytest.raises(CIReleaseReceiptError, match=error):
+        build_publication_consumer_ci_receipt(
+            tmp_path,
+            authority_path=authority_path,
+            ci_job_receipt=receipt,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement", "error"),
+    (
+        ("repository", "attacker/fork", "workflow identity drifted"),
+        ("workflow_ref", "attacker/fork/workflow.yml@refs/heads/main", "workflow ref drifted"),
+        ("workflow_blob_oid", "9" * 40, "workflow blob drifted"),
+    ),
+)
+def test_publication_consumer_rejects_ci_job_origin_tampering(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    replacement: str,
+    error: str,
+) -> None:
+    authority_path = _publication_authority(tmp_path)
+    _mock_publication_authority_dependencies(monkeypatch)
+    receipt = _publication_ci_job(tmp_path)
+    receipt[field] = replacement
+    receipt.pop("receipt_sha256")
+    receipt["receipt_sha256"] = canonical_sha256(receipt)
+
+    with pytest.raises(CIReleaseReceiptError, match=error):
+        build_publication_consumer_ci_receipt(
+            tmp_path,
+            authority_path=authority_path,
+            ci_job_receipt=receipt,
+        )
+
+
+def test_publication_consumer_receipt_rejects_wrong_consumer_head(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    authority_path = _publication_authority(tmp_path)
+    _mock_publication_authority_dependencies(monkeypatch)
+
+    with pytest.raises(CIReleaseReceiptError, match="receipt HEAD differs"):
+        verify_publication_consumer_ci_receipt(
+            tmp_path,
+            authority_path,
+            _publication_ci_job(tmp_path, head="8" * 40),
+        )
+
+
+def test_verified_memory_ci_uses_descendant_consumer_authority_not_science_contract() -> None:
     workflow = (ROOT / ".github/workflows/verified-memory-ci.yml").read_text(
         encoding="utf-8"
     )
-    emit = workflow.split("- name: Emit scientific release CI receipt", 1)[1]
-    assert "--contract experiments/pilot_v2_11_5.yaml" in emit
+    emit = workflow.split("- name: Emit publication consumer CI receipt", 1)[1]
+    assert "emit-publication-consumer" in emit
+    assert (
+        "--authority experiments/pilot_v2_11_5_publication_consumer_ci.json"
+        in emit
+    )
+    assert "--contract experiments/pilot_v2_11_5.yaml" not in emit
+    assert "- ubuntu-24.04" in workflow
+    assert "- macos-14" in workflow
 
 
 def test_tracked_v2113_frozen_contract_accepts_its_exact_ci_inventory() -> None:

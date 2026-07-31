@@ -244,12 +244,15 @@ def _is_v2102_contract(contract: PilotContract) -> bool:
 
 
 def _is_v211_family_contract(contract: PilotContract) -> bool:
-    """Return whether the fresh hosted V2.11 stage partition applies."""
+    """Return whether the exact V2.11 136-cell stage partition applies."""
 
     return _is_v2_contract(contract) and contract.contract_id in {
         "finevo-pilot-v2.11",
         "finevo-pilot-v2.11.1",
         "finevo-pilot-v2.11.2",
+        "finevo-pilot-v2.11.3",
+        "finevo-pilot-v2.11.4",
+        "finevo-pilot-v2.11.5",
     }
 
 
@@ -4770,6 +4773,7 @@ def _validated_experiment_c_sensitivity(
     raw_root: Path,
     rows: Sequence[Mapping[str, Any]],
     common_commit: str | None,
+    source_repo_root: Path | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any]]:
     """Strictly recompute the registered zero-API 3x3 C sensitivity artifact."""
 
@@ -4803,6 +4807,7 @@ def _validated_experiment_c_sensitivity(
             contract,
             raw_root=raw_root,
             paid=None,
+            authority_repo_root=source_repo_root,
         )
     except Exception as exc:
         raise PilotEvidenceError(

@@ -144,6 +144,9 @@ from verified_memory.pilot_v2102_parent_import import V2102_CONTRACT_ID
 from verified_memory.pilot_v2112_evidence import (
     build_pilot_v2112_evidence_package,
 )
+from verified_memory.pilot_v2115_evidence import (
+    build_pilot_v2115_evidence_package,
+)
 from verified_memory.pilot_v2113_acceptance import (
     accept_v2113_scientific_dispatch,
 )
@@ -451,23 +454,27 @@ def execute(args: argparse.Namespace) -> dict:
     if stage == "publish-evidence":
         contract = load_pilot_contract(args.contract)
         builder = (
-            build_pilot_v2112_evidence_package
-            if contract.contract_id == PILOT_CONTRACT_ID_V2_11_2
+            build_pilot_v2115_evidence_package
+            if contract.contract_id == PILOT_CONTRACT_ID_V2_11_5
             else (
-                build_pilot_v24_evidence_package
-                if contract.contract_id
-                in {
-                    PILOT_V24_CONTRACT_ID,
-                    V25_CONTRACT_ID,
-                    V26_CONTRACT_ID,
-                    V27_CONTRACT_ID,
-                    V28_CONTRACT_ID,
-                    PILOT_V29_CONTRACT_ID,
-                    PILOT_V210_CONTRACT_ID,
-                    PILOT_V2101_CONTRACT_ID,
-                    V2102_CONTRACT_ID,
-                }
-                else build_pilot_evidence_package
+                build_pilot_v2112_evidence_package
+                if contract.contract_id == PILOT_CONTRACT_ID_V2_11_2
+                else (
+                    build_pilot_v24_evidence_package
+                    if contract.contract_id
+                    in {
+                        PILOT_V24_CONTRACT_ID,
+                        V25_CONTRACT_ID,
+                        V26_CONTRACT_ID,
+                        V27_CONTRACT_ID,
+                        V28_CONTRACT_ID,
+                        PILOT_V29_CONTRACT_ID,
+                        PILOT_V210_CONTRACT_ID,
+                        PILOT_V2101_CONTRACT_ID,
+                        V2102_CONTRACT_ID,
+                    }
+                    else build_pilot_evidence_package
+                )
             )
         )
         build_kwargs = {
