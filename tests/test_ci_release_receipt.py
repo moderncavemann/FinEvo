@@ -195,6 +195,7 @@ def test_scientific_source_manifest_anchors_match_release_bytes():
     assert [anchor["path"] for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS] == [
         "experiments/pilot_v2_11_3_source_manifest.json",
         "experiments/pilot_v2_11_4_source_manifest.json",
+        "experiments/pilot_v2_11_5_source_manifest.json",
     ]
     for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS:
         raw = (ROOT / anchor["path"]).read_bytes()
@@ -423,12 +424,12 @@ def test_ci_contract_gate_requires_frozen_contract_and_exact_inventory(
         verify_contract_ci_receipt(contract_path, EXPECTED_CI)
 
 
-def test_verified_memory_ci_checks_v2114_contract_before_emitting_receipt() -> None:
+def test_verified_memory_ci_checks_v2115_contract_before_emitting_receipt() -> None:
     workflow = (ROOT / ".github/workflows/verified-memory-ci.yml").read_text(
         encoding="utf-8"
     )
     emit = workflow.split("- name: Emit scientific release CI receipt", 1)[1]
-    assert "--contract experiments/pilot_v2_11_4.yaml" in emit
+    assert "--contract experiments/pilot_v2_11_5.yaml" in emit
 
 
 def test_tracked_v2113_frozen_contract_accepts_its_exact_ci_inventory() -> None:

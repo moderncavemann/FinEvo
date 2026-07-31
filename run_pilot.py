@@ -44,6 +44,10 @@ Examples:
         --stage parent-import \
         --parent-repo-root ../finevo-pilot-v2-11-3-science \
         --authority-repo-root ../finevo-pilot-v2-11-2-science --resume
+    python run_pilot.py --contract experiments/pilot_v2_11_5.yaml \
+        --stage parent-import \
+        --parent-repo-root ../finevo-pilot-v2-11-4-science \
+        --authority-repo-root ../finevo-pilot-v2-11-2-science --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
         --stage capability-gate --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
@@ -102,6 +106,10 @@ No V2.11.2 treatment cell is resumed, retried, or reclassified.
 Pilot-v2.11.4 freezes V2.11.3's zero-call authority-comparison no-go, registers
 a fresh 136-cell denominator, and validates the four reseal-only receipt
 provenance fields separately from the exact source reservation core.
+Pilot-v2.11.5 freezes V2.11.4's pre-dispatch acceptance no-go, preserves its
+complete failure/budget denominator, and compares independently verified
+source/current authority generations through a closed field allowlist before
+any fresh scientific provider dispatch.
 """
 
 from __future__ import annotations
@@ -117,6 +125,7 @@ from verified_memory.pilot_contract import (
     PILOT_CONTRACT_ID_V2_11_2,
     PILOT_CONTRACT_ID_V2_11_3,
     PILOT_CONTRACT_ID_V2_11_4,
+    PILOT_CONTRACT_ID_V2_11_5,
     load_pilot_contract,
 )
 from verified_memory.pilot_evidence import build_pilot_evidence_package
@@ -141,6 +150,9 @@ from verified_memory.pilot_v2113_acceptance import (
 from verified_memory.pilot_v2114_acceptance import (
     accept_v2114_scientific_dispatch,
 )
+from verified_memory.pilot_v2115_acceptance import (
+    accept_v2115_scientific_dispatch,
+)
 from verified_memory.pilot_orchestrator import (
     PilotOrchestrationError,
     execute_stage,
@@ -164,7 +176,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--accept-scientific-dispatch",
         action="store_true",
         help=(
-            "run the V2.11.3/V2.11.4 zero-provider 131-cell dispatch "
+            "run the V2.11.3/V2.11.4/V2.11.5 zero-provider 131-cell dispatch "
             "acceptance gate "
             "before loading provider credentials"
         ),
@@ -204,7 +216,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "read-only parent source/raw checkout required only by the "
             "V2.4/V2.5/V2.6/V2.7/V2.8/V2.9/V2.10/V2.10.1/V2.10.2/V2.11 "
-            "V2.11.1, V2.11.2, V2.11.3, or V2.11.4 zero-provider "
+            "V2.11.1, V2.11.2, V2.11.3, V2.11.4, or V2.11.5 zero-provider "
             "parent-import stage; "
             "for V2.11 this "
             "is the immutable V2.10.2 science checkout, and for V2.11.1 "
@@ -212,7 +224,8 @@ def build_parser() -> argparse.ArgumentParser:
             "checkout remains source-manifest bound); for V2.11.2 this is "
             "the immutable V2.11.1 science checkout; for V2.11.3 this is "
             "the immutable V2.11.2 science checkout; for V2.11.4 this is "
-            "the immutable V2.11.3 terminal no-go checkout"
+            "the immutable V2.11.3 terminal no-go checkout; for V2.11.5 this "
+            "is the immutable V2.11.4 pre-dispatch acceptance no-go checkout"
         ),
     )
     parser.add_argument(
@@ -231,8 +244,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "read-only V2.11.2 authority checkout required only by the "
-            "V2.11.4 parent-import; --parent-repo-root separately identifies "
-            "the immutable V2.11.3 terminal no-go checkout"
+            "V2.11.4/V2.11.5 parent-import; --parent-repo-root separately "
+            "identifies the immutable V2.11.3/V2.11.4 terminal no-go checkout"
         ),
     )
     parser.add_argument(
@@ -240,7 +253,8 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help=(
-            "immutable V2.11.3/V2.11.4 scientific-dispatch acceptance receipt; "
+            "immutable V2.11.3/V2.11.4/V2.11.5 scientific-dispatch acceptance "
+            "receipt; "
             "accepted only with --accept-scientific-dispatch"
         ),
     )
@@ -295,6 +309,7 @@ def execute(args: argparse.Namespace) -> dict:
                 PILOT_CONTRACT_ID_V2_11_2,
                 PILOT_CONTRACT_ID_V2_11_3,
                 PILOT_CONTRACT_ID_V2_11_4,
+                PILOT_CONTRACT_ID_V2_11_5,
             }
             and parent_repo_root is None
         ):
@@ -304,6 +319,7 @@ def execute(args: argparse.Namespace) -> dict:
                 PILOT_CONTRACT_ID_V2_11_2: "V2.11.2",
                 PILOT_CONTRACT_ID_V2_11_3: "V2.11.3",
                 PILOT_CONTRACT_ID_V2_11_4: "V2.11.4",
+                PILOT_CONTRACT_ID_V2_11_5: "V2.11.5",
             }[selected_contract.contract_id]
             raise PilotOrchestrationError(
                 f"{contract_label} parent-import requires "
@@ -311,19 +327,27 @@ def execute(args: argparse.Namespace) -> dict:
                 "checkout"
             )
         if (
-            selected_contract.contract_id == PILOT_CONTRACT_ID_V2_11_4
+            selected_contract.contract_id
+            in {PILOT_CONTRACT_ID_V2_11_4, PILOT_CONTRACT_ID_V2_11_5}
             and authority_repo_root is None
         ):
+            contract_label = (
+                "V2.11.5"
+                if selected_contract.contract_id == PILOT_CONTRACT_ID_V2_11_5
+                else "V2.11.4"
+            )
             raise PilotOrchestrationError(
-                "V2.11.4 parent-import requires --authority-repo-root pointing "
+                f"{contract_label} "
+                "parent-import requires --authority-repo-root pointing "
                 "to the immutable V2.11.2 authority checkout"
             )
         if (
-            selected_contract.contract_id != PILOT_CONTRACT_ID_V2_11_4
+            selected_contract.contract_id
+            not in {PILOT_CONTRACT_ID_V2_11_4, PILOT_CONTRACT_ID_V2_11_5}
             and authority_repo_root is not None
         ):
             raise PilotOrchestrationError(
-                "--authority-repo-root is accepted only by the V2.11.4 "
+                "--authority-repo-root is accepted only by the V2.11.4/V2.11.5 "
                 "parent-import stage"
             )
     source_repo_root = getattr(args, "source_repo_root", None)
@@ -344,6 +368,7 @@ def execute(args: argparse.Namespace) -> dict:
                 PILOT_CONTRACT_ID_V2_11_2,
                 PILOT_CONTRACT_ID_V2_11_3,
                 PILOT_CONTRACT_ID_V2_11_4,
+                PILOT_CONTRACT_ID_V2_11_5,
             }
             and selected_contract.status != "frozen"
         ):
@@ -351,6 +376,7 @@ def execute(args: argparse.Namespace) -> dict:
                 PILOT_CONTRACT_ID_V2_11_2: "V2.11.2",
                 PILOT_CONTRACT_ID_V2_11_3: "V2.11.3",
                 PILOT_CONTRACT_ID_V2_11_4: "V2.11.4",
+                PILOT_CONTRACT_ID_V2_11_5: "V2.11.5",
             }[selected_contract.contract_id]
             raise PilotOrchestrationError(
                 f"{contract_label} real stages require a frozen contract; the draft "
@@ -385,16 +411,17 @@ def execute(args: argparse.Namespace) -> dict:
         if selected_contract.contract_id not in {
             PILOT_CONTRACT_ID_V2_11_3,
             PILOT_CONTRACT_ID_V2_11_4,
+            PILOT_CONTRACT_ID_V2_11_5,
         } or selected_contract.status != "frozen":
             raise PilotOrchestrationError(
                 "--accept-scientific-dispatch requires the frozen production "
-                "V2.11.3 or V2.11.4 contract"
+                "V2.11.3, V2.11.4, or V2.11.5 contract"
             )
-        acceptance_dispatch = (
-            accept_v2114_scientific_dispatch
-            if selected_contract.contract_id == PILOT_CONTRACT_ID_V2_11_4
-            else accept_v2113_scientific_dispatch
-        )
+        acceptance_dispatch = {
+            PILOT_CONTRACT_ID_V2_11_3: accept_v2113_scientific_dispatch,
+            PILOT_CONTRACT_ID_V2_11_4: accept_v2114_scientific_dispatch,
+            PILOT_CONTRACT_ID_V2_11_5: accept_v2115_scientific_dispatch,
+        }[selected_contract.contract_id]
         return acceptance_dispatch(
             contract_path=args.contract,
             repo_root=ROOT,
@@ -472,7 +499,10 @@ def execute(args: argparse.Namespace) -> dict:
         "repo_root": ROOT,
         "parent_repo_root": parent_repo_root,
     }
-    if selected_contract.contract_id == PILOT_CONTRACT_ID_V2_11_4:
+    if selected_contract.contract_id in {
+        PILOT_CONTRACT_ID_V2_11_4,
+        PILOT_CONTRACT_ID_V2_11_5,
+    }:
         stage_kwargs["authority_repo_root"] = authority_repo_root
     return execute_stage(**stage_kwargs)
 
