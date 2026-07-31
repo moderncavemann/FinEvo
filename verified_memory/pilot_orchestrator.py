@@ -5700,6 +5700,7 @@ def resolve_utility(
     *,
     raw_root: str | Path,
     paid_provenance: GitProvenance | None = None,
+    authority_repo_root: str | Path | None = None,
 ) -> UtilityConfig:
     """Resolve a declared profile without inspecting treatment outcomes."""
 
@@ -5710,6 +5711,7 @@ def resolve_utility(
             contract,
             raw_root=Path(raw_root),
             paid=paid_provenance,
+            authority_repo_root=authority_repo_root,
         )
         return _utility_from_mapping(selected["selected_utility"])
     if profile.get("consumption_scale") is not None:
@@ -5718,6 +5720,7 @@ def resolve_utility(
         contract,
         raw_root=Path(raw_root),
         paid=paid_provenance,
+        authority_repo_root=authority_repo_root,
     )
     multiplier = profile.get("consumption_scale_multiplier_of_q_ref")
     if multiplier is None:
@@ -5733,6 +5736,7 @@ def config_for_spec(
     *,
     raw_root: str | Path,
     paid_provenance: GitProvenance | None,
+    authority_repo_root: str | Path | None = None,
     diagnostic_override: bool = False,
     verify_bound_inputs: bool = False,
     preflight_p95_reservations: Mapping[str, Mapping[str, Any]] | None = None,
@@ -5831,6 +5835,7 @@ def config_for_spec(
             spec,
             raw_root=raw_root,
             paid_provenance=(paid_provenance if verify_bound_inputs else None),
+            authority_repo_root=authority_repo_root,
         ),
         shock_schedule=_shock_events(
             contract,

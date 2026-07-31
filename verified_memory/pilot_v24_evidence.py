@@ -1,4 +1,4 @@
-"""Lane-separated evidence publication for the FinEvo V2.4--V2.10.1 pilot.
+"""Lane-separated evidence publication for the FinEvo V2.4--V2.10.2 pilot.
 
 V2.4 is deliberately not a continuation of the terminal V2.3 denominator.
 Its scientific matrix contains two independently interpreted lanes:
@@ -3631,12 +3631,416 @@ def _claim_narrowing(
     return output
 
 
+def _guarded_repository_file(
+    repository_root: str | Path,
+    relative: str,
+    *,
+    name: str,
+) -> Path:
+    root_input = Path(repository_root).absolute()
+    if root_input.is_symlink() or not root_input.is_dir():
+        raise PilotEvidenceError(f"{name} repository root is missing or unsafe")
+    root = root_input.resolve(strict=True)
+    candidate_relative = Path(relative)
+    if (
+        not relative
+        or candidate_relative.is_absolute()
+        or any(part in {"", ".", ".."} for part in candidate_relative.parts)
+    ):
+        raise PilotEvidenceError(f"{name} path is unsafe")
+    current = root
+    for part in candidate_relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise PilotEvidenceError(f"{name} path uses a symlink")
+    if not current.is_file():
+        raise PilotEvidenceError(f"{name} file is missing")
+    try:
+        current.resolve(strict=True).relative_to(root)
+    except ValueError as exc:
+        raise PilotEvidenceError(f"{name} path escapes the repository") from exc
+    return current
+
+
+def _validated_v2102_historical_model_boundaries(
+    contract: PilotContract,
+    *,
+    repository_root: str | Path,
+) -> dict[str, Any] | None:
+    """Read the frozen V2.3 GPT-5.6 diagnostic without importing effect rows."""
+
+    if contract.contract_id != PILOT_V2102_CONTRACT_ID:
+        return None
+    amendment = contract.matrix_amendment
+    if not isinstance(amendment, Mapping):
+        raise PilotEvidenceError("V2.10.2 lacks its frozen matrix amendment")
+    preserved = amendment.get("preserved_model_boundaries")
+    required_non_claim = (
+        "GPT-5.6, Gemini-3.5-Flash, Llama-4-Maverick, and Opus-4.8 "
+        "retain their V2.3 boundary statuses without V2.4 redispatch."
+    )
+    if (
+        not isinstance(preserved, Mapping)
+        or preserved.get("gpt56_diagnostic")
+        != "secondary-diagnostic-no-v2.4-redispatch"
+        or required_non_claim not in contract.non_claims
+        or "gpt56_diagnostic" in contract.provider_profiles
+    ):
+        raise PilotEvidenceError("V2.10.2 GPT-5.6 preserved-model boundary drifted")
+
+    source_binding = amendment.get("parent_source_manifest")
+    if not isinstance(source_binding, Mapping):
+        raise PilotEvidenceError(
+            "V2.10.2 lacks its V2.3 parent-source-manifest binding"
+        )
+    source_relative = str(source_binding.get("path", ""))
+    if (
+        source_relative != "experiments/pilot_v2_4_parent_source_manifest.json"
+        or source_binding.get("schema_version")
+        != "finevo-pilot-v2.4-parent-source-manifest-v1"
+    ):
+        raise PilotEvidenceError("V2.10.2 V2.3 parent-source-manifest identity drifted")
+    source_path = _guarded_repository_file(
+        repository_root,
+        source_relative,
+        name="V2.10.2 V2.3 parent source manifest",
+    )
+    if _sha256_file(source_path) != source_binding.get("file_sha256"):
+        raise PilotEvidenceError(
+            "V2.10.2 V2.3 parent source manifest file hash mismatch"
+        )
+    source = _strict_json_load(source_path)
+    source_copy = _json_copy(source)
+    source_integrity = source_copy.get("integrity")
+    if not isinstance(source_integrity, dict):
+        raise PilotEvidenceError("V2.10.2 V2.3 parent source manifest lacks integrity")
+    source_integrity.pop("content_sha256", None)
+    if (
+        source.get("schema_version") != source_binding.get("schema_version")
+        or source.get("integrity", {}).get("canonicalization")
+        != "json-sort-keys-utf8-v1"
+        or canonical_sha256(source_copy) != source_binding.get("content_sha256")
+        or source.get("integrity", {}).get("content_sha256")
+        != source_binding.get("content_sha256")
+    ):
+        raise PilotEvidenceError(
+            "V2.10.2 V2.3 parent source manifest content binding mismatch"
+        )
+
+    parent = source.get("parent")
+    terminal = source.get("terminal_denominator")
+    published = source.get("published_evidence")
+    if (
+        not isinstance(parent, Mapping)
+        or parent.get("contract_id") != "finevo-pilot-v2.3"
+        or parent.get("contract_canonical_sha256")
+        != "10a76561ec59810e664d8415bff3a6aa89346a4cfd67b6e7f8aa1257d015c424"
+        or parent.get("science_tag") != "pilot-v2.3-science"
+        or parent.get("science_commit") != "ab32e3c9dcf581a40f3093652e144b56f853c782"
+        or not isinstance(terminal, Mapping)
+        or terminal.get("registered_cells") != 174
+        or terminal.get("status_counts")
+        != {
+            "budget-stopped": 151,
+            "capability-no-go": 14,
+            "complete": 8,
+            "failed": 1,
+        }
+        or terminal.get("scientific_complete") is not False
+        or terminal.get("scientific_matrix_complete") is not False
+        or not isinstance(published, Mapping)
+        or set(published) != {"package_manifest", "checksums", "aggregate"}
+    ):
+        raise PilotEvidenceError("V2.10.2 frozen V2.3 release boundary drifted")
+
+    expected_published_paths = {
+        "package_manifest": ("evidence/current_v2/pilot-v2.3/package_manifest.json"),
+        "checksums": "evidence/current_v2/pilot-v2.3/checksums.json",
+        "aggregate": "evidence/current_v2/pilot-v2.3/aggregate.json",
+    }
+    loaded_paths: dict[str, Path] = {}
+    for name, expected_relative in expected_published_paths.items():
+        binding = published.get(name)
+        if not isinstance(binding, Mapping) or binding.get("path") != expected_relative:
+            raise PilotEvidenceError(f"V2.10.2 frozen V2.3 {name} path binding drifted")
+        path = _guarded_repository_file(
+            repository_root,
+            expected_relative,
+            name=f"V2.10.2 frozen V2.3 {name}",
+        )
+        if _sha256_file(path) != binding.get("file_sha256"):
+            raise PilotEvidenceError(f"V2.10.2 frozen V2.3 {name} file hash mismatch")
+        loaded_paths[name] = path
+
+    manifest = _strict_json_load(loaded_paths["package_manifest"])
+    checksums = _strict_json_load(loaded_paths["checksums"])
+    aggregate = _strict_json_load(loaded_paths["aggregate"])
+    if (
+        manifest.get("schema_version") != "finevo-pilot-evidence-package-v1"
+        or manifest.get("evidence_namespace") != "current_v2/pilot-v2.3"
+        or manifest.get("contract_id") != parent["contract_id"]
+        or manifest.get("contract_sha256") != parent["contract_canonical_sha256"]
+        or manifest.get("pilot_tag") != parent["science_tag"]
+        or manifest.get("resolved_git_commit") != parent["science_commit"]
+        or manifest.get("scientific_complete") is not False
+        or manifest.get("scientific_matrix_complete") is not False
+        or manifest.get("scientific_claim_gates_supported") is not False
+        or checksums.get("schema_version") != PILOT_CHECKSUM_SCHEMA_VERSION
+        or checksums.get("contract_sha256") != parent["contract_canonical_sha256"]
+    ):
+        raise PilotEvidenceError(
+            "V2.10.2 frozen V2.3 evidence semantic binding mismatch"
+        )
+
+    checksum_rows = checksums.get("files")
+    if not isinstance(checksum_rows, list) or not checksum_rows:
+        raise PilotEvidenceError("V2.10.2 frozen V2.3 checksum inventory is malformed")
+    checksum_paths: set[str] = set()
+    package_root_relative = "evidence/current_v2/pilot-v2.3"
+    for row in checksum_rows:
+        if not isinstance(row, Mapping):
+            raise PilotEvidenceError("V2.10.2 frozen V2.3 checksum row is malformed")
+        relative = str(row.get("path", ""))
+        relative_path = Path(relative)
+        if (
+            not relative
+            or relative_path.is_absolute()
+            or any(part in {"", ".", ".."} for part in relative_path.parts)
+            or relative in checksum_paths
+        ):
+            raise PilotEvidenceError(
+                "V2.10.2 frozen V2.3 checksum path is unsafe or duplicated"
+            )
+        checksum_paths.add(relative)
+        candidate = _guarded_repository_file(
+            repository_root,
+            f"{package_root_relative}/{relative}",
+            name=f"V2.10.2 frozen V2.3 checksummed {relative}",
+        )
+        if _sha256_file(candidate) != row.get(
+            "sha256"
+        ) or candidate.stat().st_size != row.get("byte_size"):
+            raise PilotEvidenceError(
+                f"V2.10.2 frozen V2.3 checksum mismatch for {relative}"
+            )
+    package_root = Path(repository_root).resolve(strict=True) / package_root_relative
+    actual_paths = {
+        path.relative_to(package_root).as_posix()
+        for path in package_root.rglob("*")
+        if path.is_file()
+    }
+    published_files = manifest.get("published_files")
+    if (
+        actual_paths != checksum_paths | {"checksums.json"}
+        or not isinstance(published_files, list)
+        or set(map(str, published_files)) | {"package_manifest.json"} != checksum_paths
+    ):
+        raise PilotEvidenceError("V2.10.2 frozen V2.3 package inventory closure failed")
+
+    denominator = aggregate.get("denominator")
+    cross_model = aggregate.get("cross_model")
+    model_capability = aggregate.get("model_capability")
+    if (
+        aggregate.get("contract_id") != parent["contract_id"]
+        or aggregate.get("contract_sha256") != parent["contract_canonical_sha256"]
+        or aggregate.get("pilot_tag") != parent["science_tag"]
+        or aggregate.get("resolved_git_commit") != parent["science_commit"]
+        or not isinstance(denominator, Mapping)
+        or denominator.get("expected_count") != 174
+        or denominator.get("observed_ledger_count") != 174
+        or denominator.get("all_rows_present") is not True
+        or denominator.get("all_rows_terminal") is not True
+        or denominator.get("status_counts") != terminal["status_counts"]
+        or not isinstance(cross_model, Mapping)
+        or not isinstance(model_capability, Mapping)
+    ):
+        raise PilotEvidenceError(
+            "V2.10.2 frozen V2.3 aggregate release binding mismatch"
+        )
+    gpt56 = cross_model.get("gpt56_diagnostic")
+    capability = model_capability.get("gpt56_diagnostic")
+    if not isinstance(gpt56, Mapping) or not isinstance(capability, Mapping):
+        raise PilotEvidenceError("V2.10.2 frozen V2.3 GPT-5.6 records are missing")
+    directional = gpt56.get("registered_seed_status_and_failures")
+    expected_directional_ids = {
+        f"{arm}:{seed}"
+        for arm in ("full", "no-memory")
+        for seed in (1099057501, 1421875452, 1769977770)
+    }
+    capability_gate = capability.get("capability_gate")
+    preflight = capability.get("closed_loop_preflight")
+    if (
+        gpt56.get("model_role") != "secondary_diagnostic"
+        or gpt56.get("capability_and_preflight_pass") is not True
+        or gpt56.get("matched_a_a_null_registered") is not False
+        or gpt56.get("paired_delta") is not None
+        or gpt56.get("directional_micro_pilot_replication") is not False
+        or gpt56.get("usable_paired_seeds") != []
+        or not isinstance(directional, Mapping)
+        or set(directional) != expected_directional_ids
+        or any(
+            not isinstance(row, Mapping) or row.get("status") != "budget-stopped"
+            for row in directional.values()
+        )
+        or capability.get("contract_role") != "secondary_diagnostic"
+        or capability.get("dispatch_eligible") is not True
+        or not isinstance(capability_gate, Mapping)
+        or capability_gate.get("artifact_validated") is not True
+        or capability_gate.get("ledger_status") != "complete"
+        or not isinstance(capability_gate.get("capability"), Mapping)
+        or capability_gate["capability"].get("pass") is not True
+        or len(capability_gate["capability"].get("rows", [])) != 30
+        or not isinstance(preflight, Mapping)
+        or preflight.get("artifact_validated") is not True
+        or preflight.get("ledger_status") != "complete"
+        or not isinstance(preflight.get("capability"), Mapping)
+        or preflight["capability"].get("preflight_go") is not True
+        or preflight["capability"]
+        .get("preflight_checks", {})
+        .get("provider_calls_accounted_16_of_16")
+        is not True
+    ):
+        raise PilotEvidenceError(
+            "V2.10.2 frozen V2.3 GPT-5.6 diagnostic boundary drifted"
+        )
+
+    primary_model = contract.provider_profiles["gpt52_main"].requested_model
+    return {
+        "gpt56_diagnostic": {
+            "schema_version": ("finevo-pilot-v2.10.2-historical-model-boundary-v1"),
+            "source_contract_id": parent["contract_id"],
+            "source_contract_sha256": parent["contract_canonical_sha256"],
+            "source_evidence_namespace": "current_v2/pilot-v2.3",
+            "source_science_tag": parent["science_tag"],
+            "source_science_commit": parent["science_commit"],
+            "source_file_sha256": {
+                name: published[name]["file_sha256"]
+                for name in ("package_manifest", "checksums", "aggregate")
+            },
+            "model_role": "secondary_diagnostic",
+            "requested_model": "gpt-5.6-sol",
+            "capability_tasks_passed": 30,
+            "capability_tasks_registered": 30,
+            "closed_loop_preflight_calls_accounted": 16,
+            "closed_loop_preflight_calls_registered": 16,
+            "capability_and_preflight_pass": True,
+            "registered_directional_cells": 6,
+            "directional_cell_status_counts": {"budget-stopped": 6},
+            "matched_a_a_null_registered": False,
+            "paired_delta": None,
+            "directional_micro_pilot_replication": False,
+            "usable_paired_seeds": [],
+            "v2_10_2_redispatched": False,
+            "v2_10_2_registered_cells": 0,
+            "v2_10_2_effect_rows_imported": 0,
+            "v2_10_2_primary_model": primary_model,
+            "primary_selection_basis": (
+                "gpt52_main was frozen as the V2.10.2 primary before "
+                "dispatch; no post-registration model substitution"
+            ),
+            "future_path": (
+                "a separate prospective registered GPT-5.6 replication lane"
+            ),
+            "claim_boundary": (
+                "uncalibrated historical diagnostic only; no directional "
+                "replication, cross-model effectiveness, model-choice "
+                "superiority, or backbone-independent claim; budget-stopped "
+                "is not a negative effect result"
+            ),
+        }
+    }
+
+
+def _validated_v2102_historical_model_boundary_summary(
+    contract: PilotContract,
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate the pure aggregate input produced by the file-backed verifier."""
+
+    if contract.contract_id != PILOT_V2102_CONTRACT_ID or set(value) != {
+        "gpt56_diagnostic"
+    }:
+        raise PilotEvidenceError(
+            "historical model boundary is not valid for this contract"
+        )
+    summary = value.get("gpt56_diagnostic")
+    if not isinstance(summary, Mapping):
+        raise PilotEvidenceError("historical GPT-5.6 boundary is malformed")
+    expected = {
+        "schema_version": (
+            "finevo-pilot-v2.10.2-historical-model-boundary-v1"
+        ),
+        "source_contract_id": "finevo-pilot-v2.3",
+        "source_contract_sha256": (
+            "10a76561ec59810e664d8415bff3a6aa89346a4cfd67b6e7f8aa1257d015c424"
+        ),
+        "source_evidence_namespace": "current_v2/pilot-v2.3",
+        "source_science_tag": "pilot-v2.3-science",
+        "source_science_commit": (
+            "ab32e3c9dcf581a40f3093652e144b56f853c782"
+        ),
+        "source_file_sha256": {
+            "package_manifest": (
+                "15b39724efde1fcc62184e229ae646eb29f2b68aa0a824acab3cbb687ed1d4bf"
+            ),
+            "checksums": (
+                "ec73f1d9e17cfd30711264a3ced39f4af6ef722b4bf54962ee05987077ee0a99"
+            ),
+            "aggregate": (
+                "1b07d9e7ccff7a84e4aab9b259837485fa9fe2eb11bbf705a7c4c4be01d60c1a"
+            ),
+        },
+        "model_role": "secondary_diagnostic",
+        "requested_model": "gpt-5.6-sol",
+        "capability_tasks_passed": 30,
+        "capability_tasks_registered": 30,
+        "closed_loop_preflight_calls_accounted": 16,
+        "closed_loop_preflight_calls_registered": 16,
+        "capability_and_preflight_pass": True,
+        "registered_directional_cells": 6,
+        "directional_cell_status_counts": {"budget-stopped": 6},
+        "matched_a_a_null_registered": False,
+        "paired_delta": None,
+        "directional_micro_pilot_replication": False,
+        "usable_paired_seeds": [],
+        "v2_10_2_redispatched": False,
+        "v2_10_2_registered_cells": 0,
+        "v2_10_2_effect_rows_imported": 0,
+        "v2_10_2_primary_model": (
+            contract.provider_profiles["gpt52_main"].requested_model
+        ),
+        "primary_selection_basis": (
+            "gpt52_main was frozen as the V2.10.2 primary before dispatch; "
+            "no post-registration model substitution"
+        ),
+        "future_path": (
+            "a separate prospective registered GPT-5.6 replication lane"
+        ),
+        "claim_boundary": (
+            "uncalibrated historical diagnostic only; no directional "
+            "replication, cross-model effectiveness, model-choice "
+            "superiority, or backbone-independent claim; budget-stopped "
+            "is not a negative effect result"
+        ),
+    }
+    if (
+        set(summary) != set(expected)
+        or any(
+            summary.get(key) != expected_value
+            for key, expected_value in expected.items()
+        )
+    ):
+        raise PilotEvidenceError("historical GPT-5.6 boundary summary drifted")
+    return _json_copy(value)
+
+
 def aggregate_v24_evidence(
     contract: PilotContract,
     rows: Sequence[Mapping[str, Any]],
     *,
     denominator: Mapping[str, Any],
     release_controls: Mapping[str, Any],
+    historical_model_boundaries: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the pure lane-separated aggregate without artifact I/O."""
 
@@ -3652,10 +4056,14 @@ def aggregate_v24_evidence(
         effective_release_controls["experiment_c_rule_sensitivities"] = (
             v210_sensitivity_controls
         )
-        effective_release_controls["pass"] = bool(
-            release_controls.get("pass") is True
-            and all(control["pass"] for control in v210_sensitivity_controls.values())
-        )
+        if contract.contract_id != PILOT_V2102_CONTRACT_ID:
+            effective_release_controls["pass"] = bool(
+                release_controls.get("pass") is True
+                and all(
+                    control["pass"]
+                    for control in v210_sensitivity_controls.values()
+                )
+            )
         release_controls = effective_release_controls
     imported_prerequisites = _v27_imported_prerequisite_summary(
         contract,
@@ -3765,20 +4173,38 @@ def aggregate_v24_evidence(
         cross_lane=cross_lane,
     )
     if v210_sensitivity_controls is not None:
+        current_sensitivity_semantics = (
+            contract.contract_id == PILOT_V2102_CONTRACT_ID
+        )
         for lane_id, control in v210_sensitivity_controls.items():
+            available = bool(control["available"])
             claims.append(
                 {
                     "lane": lane_id,
                     "claim": (
                         "registered zero-API Experiment C rule sensitivity is "
                         "available for this lane"
+                        if available or not current_sensitivity_semantics
+                        else (
+                            "availability of the registered zero-API "
+                            "Experiment C rule sensitivity for this lane"
+                        )
                     ),
                     "metric": (
                         "3 alternative-success weights x 3 outcome definitions "
                         "replayed from five full-control seeds"
+                        if available or not current_sensitivity_semantics
+                        else "available=false, provider_calls=0, and recorded reason"
                     ),
-                    "artifact": control["package_path"],
-                    "status": ("complete-descriptive" if control["pass"] else "no-go"),
+                    "artifact": (
+                        control["package_path"]
+                        if available or not current_sensitivity_semantics
+                        else (
+                            "aggregate.json#/experiment_c_rule_sensitivities/"
+                            f"{lane_id}"
+                        )
+                    ),
+                    "status": ("complete-descriptive" if available else "no-go"),
                     "boundary": (
                         "descriptive sensitivity over natural proposals only; "
                         "it cannot rescue a failed Experiment C effectiveness "
@@ -3889,6 +4315,59 @@ def aggregate_v24_evidence(
         release_controls=release_controls,
         cross_lane=cross_lane,
     )
+    if (
+        v210_sensitivity_controls is not None
+        and contract.contract_id == PILOT_V2102_CONTRACT_ID
+    ):
+        for lane_id, control in v210_sensitivity_controls.items():
+            if control["available"] is not True:
+                narrowing.append(
+                    {
+                        "scope": f"{lane_id}/experiment-c-sensitivity",
+                        "reason": str(control["reason"]),
+                        "required_wording": (
+                            "registered descriptive sensitivity unavailable; "
+                            "do not cite or reconstruct an absent sensitivity "
+                            "artifact"
+                        ),
+                    }
+    )
+    if historical_model_boundaries is not None:
+        historical_model_boundaries = (
+            _validated_v2102_historical_model_boundary_summary(
+                contract,
+                historical_model_boundaries,
+            )
+        )
+        gpt56_boundary = historical_model_boundaries["gpt56_diagnostic"]
+        claims.append(
+            {
+                "lane": "historical-model-boundary",
+                "claim": "Historical GPT-5.6 diagnostic boundary",
+                "metric": (
+                    "V2.3 capability/preflight plus six registered directional " "cells"
+                ),
+                "artifact": (
+                    "aggregate.json#/historical_model_boundaries/" "gpt56_diagnostic"
+                ),
+                "status": "not-evaluated",
+                "boundary": gpt56_boundary["claim_boundary"],
+            }
+        )
+        narrowing.append(
+            {
+                "scope": "historical-model/gpt56_diagnostic",
+                "reason": (
+                    "all 6/6 V2.3 directional cells were budget-stopped; "
+                    "V2.10.2 did not redispatch GPT-5.6"
+                ),
+                "required_wording": (
+                    "capability/preflight pass is not effectiveness evidence "
+                    "or a negative effect result; use a prospective registered "
+                    "replication"
+                ),
+            }
+        )
     scientific_matrix_complete = bool(
         denominator.get("pass") is True
         and release_controls.get("pass") is True
@@ -3972,6 +4451,10 @@ def aggregate_v24_evidence(
         aggregate["inherited_budget_boundary"] = inherited_budget_boundary
     if v210_sensitivity_controls is not None:
         aggregate["experiment_c_rule_sensitivities"] = v210_sensitivity_controls
+    if historical_model_boundaries is not None:
+        aggregate["historical_model_boundaries"] = _json_copy(
+            historical_model_boundaries
+        )
     return aggregate
 
 
@@ -5444,6 +5927,43 @@ def _report_markdown(
                 f"`{str(prerequisites['all_prerequisites_complete']).lower()}`.",
             ]
         )
+    historical_boundaries = aggregate.get("historical_model_boundaries")
+    if isinstance(historical_boundaries, Mapping):
+        gpt56 = historical_boundaries.get("gpt56_diagnostic")
+        if isinstance(gpt56, Mapping):
+            lines.extend(
+                [
+                    "",
+                    "## Frozen model choice and historical GPT-5.6 boundary",
+                    "",
+                    "- Classification: `frozen historical diagnostic only`; "
+                    "this is not a V2.10.2 treatment lane.",
+                    "- GPT-5.2 remains the V2.10.2 primary because the "
+                    "`gpt52_main` profile was frozen before dispatch with "
+                    f"requested model `{gpt56['v2_10_2_primary_model']}`; "
+                    "replacing it inside this retry would be a "
+                    "post-registration model substitution.",
+                    "- GPT-5.6 was not ignored: its frozen V2.3 diagnostic "
+                    f"passed `{gpt56['capability_tasks_passed']}/"
+                    f"{gpt56['capability_tasks_registered']}` capability tasks "
+                    "and accounted for "
+                    f"`{gpt56['closed_loop_preflight_calls_accounted']}/"
+                    f"{gpt56['closed_loop_preflight_calls_registered']}` "
+                    "closed-loop preflight calls.",
+                    "- Effect boundary: `6/6 budget-stopped` registered "
+                    "directional cells, no paired delta, no matched A/A null, "
+                    "no usable paired seed, and no directional replication.",
+                    "- V2.10.2 status: GPT-5.6 was not redispatched; it "
+                    "contributes `0` current registered cells and `0` current "
+                    "effect rows.",
+                    "- Interpretation: capability/preflight pass is not "
+                    "effectiveness evidence, and the budget stop is not a "
+                    "negative effect result. The admissible next step is a "
+                    "separate prospective registered GPT-5.6 replication lane.",
+                    "- Claim boundary: no cross-model effectiveness, "
+                    "model-choice superiority, or backbone-independent claim.",
+                ]
+            )
     implementation_failure = aggregate.get("implementation_failure")
     if implementation_failure is not None:
         observed = implementation_failure["observed_failure"]
@@ -7425,18 +7945,32 @@ def build_pilot_v24_evidence_package(
             common_commit=common_commit,
             source_repo_root=source_root,
         )
-        release_controls["experiment_c_rule_sensitivities"] = (
-            sensitivity_controls
+        release_controls["experiment_c_rule_sensitivities"] = sensitivity_controls
+        if contract.contract_id != PILOT_V2102_CONTRACT_ID:
+            release_controls["pass"] = bool(
+                release_controls.get("pass") is True
+                and all(
+                    control["pass"] for control in sensitivity_controls.values()
+                )
+            )
+    historical_model_boundaries = (
+        _validated_v2102_historical_model_boundaries(
+            contract,
+            repository_root=(
+                source_root
+                if source_root is not None
+                else contract_source.parent.parent
+            ),
         )
-        release_controls["pass"] = bool(
-            release_controls.get("pass") is True
-            and all(control["pass"] for control in sensitivity_controls.values())
-        )
+        if contract.contract_id == PILOT_V2102_CONTRACT_ID
+        else None
+    )
     aggregate = aggregate_v24_evidence(
         contract,
         rows,
         denominator=denominator,
         release_controls=release_controls,
+        historical_model_boundaries=historical_model_boundaries,
     )
     _require_publishable_terminal_denominator(aggregate)
 
