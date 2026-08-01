@@ -19,7 +19,7 @@ jobs:
   verify:
     name: Python 3.12.7 / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:

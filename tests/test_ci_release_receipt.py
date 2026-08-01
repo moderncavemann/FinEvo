@@ -939,6 +939,7 @@ def test_verified_memory_ci_preserves_v21110_release_and_emits_only_v21111() -> 
     assert "--contract experiments/pilot_v2_11_10.yaml" not in current_emit
     assert "pilot-v2.11.11-science" not in workflow
     assert "--contract experiments/pilot_v2_11_10.yaml" not in workflow
+    assert "timeout-minutes: 30" in workflow
     assert (
         "Verify immutable V2.11.10 scientific release tag and receipt source"
         in workflow
