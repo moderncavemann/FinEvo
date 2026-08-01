@@ -1,0 +1,2879 @@
+{
+  "caps": {
+    "automatic_reserve_usd": 0.0,
+    "completion_scope": "hosted-api-only",
+    "dispatchable_usd": 500.0,
+    "max_completions": 7500,
+    "max_storage_bytes": 5000000000,
+    "stage_usd_caps": {
+      "hosted_v2115": 480.0017794375,
+      "manual_reserve": 0.0,
+      "parent_v2114": 19.998220562500006
+    },
+    "total_usd": 500.0
+  },
+  "contract_hash": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+  "created_at": "2026-07-31T19:15:15.725075+00:00",
+  "events": [
+    {
+      "created_at": "2026-07-31T19:15:15.725117+00:00",
+      "event_index": 0,
+      "event_sha256": "566a3a4082db5e51fbc99d11a31e8754b8825d6274b6482c974057af174d00f3",
+      "event_type": "genesis",
+      "payload": {
+        "caps_sha256": "3c0548c80376e7ff5f59ec445bf2c981ffd521baf5351803c6b1100a746d08f1",
+        "contract_hash": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+        "parent_debit_sha256": "9595d037a21f429a59fd37febd4abd8283287e080ee9eb506ebf999e3d1e81a5"
+      },
+      "previous_event_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "created_at": "2026-07-31T19:15:15.725133+00:00",
+      "event_index": 1,
+      "event_sha256": "4611645b4bc1122a26ad86709342e9eb47270e2aa967dcc72226b78a9ad73b1c",
+      "event_type": "parent_debit_imported",
+      "payload": {
+        "parent_debit": {
+          "cost_usd": 19.998220562500006,
+          "hosted_completions": 1004,
+          "parent_budget_ledger_sha256": "d4ce8beebe1e462003039db2d39e6616c76cd33897c5b3e77e45989ced9d8789",
+          "parent_contract_sha256": "e898fe49935dae9ae7f0d7ac577dae943192953c1da581d70c334f8c64924e46",
+          "parent_run_ledger_sha256": "f0064120e279137fbd7dd5f5cec474aa384745b7c405d9371c90ac5c4f448656",
+          "record_sha256": "9595d037a21f429a59fd37febd4abd8283287e080ee9eb506ebf999e3d1e81a5",
+          "schema_version": "finevo-parent-budget-debit-v1",
+          "stage_bucket": "parent_v2114",
+          "storage_bytes": 222048702
+        }
+      },
+      "previous_event_sha256": "566a3a4082db5e51fbc99d11a31e8754b8825d6274b6482c974057af174d00f3"
+    },
+    {
+      "created_at": "2026-07-31T19:15:15.726833+00:00",
+      "event_index": 2,
+      "event_sha256": "48a81ff69ce67a58179a8094099d7e0b9efa17af7e38585ba03b2f98873bbecb",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "a082323c33e4f84f5e7f6b23e68a03f8c599ee2135d8f5089b4211fc5adb7dc4",
+        "run_id": "finevo-pilot-v2.11.5--parent-import--qref_scripted--parent-import--none--provider-preflight-default--s2010922376"
+      },
+      "previous_event_sha256": "4611645b4bc1122a26ad86709342e9eb47270e2aa967dcc72226b78a9ad73b1c"
+    },
+    {
+      "created_at": "2026-07-31T19:15:17.601474+00:00",
+      "event_index": 3,
+      "event_sha256": "0c0c748df4065b5b481e7b900d9830086122092f1d2d9029c935d13368ad0ca7",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "b9cb272cfedf552d8afdb54f474e70c642fae1736580f88ddae5da9fa002b9be",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--parent-import--qref_scripted--parent-import--none--provider-preflight-default--s2010922376",
+        "status": "complete"
+      },
+      "previous_event_sha256": "48a81ff69ce67a58179a8094099d7e0b9efa17af7e38585ba03b2f98873bbecb"
+    },
+    {
+      "created_at": "2026-07-31T19:15:31.293961+00:00",
+      "event_index": 4,
+      "event_sha256": "50eabdc410c79476a4be3f06f67f573ae6758bfe29fe6fa201e2303c534bb896",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "6469e608c5024a9e3169025485ec8b8b5b854ca2044036d5fd90af324e310609",
+        "run_id": "finevo-pilot-v2.11.5--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376"
+      },
+      "previous_event_sha256": "0c0c748df4065b5b481e7b900d9830086122092f1d2d9029c935d13368ad0ca7"
+    },
+    {
+      "created_at": "2026-07-31T19:15:31.301453+00:00",
+      "event_index": 5,
+      "event_sha256": "bb26a2f5ad47ea9928c8032436f842b94dff4661e3f17861d02bc90d93d22702",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "8e6072fc25616a9871b8d10b515c92e85a005d96871a69ab61beb237e835d359",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376",
+        "status": "complete"
+      },
+      "previous_event_sha256": "50eabdc410c79476a4be3f06f67f573ae6758bfe29fe6fa201e2303c534bb896"
+    },
+    {
+      "created_at": "2026-07-31T19:15:31.301876+00:00",
+      "event_index": 6,
+      "event_sha256": "d333bbc5b967bda0f9a6976076baeea8a042a16af6d61ec36d8ba36c429cbbd6",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "f79fb9c108b849804a8bcbe1fa8b19172f5a9534376bfe0ef2886e45d1ff1b72",
+        "run_id": "finevo-pilot-v2.11.5--capability-gate--gpt56_diagnostic--capability-probe--none--provider-preflight-default--s2010922376"
+      },
+      "previous_event_sha256": "bb26a2f5ad47ea9928c8032436f842b94dff4661e3f17861d02bc90d93d22702"
+    },
+    {
+      "created_at": "2026-07-31T19:15:31.308763+00:00",
+      "event_index": 7,
+      "event_sha256": "d553439ba1c54e833612ef7dbb242c20558784dc26bc9f0d8f93681ad662f1a5",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "f867eebef4f3261fed9aed7b8775acd26f09f46dee8e91b29c8ff139fb5cdfcd",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--capability-gate--gpt56_diagnostic--capability-probe--none--provider-preflight-default--s2010922376",
+        "status": "complete"
+      },
+      "previous_event_sha256": "d333bbc5b967bda0f9a6976076baeea8a042a16af6d61ec36d8ba36c429cbbd6"
+    },
+    {
+      "created_at": "2026-07-31T19:15:45.805687+00:00",
+      "event_index": 8,
+      "event_sha256": "211d8326438e384679c8cfec7dfa6465a98f24613c348b1b55c2fa9b90b13a21",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "d966922c8c1faf3d92a4886f836c82fcf77be39503b7e6acec27cbea1c0cee9a",
+        "run_id": "finevo-pilot-v2.11.5--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376"
+      },
+      "previous_event_sha256": "d553439ba1c54e833612ef7dbb242c20558784dc26bc9f0d8f93681ad662f1a5"
+    },
+    {
+      "created_at": "2026-07-31T19:15:46.079514+00:00",
+      "event_index": 9,
+      "event_sha256": "373d8b1d3f417389d29205abc3d319a6ce33060be787c181d61db19fcae0807e",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "81b52a2d0068847124ef8a60bffd55ddd2c26805bfba3c91433db46926949529",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376",
+        "status": "complete"
+      },
+      "previous_event_sha256": "211d8326438e384679c8cfec7dfa6465a98f24613c348b1b55c2fa9b90b13a21"
+    },
+    {
+      "created_at": "2026-07-31T19:15:46.080102+00:00",
+      "event_index": 10,
+      "event_sha256": "2f8a90e17ad0f77fca9750efa175f7421140678db130e10522e580e61ae00c89",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "a1664d899303288aaff7937444a13d1212ad285a5ca033a1bfe9af79d7fefbcb",
+        "run_id": "finevo-pilot-v2.11.5--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376"
+      },
+      "previous_event_sha256": "373d8b1d3f417389d29205abc3d319a6ce33060be787c181d61db19fcae0807e"
+    },
+    {
+      "created_at": "2026-07-31T19:15:46.336929+00:00",
+      "event_index": 11,
+      "event_sha256": "70718fdaa2d1c99852d2921954876dc34bfb35db52b21578fe99d773679a784c",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "ec14c2398d8331fd64aaecd67f654c549902f146721d777b1e65eb8c1af03005",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376",
+        "status": "complete"
+      },
+      "previous_event_sha256": "2f8a90e17ad0f77fca9750efa175f7421140678db130e10522e580e61ae00c89"
+    },
+    {
+      "created_at": "2026-07-31T19:28:03.781088+00:00",
+      "event_index": 12,
+      "event_sha256": "6308b0b1f2321e6ed622683f7a0c2a78388a731c6f63ca7d99129956c01d17ad",
+      "event_type": "acceptance_receipt_bound",
+      "payload": {
+        "accepted_budget_event_chain_head": "70718fdaa2d1c99852d2921954876dc34bfb35db52b21578fe99d773679a784c",
+        "accepted_budget_event_count": 12,
+        "accepted_run_event_chain_head": "0caf68977f5c13e1db34702387c03cc90bfaf8e412907ddcf52b6a7c48b576f2",
+        "accepted_run_event_count": 7,
+        "budget_runs_sha256": "b29bf4cd0b1b6ede9a6df29299388de8faf745ee56de5573419e9a63ca9b3d68",
+        "receipt_content_sha256": "41bae59ac6ac34182091aeb1720777f5c391b1f6d1e61df9cdb2d92e537894cf",
+        "receipt_path": "experiment_results/pilot-v2.11.5/raw/scientific_dispatch_acceptance.json",
+        "receipt_schema_version": "finevo-pilot-v2.11.5-scientific-dispatch-acceptance-v1"
+      },
+      "previous_event_sha256": "70718fdaa2d1c99852d2921954876dc34bfb35db52b21578fe99d773679a784c"
+    },
+    {
+      "created_at": "2026-07-31T19:41:00.346884+00:00",
+      "event_index": 13,
+      "event_sha256": "39015ae264375eb451d40c17533f3c8dfeb35db3672542ec516f5ee06ee44a4e",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "2dd1146fe9acc7909f82cc221d3817488331c6d4e9e1905679bd79e6a0751d25",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1099057501"
+      },
+      "previous_event_sha256": "6308b0b1f2321e6ed622683f7a0c2a78388a731c6f63ca7d99129956c01d17ad"
+    },
+    {
+      "created_at": "2026-07-31T19:49:20.595425+00:00",
+      "event_index": 14,
+      "event_sha256": "76518a1cba5db48beb1c3b647aab8659d607d5c4dc5f85e11f533a1dc74cc66c",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "9d8da67b48123242417d8a603fae3330cf096d7ea159d2180a8eff300db40312",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1099057501",
+        "status": "complete"
+      },
+      "previous_event_sha256": "39015ae264375eb451d40c17533f3c8dfeb35db3672542ec516f5ee06ee44a4e"
+    },
+    {
+      "created_at": "2026-07-31T19:49:21.679292+00:00",
+      "event_index": 15,
+      "event_sha256": "c7edfbcbe506193b3775fc189db75b929720084e289b88cc83abb32d4c003066",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "19f9d6f2dfb63256075b12a194a33c2de9f921a10befd442ec4811e45bd839d9",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1421875452"
+      },
+      "previous_event_sha256": "76518a1cba5db48beb1c3b647aab8659d607d5c4dc5f85e11f533a1dc74cc66c"
+    },
+    {
+      "created_at": "2026-07-31T19:56:43.047894+00:00",
+      "event_index": 16,
+      "event_sha256": "5140a527166ee799148e9f75c6cc17c6fb49a98fe7dda9c20c5e7e8782cee363",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "aa261d12cebd1d2f8125876c703d7b2671c2d71a5d595447fd2a514422952233",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1421875452",
+        "status": "complete"
+      },
+      "previous_event_sha256": "c7edfbcbe506193b3775fc189db75b929720084e289b88cc83abb32d4c003066"
+    },
+    {
+      "created_at": "2026-07-31T19:56:44.229791+00:00",
+      "event_index": 17,
+      "event_sha256": "c8d1d7e5580a2ad4fb2d5238cf667322747ff09d18f501198c3fcb3a0bb9e01c",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "19bb7c74182dbb467c37031e3cee5c770b39f923bef089b519125d40c832c5b3",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1769977770"
+      },
+      "previous_event_sha256": "5140a527166ee799148e9f75c6cc17c6fb49a98fe7dda9c20c5e7e8782cee363"
+    },
+    {
+      "created_at": "2026-07-31T20:04:23.662813+00:00",
+      "event_index": 18,
+      "event_sha256": "c5e67bedaef72542e44a1f7d3b202927514724251a4859ab4bac6e7d3cd87dcd",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "1fafe71492d2a0e9ecdaecde23e2a0a35771f01f4d215a0b04a6b50600eb2971",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1769977770",
+        "status": "complete"
+      },
+      "previous_event_sha256": "c8d1d7e5580a2ad4fb2d5238cf667322747ff09d18f501198c3fcb3a0bb9e01c"
+    },
+    {
+      "created_at": "2026-07-31T20:04:24.799326+00:00",
+      "event_index": 19,
+      "event_sha256": "7e388ffcdf1b298e8eec7f415dc06c047e8aa8c531b0396875205a8cffc16293",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "af414a2fae7f3ff28d7895b44b3a0034001d6bd4956dd2603102cca0b1533f1f",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s959809858"
+      },
+      "previous_event_sha256": "c5e67bedaef72542e44a1f7d3b202927514724251a4859ab4bac6e7d3cd87dcd"
+    },
+    {
+      "created_at": "2026-07-31T20:11:48.993353+00:00",
+      "event_index": 20,
+      "event_sha256": "97a341a5b77949f9b643f89aa83cdaf0146ef0d5d25833644b516a1e22228553",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "5d429088e7fb0701cf349adbc31dc26e9f1486ddcefaf3cc9875c3db7bd6d22b",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s959809858",
+        "status": "complete"
+      },
+      "previous_event_sha256": "7e388ffcdf1b298e8eec7f415dc06c047e8aa8c531b0396875205a8cffc16293"
+    },
+    {
+      "created_at": "2026-07-31T20:11:50.118271+00:00",
+      "event_index": 21,
+      "event_sha256": "458c4480f669df433b465dae5006eb477bb08eef2729918fd45458ec110395ab",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "1acb132b691886d60edbc1f717caf89be11610024553d226ff724e6bbba3ee05",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s617806385"
+      },
+      "previous_event_sha256": "97a341a5b77949f9b643f89aa83cdaf0146ef0d5d25833644b516a1e22228553"
+    },
+    {
+      "created_at": "2026-07-31T20:20:05.557828+00:00",
+      "event_index": 22,
+      "event_sha256": "47b1c2ed2d819e1b683a0ccdbf33629df0af43e7e1f362a71ed588af40681616",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "b90a9be7d48e04825171f6f59442b19e9f95c52208e5e5b45abe2ac84fbfd9b3",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s617806385",
+        "status": "complete"
+      },
+      "previous_event_sha256": "458c4480f669df433b465dae5006eb477bb08eef2729918fd45458ec110395ab"
+    },
+    {
+      "created_at": "2026-07-31T20:20:06.687870+00:00",
+      "event_index": 23,
+      "event_sha256": "81c0886896415182f7078dfd64a6a523860f7501d63db2d3e8bfd44c4ba18d11",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "550b769655ed5ee6bc195378f8fda10d6db4f1553b2e8a240f9b459071eade92",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1099057501"
+      },
+      "previous_event_sha256": "47b1c2ed2d819e1b683a0ccdbf33629df0af43e7e1f362a71ed588af40681616"
+    },
+    {
+      "created_at": "2026-07-31T20:26:08.183589+00:00",
+      "event_index": 24,
+      "event_sha256": "ef48f67a8ed047f9c7982940dfda9535ce2c7ba9265c0f9dab3efec21f471f2a",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "57a6f5608af1ad2c149952c04b51621716f362c275a4fc9a9676f917893efadc",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1099057501",
+        "status": "complete"
+      },
+      "previous_event_sha256": "81c0886896415182f7078dfd64a6a523860f7501d63db2d3e8bfd44c4ba18d11"
+    },
+    {
+      "created_at": "2026-07-31T20:26:09.285099+00:00",
+      "event_index": 25,
+      "event_sha256": "1580d98323c54849091d66916aec2a44e328c54527de8c26d3042409ef1a8891",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "56e8102be176fd04f1b8b43e55b23e0c500b117f7b40d95cbd6f783429509026",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1421875452"
+      },
+      "previous_event_sha256": "ef48f67a8ed047f9c7982940dfda9535ce2c7ba9265c0f9dab3efec21f471f2a"
+    },
+    {
+      "created_at": "2026-07-31T20:34:13.718617+00:00",
+      "event_index": 26,
+      "event_sha256": "9071660339695f4413d64bc0e04db71cf1eb6e87f7fe2c8fffd27073e24d012f",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "4347fcde9e3b1caaad2516357025f1e70c597ef66d391ef3d6c3af1335aa215a",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1421875452",
+        "status": "complete"
+      },
+      "previous_event_sha256": "1580d98323c54849091d66916aec2a44e328c54527de8c26d3042409ef1a8891"
+    },
+    {
+      "created_at": "2026-07-31T20:34:14.831449+00:00",
+      "event_index": 27,
+      "event_sha256": "bb3aee9269bae1788632ee5ce19c8903018bfd400c13c0bb2c91656bc8a1fcaa",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "b83b95f8d74b06639d51336460bcf3cab1fab1b3e981b1487538f146ef4280d7",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1769977770"
+      },
+      "previous_event_sha256": "9071660339695f4413d64bc0e04db71cf1eb6e87f7fe2c8fffd27073e24d012f"
+    },
+    {
+      "created_at": "2026-07-31T20:40:44.937225+00:00",
+      "event_index": 28,
+      "event_sha256": "821b77c43fb6c6fa78213965e9d049f971bc62d775dc92522f4195dc35edca2e",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "9c534a5ffe29a9a21eab2238526a731de2b834592be8f6297709053a7964a225",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1769977770",
+        "status": "complete"
+      },
+      "previous_event_sha256": "bb3aee9269bae1788632ee5ce19c8903018bfd400c13c0bb2c91656bc8a1fcaa"
+    },
+    {
+      "created_at": "2026-07-31T20:40:46.038859+00:00",
+      "event_index": 29,
+      "event_sha256": "b4d32920043efe6f3e6eb770f3052f782996b38c6eeb0f7b6dee7e43b35cb04c",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "305beb41fb867f889a3ce96fb94f466823a48232c840cfb5d555dbdfed69ec8a",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s959809858"
+      },
+      "previous_event_sha256": "821b77c43fb6c6fa78213965e9d049f971bc62d775dc92522f4195dc35edca2e"
+    },
+    {
+      "created_at": "2026-07-31T20:46:40.718329+00:00",
+      "event_index": 30,
+      "event_sha256": "0ce4058494dd63d753b9e5f057273a112e47a03796ed00b76bbd74482b736fd1",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "308f07533f34dfb258d085ef6ef31941f62f4315eb0e3241135b23a9a1944ed7",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s959809858",
+        "status": "complete"
+      },
+      "previous_event_sha256": "b4d32920043efe6f3e6eb770f3052f782996b38c6eeb0f7b6dee7e43b35cb04c"
+    },
+    {
+      "created_at": "2026-07-31T20:46:41.824399+00:00",
+      "event_index": 31,
+      "event_sha256": "23ae9c7b8f280abc034cebb6a2a74f0413b32a240f3574cb97589bd2ce880ca1",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "9a3f73f91b6db65ef23dc2af58209dc20decd397342a0ee055700378fd6a7445",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s617806385"
+      },
+      "previous_event_sha256": "0ce4058494dd63d753b9e5f057273a112e47a03796ed00b76bbd74482b736fd1"
+    },
+    {
+      "created_at": "2026-07-31T20:52:34.947100+00:00",
+      "event_index": 32,
+      "event_sha256": "c5447a742119a552c015dd54c4eb1d39c2c65bd7d0ff34047ef8202ffedfffc5",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "5790d41da7d329626ee57caaf558c18edb7c58c08af2d1cafb480429f869fe52",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s617806385",
+        "status": "complete"
+      },
+      "previous_event_sha256": "23ae9c7b8f280abc034cebb6a2a74f0413b32a240f3574cb97589bd2ce880ca1"
+    },
+    {
+      "created_at": "2026-07-31T20:52:35.537743+00:00",
+      "event_index": 33,
+      "event_sha256": "fc1f5b6f4507e3ea7c67b0f12a3cacb24ef2c2d982db8ee8c25ff1f3ac24bb21",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "da255628750059844980307151e283bdea92ff7d0ff44869864476eb99635cd6",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501"
+      },
+      "previous_event_sha256": "c5447a742119a552c015dd54c4eb1d39c2c65bd7d0ff34047ef8202ffedfffc5"
+    },
+    {
+      "created_at": "2026-07-31T20:52:35.543165+00:00",
+      "event_index": 34,
+      "event_sha256": "b9bab9b57b82ce6d2222db220636e36352b8b40183e14b97db33b6ba1d1123a4",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "314b8cda0b1434df30421955e98665951f9342b04edf0a601a8caf186a70da67",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501",
+        "status": "complete"
+      },
+      "previous_event_sha256": "fc1f5b6f4507e3ea7c67b0f12a3cacb24ef2c2d982db8ee8c25ff1f3ac24bb21"
+    },
+    {
+      "created_at": "2026-07-31T20:52:36.135184+00:00",
+      "event_index": 35,
+      "event_sha256": "be1ae6ce42cf35cace450aed6d24520555b3580a6985f28472a2f6fa6ac6f7f9",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "e9fe05d61bd86f65d4c6e2f8fae80235bc4295927e9038e9687a73f5d4612749",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452"
+      },
+      "previous_event_sha256": "b9bab9b57b82ce6d2222db220636e36352b8b40183e14b97db33b6ba1d1123a4"
+    },
+    {
+      "created_at": "2026-07-31T20:52:36.140184+00:00",
+      "event_index": 36,
+      "event_sha256": "108b0e70a94f54a2758fc47bb5d703af4cea05890271139619be7eed0ecd0b13",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "314b8cda0b1434df30421955e98665951f9342b04edf0a601a8caf186a70da67",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452",
+        "status": "complete"
+      },
+      "previous_event_sha256": "be1ae6ce42cf35cace450aed6d24520555b3580a6985f28472a2f6fa6ac6f7f9"
+    },
+    {
+      "created_at": "2026-07-31T20:52:36.720053+00:00",
+      "event_index": 37,
+      "event_sha256": "21da4bdf4d5f7d43d47ada62ff93b547c15178a728e58376be3de913b68ded08",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "f07b675bbc6c1e14d85e143fe489880db98e5b832557124dada0587ca7b03779",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770"
+      },
+      "previous_event_sha256": "108b0e70a94f54a2758fc47bb5d703af4cea05890271139619be7eed0ecd0b13"
+    },
+    {
+      "created_at": "2026-07-31T20:52:36.725124+00:00",
+      "event_index": 38,
+      "event_sha256": "6eb3aa52e61e12c6ed9c9bdd20c09c8c47a0624e39bfa66d1af7d533acfb5955",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "314b8cda0b1434df30421955e98665951f9342b04edf0a601a8caf186a70da67",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770",
+        "status": "complete"
+      },
+      "previous_event_sha256": "21da4bdf4d5f7d43d47ada62ff93b547c15178a728e58376be3de913b68ded08"
+    },
+    {
+      "created_at": "2026-07-31T20:52:37.304401+00:00",
+      "event_index": 39,
+      "event_sha256": "5bd0abd549426c0916d61babf921e6de0c8b287e17ec990f07744eb5f562cd0c",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "1a71acaffbb6a07e7404487f489628cbd9231d4178f8eaf321babc8d664de5b0",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858"
+      },
+      "previous_event_sha256": "6eb3aa52e61e12c6ed9c9bdd20c09c8c47a0624e39bfa66d1af7d533acfb5955"
+    },
+    {
+      "created_at": "2026-07-31T20:52:37.309702+00:00",
+      "event_index": 40,
+      "event_sha256": "b2adf42efdcf872e999a7e9a2463a7ea4706802459d5154d9d45b40ba5ea751e",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "b7529a8c2800b988f64f1e236e317bf851a521339d89bd2d57669de147372352",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858",
+        "status": "complete"
+      },
+      "previous_event_sha256": "5bd0abd549426c0916d61babf921e6de0c8b287e17ec990f07744eb5f562cd0c"
+    },
+    {
+      "created_at": "2026-07-31T20:52:37.890597+00:00",
+      "event_index": 41,
+      "event_sha256": "d8e1d0b5ffc959c0e01784c1f9e5263f52b833653ebd313bcab0289fda799e59",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "ab8644811d927ee5e76509208e7407276c4849d934ce5f3d340de73f4c0aad43",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385"
+      },
+      "previous_event_sha256": "b2adf42efdcf872e999a7e9a2463a7ea4706802459d5154d9d45b40ba5ea751e"
+    },
+    {
+      "created_at": "2026-07-31T20:52:37.895994+00:00",
+      "event_index": 42,
+      "event_sha256": "14a48b0b5bcd58ac5e0bb69f6df47b38fad69d4210613f8beca55568818df452",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "b7529a8c2800b988f64f1e236e317bf851a521339d89bd2d57669de147372352",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385",
+        "status": "complete"
+      },
+      "previous_event_sha256": "d8e1d0b5ffc959c0e01784c1f9e5263f52b833653ebd313bcab0289fda799e59"
+    },
+    {
+      "created_at": "2026-07-31T20:52:38.997135+00:00",
+      "event_index": 43,
+      "event_sha256": "d94ea3c97f489c01ae64e5456eb0a3556b90f9b0ada602628a55be81c66bfd8e",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "35df460d866dfc3b41f361c1eda45ba609327cc44db9e319b096b6473a584555",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1099057501"
+      },
+      "previous_event_sha256": "14a48b0b5bcd58ac5e0bb69f6df47b38fad69d4210613f8beca55568818df452"
+    },
+    {
+      "created_at": "2026-07-31T20:59:57.824243+00:00",
+      "event_index": 44,
+      "event_sha256": "df423ebc88c650ac5d333f67acf05a8145216c7bc4390fb5a2fc557082a67908",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "15554098853d86e8997addd39eddc2dc8d3ec7bac90dcd92fe758045db54a074",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1099057501",
+        "status": "complete"
+      },
+      "previous_event_sha256": "d94ea3c97f489c01ae64e5456eb0a3556b90f9b0ada602628a55be81c66bfd8e"
+    },
+    {
+      "created_at": "2026-07-31T20:59:58.968425+00:00",
+      "event_index": 45,
+      "event_sha256": "3d2dd5266a3a0b6dc41fe7517d63e9e390d39a2e997fc4b8c5ae7182c3ed2ab8",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "75017465f2815e8d84c8e6f7b88eff82884598346dec1eb14ad3dab1a7c0ea82",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1421875452"
+      },
+      "previous_event_sha256": "df423ebc88c650ac5d333f67acf05a8145216c7bc4390fb5a2fc557082a67908"
+    },
+    {
+      "created_at": "2026-07-31T21:08:15.965915+00:00",
+      "event_index": 46,
+      "event_sha256": "1d8d3f6bac24ffee023cbb90aa705c596031086f13daac54c454a210fb2bd6f1",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "9453ccfb882b93cd758a675b91ef5511c3cb439988bd400b487e9a111b28a89a",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1421875452",
+        "status": "complete"
+      },
+      "previous_event_sha256": "3d2dd5266a3a0b6dc41fe7517d63e9e390d39a2e997fc4b8c5ae7182c3ed2ab8"
+    },
+    {
+      "created_at": "2026-07-31T21:08:17.075947+00:00",
+      "event_index": 47,
+      "event_sha256": "d3452a263b9e3d4db770ade3f9da16de7ddac36cfebb9a5ca1dada773c0f7898",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "357cc9cbb946b708745fcbda241bb11443c1fe5d502d84f8602fe919fbd1d7fe",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1769977770"
+      },
+      "previous_event_sha256": "1d8d3f6bac24ffee023cbb90aa705c596031086f13daac54c454a210fb2bd6f1"
+    },
+    {
+      "created_at": "2026-07-31T21:15:36.554783+00:00",
+      "event_index": 48,
+      "event_sha256": "ad329a757e38bb46de3d6164013efb5a0a1e41b13b5bb563c528febe6f6d54d9",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "05ec2b5ac18d2939ec7681b1fd9361bf7e8e09e7d8675faf7e461e8fe52ca686",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1769977770",
+        "status": "complete"
+      },
+      "previous_event_sha256": "d3452a263b9e3d4db770ade3f9da16de7ddac36cfebb9a5ca1dada773c0f7898"
+    },
+    {
+      "created_at": "2026-07-31T21:15:37.661553+00:00",
+      "event_index": 49,
+      "event_sha256": "89648c6f028e9a5d53fcda12c1112d9e1af8696d7e63cd644588166245686ded",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "74d4ddeea0566eb99daee57ba1aea82d903a50904e1942fc370efbca6b1a2f82",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s959809858"
+      },
+      "previous_event_sha256": "ad329a757e38bb46de3d6164013efb5a0a1e41b13b5bb563c528febe6f6d54d9"
+    },
+    {
+      "created_at": "2026-07-31T21:22:07.862745+00:00",
+      "event_index": 50,
+      "event_sha256": "2677f282e62eb171aebab27e109f4390f88c22776771671addc017089c0c1a39",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "17417b2d3b1dc63d6c26f016866d0c486a1c412e234796d97e1ce7918ce0d090",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s959809858",
+        "status": "complete"
+      },
+      "previous_event_sha256": "89648c6f028e9a5d53fcda12c1112d9e1af8696d7e63cd644588166245686ded"
+    },
+    {
+      "created_at": "2026-07-31T21:22:08.975207+00:00",
+      "event_index": 51,
+      "event_sha256": "45f2a34df6cfe17650d88b7433666934a7c032d7282935869df2999e030e7ce4",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "a97877930fc9838191a884a391d37ae86dd428a9f23cb06c4f9807c7e5742d75",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s617806385"
+      },
+      "previous_event_sha256": "2677f282e62eb171aebab27e109f4390f88c22776771671addc017089c0c1a39"
+    },
+    {
+      "created_at": "2026-07-31T21:28:37.498162+00:00",
+      "event_index": 52,
+      "event_sha256": "802c544830f799dcb05268ffe7fec2ae43caba7151d9f3ee22ad29f432579b5e",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "3dbf639d3a3bcbaa8c6e4fe5159e4a20df4e219d1248a105f985fc47781bc0d0",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s617806385",
+        "status": "complete"
+      },
+      "previous_event_sha256": "45f2a34df6cfe17650d88b7433666934a7c032d7282935869df2999e030e7ce4"
+    },
+    {
+      "created_at": "2026-07-31T21:28:38.620729+00:00",
+      "event_index": 53,
+      "event_sha256": "8285f3d1168c319ecee70ce0ea2cc9c4bdcf91bc710b80ad4c91fbabec9cc303",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "41721dfc888d4c3cffc1b19ab3ea0255d269cfe6f94be07bb3d5d9c674bb0c6e",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1099057501"
+      },
+      "previous_event_sha256": "802c544830f799dcb05268ffe7fec2ae43caba7151d9f3ee22ad29f432579b5e"
+    },
+    {
+      "created_at": "2026-07-31T21:33:45.596297+00:00",
+      "event_index": 54,
+      "event_sha256": "de241cde6c5d7fb744ca76daf421e54c09b34f25c42fae2c3e19060088f63a77",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "265aaa393d99b79c9863fc13246aa392880ddac8f44f1809e3fa00163bcb9c6f",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1099057501",
+        "status": "complete"
+      },
+      "previous_event_sha256": "8285f3d1168c319ecee70ce0ea2cc9c4bdcf91bc710b80ad4c91fbabec9cc303"
+    },
+    {
+      "created_at": "2026-07-31T21:33:46.764025+00:00",
+      "event_index": 55,
+      "event_sha256": "4bdd15afb81d3cf55e606fff0aa5cb298c32c4b85fd85b9902a8213673d971a4",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "a46df2ba4955bbc6872a9b06a9b3cd7042817d8f94c05590c243bf4a7a71855c",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1421875452"
+      },
+      "previous_event_sha256": "de241cde6c5d7fb744ca76daf421e54c09b34f25c42fae2c3e19060088f63a77"
+    },
+    {
+      "created_at": "2026-07-31T21:39:02.507052+00:00",
+      "event_index": 56,
+      "event_sha256": "7c517ed927d2e23692bd2bdaf2a300adaffc66cf9295d4ad2db7480031912280",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "9b12fe4588b3764639f5257cf10eee75ca5b60bac80922e4b29f425c3f1ab9df",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1421875452",
+        "status": "complete"
+      },
+      "previous_event_sha256": "4bdd15afb81d3cf55e606fff0aa5cb298c32c4b85fd85b9902a8213673d971a4"
+    },
+    {
+      "created_at": "2026-07-31T21:39:03.664263+00:00",
+      "event_index": 57,
+      "event_sha256": "dc71914096dd5f64a4f22be8f1c25da2f12558c0d91634ddd3291eb2f08bdd4e",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "8ce299af2570f93ce99f8eb0311b8f7a351ea64916af870000337b017037debb",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1769977770"
+      },
+      "previous_event_sha256": "7c517ed927d2e23692bd2bdaf2a300adaffc66cf9295d4ad2db7480031912280"
+    },
+    {
+      "created_at": "2026-07-31T21:44:25.439601+00:00",
+      "event_index": 58,
+      "event_sha256": "ff55090d84307218980b3ac717a2ec5d2cdc7f8a0521213ca1ba1629aca4dfb7",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "4720b884c033b89cf652ffff37b94a840af1065fa9e310e8945331c678e44e15",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1769977770",
+        "status": "complete"
+      },
+      "previous_event_sha256": "dc71914096dd5f64a4f22be8f1c25da2f12558c0d91634ddd3291eb2f08bdd4e"
+    },
+    {
+      "created_at": "2026-07-31T21:44:26.598538+00:00",
+      "event_index": 59,
+      "event_sha256": "982be75a6bcabe8f592a2d36a692047508b48aa889f788339670e36f564a8fe7",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "7e73f6f0fff75721ef2209f3277b246626eff75026fc4edcc5d7fce25362cae4",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s959809858"
+      },
+      "previous_event_sha256": "ff55090d84307218980b3ac717a2ec5d2cdc7f8a0521213ca1ba1629aca4dfb7"
+    },
+    {
+      "created_at": "2026-07-31T21:48:30.775659+00:00",
+      "event_index": 60,
+      "event_sha256": "d1ef161905bb69c4eccd21eceefda49b687b6a0307f48af9379de7a4cc9bc119",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "f233c3243a2a6da68fde22463b90129c929f7aaac4511f0213ec05defe25f366",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s959809858",
+        "status": "complete"
+      },
+      "previous_event_sha256": "982be75a6bcabe8f592a2d36a692047508b48aa889f788339670e36f564a8fe7"
+    },
+    {
+      "created_at": "2026-07-31T21:48:31.888540+00:00",
+      "event_index": 61,
+      "event_sha256": "4ed47ca1f4552e3c8a65a44d14e0875e181f625cfa0eedbe8325e9ad62f5b40d",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "6d5a610508e3fe0b5855a6fd36d62e0fe967cd303b776de56ce7e06ae61f839c",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s617806385"
+      },
+      "previous_event_sha256": "d1ef161905bb69c4eccd21eceefda49b687b6a0307f48af9379de7a4cc9bc119"
+    },
+    {
+      "created_at": "2026-07-31T21:53:14.931029+00:00",
+      "event_index": 62,
+      "event_sha256": "26ca79cb672cc28398f4764af729fd7747cc89683e34a3b1144eaefd906bf2b9",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "62ef0ea8bab5e5c6f8c4c756c584f3fe330175466ffe7d7d6b92239dda71eee8",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s617806385",
+        "status": "complete"
+      },
+      "previous_event_sha256": "4ed47ca1f4552e3c8a65a44d14e0875e181f625cfa0eedbe8325e9ad62f5b40d"
+    },
+    {
+      "created_at": "2026-07-31T22:01:35.154236+00:00",
+      "event_index": 63,
+      "event_sha256": "5a04afe869dfd3edbd7b573ac3876d06a94beb4ee66a3c17f5b469a62006ce6a",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "f2546e0d9634363ece148f6ad967b2eff0725d12177eae5ae0418dbbd8b91fa5",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1099057501"
+      },
+      "previous_event_sha256": "26ca79cb672cc28398f4764af729fd7747cc89683e34a3b1144eaefd906bf2b9"
+    },
+    {
+      "created_at": "2026-07-31T22:10:40.739058+00:00",
+      "event_index": 64,
+      "event_sha256": "32185ad563f630e06df73af8731da2b77a81ac2713a3ae68d2861162c3997e08",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "110ed5e3c873be4bdfaf4a4c55df9115c03ca24d20f2f69eda6c4edc016cc1c0",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1099057501",
+        "status": "complete"
+      },
+      "previous_event_sha256": "5a04afe869dfd3edbd7b573ac3876d06a94beb4ee66a3c17f5b469a62006ce6a"
+    },
+    {
+      "created_at": "2026-07-31T22:10:41.859250+00:00",
+      "event_index": 65,
+      "event_sha256": "aecb4a51714e5d2e545d1a67dc9a901b6a9c587e1cb6ad2f9d487a3fa181103a",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "777251bcafe7d044724ea8a571a0d1e69faebb51e8ac920085aa5b7b8f9906e9",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1421875452"
+      },
+      "previous_event_sha256": "32185ad563f630e06df73af8731da2b77a81ac2713a3ae68d2861162c3997e08"
+    },
+    {
+      "created_at": "2026-07-31T22:18:22.305889+00:00",
+      "event_index": 66,
+      "event_sha256": "ea141829d65b8736cc9ae82c2d09d785bb6e51adfbd0cbcc383fa856e23815d3",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "a5d4975f99558f3b74f46b88d186d70cb9789a4fb86d89205e438adc961f78fc",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1421875452",
+        "status": "complete"
+      },
+      "previous_event_sha256": "aecb4a51714e5d2e545d1a67dc9a901b6a9c587e1cb6ad2f9d487a3fa181103a"
+    },
+    {
+      "created_at": "2026-07-31T22:18:23.460213+00:00",
+      "event_index": 67,
+      "event_sha256": "190f72189be54477aa7c73cdbc04b532d8b20a5ce750b4794cda9b7e01ac831a",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "769041e073290ed7b5109a7f52178485f553de4d740e9d47553ee4a0a9d077e0",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1769977770"
+      },
+      "previous_event_sha256": "ea141829d65b8736cc9ae82c2d09d785bb6e51adfbd0cbcc383fa856e23815d3"
+    },
+    {
+      "created_at": "2026-07-31T22:26:59.549532+00:00",
+      "event_index": 68,
+      "event_sha256": "d7cae4c5d8c31c349c10b36058560aebe4b957efbe7babac3fddd0c095eb9263",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "0d15d2de2d3039f694697b0917bdfff2fdaefe9df5fc8a9979bc1fcaa8c43995",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1769977770",
+        "status": "complete"
+      },
+      "previous_event_sha256": "190f72189be54477aa7c73cdbc04b532d8b20a5ce750b4794cda9b7e01ac831a"
+    },
+    {
+      "created_at": "2026-07-31T22:27:00.701717+00:00",
+      "event_index": 69,
+      "event_sha256": "4721e807318cf1f7efe89605122791f5ef410c5f16c729c05185f9f4e5e7083a",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "111faa56021722441d389e4873424de8680422239898eb3649dc90886ef4fdc9",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s959809858"
+      },
+      "previous_event_sha256": "d7cae4c5d8c31c349c10b36058560aebe4b957efbe7babac3fddd0c095eb9263"
+    },
+    {
+      "created_at": "2026-07-31T22:35:30.623556+00:00",
+      "event_index": 70,
+      "event_sha256": "19bc61a16d2a76b1d4836ca3c2c2de49e06cca05d87aa1fcea7668e3cc9a0713",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "641214ddf5d2f654232dd0a43a228e7f556f070d6e868e14858e4dd3bcbb388d",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s959809858",
+        "status": "complete"
+      },
+      "previous_event_sha256": "4721e807318cf1f7efe89605122791f5ef410c5f16c729c05185f9f4e5e7083a"
+    },
+    {
+      "created_at": "2026-07-31T22:35:31.905399+00:00",
+      "event_index": 71,
+      "event_sha256": "e9b4202746b37715ca6007efba1312934a47a0f36492f7ee5b1981c5c2cbd378",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "d93b63498d951d0508fa552554650f4f6852306b4ac1b529c011db608e5a7dbf",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s617806385"
+      },
+      "previous_event_sha256": "19bc61a16d2a76b1d4836ca3c2c2de49e06cca05d87aa1fcea7668e3cc9a0713"
+    },
+    {
+      "created_at": "2026-07-31T22:39:52.399095+00:00",
+      "event_index": 72,
+      "event_sha256": "b091467eed10f47d870c5abdf4bd9d113d22d9174b036c028a486baccdaf76d8",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "c8f728e7b377c2c1dfb1af7a92f3b3d25a3f94c7a110b6a545b3184822bcab3c",
+        "failure_sha256": "1b7f31eecb65af24246129dfd3f56cb18647ea5e4ef6b876b3d8ccf8f4295c82",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s617806385",
+        "status": "failed"
+      },
+      "previous_event_sha256": "e9b4202746b37715ca6007efba1312934a47a0f36492f7ee5b1981c5c2cbd378"
+    },
+    {
+      "created_at": "2026-07-31T22:39:53.666380+00:00",
+      "event_index": 73,
+      "event_sha256": "ea45323eef7d58d2b7090fbfe90fb4fad0d8e896ac2b0205817f0aef95228a8b",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "c7d9c5dbd2c8dc7f1190a6c102b66b0537f1d32d4ee4c2c518774f0d635f1cf9",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1099057501"
+      },
+      "previous_event_sha256": "b091467eed10f47d870c5abdf4bd9d113d22d9174b036c028a486baccdaf76d8"
+    },
+    {
+      "created_at": "2026-07-31T22:48:26.762891+00:00",
+      "event_index": 74,
+      "event_sha256": "8f608e2c64b3c021b83efc7ded1d7738419e606902a2879dbd08a8bc10aa97c8",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "f5d92b084ad2af2bacfc3ec78ae3594681d5708e82e23dfd9ea062c395bdf65c",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1099057501",
+        "status": "complete"
+      },
+      "previous_event_sha256": "ea45323eef7d58d2b7090fbfe90fb4fad0d8e896ac2b0205817f0aef95228a8b"
+    },
+    {
+      "created_at": "2026-07-31T22:48:28.026572+00:00",
+      "event_index": 75,
+      "event_sha256": "dd5ee70ae105d7e01bf025defdedf874d744c677bcec85c92962a542e9920137",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "c79ff47d4a6e342be88c3c7e3f17f300800c288160b116509e6a091ae86a1986",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1421875452"
+      },
+      "previous_event_sha256": "8f608e2c64b3c021b83efc7ded1d7738419e606902a2879dbd08a8bc10aa97c8"
+    },
+    {
+      "created_at": "2026-07-31T22:55:38.207820+00:00",
+      "event_index": 76,
+      "event_sha256": "10ad6978dc717fdb7f61ea72ec073c103a19a6387d9a2726c441afafa18ea63a",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "7583def28eb25df89e139eeea4d99386a88c95ef89be42f011fd31a1a60f18f9",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1421875452",
+        "status": "complete"
+      },
+      "previous_event_sha256": "dd5ee70ae105d7e01bf025defdedf874d744c677bcec85c92962a542e9920137"
+    },
+    {
+      "created_at": "2026-07-31T22:55:39.418328+00:00",
+      "event_index": 77,
+      "event_sha256": "4b21b45fdb11e930233209f683b57d0273c1a0ba706623279813a423a7d1abcf",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "e40f5e096672f4f4d66e39b95b074eb25edbb6a1da40a9f535bc74c404b6f4eb",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1769977770"
+      },
+      "previous_event_sha256": "10ad6978dc717fdb7f61ea72ec073c103a19a6387d9a2726c441afafa18ea63a"
+    },
+    {
+      "created_at": "2026-07-31T23:03:03.278462+00:00",
+      "event_index": 78,
+      "event_sha256": "03343aba6620bbcfab6f7e0dcac8c97e3df4ed2c25966f06c3600c73b7773650",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "f08b11f56abde2e26f837c5c48e7eb047c3d64e1a937f0d1603db07266a3d74b",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1769977770",
+        "status": "complete"
+      },
+      "previous_event_sha256": "4b21b45fdb11e930233209f683b57d0273c1a0ba706623279813a423a7d1abcf"
+    },
+    {
+      "created_at": "2026-07-31T23:03:04.586905+00:00",
+      "event_index": 79,
+      "event_sha256": "6881e42ede501f2b8833ba4c042a2209c8c2edefb2140eae86fd4e1c9e4fe816",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "e146694ca0a8c30fbd73a0c29b6ae293840c81a113fe52bb54d128caf37c26ba",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s959809858"
+      },
+      "previous_event_sha256": "03343aba6620bbcfab6f7e0dcac8c97e3df4ed2c25966f06c3600c73b7773650"
+    },
+    {
+      "created_at": "2026-07-31T23:10:30.637772+00:00",
+      "event_index": 80,
+      "event_sha256": "d5a522893ba97c92793f6bd69525a425613b1ed48a2aa28a50e3f04ccb2458b9",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "51d2ed97efb72c72290def2d24da19f79738028c6c79bbc365143c034ccef5d7",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s959809858",
+        "status": "complete"
+      },
+      "previous_event_sha256": "6881e42ede501f2b8833ba4c042a2209c8c2edefb2140eae86fd4e1c9e4fe816"
+    },
+    {
+      "created_at": "2026-07-31T23:10:31.928141+00:00",
+      "event_index": 81,
+      "event_sha256": "3da8e8f91ef45fffa1a69017ba09e885fb5b74a9264515894bc44b245d1f4da6",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "58714b46a8b519cf8743a5e0cf61f94cb21c88081d106f0025b405362e8dc86e",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s617806385"
+      },
+      "previous_event_sha256": "d5a522893ba97c92793f6bd69525a425613b1ed48a2aa28a50e3f04ccb2458b9"
+    },
+    {
+      "created_at": "2026-07-31T23:17:15.502469+00:00",
+      "event_index": 82,
+      "event_sha256": "dab066bc6f765229c69e3e5f57379ebdfb3e0eaf51768c2ca4c66044dd8549c1",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "cf63f87052e02c2b4b950ec06819f6923643d679cb555762dd39743cec6caeba",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s617806385",
+        "status": "complete"
+      },
+      "previous_event_sha256": "3da8e8f91ef45fffa1a69017ba09e885fb5b74a9264515894bc44b245d1f4da6"
+    },
+    {
+      "created_at": "2026-07-31T23:17:16.783323+00:00",
+      "event_index": 83,
+      "event_sha256": "61ce646a5f69c36446b7bf1039ca90df6b1d9c49dbe7ac43cbd04f164e832591",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "b560b33a320c50ae71909cbde6c81d163865c1834cf9b19739141e8c23f358d6",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1099057501"
+      },
+      "previous_event_sha256": "dab066bc6f765229c69e3e5f57379ebdfb3e0eaf51768c2ca4c66044dd8549c1"
+    },
+    {
+      "created_at": "2026-07-31T23:25:15.160109+00:00",
+      "event_index": 84,
+      "event_sha256": "f1daabd3e248d0c1bc131adab0831b048c5b7e6de8188456b6e21d9d2bb9cc5d",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "560ff6bd2f4e6c8fd54b0a0976aa1c3d52f9642971bfbf4074a3b74d00e040cf",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1099057501",
+        "status": "complete"
+      },
+      "previous_event_sha256": "61ce646a5f69c36446b7bf1039ca90df6b1d9c49dbe7ac43cbd04f164e832591"
+    },
+    {
+      "created_at": "2026-07-31T23:25:16.465490+00:00",
+      "event_index": 85,
+      "event_sha256": "d920c0c3450274113e7dd461f645b82d138e69cce623394c8a61117385d30b5e",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "cee133a5c574aac2317169653961c1a734a0b5112f70db11bf087c2832902d0f",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1421875452"
+      },
+      "previous_event_sha256": "f1daabd3e248d0c1bc131adab0831b048c5b7e6de8188456b6e21d9d2bb9cc5d"
+    },
+    {
+      "created_at": "2026-07-31T23:32:41.523391+00:00",
+      "event_index": 86,
+      "event_sha256": "a6a587563ff56aa46fc45ab4ccb0a21fb3031815a1da02118eef5e6ceaaa77d3",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "0960dc78099664eeecbe133b5e0bcb3f33b0dab1be4594e3f07834909a2a1185",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1421875452",
+        "status": "complete"
+      },
+      "previous_event_sha256": "d920c0c3450274113e7dd461f645b82d138e69cce623394c8a61117385d30b5e"
+    },
+    {
+      "created_at": "2026-07-31T23:32:42.828610+00:00",
+      "event_index": 87,
+      "event_sha256": "1f4ed25e3dcea396fe29416f70f15ef751c625acd23ef4f44edf3cd347494368",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "36fc4165f0ce37bfc9a6553397c83b331a4a8c16ebe3234ee1fd08c609b5f127",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1769977770"
+      },
+      "previous_event_sha256": "a6a587563ff56aa46fc45ab4ccb0a21fb3031815a1da02118eef5e6ceaaa77d3"
+    },
+    {
+      "created_at": "2026-07-31T23:37:30.413512+00:00",
+      "event_index": 88,
+      "event_sha256": "952b470daf1c5f7387be63a4a5666cb393fbce23ca937d90ba73e881bf5e9989",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "d83ade74dbcbe88ec247818c4a77fef48cbbd6619ab2ec2df71ea8cfb79e7ce9",
+        "failure_sha256": "1b7f31eecb65af24246129dfd3f56cb18647ea5e4ef6b876b3d8ccf8f4295c82",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1769977770",
+        "status": "failed"
+      },
+      "previous_event_sha256": "1f4ed25e3dcea396fe29416f70f15ef751c625acd23ef4f44edf3cd347494368"
+    },
+    {
+      "created_at": "2026-07-31T23:37:31.721841+00:00",
+      "event_index": 89,
+      "event_sha256": "bff6cc040df50a3bccbbb7753fd9cb8b3ff5aa10e2bd53df00e8962a653d6012",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "a21624046016bd87ce7837e7e87590b615652babcfa146dad63e2e59cf5866b7",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s959809858"
+      },
+      "previous_event_sha256": "952b470daf1c5f7387be63a4a5666cb393fbce23ca937d90ba73e881bf5e9989"
+    },
+    {
+      "created_at": "2026-07-31T23:39:35.295701+00:00",
+      "event_index": 90,
+      "event_sha256": "546828481b81619324fe8cccb8df06e3f73fee8701b0167e27b2932344423d81",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "cb4323f3aa60b2825e73d60da9cc19155b14143acfe232641e31d5319d664ee2",
+        "failure_sha256": "6cbd934e9bfe5a0b5370ff87f2e1335e650c1ada70aff5c681dfd294acce9d1c",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s959809858",
+        "status": "failed"
+      },
+      "previous_event_sha256": "bff6cc040df50a3bccbbb7753fd9cb8b3ff5aa10e2bd53df00e8962a653d6012"
+    },
+    {
+      "created_at": "2026-07-31T23:39:36.609368+00:00",
+      "event_index": 91,
+      "event_sha256": "ff4885560f99d789a8e483d9ef7f7dd4451278ea5ff71cde386886547b6fc3c5",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "8523c7720261bafbc46c8150ce1146576d5035d46281c7bd1683388e9e65b4bf",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s617806385"
+      },
+      "previous_event_sha256": "546828481b81619324fe8cccb8df06e3f73fee8701b0167e27b2932344423d81"
+    },
+    {
+      "created_at": "2026-07-31T23:47:32.726529+00:00",
+      "event_index": 92,
+      "event_sha256": "f7e5db76d43fd830bc419b61295dca918029777ed0e2fd9d9a0a03538fa03bd9",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "9ebea675ccccc4dc4247399f656459f38eca7ab97bfd96b68c7eddf5cae86f2f",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s617806385",
+        "status": "complete"
+      },
+      "previous_event_sha256": "ff4885560f99d789a8e483d9ef7f7dd4451278ea5ff71cde386886547b6fc3c5"
+    },
+    {
+      "created_at": "2026-07-31T23:47:34.011106+00:00",
+      "event_index": 93,
+      "event_sha256": "4d24a2094378c6268071ee220c94773ebe0153dca1a94f7be73a6eb175313868",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "6b2ef14f421bf4a2da56ff8a9d69e465246aeb2be438b48a68ee02301ffca4c3",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501"
+      },
+      "previous_event_sha256": "f7e5db76d43fd830bc419b61295dca918029777ed0e2fd9d9a0a03538fa03bd9"
+    },
+    {
+      "created_at": "2026-07-31T23:54:38.509333+00:00",
+      "event_index": 94,
+      "event_sha256": "f4e0fe7fe7071c1964a7a3024e7f58eb78a0d68fc441210a9ec4fd4e2a1297a5",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "af36091a85b78d243d3bcfe9ee6711f82174e0f7c68e252dc473060a38af5929",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501",
+        "status": "complete"
+      },
+      "previous_event_sha256": "4d24a2094378c6268071ee220c94773ebe0153dca1a94f7be73a6eb175313868"
+    },
+    {
+      "created_at": "2026-07-31T23:54:39.792694+00:00",
+      "event_index": 95,
+      "event_sha256": "87c57c88f2e55de4e18674d898383e6f6cd631d8831be4ec9ea0e9e90d2d9242",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "96c10897365fe5d12d9b59b54e03171d579356537bfc7f860d0d23d184519bc9",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1421875452"
+      },
+      "previous_event_sha256": "f4e0fe7fe7071c1964a7a3024e7f58eb78a0d68fc441210a9ec4fd4e2a1297a5"
+    },
+    {
+      "created_at": "2026-08-01T00:00:49.583359+00:00",
+      "event_index": 96,
+      "event_sha256": "caf3ec18976b4ca45a1d7139c7037fa5c09fdfed1ff7553da0c8a89703ff9b4b",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "512ee78815f7384aef5decde91c5636fd3c2cd42cecf09a78971d1c470474b53",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1421875452",
+        "status": "complete"
+      },
+      "previous_event_sha256": "87c57c88f2e55de4e18674d898383e6f6cd631d8831be4ec9ea0e9e90d2d9242"
+    },
+    {
+      "created_at": "2026-08-01T00:00:50.923736+00:00",
+      "event_index": 97,
+      "event_sha256": "c4295a59d438a20e79268885263c65866f33e4d132d883076f8f94f1eabaec24",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "a5f34152595f5e8d06b3eb9576f5c8d4b625c179311eab15bb856595ddf288d4",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1769977770"
+      },
+      "previous_event_sha256": "caf3ec18976b4ca45a1d7139c7037fa5c09fdfed1ff7553da0c8a89703ff9b4b"
+    },
+    {
+      "created_at": "2026-08-01T00:07:43.346050+00:00",
+      "event_index": 98,
+      "event_sha256": "534a1580525f180954efce01eb899dbb6643abc7f99f07b3ac6c9687df74828a",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "af4a84f298dcd4620f8c80891dda513fdd35da55079b9508e68cfa6fabead5a2",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1769977770",
+        "status": "complete"
+      },
+      "previous_event_sha256": "c4295a59d438a20e79268885263c65866f33e4d132d883076f8f94f1eabaec24"
+    },
+    {
+      "created_at": "2026-08-01T00:07:44.618597+00:00",
+      "event_index": 99,
+      "event_sha256": "0360d468b588b3c60e7042c9d4c02bce1dfd68df38112bf898097ee8c2616146",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "32b713ef85725949d3a9af0ead1ec6a21c821a70b1212f7775dbd92fdbd5d969",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s959809858"
+      },
+      "previous_event_sha256": "534a1580525f180954efce01eb899dbb6643abc7f99f07b3ac6c9687df74828a"
+    },
+    {
+      "created_at": "2026-08-01T00:14:42.653631+00:00",
+      "event_index": 100,
+      "event_sha256": "2500481661c9bb968fa3c218d9dc8ceef164826f7b37c15b19cc6ce5d2eb7f1c",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "e889b7f3cb269e0a34098b4c3096cb1c5a16a341f64f96869d46e0cee0346762",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s959809858",
+        "status": "complete"
+      },
+      "previous_event_sha256": "0360d468b588b3c60e7042c9d4c02bce1dfd68df38112bf898097ee8c2616146"
+    },
+    {
+      "created_at": "2026-08-01T00:14:43.924794+00:00",
+      "event_index": 101,
+      "event_sha256": "6290075cce2de9dd979e692ab66077d38b545146e56fe00695eda3d75bf1ed8f",
+      "event_type": "run_reserved",
+      "payload": {
+        "projection_sha256": "21395aee07e5c109add4583863ffdcba1dac74ebc93c77eb1501bc8512e06cc2",
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s617806385"
+      },
+      "previous_event_sha256": "2500481661c9bb968fa3c218d9dc8ceef164826f7b37c15b19cc6ce5d2eb7f1c"
+    },
+    {
+      "created_at": "2026-08-01T00:21:21.174678+00:00",
+      "event_index": 102,
+      "event_sha256": "f745a8c4087b310d5d5cfb74645df8ddb0f2f80ef3d269b9642d3715f7de5834",
+      "event_type": "run_finalized",
+      "payload": {
+        "actual_sha256": "c7a6815fb6a90b1771f900af12b170b4653a4d6ee1cd984c381eba4853fb3ba1",
+        "failure_sha256": null,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s617806385",
+        "status": "complete"
+      },
+      "previous_event_sha256": "6290075cce2de9dd979e692ab66077d38b545146e56fe00695eda3d75bf1ed8f"
+    }
+  ],
+  "ledger_sha256": "53e70f6c0b9053674408de385e1a5b5bf42ace7e82dc8e0c6f227ea124b7a38f",
+  "parent_debit": {
+    "cost_usd": 19.998220562500006,
+    "hosted_completions": 1004,
+    "parent_budget_ledger_sha256": "d4ce8beebe1e462003039db2d39e6616c76cd33897c5b3e77e45989ced9d8789",
+    "parent_contract_sha256": "e898fe49935dae9ae7f0d7ac577dae943192953c1da581d70c334f8c64924e46",
+    "parent_run_ledger_sha256": "f0064120e279137fbd7dd5f5cec474aa384745b7c405d9371c90ac5c4f448656",
+    "record_sha256": "9595d037a21f429a59fd37febd4abd8283287e080ee9eb506ebf999e3d1e81a5",
+    "schema_version": "finevo-parent-budget-debit-v1",
+    "stage_bucket": "parent_v2114",
+    "storage_bytes": 222048702
+  },
+  "runs": {
+    "finevo-pilot-v2.11.5--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376": {
+      "actual": {
+        "completions": 0,
+        "cost_usd": 0.0,
+        "storage_bytes": 41006
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T19:15:31.301442+00:00",
+      "reservation": {
+        "basis": {
+          "historical_source_calls": 30,
+          "hosted_completion_cap_counted": false,
+          "imported_effect_cells": 0,
+          "method": "v2.11.5-current-release-capability-wrapper",
+          "provider_calls_current_attempt": 0,
+          "provider_construction": false,
+          "scientific_evidence": false
+        },
+        "completions": 0,
+        "cost_usd": 0.0,
+        "run_id": "finevo-pilot-v2.11.5--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376",
+        "stage_bucket": "parent_v2114",
+        "storage_bytes": 1000000
+      },
+      "reserved_at": "2026-07-31T19:15:31.293936+00:00",
+      "stage_bucket": "parent_v2114",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--capability-gate--gpt56_diagnostic--capability-probe--none--provider-preflight-default--s2010922376": {
+      "actual": {
+        "completions": 0,
+        "cost_usd": 0.0,
+        "storage_bytes": 40439
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T19:15:31.308750+00:00",
+      "reservation": {
+        "basis": {
+          "historical_source_calls": 30,
+          "hosted_completion_cap_counted": false,
+          "imported_effect_cells": 0,
+          "method": "v2.11.5-current-release-capability-wrapper",
+          "provider_calls_current_attempt": 0,
+          "provider_construction": false,
+          "scientific_evidence": false
+        },
+        "completions": 0,
+        "cost_usd": 0.0,
+        "run_id": "finevo-pilot-v2.11.5--capability-gate--gpt56_diagnostic--capability-probe--none--provider-preflight-default--s2010922376",
+        "stage_bucket": "parent_v2114",
+        "storage_bytes": 1000000
+      },
+      "reserved_at": "2026-07-31T19:15:31.301866+00:00",
+      "stage_bucket": "parent_v2114",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.21693425,
+        "storage_bytes": 1248372
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T23:54:38.509297+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T23:47:34.011071+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1421875452": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.0908187500000004,
+        "storage_bytes": 1251422
+      },
+      "failure": null,
+      "finalized_at": "2026-08-01T00:00:49.583330+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1421875452",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T23:54:39.792665+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1769977770": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.1886210000000001,
+        "storage_bytes": 1249309
+      },
+      "failure": null,
+      "finalized_at": "2026-08-01T00:07:43.346006+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1769977770",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-08-01T00:00:50.923699+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s617806385": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.0402227499999999,
+        "storage_bytes": 1264936
+      },
+      "failure": null,
+      "finalized_at": "2026-08-01T00:21:21.174636+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s617806385",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-08-01T00:14:43.924760+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s959809858": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.1995532499999997,
+        "storage_bytes": 1276461
+      },
+      "failure": null,
+      "finalized_at": "2026-08-01T00:14:42.653596+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s959809858",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-08-01T00:07:44.618552+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1099057501": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.3028942500000005,
+        "storage_bytes": 1237369
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T22:10:40.739024+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1099057501",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T22:01:35.154204+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1421875452": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.3365432499999998,
+        "storage_bytes": 1247614
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T22:18:22.305858+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1421875452",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T22:10:41.859213+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1769977770": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.41993425,
+        "storage_bytes": 1222523
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T22:26:59.549496+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1769977770",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T22:18:23.460178+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s617806385": {
+      "actual": {
+        "completions": 28,
+        "cost_usd": 0.6567085000000003,
+        "storage_bytes": 35611
+      },
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=5, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "93e8ea055c44a0514de9500c5ea526249548552a3f0901ee9c6662b0a007a224",
+        "message_truncated": false
+      },
+      "finalized_at": "2026-07-31T22:39:52.399074+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s617806385",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T22:35:31.905365+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "failed"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s959809858": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.3411597500000008,
+        "storage_bytes": 1261960
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T22:35:30.623525+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s959809858",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T22:27:00.701683+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1099057501": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.359673,
+        "storage_bytes": 1260934
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T22:48:26.762851+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1099057501",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T22:39:53.666346+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1421875452": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.29788225,
+        "storage_bytes": 1259182
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T22:55:38.207772+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1421875452",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T22:48:28.026529+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1769977770": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.2586857499999997,
+        "storage_bytes": 1261052
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T23:03:03.278431+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1769977770",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T22:55:39.418299+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s617806385": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.0859344999999998,
+        "storage_bytes": 1277578
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T23:17:15.502434+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s617806385",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T23:10:31.928102+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s959809858": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.2139575000000005,
+        "storage_bytes": 1253080
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T23:10:30.637738+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s959809858",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T23:03:04.586870+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1099057501": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.3376755000000002,
+        "storage_bytes": 1238433
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T23:25:15.160082+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1099057501",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T23:17:16.783284+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1421875452": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.30959675,
+        "storage_bytes": 1271204
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T23:32:41.523358+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1421875452",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T23:25:16.465457+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1769977770": {
+      "actual": {
+        "completions": 28,
+        "cost_usd": 0.7236372499999998,
+        "storage_bytes": 35738
+      },
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=5, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "93e8ea055c44a0514de9500c5ea526249548552a3f0901ee9c6662b0a007a224",
+        "message_truncated": false
+      },
+      "finalized_at": "2026-07-31T23:37:30.413487+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1769977770",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T23:32:42.828570+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "failed"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s617806385": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.3314437500000005,
+        "storage_bytes": 1236432
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T23:47:32.726499+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s617806385",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T23:39:36.609336+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s959809858": {
+      "actual": {
+        "completions": 12,
+        "cost_usd": 0.29859024999999995,
+        "storage_bytes": 25851
+      },
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=2, agent=3: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "14bef66c962cd98cb81a71d94fa5c33decd55a688e579f73cb5ff4d05bc2cd77",
+        "message_truncated": false
+      },
+      "finalized_at": "2026-07-31T23:39:35.295682+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s959809858",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T23:37:31.721805+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "failed"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1099057501": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.1859260000000003,
+        "storage_bytes": 1257913
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T19:49:20.595393+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1099057501",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T19:41:00.346860+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1421875452": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.09793775,
+        "storage_bytes": 1250553
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T19:56:43.047857+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1421875452",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T19:49:21.679267+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1769977770": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.1049395000000002,
+        "storage_bytes": 1255698
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:04:23.662778+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1769977770",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T19:56:44.229757+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s617806385": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.2886230000000003,
+        "storage_bytes": 1261303
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:20:05.557795+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s617806385",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T20:11:50.118242+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s959809858": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.1009687499999996,
+        "storage_bytes": 1267604
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:11:48.993321+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s959809858",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T20:04:24.799300+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1099057501": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 0.9788712499999999,
+        "storage_bytes": 1315091
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:26:08.183551+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1099057501",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T20:20:06.687842+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1421875452": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.08001425,
+        "storage_bytes": 1300012
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:34:13.718577+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1421875452",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T20:26:09.285069+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1769977770": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 0.99715,
+        "storage_bytes": 1307524
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:40:44.937187+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1769977770",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T20:34:14.831413+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s617806385": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 0.96709025,
+        "storage_bytes": 1310884
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:52:34.947070+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s617806385",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T20:46:41.824371+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s959809858": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 0.9578975,
+        "storage_bytes": 1315045
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:46:40.718294+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s959809858",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T20:40:46.038821+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1099057501": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 0.7932907500000004,
+        "storage_bytes": 1396372
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T21:33:45.596249+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1099057501",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T21:28:38.620704+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1421875452": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 0.76853175,
+        "storage_bytes": 1396942
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T21:39:02.507021+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1421875452",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T21:33:46.763982+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1769977770": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 0.7652855000000002,
+        "storage_bytes": 1384515
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T21:44:25.439569+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1769977770",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T21:39:03.664236+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s617806385": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 0.7425249999999999,
+        "storage_bytes": 1392798
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T21:53:14.930999+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s617806385",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T21:48:31.888511+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s959809858": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 0.6895209999999999,
+        "storage_bytes": 1387365
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T21:48:30.775630+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s959809858",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T21:44:26.598499+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501": {
+      "actual": {
+        "completions": 0,
+        "cost_usd": 0.0,
+        "storage_bytes": 8261
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:52:35.543142+00:00",
+      "reservation": {
+        "basis": {
+          "method": "offline-zero-provider-call"
+        },
+        "completions": 0,
+        "cost_usd": 0.0,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 2000000
+      },
+      "reserved_at": "2026-07-31T20:52:35.537718+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452": {
+      "actual": {
+        "completions": 0,
+        "cost_usd": 0.0,
+        "storage_bytes": 8261
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:52:36.140168+00:00",
+      "reservation": {
+        "basis": {
+          "method": "offline-zero-provider-call"
+        },
+        "completions": 0,
+        "cost_usd": 0.0,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 2000000
+      },
+      "reserved_at": "2026-07-31T20:52:36.135162+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770": {
+      "actual": {
+        "completions": 0,
+        "cost_usd": 0.0,
+        "storage_bytes": 8261
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:52:36.725112+00:00",
+      "reservation": {
+        "basis": {
+          "method": "offline-zero-provider-call"
+        },
+        "completions": 0,
+        "cost_usd": 0.0,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 2000000
+      },
+      "reserved_at": "2026-07-31T20:52:36.720031+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385": {
+      "actual": {
+        "completions": 0,
+        "cost_usd": 0.0,
+        "storage_bytes": 8256
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:52:37.895980+00:00",
+      "reservation": {
+        "basis": {
+          "method": "offline-zero-provider-call"
+        },
+        "completions": 0,
+        "cost_usd": 0.0,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 2000000
+      },
+      "reserved_at": "2026-07-31T20:52:37.890567+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858": {
+      "actual": {
+        "completions": 0,
+        "cost_usd": 0.0,
+        "storage_bytes": 8256
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:52:37.309688+00:00",
+      "reservation": {
+        "basis": {
+          "method": "offline-zero-provider-call"
+        },
+        "completions": 0,
+        "cost_usd": 0.0,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 2000000
+      },
+      "reserved_at": "2026-07-31T20:52:37.304378+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1099057501": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.2021747500000002,
+        "storage_bytes": 1321268
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T20:59:57.824212+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1099057501",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T20:52:38.997105+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1421875452": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.1563667499999997,
+        "storage_bytes": 1332738
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T21:08:15.965878+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1421875452",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T20:59:58.968391+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1769977770": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.1817417499999996,
+        "storage_bytes": 1334931
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T21:15:36.554734+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1769977770",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T21:08:17.075919+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s617806385": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 1.0761887500000002,
+        "storage_bytes": 1345875
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T21:28:37.498127+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s617806385",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T21:22:08.975181+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s959809858": {
+      "actual": {
+        "completions": 64,
+        "cost_usd": 0.9759137500000001,
+        "storage_bytes": 1338134
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T21:22:07.862713+00:00",
+      "reservation": {
+        "basis": {
+          "calls_by_kind": {
+            "action": 48,
+            "semantic": 16
+          },
+          "completion_tokens": 177968,
+          "cost_usd": 2.6668250000000002,
+          "hosted_completion_cap_counted": true,
+          "method": "preflight-model-call-kind-p95-times-1.25",
+          "prompt_tokens": 103024,
+          "run_call_limit": 64,
+          "source": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "total_tokens": 280992
+        },
+        "completions": 64,
+        "cost_usd": 2.6668250000000002,
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s959809858",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 20000000
+      },
+      "reserved_at": "2026-07-31T21:15:37.661521+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376": {
+      "actual": {
+        "completions": 0,
+        "cost_usd": 0.0,
+        "storage_bytes": 23207
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T19:15:46.079502+00:00",
+      "reservation": {
+        "basis": {
+          "fresh_samples": 0,
+          "historical_calls_already_in_parent_debit": true,
+          "historical_provider_calls": 32,
+          "hosted_completion_cap_counted": false,
+          "imported_effect_cells": 0,
+          "method": "v2.11.5-current-release-p95-authority-reseal",
+          "provider_calls_current_attempt": 0,
+          "provider_construction": false,
+          "scientific_evidence": false
+        },
+        "completions": 0,
+        "cost_usd": 0.0,
+        "run_id": "finevo-pilot-v2.11.5--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 1000000
+      },
+      "reserved_at": "2026-07-31T19:15:45.805655+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376": {
+      "actual": {
+        "completions": 0,
+        "cost_usd": 0.0,
+        "storage_bytes": 23252
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T19:15:46.336915+00:00",
+      "reservation": {
+        "basis": {
+          "fresh_samples": 0,
+          "historical_calls_already_in_parent_debit": true,
+          "historical_provider_calls": 32,
+          "hosted_completion_cap_counted": false,
+          "imported_effect_cells": 0,
+          "method": "v2.11.5-current-release-p95-authority-reseal",
+          "provider_calls_current_attempt": 0,
+          "provider_construction": false,
+          "scientific_evidence": false
+        },
+        "completions": 0,
+        "cost_usd": 0.0,
+        "run_id": "finevo-pilot-v2.11.5--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376",
+        "stage_bucket": "hosted_v2115",
+        "storage_bytes": 1000000
+      },
+      "reserved_at": "2026-07-31T19:15:46.080093+00:00",
+      "stage_bucket": "hosted_v2115",
+      "status": "complete"
+    },
+    "finevo-pilot-v2.11.5--parent-import--qref_scripted--parent-import--none--provider-preflight-default--s2010922376": {
+      "actual": {
+        "completions": 0,
+        "cost_usd": 0.0,
+        "storage_bytes": 82708
+      },
+      "failure": null,
+      "finalized_at": "2026-07-31T19:15:17.601462+00:00",
+      "reservation": {
+        "basis": {
+          "artifact_headroom_bytes": 1000000,
+          "hosted_completion_cap_counted": false,
+          "imported_capability_wrappers": 2,
+          "imported_effect_cells": 0,
+          "imported_preflight_authorities": 2,
+          "imported_scientific_cells": 0,
+          "method": "v2.11.5-compact-parent-authority-replay",
+          "provider_calls": 0,
+          "provider_construction": false,
+          "raw_tree_copied": false
+        },
+        "completions": 0,
+        "cost_usd": 0.0,
+        "run_id": "finevo-pilot-v2.11.5--parent-import--qref_scripted--parent-import--none--provider-preflight-default--s2010922376",
+        "stage_bucket": "parent_v2114",
+        "storage_bytes": 1000000
+      },
+      "reserved_at": "2026-07-31T19:15:15.726804+00:00",
+      "stage_bucket": "parent_v2114",
+      "status": "complete"
+    }
+  },
+  "schema_version": "finevo-pilot-budget-ledger-v2",
+  "updated_at": "2026-08-01T00:21:21.174711+00:00"
+}

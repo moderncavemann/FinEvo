@@ -1,0 +1,115 @@
+{
+  "all_registered_cells_accounted": true,
+  "claim_boundary": "publication-time deterministic seal of the fixed zero-provider candidate-admission trace; the five seed-indexed fixture rows are not independent random repetitions and this is not an execution-time full-detail hash",
+  "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+  "execution_time_full_detail_receipt_bound": false,
+  "independent_random_repetitions": false,
+  "pass": true,
+  "provider_calls": 0,
+  "publication_admitted_detail_count": 5,
+  "publication_time_deterministic_revalidation": true,
+  "registered_cell_count": 5,
+  "rows": [
+    {
+      "admitted": true,
+      "candidate_id": "cand-320fb0fa6eb4c5ffbbe4",
+      "check": {
+        "false_rule_ever_active": false,
+        "provider_calls": 0,
+        "same_candidate_content": true,
+        "unsupported_candidate_rejected": true,
+        "unverified_false_rule_ever_active": true
+      },
+      "environment_seed": 1099057501,
+      "published_path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501.json",
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501",
+      "source_content_sha256": "88766ca10f42d95db7310619590673b4f9c911c5bd3382667901f4aa4d58d38f",
+      "source_file_sha256": "cbaed1939a2f021ad626ee56350f4570c64ac32e20523839f6eeeaa66482432f",
+      "source_relative_path": "experiment-c/runs/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501/offline_candidate_admission.json",
+      "status": "complete",
+      "unverified_rule_status": "active",
+      "verified_rule_status": "rejected"
+    },
+    {
+      "admitted": true,
+      "candidate_id": "cand-320fb0fa6eb4c5ffbbe4",
+      "check": {
+        "false_rule_ever_active": false,
+        "provider_calls": 0,
+        "same_candidate_content": true,
+        "unsupported_candidate_rejected": true,
+        "unverified_false_rule_ever_active": true
+      },
+      "environment_seed": 1421875452,
+      "published_path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452.json",
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452",
+      "source_content_sha256": "db4cb62269bcf0952ed31d9696781746521668db7e9e22685aceb4b9c7585122",
+      "source_file_sha256": "a6a01720a6c5c9bc319fbedb7ad656689e9c1f49b4d08f73826109b3210350eb",
+      "source_relative_path": "experiment-c/runs/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452/offline_candidate_admission.json",
+      "status": "complete",
+      "unverified_rule_status": "active",
+      "verified_rule_status": "rejected"
+    },
+    {
+      "admitted": true,
+      "candidate_id": "cand-320fb0fa6eb4c5ffbbe4",
+      "check": {
+        "false_rule_ever_active": false,
+        "provider_calls": 0,
+        "same_candidate_content": true,
+        "unsupported_candidate_rejected": true,
+        "unverified_false_rule_ever_active": true
+      },
+      "environment_seed": 1769977770,
+      "published_path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770.json",
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770",
+      "source_content_sha256": "8760eb4c312afff280e11e938edb3dfddb5a4916e7d1c3d74229645fc4285420",
+      "source_file_sha256": "a662b4dde2a66249c048d5537c359d7b3edaeb5bf77fd7fb0f19c1c58bab3744",
+      "source_relative_path": "experiment-c/runs/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770/offline_candidate_admission.json",
+      "status": "complete",
+      "unverified_rule_status": "active",
+      "verified_rule_status": "rejected"
+    },
+    {
+      "admitted": true,
+      "candidate_id": "cand-320fb0fa6eb4c5ffbbe4",
+      "check": {
+        "false_rule_ever_active": false,
+        "provider_calls": 0,
+        "same_candidate_content": true,
+        "unsupported_candidate_rejected": true,
+        "unverified_false_rule_ever_active": true
+      },
+      "environment_seed": 959809858,
+      "published_path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858.json",
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858",
+      "source_content_sha256": "6cd66901b76c6a20a9520fb1dede7715ac4925c39386c78e223084338784e93b",
+      "source_file_sha256": "2f7991939ab90a26ff6b53cede1423d1ebf7fe95d58bc2fb994b30fb2f3c8550",
+      "source_relative_path": "experiment-c/runs/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858/offline_candidate_admission.json",
+      "status": "complete",
+      "unverified_rule_status": "active",
+      "verified_rule_status": "rejected"
+    },
+    {
+      "admitted": true,
+      "candidate_id": "cand-320fb0fa6eb4c5ffbbe4",
+      "check": {
+        "false_rule_ever_active": false,
+        "provider_calls": 0,
+        "same_candidate_content": true,
+        "unsupported_candidate_rejected": true,
+        "unverified_false_rule_ever_active": true
+      },
+      "environment_seed": 617806385,
+      "published_path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385.json",
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385",
+      "source_content_sha256": "4e800bb43b73100e1a03b46c03d6ce650a7d1ce3fb253d491e38ecbde3f28acc",
+      "source_file_sha256": "baeee57d94bde747ca90541ef92d21552982c9daed89e1b11b733f2d33be0fcf",
+      "source_relative_path": "experiment-c/runs/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385/offline_candidate_admission.json",
+      "status": "complete",
+      "unverified_rule_status": "active",
+      "verified_rule_status": "rejected"
+    }
+  ],
+  "schema_version": "finevo-pilot-v2.11.5-offline-candidate-admission-audit-v1"
+}

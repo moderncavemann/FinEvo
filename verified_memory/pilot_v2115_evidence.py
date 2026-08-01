@@ -1359,6 +1359,12 @@ def _validated_v2115_experiment_c_sensitivity(
         {
             "diagnostic_replay_available": True,
             "diagnostic_replay_status": "complete",
+            # The source-stage control above remains authoritative and absent,
+            # while the newly generated replay is explicitly diagnostic-only.
+            # Keep both scopes visible so downstream prose cannot accidentally
+            # label the publication-time replay as non-diagnostic.
+            "diagnostic_only": True,
+            "diagnostic_stage_authoritative": False,
             "diagnostic_content_sha256": diagnostic["integrity"][
                 "content_sha256"
             ],
@@ -1866,13 +1872,50 @@ def _report(
         "experiment_c_sensitivity",
         {"pass": False, "available": False},
     )
+    original_c_stage = sensitivity_control.get("original_stage_no_go", {})
+    sensitivity_summary = {
+        "source_control_available": sensitivity_control.get("available", False),
+        "source_stage_status": original_c_stage.get("status"),
+        "source_stage_go": original_c_stage.get("go"),
+        "publication_time_replay_available": sensitivity_control.get(
+            "diagnostic_replay_available", False
+        ),
+        "publication_time_replay_status": sensitivity_control.get(
+            "diagnostic_replay_status"
+        ),
+        "publication_time_replay_diagnostic_only": sensitivity_control.get(
+            "diagnostic_only", False
+        ),
+        "publication_time_replay_stage_authoritative": sensitivity_control.get(
+            "diagnostic_stage_authoritative"
+        ),
+        "scientific_evidence": False,
+        "provider_calls": sensitivity_control.get("provider_calls", 0),
+        "source_run_count": sensitivity_control.get("diagnostic_source_run_count"),
+        "grid_cell_count": sensitivity_control.get("diagnostic_grid_cell_count"),
+    }
+    expected_count = denominator.get("expected_count")
+    observed_count = denominator.get("observed_ledger_count")
+    terminal_count = denominator.get("terminal_row_count")
+    scheduled_count = denominator.get("scheduled_row_count")
+    b_status_counts = (
+        denominator.get("stage_status_counts", {})
+        .get("experiment-b", {})
+    )
+    b_registered_count = sum(
+        value for value in b_status_counts.values() if isinstance(value, int)
+    )
+    b_scheduled_count = b_status_counts.get("scheduled", 0)
     lines = [
         "# FinEvo V2.11.5 preregistered mechanism micro-pilot",
         "",
         f"- Contract: `{contract.contract_id}` / `{contract.canonical_hash}`",
         "- Scale: 4 agents x 12 months; not the confirmatory 10x24x5 or 100x240 run.",
         (
-            "- ITT denominator: 136/136 terminal; statuses "
+            "- ITT denominator: "
+            f"{observed_count}/{expected_count} registered rows accounted; "
+            f"{terminal_count} terminal and {scheduled_count} scheduled/not run; "
+            "statuses "
             f"`{json.dumps(denominator['status_counts'], sort_keys=True)}`."
         ),
         (
@@ -1891,8 +1934,8 @@ def _report(
         [
             "",
             (
-                "- Experiment C sensitivity control: "
-                f"`{json.dumps(sensitivity_control, sort_keys=True)}`"
+                "- Experiment C sensitivity boundary: "
+                f"`{json.dumps(sensitivity_summary, sort_keys=True)}`"
             ),
             (
                 "- The source Experiment C receipt remains authoritative as "
@@ -1913,7 +1956,11 @@ def _report(
                 "fixture rows are not independent random repetitions."
             ),
             "",
-            "Experiment B is descriptive; no arm is selected by wealth alone.",
+            (
+                "Experiment B was not run: "
+                f"{b_scheduled_count}/{b_registered_count} registered cells remain "
+                "scheduled, so there is no B arm comparison or effect estimate."
+            ),
             "",
             "## Imported operational authority boundary",
             "",

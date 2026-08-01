@@ -1,0 +1,44 @@
+{
+  "caps": {
+    "automatic_reserve_usd": 0.0,
+    "completion_scope": "hosted-api-only",
+    "dispatchable_usd": 500.0,
+    "max_completions": 7500,
+    "max_storage_bytes": 5000000000,
+    "stage_usd_caps": {
+      "hosted_v2115": 480.0017794375,
+      "manual_reserve": 0.0,
+      "parent_v2114": 19.998220562500006
+    },
+    "total_usd": 500.0
+  },
+  "committed": {
+    "completions": 3440,
+    "cost_usd": 63.1196450625,
+    "stage_cost_usd": {
+      "hosted_v2115": 43.1214245,
+      "manual_reserve": 0.0,
+      "parent_v2114": 19.998220562500006
+    },
+    "storage_bytes": 270188235
+  },
+  "event_chain_head": "f745a8c4087b310d5d5cfb74645df8ddb0f2f80ef3d269b9642d3715f7de5834",
+  "file_sha256": "49c21f5b2b21b773a8a0814ffe115ccd69cc67d947b67b5b4e3ecdaf2b5a2afb",
+  "finalized_budget_unit_count": 50,
+  "ledger_sha256": "53e70f6c0b9053674408de385e1a5b5bf42ace7e82dc8e0c6f227ea124b7a38f",
+  "parent_debit": {
+    "cost_usd": 19.998220562500006,
+    "hosted_completions": 1004,
+    "parent_budget_ledger_sha256": "d4ce8beebe1e462003039db2d39e6616c76cd33897c5b3e77e45989ced9d8789",
+    "parent_contract_sha256": "e898fe49935dae9ae7f0d7ac577dae943192953c1da581d70c334f8c64924e46",
+    "parent_run_ledger_sha256": "f0064120e279137fbd7dd5f5cec474aa384745b7c405d9371c90ac5c4f448656",
+    "record_sha256": "9595d037a21f429a59fd37febd4abd8283287e080ee9eb506ebf999e3d1e81a5",
+    "schema_version": "finevo-parent-budget-debit-v1",
+    "stage_bucket": "parent_v2114",
+    "storage_bytes": 222048702
+  },
+  "pass": true,
+  "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/budget_ledger.json",
+  "raw_root_storage_bytes": 48820695,
+  "schema_version": "finevo-pilot-v2.11.5-budget-audit-v1"
+}
