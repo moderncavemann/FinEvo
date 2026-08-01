@@ -84,6 +84,7 @@ from .pilot_capability import build_capability_tasks, run_capability_gate
 from .pilot_checkpoint import (
     PilotCheckpoint,
     build_closed_loop_preflight_checkpoint,
+    build_experiment_d_shared_prefix_checkpoint,
     build_pilot_checkpoint,
     build_v211_long_context_preflight_checkpoint,
     verify_closed_loop_preflight_checkpoint,
@@ -119,6 +120,7 @@ from .pilot_sensitivity import (
     replay_rule_sensitivity,
 )
 from .pilot_contract import (
+    PILOT_CONTRACT_ID_V2_11_9 as V2119_CONTRACT_ID,
     PILOT_CONTRACT_ID_V2_11_8 as V2118_CONTRACT_ID,
     PILOT_CONTRACT_ID_V2_11_7 as V2117_CONTRACT_ID,
     PILOT_CONTRACT_ID_V2_11_6 as V2116_CONTRACT_ID,
@@ -498,6 +500,26 @@ from .pilot_v2118_continuation import (
     verify_v2118_parent_import_receipt,
     verify_v2118_scientific_dispatch_acceptance,
 )
+from .pilot_v2119_continuation import (
+    PilotV2119ContinuationError,
+    V2119_ACCEPTANCE_FILENAME,
+    _verify_v2119_bound_working_directory,
+    assert_v2119_dispatch_target_fresh,
+    audit_v2119_scientific_stage_namespace,
+    build_v2119_parent_import_receipt,
+    current_authority_path as v2119_current_authority_path,
+    parent_budget_debit_for_v2119,
+    require_v2119_provider_keys_absent,
+    runner_reservations_for_v2119,
+    verified_v2119_calibration,
+    verified_v2119_observed_p95_authority_binding,
+    verified_v2119_projection,
+    validate_v2119_source_manifest,
+    verify_v2119_current_authority,
+    verify_v2119_parent_import_receipt,
+    verify_v2119_scientific_dispatch_acceptance,
+    verify_v2119_terminal_scientific_artifacts,
+)
 from .runner import (
     OBSERVED_P95_AUTHORITY_ID,
     OBSERVED_P95_PROJECTION_SCHEMA_VERSION,
@@ -516,6 +538,54 @@ from .runner_artifacts import (
     write_verified_run_artifacts,
 )
 from .scripted_provider import ScriptedDiagnosticProvider
+
+
+class _V2119JournaledScriptedProvider(ScriptedDiagnosticProvider):
+    """No-network V2.11.9 fixture with the full journal metadata contract.
+
+    The shared scripted provider is part of the byte-identical V2.11.5
+    science surface. Keep it untouched and adapt only the prospective
+    V2.11.9 development path that exercises the V3 Experiment-D prefix.
+    """
+
+    def get_structured_completion(
+        self,
+        messages: list[dict[str, Any]],
+        **kwargs: Any,
+    ):
+        result = super().get_structured_completion(messages, **kwargs)
+        return replace(
+            result,
+            response_provider="diagnostic",
+            response_route="in-process-scripted",
+            request_profile_id="v2119-diagnostic-scripted-v1",
+            request_provider_pin=("diagnostic",),
+            request_artifact_identity=(("scripted_fixture", "scripted-v1"),),
+            request_price_snapshot_source="diagnostic-zero-cost-v1",
+            request_price_snapshot_captured_at="1970-01-01T00:00:00Z",
+            finish_reason="stop",
+            native_finish_reason="stop",
+            response_completed=True,
+            provider_sdk_name="finevo-scripted-provider",
+            provider_sdk_version="1",
+            request_parameters=(
+                "max_tokens",
+                "messages",
+                "response_format",
+                "seed",
+                "temperature",
+                "top_p",
+            ),
+            temperature_dispatch="explicit",
+            parameter_dispatch=(
+                ("reasoning", "omitted_unsupported"),
+                ("response_format", "explicit_supported"),
+                ("seed", "explicit_supported"),
+                ("temperature", "explicit_supported"),
+                ("top_p", "explicit_supported"),
+            ),
+            output_disposition="accepted",
+        )
 
 
 PILOT_RUN_LEDGER_SCHEMA_VERSION = "finevo-pilot-run-ledger-v1"
@@ -652,6 +722,7 @@ V211_FAMILY_CONTRACT_IDS = frozenset(
         V2116_CONTRACT_ID,
         V2117_CONTRACT_ID,
         V2118_CONTRACT_ID,
+        V2119_CONTRACT_ID,
     }
 )
 PARENT_IMPORT_CONTRACT_IDS = frozenset(
@@ -674,6 +745,7 @@ PARENT_IMPORT_CONTRACT_IDS = frozenset(
         V2116_CONTRACT_ID,
         V2117_CONTRACT_ID,
         V2118_CONTRACT_ID,
+        V2119_CONTRACT_ID,
     }
 )
 # V2.4--V2.10.2 imported the parent's observed-p95 authority and implemented
@@ -973,6 +1045,99 @@ class GitProvenance:
         }
 
 
+def _assert_v2119_local_release_guard(
+    contract: PilotContract,
+    *,
+    repo_root: str | Path,
+    paid: GitProvenance,
+) -> None:
+    """Revalidate the immutable local release immediately before dispatch.
+
+    Initial paid-provenance verification is not sufficient for a long-running
+    stage: tracked source, an untracked file, HEAD, or the annotated tag can
+    drift between two provider units.  This guard deliberately performs only
+    local, bounded checks so it is safe to repeat before every unit without
+    contacting GitHub or a model provider.
+    """
+
+    if contract.contract_id != V2119_CONTRACT_ID:
+        raise PilotOrchestrationError(
+            "V2.11.9 local release guard requires the V2.11.9 contract"
+        )
+    repository = Path(repo_root).resolve()
+    required_tag = str(contract.implementation["required_git_tag"])
+    tag_ref = f"refs/tags/{required_tag}"
+
+    if (
+        paid.git_tag != required_tag
+        or paid.head_commit != paid.tag_commit
+        or paid.tag_object_type != "tag"
+        or paid.worktree_clean is not True
+    ):
+        raise PilotOrchestrationError(
+            "V2.11.9 paid provenance is not an immutable annotated-tag binding"
+        )
+    release_attestation = paid.release_attestation
+    if not isinstance(release_attestation, Mapping):
+        raise PilotOrchestrationError(
+            "V2.11.9 paid provenance lacks its release attestation"
+        )
+    local_tag = release_attestation.get("local_tag")
+    required_local_tag_fields = {
+        "name",
+        "object_id",
+        "peeled_commit",
+        "kind",
+    }
+    if (
+        not isinstance(local_tag, Mapping)
+        or set(local_tag) != required_local_tag_fields
+    ):
+        raise PilotOrchestrationError(
+            "V2.11.9 release attestation has an invalid local-tag binding"
+        )
+    if (
+        local_tag.get("name") != required_tag
+        or local_tag.get("kind") != "annotated"
+        or local_tag.get("peeled_commit") != paid.tag_commit
+    ):
+        raise PilotOrchestrationError(
+            "V2.11.9 release attestation local-tag binding drifted"
+        )
+
+    head = _git(repository, "rev-parse", "HEAD")
+    tag_type = _git(repository, "cat-file", "-t", tag_ref)
+    tag_object = _git(repository, "rev-parse", tag_ref)
+    peeled = _git(repository, "rev-parse", f"{tag_ref}^{{commit}}")
+    dirty = bool(_git(repository, "status", "--porcelain", "--untracked-files=all"))
+    if head != paid.head_commit:
+        raise PilotOrchestrationError(
+            "V2.11.9 HEAD drifted after paid provenance verification"
+        )
+    if tag_type != "tag":
+        raise PilotOrchestrationError(
+            "V2.11.9 release tag is no longer an annotated tag"
+        )
+    if tag_object != local_tag.get("object_id"):
+        raise PilotOrchestrationError(
+            "V2.11.9 annotated tag object drifted after release attestation"
+        )
+    if peeled != paid.tag_commit:
+        raise PilotOrchestrationError(
+            "V2.11.9 annotated tag target drifted after paid provenance verification"
+        )
+    if dirty:
+        raise PilotOrchestrationError(
+            "V2.11.9 worktree drifted after paid provenance verification"
+        )
+    try:
+        _verify_v2119_bound_working_directory(repository)
+    except PilotV2119ContinuationError as exc:
+        raise PilotOrchestrationError(
+            f"V2.11.9 working-directory/profile binding failed: {exc}"
+        ) from exc
+
+
 def _load_scientific_launch_input(
     contract: PilotContract,
     path: str | Path | None,
@@ -1168,12 +1333,20 @@ class PilotRunLedger:
         *,
         contract_hash: str,
         tamper_evident: bool = False,
+        bind_terminal_artifacts: bool = False,
     ) -> None:
         self.path = Path(path)
         self.contract_hash = contract_hash
         if not isinstance(tamper_evident, bool):
             raise TypeError("tamper_evident must be boolean")
+        if not isinstance(bind_terminal_artifacts, bool):
+            raise TypeError("bind_terminal_artifacts must be boolean")
+        if bind_terminal_artifacts and not tamper_evident:
+            raise ValueError(
+                "terminal artifact binding requires a tamper-evident ledger"
+            )
         self.tamper_evident = tamper_evident
+        self.bind_terminal_artifacts = bind_terminal_artifacts
         self.schema_version = (
             PILOT_RUN_LEDGER_SCHEMA_VERSION_V2
             if tamper_evident
@@ -1296,6 +1469,8 @@ class PilotRunLedger:
                     "artifact": current.get("artifact"),
                     "failure": current.get("failure"),
                 }
+                if "artifact_binding" in current:
+                    terminal_state["artifact_binding"] = current.get("artifact_binding")
                 if payload.get("terminal_state_sha256") != canonical_sha256(
                     terminal_state
                 ):
@@ -1464,6 +1639,59 @@ class PilotRunLedger:
     def is_terminal(self, run_id: str) -> bool:
         return self.status(run_id) in TERMINAL_RUN_STATUSES
 
+    @staticmethod
+    def _artifact_binding(artifact: str | None) -> dict[str, Any] | None:
+        if artifact is None:
+            return None
+        path = Path(artifact)
+        absolute = path.absolute()
+        if (
+            not path.is_absolute()
+            or path.is_symlink()
+            or not path.is_file()
+            or path.resolve() != absolute
+        ):
+            raise PilotOrchestrationError(
+                "terminal artifact must be an existing absolute regular file "
+                "without symlink traversal"
+            )
+        return {
+            "path": str(path),
+            "file_sha256": _file_sha256(path),
+            "byte_size": path.stat().st_size,
+        }
+
+    def verify_terminal_artifact_binding(self, run_id: str) -> dict[str, Any] | None:
+        row = self._state["runs"].get(run_id)
+        if (
+            not isinstance(row, Mapping)
+            or row.get("status") not in TERMINAL_RUN_STATUSES
+        ):
+            raise PilotOrchestrationError(
+                f"run {run_id} is not terminal for artifact verification"
+            )
+        if not self.bind_terminal_artifacts:
+            raise PilotOrchestrationError(
+                "terminal artifact verification was not enabled for this ledger"
+            )
+        if "artifact_binding" not in row:
+            raise PilotOrchestrationError(
+                f"terminal run {run_id} lacks its immutable artifact binding"
+            )
+        artifact = row.get("artifact")
+        if artifact is not None and not isinstance(artifact, str):
+            raise PilotOrchestrationError(
+                f"terminal run {run_id} artifact path is malformed"
+            )
+        recomputed = self._artifact_binding(artifact)
+        if canonical_sha256(row.get("artifact_binding")) != canonical_sha256(
+            recomputed
+        ):
+            raise PilotOrchestrationError(
+                f"terminal run {run_id} artifact binding drifted"
+            )
+        return _json_copy(recomputed)
+
     def finalize(
         self,
         run_id: str,
@@ -1478,11 +1706,18 @@ class PilotRunLedger:
         if row is None:
             raise PilotOrchestrationError(f"run {run_id} was not registered")
         desired_failure = dict(failure) if failure else None
+        desired_artifact_binding = (
+            self._artifact_binding(artifact) if self.bind_terminal_artifacts else None
+        )
         if row["status"] in TERMINAL_RUN_STATUSES:
             if (
                 row["status"] != status
                 or row.get("artifact") != artifact
                 or row.get("failure") != desired_failure
+                or (
+                    self.bind_terminal_artifacts
+                    and row.get("artifact_binding") != desired_artifact_binding
+                )
             ):
                 raise PilotOrchestrationError(
                     f"run {run_id} was already finalized differently"
@@ -1496,17 +1731,20 @@ class PilotRunLedger:
                 "terminal_at": _utc_now(),
             }
         )
+        if self.bind_terminal_artifacts:
+            row["artifact_binding"] = desired_artifact_binding
+        terminal_state = {
+            "status": status,
+            "artifact": artifact,
+            "failure": desired_failure,
+        }
+        if self.bind_terminal_artifacts:
+            terminal_state["artifact_binding"] = desired_artifact_binding
         self._append_event(
             "run_finalized",
             {
                 "run_id": run_id,
-                "terminal_state_sha256": canonical_sha256(
-                    {
-                        "status": status,
-                        "artifact": artifact,
-                        "failure": desired_failure,
-                    }
-                ),
+                "terminal_state_sha256": canonical_sha256(terminal_state),
                 "runs_sha256": canonical_sha256(self._state["runs"]),
             },
         )
@@ -1557,6 +1795,11 @@ class PilotRunLedger:
                     "status": status,
                     "artifact": artifact,
                     "failure": dict(failure) if failure else None,
+                    **(
+                        {"artifact_binding": self._artifact_binding(artifact)}
+                        if self.bind_terminal_artifacts
+                        else {}
+                    ),
                 }
             )
         run_ids = [value["run_id"] for value in normalized]
@@ -1577,6 +1820,10 @@ class PilotRunLedger:
                     row["status"] != value["status"]
                     or row.get("artifact") != value["artifact"]
                     or row.get("failure") != value["failure"]
+                    or (
+                        self.bind_terminal_artifacts
+                        and row.get("artifact_binding") != value["artifact_binding"]
+                    )
                 ):
                     raise PilotOrchestrationError(
                         f"run {value['run_id']} was already finalized differently"
@@ -1590,6 +1837,8 @@ class PilotRunLedger:
                     "terminal_at": terminal_at,
                 }
             )
+            if self.bind_terminal_artifacts:
+                row["artifact_binding"] = value["artifact_binding"]
             changed.append(value)
         if not changed:
             return
@@ -1613,6 +1862,11 @@ class PilotRunLedger:
                                 "status": value["status"],
                                 "artifact": value["artifact"],
                                 "failure": value["failure"],
+                                **(
+                                    {"artifact_binding": value["artifact_binding"]}
+                                    if self.bind_terminal_artifacts
+                                    else {}
+                                ),
                             }
                         ),
                         "runs_sha256": runs_sha256,
@@ -1668,6 +1922,13 @@ def _parent_budget_debit(
     repo_root: str | Path | None = None,
     parent_repo_root: str | Path | None = None,
 ):
+    if contract.contract_id == V2119_CONTRACT_ID:
+        try:
+            return parent_budget_debit_for_v2119(contract)
+        except PilotV2119ContinuationError as exc:
+            raise PilotOrchestrationError(
+                f"V2.11.9 parent budget debit failed validation: {exc}"
+            ) from exc
     if contract.contract_id == V2118_CONTRACT_ID:
         try:
             return parent_budget_debit_for_v2118(contract)
@@ -4276,6 +4537,31 @@ def _load_verified_v2114_calibration(
     }
 
 
+def _load_verified_v2119_calibration(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    paid: GitProvenance,
+    release_repo_root: str | Path | None = None,
+) -> dict[str, Any]:
+    release_root = (
+        Path(__file__).resolve().parents[1]
+        if release_repo_root is None
+        else Path(release_repo_root).resolve(strict=True)
+    )
+    try:
+        return verified_v2119_calibration(
+            contract,
+            repo_root=release_root,
+            raw_root=raw_root,
+            paid=paid,
+        )
+    except PilotV2119ContinuationError as exc:
+        raise PilotOrchestrationError(
+            f"V2.11.9 parent calibration import failed validation: {exc}"
+        ) from exc
+
+
 def _load_verified_v2118_calibration(
     contract: PilotContract,
     *,
@@ -4440,6 +4726,26 @@ def _load_verified_q_ref(
     paid: GitProvenance | None,
     authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
+    if contract.contract_id == V2119_CONTRACT_ID:
+        if paid is None:
+            raise PilotOrchestrationError(
+                "V2.11.9 imported q-ref requires paid release provenance"
+            )
+        calibration = _load_verified_v2119_calibration(
+            contract,
+            raw_root=raw_root,
+            paid=paid,
+            release_repo_root=authority_repo_root,
+        )
+        return {
+            "schema_version": "finevo-pilot-v2.11.9-imported-qref-view-v1",
+            "status": "pass",
+            "q_ref": calibration["q_ref"],
+            "scientific_evidence": False,
+            "source_parent_import_content_sha256": calibration["receipt"]["integrity"][
+                "content_sha256"
+            ],
+        }
     if contract.contract_id == V2118_CONTRACT_ID:
         if paid is None:
             raise PilotOrchestrationError(
@@ -6434,6 +6740,36 @@ def _load_verified_stage0_selection(
                 "diagnostic Stage-0 selection lacks its non-scientific boundary"
             )
         return value
+    if contract.contract_id == V2119_CONTRACT_ID:
+        if paid is None:
+            raise PilotOrchestrationError(
+                "V2.11.9 imported Stage-0 selection requires paid provenance"
+            )
+        calibration = _load_verified_v2119_calibration(
+            contract,
+            raw_root=raw_root,
+            paid=paid,
+            release_repo_root=authority_repo_root,
+        )
+        return {
+            "schema_version": "finevo-pilot-stage0-selection-v2",
+            "selected_profile_id": calibration["selected_profile_id"],
+            "selected_utility": _json_copy(calibration["selected_utility"]),
+            "absolute_flow_utility_threshold": _json_copy(
+                calibration["absolute_flow_utility_threshold"]
+            ),
+            "q_ref": calibration["q_ref"],
+            "diagnostic_only": False,
+            "scientific_evidence": False,
+            "bindings": {
+                "contract_sha256": contract.canonical_hash,
+                "git_tag": paid.git_tag,
+                "git_commit": paid.head_commit,
+                "parent_import_content_sha256": calibration["receipt"]["integrity"][
+                    "content_sha256"
+                ],
+            },
+        }
     if contract.contract_id == V2118_CONTRACT_ID:
         if paid is None:
             raise PilotOrchestrationError(
@@ -7156,6 +7492,12 @@ def _observed_p95_authority_receipt_path(
     *,
     raw_root: Path,
 ) -> Path:
+    if contract.contract_id == V2119_CONTRACT_ID:
+        if model_id not in {"gpt52_main", "gpt56_diagnostic"}:
+            raise PilotOrchestrationError(
+                f"{model_id} has no V2.11.9 continuation dispatch authority"
+            )
+        return v2119_current_authority_path(raw_root)
     if contract.contract_id == V2118_CONTRACT_ID:
         if model_id not in {"gpt52_main", "gpt56_diagnostic"}:
             raise PilotOrchestrationError(
@@ -7261,6 +7603,33 @@ def _verified_observed_p95_binding(
     paid: GitProvenance,
     authority_repo_root: str | Path | None = None,
 ) -> dict[str, Any]:
+    if contract.contract_id == V2119_CONTRACT_ID:
+        if model_id not in {"gpt52_main", "gpt56_diagnostic"}:
+            raise PilotOrchestrationError(
+                f"{model_id} has no V2.11.9 continuation dispatch authority"
+            )
+        release_root = (
+            Path(__file__).resolve().parents[1]
+            if authority_repo_root is None
+            else Path(authority_repo_root).resolve(strict=True)
+        )
+        try:
+            binding = verified_v2119_observed_p95_authority_binding(
+                str(v2119_current_authority_path(raw_root).relative_to(release_root)),
+                repo_root=release_root,
+                expected_git_commit=paid.head_commit,
+                expected_contract_sha256=contract.canonical_hash,
+            )
+        except (PilotV2119ContinuationError, ValueError) as exc:
+            raise PilotOrchestrationError(
+                f"V2.11.9 current p95 authority failed validation: {exc}"
+            ) from exc
+        runtime_model = _runtime_model_for_profile(contract.provider_profiles[model_id])
+        if runtime_model not in binding.get("reservations", {}):
+            raise PilotOrchestrationError(
+                f"V2.11.9 {model_id} runtime authority is absent"
+            )
+        return binding
     if contract.contract_id == V2118_CONTRACT_ID:
         if model_id not in {"gpt52_main", "gpt56_diagnostic"}:
             raise PilotOrchestrationError(
@@ -8388,6 +8757,31 @@ def _runner_p95_reservations(
         paid=paid,
         authority_repo_root=authority_repo_root,
     )
+    if contract.contract_id == V2119_CONTRACT_ID:
+        try:
+            reservations = runner_reservations_for_v2119(
+                contract,
+                model_id,
+                repo_root=(
+                    Path(__file__).resolve().parents[1]
+                    if authority_repo_root is None
+                    else Path(authority_repo_root).resolve(strict=True)
+                ),
+                raw_root=raw_root,
+                paid=paid,
+            )
+        except PilotV2119ContinuationError as exc:
+            raise PilotOrchestrationError(
+                f"V2.11.9 runner p95 authority transformation failed: {exc}"
+            ) from exc
+        runtime_model = _runtime_model_for_profile(contract.provider_profiles[model_id])
+        if reservations.get(runtime_model) != receipt_binding.get(
+            "reservations", {}
+        ).get(runtime_model):
+            raise PilotOrchestrationError(
+                f"V2.11.9 {model_id} runner authority differs from flat binding"
+            )
+        return reservations
     if contract.contract_id == V2118_CONTRACT_ID:
         try:
             reservations = runner_reservations_for_v2118(
@@ -8917,6 +9311,7 @@ def _write_execution_failure_receipt(
     specs: Sequence[PilotRunSpec],
     paid: GitProvenance | None,
     diagnostic: bool,
+    additional_journals: Sequence[tuple[Path, str, str | None]] = (),
 ) -> Path:
     """Seal one post-reservation failure in an isolated artifact directory."""
 
@@ -8972,6 +9367,15 @@ def _write_execution_failure_receipt(
                         )
                         else contract.canonical_hash
                     ),
+                )
+            )
+    for journal, expected_run_id, expected_contract_hash in additional_journals:
+        if journal.exists():
+            journal_bindings.append(
+                _verified_provider_call_journal_binding(
+                    journal,
+                    expected_run_id=expected_run_id,
+                    expected_contract_hash=expected_contract_hash,
                 )
             )
     return write_failure_receipt(
@@ -11939,6 +12343,28 @@ def _load_verified_projection(
     paid: GitProvenance | None,
     authority_repo_root: str | Path | None = None,
 ) -> tuple[dict[str, Any], Path]:
+    if contract.contract_id == V2119_CONTRACT_ID:
+        if paid is None:
+            raise PilotOrchestrationError(
+                "V2.11.9 current p95 verification requires paid provenance"
+            )
+        repository = (
+            Path(__file__).resolve().parents[1]
+            if authority_repo_root is None
+            else Path(authority_repo_root).resolve(strict=True)
+        )
+        try:
+            return verified_v2119_projection(
+                contract,
+                model_id,
+                repo_root=repository,
+                raw_root=raw_root,
+                paid=paid,
+            )
+        except PilotV2119ContinuationError as exc:
+            raise PilotOrchestrationError(
+                f"V2.11.9 current {model_id} p95 projection failed: {exc}"
+            ) from exc
     if contract.contract_id == V2118_CONTRACT_ID:
         if paid is None:
             raise PilotOrchestrationError(
@@ -15661,7 +16087,39 @@ def _v2_control_gate_ok(
         path = raw_root / stage_id / "parent_import_receipt.json"
         if not path.exists():
             return False
-        if contract.contract_id == V2118_CONTRACT_ID:
+        if contract.contract_id == V2119_CONTRACT_ID:
+            release_root = (
+                Path(__file__).resolve().parents[1]
+                if release_repo_root is None
+                else Path(release_repo_root).resolve(strict=True)
+            )
+            try:
+                verify_v2119_parent_import_receipt(
+                    path,
+                    contract=contract,
+                    repo_root=release_root,
+                    raw_root=raw_root,
+                    paid=paid,
+                )
+                verify_v2119_current_authority(
+                    contract=contract,
+                    repo_root=release_root,
+                    raw_root=raw_root,
+                    paid=paid,
+                )
+                for model_id in ("gpt52_main", "gpt56_diagnostic"):
+                    verified_v2119_projection(
+                        contract,
+                        model_id,
+                        repo_root=release_root,
+                        raw_root=raw_root,
+                        paid=paid,
+                    )
+            except PilotV2119ContinuationError as exc:
+                raise PilotOrchestrationError(
+                    f"V2.11.9 parent-import bundle failed validation: {exc}"
+                ) from exc
+        elif contract.contract_id == V2118_CONTRACT_ID:
             release_root = (
                 Path(__file__).resolve().parents[1]
                 if release_repo_root is None
@@ -16133,6 +16591,7 @@ def _assert_prerequisites(
             raw_root / "run_ledger.json",
             contract_hash=contract.canonical_hash,
             tamper_evident=True,
+            bind_terminal_artifacts=(contract.contract_id == V2119_CONTRACT_ID),
         )
     for prerequisite in stage.prerequisites:
         if v2:
@@ -17104,7 +17563,9 @@ def _d_group_projection(
         if spec.model_id == representative.model_id
         and spec.environment_seed == representative.environment_seed
     )
-    if contract.contract_id == V2118_CONTRACT_ID:
+    if contract.contract_id == V2119_CONTRACT_ID:
+        build_v2119_experiment_d_group_plan(contract, group_specs)
+    elif contract.contract_id == V2118_CONTRACT_ID:
         build_v2118_experiment_d_group_plan(contract, group_specs)
     elif contract.contract_id == V2117_CONTRACT_ID:
         build_v2117_experiment_d_group_plan(contract, group_specs)
@@ -17640,6 +18101,39 @@ def build_v2118_experiment_d_group_plan(
     )
 
 
+def build_v2119_experiment_d_group_plan(
+    contract: PilotContract,
+    specs: Sequence[PilotRunSpec],
+    *,
+    base_config: VerifiedRunConfig | None = None,
+) -> V2114ExperimentDGroupPlan:
+    """Route the unchanged release-binding recovery D matrix through V2.11.8."""
+
+    if contract.contract_id != V2119_CONTRACT_ID:
+        raise PilotOrchestrationError(
+            "V2.11.9 Experiment D requires its exact release-binding recovery contract"
+        )
+    parent_view = replace(contract, contract_id=V2118_CONTRACT_ID)
+    plan = build_v2118_experiment_d_group_plan(
+        parent_view,
+        specs,
+        base_config=base_config,
+    )
+    prefix_config = plan.prefix_config
+    if prefix_config is not None:
+        group_id = (
+            f"{contract.contract_id}--experiment-d--gpt52_main--"
+            f"checkpoint-group--s{plan.representative.environment_seed}"
+        )
+        prefix_config = replace(prefix_config, run_id=f"{group_id}--prefix")
+    return V2114ExperimentDGroupPlan(
+        representative=plan.representative,
+        prefix_config=prefix_config,
+        continuation_specs=plan.continuation_specs,
+        narrative_specs=plan.narrative_specs,
+    )
+
+
 D_PUBLICATION_FAILURE_RESERVE_BYTES = 1_048_576
 D_PUBLICATION_FAILURE_RESERVE_FILENAME = "post_reconciliation_failure_storage.reserve"
 
@@ -17744,6 +18238,18 @@ def _execute_d_seed(
         if reserve_path.exists() or reserve_path.is_symlink():
             reserve_path.unlink()
         return
+    if (
+        contract.contract_id == V2119_CONTRACT_ID
+        and paid is not None
+        and not diagnostic
+    ):
+        for spec in specs:
+            if not run_ledger.is_terminal(spec.run_id):
+                assert_v2119_dispatch_target_fresh(
+                    contract,
+                    raw_root=raw_root,
+                    spec=spec,
+                )
     representative = next(
         (spec for spec in specs if spec.arm_id == "matched-a"),
         specs[0],
@@ -17824,6 +18330,9 @@ def _execute_d_seed(
     budget = _run_budget_from_projection(projection)
     group_dir.mkdir(parents=True, exist_ok=True)
     d_journal_paths: tuple[Path, ...] = ()
+    prefix_journal_path: Path | None = None
+    prefix_journal_run_id: str | None = None
+    prefix_journal_contract_hash: str | None = None
     budget_ledger.reserve(projection)
     budget_reconciled = False
 
@@ -17851,7 +18360,20 @@ def _execute_d_seed(
                 )
             ),
         )
-        if contract.contract_id == V2118_CONTRACT_ID:
+        if contract.contract_id == V2119_CONTRACT_ID:
+            exact_plan = build_v2119_experiment_d_group_plan(
+                contract,
+                specs,
+                base_config=base,
+            )
+            representative = exact_plan.representative
+            assert exact_plan.prefix_config is not None
+            base = exact_plan.prefix_config
+            continuation_specs = dict(exact_plan.continuation_specs)
+            narrative_specs = dict(exact_plan.narrative_specs)
+            registered_treatments = exact_plan.registered_treatments
+            branch_map = dict(V2114_D_BRANCH_ARM_TO_TREATMENT)
+        elif contract.contract_id == V2118_CONTRACT_ID:
             exact_plan = build_v2118_experiment_d_group_plan(
                 contract,
                 specs,
@@ -17992,7 +18514,12 @@ def _execute_d_seed(
                     "Experiment D narrative cells or fixtures differ from the contract"
                 )
         if diagnostic:
-            llm = MultiModelLLM(ScriptedDiagnosticProvider(), num_workers=4)
+            scripted_provider = (
+                _V2119JournaledScriptedProvider()
+                if contract.contract_id == V2119_CONTRACT_ID
+                else ScriptedDiagnosticProvider()
+            )
+            llm = MultiModelLLM(scripted_provider, num_workers=4)
         else:
             profile = contract.provider_profiles[representative.model_id]
             validate_preflight_p95_reservations(
@@ -18012,15 +18539,37 @@ def _execute_d_seed(
                 "contract_hash": base.pilot_contract_hash,
             }
 
-        d_journal_paths = tuple(Path(journal_target(spec)["path"]) for spec in specs)
-        checkpoint = build_pilot_checkpoint(
-            base,
-            llm=llm,
-            budget=budget,
-            env_config_source=DEFAULT_ENV_CONFIG,
-        )
         checkpoint_path = group_dir / "checkpoint.json"
-        _atomic_json(checkpoint_path, checkpoint.to_dict())
+        prefix_journal_path = (
+            raw_root
+            / stage_id
+            / "provider_call_journals"
+            / f"{projection.run_id}--prefix.json"
+        )
+        prefix_journal_run_id = base.run_id
+        prefix_journal_contract_hash = base.pilot_contract_hash
+        d_journal_paths = (
+            prefix_journal_path,
+            *(Path(journal_target(spec)["path"]) for spec in specs),
+        )
+        if contract.contract_id == V2119_CONTRACT_ID:
+            checkpoint = build_experiment_d_shared_prefix_checkpoint(
+                base,
+                llm=llm,
+                budget=budget,
+                env_config_source=DEFAULT_ENV_CONFIG,
+                checkpoint_path=checkpoint_path,
+                call_journal_path=prefix_journal_path,
+                resume=False,
+            )
+        else:
+            checkpoint = build_pilot_checkpoint(
+                base,
+                llm=llm,
+                budget=budget,
+                env_config_source=DEFAULT_ENV_CONFIG,
+            )
+            _atomic_json(checkpoint_path, checkpoint.to_dict())
         continuation = run_pilot_continuations(
             checkpoint,
             llm=llm,
@@ -18274,6 +18823,20 @@ def _execute_d_seed(
                 specs=specs,
                 paid=paid,
                 diagnostic=diagnostic,
+                additional_journals=(
+                    (
+                        (
+                            prefix_journal_path,
+                            prefix_journal_run_id,
+                            prefix_journal_contract_hash,
+                        ),
+                    )
+                    if (
+                        prefix_journal_path is not None
+                        and prefix_journal_run_id is not None
+                    )
+                    else ()
+                ),
             )
             actual = _actual_budget_values(
                 group_dir,
@@ -18346,6 +18909,20 @@ def _execute_d_seed(
                 specs=specs,
                 paid=paid,
                 diagnostic=diagnostic,
+                additional_journals=(
+                    (
+                        (
+                            prefix_journal_path,
+                            prefix_journal_run_id,
+                            prefix_journal_contract_hash,
+                        ),
+                    )
+                    if (
+                        prefix_journal_path is not None
+                        and prefix_journal_run_id is not None
+                    )
+                    else ()
+                ),
             )
             if reserve_path.exists() or reserve_path.is_symlink():
                 reserve_path.unlink()
@@ -18395,6 +18972,20 @@ def _execute_d_seed(
             specs=specs,
             paid=paid,
             diagnostic=diagnostic,
+            additional_journals=(
+                (
+                    (
+                        prefix_journal_path,
+                        prefix_journal_run_id,
+                        prefix_journal_contract_hash,
+                    ),
+                )
+                if (
+                    prefix_journal_path is not None
+                    and prefix_journal_run_id is not None
+                )
+                else ()
+            ),
         )
         actual = _actual_budget_values(
             group_dir,
@@ -18550,6 +19141,176 @@ def _recover_or_stop_interrupted_reservation(
         failure=failure,
     )
     return True
+
+
+def _recover_v2119_interrupted_reservations_before_dispatch(
+    contract: PilotContract,
+    *,
+    stage_id: str,
+    budget_ledger: PilotBudgetLedger,
+    run_ledger: PilotRunLedger,
+) -> tuple[str, ...]:
+    """Reconcile current-stage orphan reservations before provider work.
+
+    The recovery boundary is deliberately stage-scoped.  An out-of-order
+    invocation must not terminalize reservations belonging to a different
+    stage before that stage's own prerequisites have been checked.
+    """
+
+    if contract.contract_id != V2119_CONTRACT_ID:
+        return ()
+    if stage_id not in _scientific_stage_ids(contract):
+        raise PilotOrchestrationError(
+            f"V2.11.9 interrupted-reservation recovery is unsupported for {stage_id}"
+        )
+    budget_rows = budget_ledger.snapshot().get("runs")
+    if not isinstance(budget_rows, Mapping):
+        raise PilotOrchestrationError("V2.11.9 budget rows are malformed")
+    budget_owners: dict[str, tuple[str, tuple[PilotRunSpec, ...]]] = {}
+    for owner_stage in ("experiment-b", "cross-model"):
+        for owner_spec in contract.expand(stage=owner_stage):
+            budget_owners[owner_spec.run_id] = (owner_stage, (owner_spec,))
+    all_d_specs = tuple(contract.expand(stage="experiment-d"))
+    for owner_model, owner_seed in sorted(
+        {(spec.model_id, spec.environment_seed) for spec in all_d_specs}
+    ):
+        owner_group = tuple(
+            spec
+            for spec in all_d_specs
+            if spec.model_id == owner_model and spec.environment_seed == owner_seed
+        )
+        owner_group_id = (
+            f"{contract.contract_id}--experiment-d--{owner_model}--"
+            f"checkpoint-group--s{owner_seed}"
+        )
+        budget_owners[owner_group_id] = ("experiment-d", owner_group)
+
+    # Never repair a different stage as a side effect of this invocation, but
+    # also never ignore its orphan and continue toward a provider.  Such a row
+    # is an ordering/integrity stop that must be resumed at its owning stage.
+    for budget_id, (owner_stage, linked_specs) in budget_owners.items():
+        if owner_stage == stage_id:
+            continue
+        existing = budget_rows.get(budget_id)
+        if not isinstance(existing, Mapping):
+            continue
+        all_linked_terminal = all(
+            run_ledger.is_terminal(spec.run_id) for spec in linked_specs
+        )
+        if existing.get("status") == "reserved" or not all_linked_terminal:
+            raise PilotOrchestrationError(
+                "V2.11.9 found an unresolved reservation outside the requested "
+                f"stage ({owner_stage}: {budget_id}); resume that owning stage "
+                "before any provider catalog or dispatch"
+            )
+    recovered: list[str] = []
+    if stage_id in {"experiment-b", "cross-model"}:
+        for spec in contract.expand(stage=stage_id):
+            existing = budget_rows.get(spec.run_id)
+            if existing is None:
+                continue
+            if (
+                run_ledger.is_terminal(spec.run_id)
+                and existing.get("status") != "reserved"
+            ):
+                continue
+            if run_ledger.is_terminal(spec.run_id):
+                reservation = existing.get("reservation")
+                if not isinstance(reservation, Mapping):
+                    raise PilotOrchestrationError(
+                        f"{spec.run_id} interrupted reservation is malformed"
+                    )
+                failure = {
+                    "error_type": "InterruptedReservationAfterITT",
+                    "message": (
+                        "a terminal ITT row retained an unreconciled reservation; "
+                        "the conservative reservation was charged before stopping"
+                    ),
+                    "accounting_basis": "unreconciled-conservative-reservation",
+                }
+                budget_ledger.finalize(
+                    spec.run_id,
+                    status="integrity-stopped",
+                    cost_usd=float(reservation["cost_usd"]),
+                    completions=int(reservation["completions"]),
+                    storage_bytes=int(reservation["storage_bytes"]),
+                    failure=failure,
+                )
+            else:
+                _recover_or_stop_interrupted_reservation(
+                    budget_ledger,
+                    run_ledger,
+                    spec,
+                )
+            recovered.append(spec.run_id)
+
+    if stage_id == "experiment-d":
+        d_specs = all_d_specs
+        for model_id, seed in sorted(
+            {(spec.model_id, spec.environment_seed) for spec in d_specs}
+        ):
+            group = tuple(
+                spec
+                for spec in d_specs
+                if spec.model_id == model_id and spec.environment_seed == seed
+            )
+            group_id = (
+                f"{contract.contract_id}--experiment-d--{model_id}--"
+                f"checkpoint-group--s{seed}"
+            )
+            existing = budget_rows.get(group_id)
+            if existing is None:
+                continue
+            all_terminal = all(run_ledger.is_terminal(spec.run_id) for spec in group)
+            if all_terminal and existing.get("status") != "reserved":
+                continue
+            failure = {
+                "error_type": (
+                    "InterruptedReservation"
+                    if existing.get("status") == "reserved"
+                    else "BudgetFinalizedBeforeITT"
+                ),
+                "message": (
+                    "a prior process created shared Experiment D budget state "
+                    "without an exact terminal ITT group; no redispatch is permitted"
+                ),
+                "model_id": model_id,
+                "environment_seed": seed,
+                "provider_dispatch_started": False,
+                "stop_origin": "pre-catalog-interrupted-reservation-recovery",
+            }
+            if existing.get("status") == "reserved":
+                reservation = existing.get("reservation")
+                if not isinstance(reservation, Mapping):
+                    raise PilotOrchestrationError(
+                        f"{group_id} interrupted reservation is malformed"
+                    )
+                failure["accounting_basis"] = "unreconciled-conservative-reservation"
+                budget_ledger.finalize(
+                    group_id,
+                    status="integrity-stopped",
+                    cost_usd=float(reservation["cost_usd"]),
+                    completions=int(reservation["completions"]),
+                    storage_bytes=int(reservation["storage_bytes"]),
+                    failure=failure,
+                )
+            nonterminal = tuple(
+                spec for spec in group if not run_ledger.is_terminal(spec.run_id)
+            )
+            if nonterminal:
+                run_ledger.finalize_many(
+                    [
+                        {
+                            "run_id": spec.run_id,
+                            "status": "integrity-stopped",
+                            "artifact": None,
+                            "failure": failure,
+                        }
+                        for spec in nonterminal
+                    ]
+                )
+            recovered.append(group_id)
+    return tuple(sorted(recovered))
 
 
 def _assert_projection_matrix_fits(
@@ -24054,6 +24815,266 @@ def _execute_v2114_preflight_authority_import_stage(
         )
 
 
+def _v2119_parent_import_projection(spec: PilotRunSpec) -> RunProjection:
+    return RunProjection(
+        run_id=spec.run_id,
+        stage_bucket=spec.budget_bucket,
+        cost_usd=0.0,
+        completions=0,
+        storage_bytes=5_000_000,
+        basis={
+            "method": "v2.11.9-release-binding-recovery-import",
+            "artifact_headroom_bytes": 5_000_000,
+            "provider_construction": False,
+            "provider_calls": 0,
+            "failed_v2118_terminal_rows_bound": 87,
+            "mapped_v2115_scheduled_cells": 86,
+            "imported_parent_terminal_cells_as_child_rows": 0,
+            "imported_effect_cells": 0,
+            "raw_tree_copied": False,
+            "hosted_completion_cap_counted": False,
+        },
+    )
+
+
+def _execute_v2119_parent_import_stage(
+    contract: PilotContract,
+    specs: Sequence[PilotRunSpec],
+    *,
+    raw_root: Path,
+    repo_root: Path,
+    failed_repo_root: str | Path | None,
+    authority_repo_root: str | Path | None,
+    paid: GitProvenance,
+    run_ledger: PilotRunLedger,
+    budget_ledger: PilotBudgetLedger,
+) -> dict[str, Any]:
+    if (
+        contract.contract_id != V2119_CONTRACT_ID
+        or len(specs) != 1
+        or specs[0].stage_id != "parent-import"
+        or specs[0].execution_mode != "parent_authority_import"
+    ):
+        raise PilotOrchestrationError(
+            "V2.11.9 parent import requires one exact zero-provider cell"
+        )
+    if failed_repo_root is None or authority_repo_root is None:
+        raise PilotOrchestrationError(
+            "V2.11.9 parent-import requires --failed-repo-root pointing to "
+            "the immutable V2.11.8 no-go checkout and --authority-repo-root "
+            "pointing to the immutable V2.11.5 authority checkout"
+        )
+    if len(contract.expand()) != 87 or any(
+        stage_id in contract.stage_ids for stage_id in ("experiment-a", "experiment-c")
+    ):
+        raise PilotOrchestrationError(
+            "V2.11.9 recovery denominator must be exactly 87 rows with no A/C"
+        )
+    existing_receipt = _stage_receipt_path(raw_root, "parent-import")
+    if existing_receipt.exists() and run_ledger.is_terminal(specs[0].run_id):
+        verified_stage = _verify_v2_stage_receipt(
+            contract,
+            "parent-import",
+            _read_json(existing_receipt),
+            raw_root=raw_root,
+            ledger=run_ledger,
+            paid=paid,
+            authority_repo_root=repo_root,
+        )
+        if run_ledger.status(specs[0].run_id) != "complete":
+            raise PilotOrchestrationError(
+                "V2.11.9 terminal parent-import no-go cannot be resumed"
+            )
+        projection = _v2119_parent_import_projection(specs[0])
+        budget_row = budget_ledger.snapshot()["runs"].get(specs[0].run_id)
+        if (
+            not isinstance(budget_row, Mapping)
+            or budget_row.get("reservation") != projection.to_dict()
+            or budget_row.get("status") not in {"reserved", "complete"}
+        ):
+            raise PilotOrchestrationError(
+                "V2.11.9 completed parent import has an unrecoverable budget row"
+            )
+        if budget_row.get("status") == "reserved":
+            budget_ledger.finalize(
+                specs[0].run_id,
+                status="complete",
+                cost_usd=0.0,
+                completions=0,
+                storage_bytes=_directory_size(raw_root / "parent-import"),
+            )
+        recovered = budget_ledger.snapshot()["runs"][specs[0].run_id]
+        actual = recovered.get("actual")
+        if (
+            recovered.get("status") != "complete"
+            or not isinstance(actual, Mapping)
+            or actual.get("cost_usd") != 0.0
+            or actual.get("completions") != 0
+            or not isinstance(actual.get("storage_bytes"), int)
+            or actual["storage_bytes"] > projection.storage_bytes
+        ):
+            raise PilotOrchestrationError(
+                "V2.11.9 recovered parent-import budget actual drifted"
+            )
+        return verified_stage
+    spec = specs[0]
+    projection = _v2119_parent_import_projection(spec)
+    budget_row = budget_ledger.snapshot()["runs"].get(spec.run_id)
+    if budget_row is None:
+        budget_ledger.reserve(projection)
+    elif budget_row.get("reservation") != projection.to_dict():
+        raise PilotOrchestrationError("V2.11.9 parent-import reservation drifted")
+    terminal_path = raw_root / "parent-import/summaries" / f"{spec.run_id}.json"
+    try:
+        receipt = build_v2119_parent_import_receipt(
+            contract=contract,
+            repo_root=repo_root,
+            raw_root=raw_root,
+            failed_repo_root=failed_repo_root,
+            authority_repo_root=authority_repo_root,
+            paid=paid,
+        )
+        verified = verify_v2119_parent_import_receipt(
+            raw_root / "parent-import/parent_import_receipt.json",
+            contract=contract,
+            repo_root=repo_root,
+            raw_root=raw_root,
+            paid=paid,
+        )
+        authority = verify_v2119_current_authority(
+            contract=contract,
+            repo_root=repo_root,
+            raw_root=raw_root,
+            paid=paid,
+        )
+        projections = {
+            model_id: verified_v2119_projection(
+                contract,
+                model_id,
+                repo_root=repo_root,
+                raw_root=raw_root,
+                paid=paid,
+            )[0]["integrity"]["content_sha256"]
+            for model_id in ("gpt52_main", "gpt56_diagnostic")
+        }
+        payload = {
+            "metrics": {},
+            "gate_evidence": {
+                "parent_import_content_sha256": verified["integrity"]["content_sha256"],
+                "current_authority_content_sha256": authority["integrity"][
+                    "content_sha256"
+                ],
+                "projection_content_sha256_by_model": projections,
+                "failed_v2118_terminal_rows_bound": 87,
+                "mapped_v2115_scheduled_rows": 86,
+            },
+            "provider_construction": False,
+            "provider_calls": 0,
+            "imported_effect_cells": 0,
+            "failed_terminal_rows_imported_as_child_rows": 0,
+            "authority_terminal_rows_imported_as_child_rows": 0,
+            "claim_boundary": verified["claim_boundary"],
+        }
+        if terminal_path.exists():
+            terminal = _load_v2_terminal_summary(
+                contract, spec, terminal_path, raw_root=raw_root, paid=paid
+            )
+            if terminal.get("payload") != payload:
+                raise PilotOrchestrationError(
+                    "V2.11.9 parent terminal differs on resume"
+                )
+        else:
+            write_terminal_summary(
+                terminal_path,
+                contract=contract,
+                run_spec=spec,
+                resolved_git_commit=paid.head_commit,
+                git_tag=paid.git_tag,
+                payload=payload,
+                scientific_evidence=False,
+                diagnostic_only=False,
+                evidence_scope="preregistered_dual_root_authority_import",
+            )
+        if run_ledger.status(spec.run_id) == "scheduled":
+            run_ledger.finalize(
+                spec.run_id, status="complete", artifact=str(terminal_path)
+            )
+        stage_receipt = _write_stage_receipt(
+            contract,
+            "parent-import",
+            raw_root=raw_root,
+            ledger=run_ledger,
+            status="complete",
+            artifacts={
+                "parent_import_receipt": str(
+                    raw_root / "parent-import/parent_import_receipt.json"
+                ),
+                "current_authority": str(v2119_current_authority_path(raw_root)),
+                "terminal_summary": str(terminal_path),
+                "provider_calls": 0,
+                "provider_construction": False,
+            },
+            paid=paid,
+            authority_repo_root=repo_root,
+        )
+        budget_ledger.finalize(
+            spec.run_id,
+            status="complete",
+            cost_usd=0.0,
+            completions=0,
+            storage_bytes=_directory_size(raw_root / "parent-import"),
+        )
+        return _read_json(stage_receipt)
+    except Exception as exc:
+        if run_ledger.status(spec.run_id) == "complete":
+            raise
+        failure = {
+            "error_type": "V2119ParentImportIntegrityError",
+            "cause_type": type(exc).__name__,
+            "message": str(exc),
+            "provider_construction": False,
+            "provider_calls": 0,
+        }
+        run_ledger.finalize(
+            spec.run_id,
+            status="integrity-stopped",
+            artifact=None,
+            failure=failure,
+        )
+        _propagate_stage_no_go(
+            contract,
+            source_stage="parent-import",
+            ledger=run_ledger,
+            failure=failure,
+        )
+        stage_receipt = _write_stage_receipt(
+            contract,
+            "parent-import",
+            raw_root=raw_root,
+            ledger=run_ledger,
+            status="integrity-stopped",
+            failure=failure,
+            paid=paid,
+            authority_repo_root=repo_root,
+        )
+        budget_current = budget_ledger.snapshot()["runs"].get(spec.run_id)
+        if (
+            isinstance(budget_current, Mapping)
+            and budget_current.get("status") == "reserved"
+        ):
+            budget_ledger.finalize(
+                spec.run_id,
+                status="integrity-stopped",
+                cost_usd=0.0,
+                completions=0,
+                storage_bytes=_directory_size(raw_root / "parent-import"),
+                failure=failure,
+            )
+        raise PilotOrchestrationError(
+            f"V2.11.9 parent import failed; receipt={stage_receipt}"
+        ) from exc
+
+
 def _v2118_parent_import_projection(spec: PilotRunSpec) -> RunProjection:
     return RunProjection(
         run_id=spec.run_id,
@@ -27020,6 +28041,10 @@ def _execute_stage_locked(
     """
 
     contract = load_pilot_contract(contract_path)
+    if contract.contract_id == V2119_CONTRACT_ID and stage_id == "parent-import":
+        # Bind the failed V2.11.8 checkout and independent V2.11.5 authority
+        # before release verification, ledger creation, or credential access.
+        require_v2119_provider_keys_absent()
     if contract.contract_id == V2118_CONTRACT_ID and stage_id == "parent-import":
         # Bind the failed V2.11.7 checkout and independent V2.11.5 authority
         # before release verification, ledger creation, or credential access.
@@ -27045,6 +28070,23 @@ def _execute_stage_locked(
         if repo_root is not None
         else Path(__file__).resolve().parents[1]
     )
+    if contract.contract_id == V2119_CONTRACT_ID and stage_id == "parent-import":
+        if parent_repo_root is None or authority_repo_root is None:
+            raise PilotOrchestrationError(
+                "V2.11.9 source-manifest replay requires both immutable source roots"
+            )
+        try:
+            validate_v2119_source_manifest(
+                contract=contract,
+                repo_root=repository,
+                failed_repo_root=parent_repo_root,
+                authority_repo_root=authority_repo_root,
+            )
+        except PilotV2119ContinuationError as exc:
+            raise PilotOrchestrationError(
+                "V2.11.9 source-manifest replay failed before release-attestation, "
+                f"ledger, budget, or receipt writes: {exc}"
+            ) from exc
     paid = verify_paid_provenance(
         contract,
         repo_root=repository,
@@ -27080,6 +28122,7 @@ def _execute_stage_locked(
         root / "run_ledger.json",
         contract_hash=contract.canonical_hash,
         tamper_evident=contract.schema_version.endswith("-v2"),
+        bind_terminal_artifacts=(contract.contract_id == V2119_CONTRACT_ID),
     )
     # Register the complete preregistered denominator before the first stage.
     # Later no-go propagation therefore terminalizes future cells instead of
@@ -27120,6 +28163,25 @@ def _execute_stage_locked(
             )
         )
     if stage_id == "parent-import":
+        if contract.contract_id == V2119_CONTRACT_ID:
+            parent_budget_ledger = PilotBudgetLedger(
+                root / "budget_ledger.json",
+                contract_hash=contract.canonical_hash,
+                caps=_budget_caps(contract),
+                tamper_evident=True,
+                parent_debit=_parent_budget_debit(contract),
+            )
+            return _execute_v2119_parent_import_stage(
+                contract,
+                specs,
+                raw_root=root,
+                repo_root=repository,
+                failed_repo_root=parent_repo_root,
+                authority_repo_root=authority_repo_root,
+                paid=paid,
+                run_ledger=run_ledger,
+                budget_ledger=parent_budget_ledger,
+            )
         if contract.contract_id == V2118_CONTRACT_ID:
             parent_budget_ledger = PilotBudgetLedger(
                 root / "budget_ledger.json",
@@ -27509,6 +28571,44 @@ def _execute_stage_locked(
             receipt_path=evaluator_receipt_path,
         )
     try:
+        if (
+            contract.contract_id == V2119_CONTRACT_ID
+            and stage_id in _scientific_stage_ids(contract)
+        ):
+            verify_v2119_scientific_dispatch_acceptance(
+                root / V2119_ACCEPTANCE_FILENAME,
+                contract=contract,
+                repo_root=repository,
+                raw_root=root,
+                paid=paid,
+                run_ledger=run_ledger,
+                budget_ledger=budget_ledger,
+            )
+            interrupted = _recover_v2119_interrupted_reservations_before_dispatch(
+                contract,
+                stage_id=stage_id,
+                budget_ledger=budget_ledger,
+                run_ledger=run_ledger,
+            )
+            if interrupted:
+                raise PilotOrchestrationError(
+                    "V2.11.9 recovered interrupted reservations before provider "
+                    "catalog construction; no redispatch is permitted: "
+                    + ", ".join(interrupted[:10])
+                )
+            audit_v2119_scientific_stage_namespace(
+                contract,
+                raw_root=root,
+                stage_id=stage_id,
+                run_ledger=run_ledger,
+            )
+            verify_v2119_terminal_scientific_artifacts(
+                contract,
+                repo_root=repository,
+                raw_root=root,
+                run_ledger=run_ledger,
+                paid=paid,
+            )
         if (
             contract.contract_id == V2118_CONTRACT_ID
             and stage_id in _scientific_stage_ids(contract)
@@ -27925,6 +29025,25 @@ def _execute_stage_locked(
                     authority_repo_root=repository,
                 )
             try:
+                if contract.contract_id == V2119_CONTRACT_ID:
+                    _assert_v2119_local_release_guard(
+                        contract,
+                        repo_root=repository,
+                        paid=paid,
+                    )
+                    audit_v2119_scientific_stage_namespace(
+                        contract,
+                        raw_root=root,
+                        stage_id=stage_id,
+                        run_ledger=run_ledger,
+                    )
+                    verify_v2119_terminal_scientific_artifacts(
+                        contract,
+                        repo_root=repository,
+                        raw_root=root,
+                        run_ledger=run_ledger,
+                        paid=paid,
+                    )
                 _execute_d_seed(
                     contract,
                     group,
@@ -27936,6 +29055,39 @@ def _execute_stage_locked(
                     verify_bound_inputs=True,
                     authority_repo_root=repository,
                 )
+            except (PilotV2119ContinuationError, PilotOrchestrationError) as exc:
+                failure = {
+                    "error_type": "PreDispatchIntegrityStop",
+                    "cause_type": type(exc).__name__,
+                    "message": str(exc),
+                    "model_id": model_id,
+                    "environment_seed": seed,
+                    "provider_dispatch_started": False,
+                    "stop_origin": "experiment-d-pre-provider-revalidation",
+                }
+                nonterminal_specs = tuple(
+                    spec for spec in specs if not run_ledger.is_terminal(spec.run_id)
+                )
+                if nonterminal_specs:
+                    run_ledger.finalize_many(
+                        [
+                            {
+                                "run_id": spec.run_id,
+                                "status": "integrity-stopped",
+                                "artifact": None,
+                                "failure": failure,
+                            }
+                            for spec in nonterminal_specs
+                        ]
+                    )
+                _propagate_stage_no_go(
+                    contract,
+                    source_stage=stage_id,
+                    ledger=run_ledger,
+                    failure=failure,
+                    status="integrity-stopped",
+                )
+                break
             except PilotBudgetError as exc:
                 # ``_execute_d_seed`` reserves before constructing a provider.
                 # A reservation rejection therefore has zero dispatches for
@@ -28037,6 +29189,49 @@ def _execute_stage_locked(
                 },
             )
             continue
+        if contract.contract_id == V2119_CONTRACT_ID:
+            try:
+                _assert_v2119_local_release_guard(
+                    contract,
+                    repo_root=repository,
+                    paid=paid,
+                )
+                audit_v2119_scientific_stage_namespace(
+                    contract,
+                    raw_root=root,
+                    stage_id=stage_id,
+                    run_ledger=run_ledger,
+                )
+                verify_v2119_terminal_scientific_artifacts(
+                    contract,
+                    repo_root=repository,
+                    raw_root=root,
+                    run_ledger=run_ledger,
+                    paid=paid,
+                )
+            except Exception as exc:
+                failure = {
+                    "error_type": "PreDispatchIntegrityStop",
+                    "cause_type": type(exc).__name__,
+                    "message": str(exc),
+                    "run_id": spec.run_id,
+                    "provider_dispatch_started": False,
+                    "stop_origin": "actor-pre-provider-revalidation",
+                }
+                run_ledger.stop_pending(
+                    specs,
+                    status="integrity-stopped",
+                    failure=failure,
+                )
+                _propagate_stage_no_go(
+                    contract,
+                    source_stage=stage_id,
+                    ledger=run_ledger,
+                    failure=failure,
+                    status="integrity-stopped",
+                )
+                stop_stage = True
+                break
         if _recover_or_stop_interrupted_reservation(
             budget_ledger,
             run_ledger,
@@ -28199,6 +29394,12 @@ def _execute_stage_locked(
                     failure=budget_failure,
                 )
             elif spec.execution_mode in {"actor_run", "matched_duplicate"}:
+                if contract.contract_id == V2119_CONTRACT_ID:
+                    assert_v2119_dispatch_target_fresh(
+                        contract,
+                        raw_root=root,
+                        spec=spec,
+                    )
                 manifest, _, _ = _execute_actor_run(
                     contract,
                     spec,
@@ -28662,7 +29863,12 @@ def run_development_fake_matrix(
     development_stages = (
         ("experiment-d", "experiment-b", "cross-model")
         if contract.contract_id
-        in {V2116_CONTRACT_ID, V2117_CONTRACT_ID, V2118_CONTRACT_ID}
+        in {
+            V2116_CONTRACT_ID,
+            V2117_CONTRACT_ID,
+            V2118_CONTRACT_ID,
+            V2119_CONTRACT_ID,
+        }
         else (
             _contract_core_stage_ids(contract)
             if contract.contract_id in LOCAL_FIRST_PARENT_CONTRACT_IDS
@@ -28684,13 +29890,16 @@ def run_development_fake_matrix(
         root / "run_ledger.json",
         contract_hash=contract.canonical_hash,
         tamper_evident=contract.schema_version.endswith("-v2"),
+        bind_terminal_artifacts=(contract.contract_id == V2119_CONTRACT_ID),
     )
     run_ledger.register(selected)
     if not resume and any(
         run_ledger.status(spec.run_id) != "scheduled" for spec in selected
     ):
         raise PilotOrchestrationError("development matrix already exists; use --resume")
-    if contract.contract_id == V2118_CONTRACT_ID:
+    if contract.contract_id == V2119_CONTRACT_ID:
+        development_parent_debit = parent_budget_debit_for_v2119(contract)
+    elif contract.contract_id == V2118_CONTRACT_ID:
         development_parent_debit = parent_budget_debit_for_v2118(contract)
     elif contract.contract_id == V2117_CONTRACT_ID:
         development_parent_debit = parent_budget_debit_for_v2117(contract)
@@ -28741,6 +29950,8 @@ def run_development_fake_matrix(
     )
     for spec in actor_specs:
         if run_ledger.is_terminal(spec.run_id):
+            if contract.contract_id == V2119_CONTRACT_ID:
+                run_ledger.verify_terminal_artifact_binding(spec.run_id)
             continue
         if _recover_or_stop_interrupted_reservation(budget_ledger, run_ledger, spec):
             continue
@@ -28819,6 +30030,15 @@ def run_development_fake_matrix(
         {(spec.stage_id, spec.model_id, spec.environment_seed) for spec in d_specs}
     )
     for stage_id, model_id, seed in d_groups:
+        if contract.contract_id == V2119_CONTRACT_ID:
+            for spec in d_specs:
+                if (
+                    spec.stage_id == stage_id
+                    and spec.model_id == model_id
+                    and spec.environment_seed == seed
+                    and run_ledger.is_terminal(spec.run_id)
+                ):
+                    run_ledger.verify_terminal_artifact_binding(spec.run_id)
         _execute_d_seed(
             contract,
             tuple(
