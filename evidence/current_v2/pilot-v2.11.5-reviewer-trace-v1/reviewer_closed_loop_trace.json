@@ -1,0 +1,1096 @@
+{
+  "artifact_id": "finevo-pilot-v2.11.5--reviewer-closed-loop--experiment-a--gpt52_main--full--s1099057501--a0--t8",
+  "claim_boundary": {
+    "allowed": [
+      "The sealed logs expose an observed state-retrieval-decision-outcome-memory-update path at the fixed coordinate.",
+      "The t=8 episode was ingested as harmful compliance, the selected rule was retired, and that episode was retrieved at t=9.",
+      "The frozen source provider-call records describe historical execution; this publication build made zero provider calls."
+    ],
+    "forbidden": [
+      "The selected semantic rule caused the action or the macro-state change.",
+      "The verifier is effective, robust, representative, or hallucination-free.",
+      "The t=9 action change was caused by retirement of the rule.",
+      "Experiment A passed or its immutable no-go was reversed.",
+      "This publication-time selection was preregistered."
+    ],
+    "human_prior_case_awareness_disclosed": true,
+    "no_causal_attribution": true,
+    "not_representative": true,
+    "selection_not_preregistered": true,
+    "single_observational_trace": true,
+    "stage_decision_unchanged": true
+  },
+  "evidence_scope": {
+    "descriptive_only": true,
+    "diagnostic_only": true,
+    "effectiveness_evidence": false,
+    "frozen_source_provider_call_scope": "historical-observations-read-from-sealed-logs",
+    "publication_provider_calls": 0,
+    "stage_authoritative": false
+  },
+  "failure_reason": null,
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "content_sha256": "414e31d9e1249d074dea08bcea5ed8fa197e40dda6afd968d5e79f4fa14b8497"
+  },
+  "link_checks": {
+    "all_pass": true,
+    "checks": {
+      "action_bound": true,
+      "context_bound": true,
+      "next_prompt_bound": true,
+      "next_retrieval_bound": true,
+      "next_rule_absent": true,
+      "next_state_bound": true,
+      "post_macro_bound": true,
+      "pre_macro_bound": true,
+      "prompt_bound": true,
+      "provider_bound": true,
+      "retirement_bound": true,
+      "retrieval_bound": true,
+      "rule_bound": true,
+      "shock_bound": true,
+      "unique_rows": true,
+      "utility_bound": true,
+      "verifier_ingested_outcome": true
+    }
+  },
+  "provenance": {
+    "central_loader_validation": {
+      "budget_snapshot_sha256": "7bf62a39063a460e6579a325907c9165781e3a506983735ee5c1b09568c19ee4",
+      "config_sha256": "8793ff3bcff405c28ff5f85e4466541a3663024f14281e9a9bfb67863c982597",
+      "record_counts": {
+        "actions": 48,
+        "api_usage": 64,
+        "context_trace": 48,
+        "decision_snapshots": 48,
+        "episodes": 48,
+        "error_rule_injections": 0,
+        "errors": 0,
+        "macro_steps": 12,
+        "semantic_proposals": 16,
+        "semantic_rule_events": 132,
+        "semantic_rules": 14,
+        "shock_events": 12,
+        "utility_ledger": 48
+      },
+      "records_sha256": "6161fad92a389c55fedc6bc659b772aa1eb25a01cbc3d7e63b19afda4460a0d5",
+      "result_complete": true,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501",
+      "runner_schema_version": "verified-simulation-runner-v3",
+      "summary_sha256": "905fdca5b84f246159eae53ecd211352c43b066f5c390c0d781d8bf8a452145f",
+      "validation_status_sha256": "da17477a76ef036e0bb7a4af5e0df30669aefef5a9249001b2bc3a0a87560692"
+    },
+    "contract_canonical_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+    "contract_file_sha256": "b96438430231f0c46fd6c5f15ba749713534feb15f964c496aa02606cf11103b",
+    "contract_id": "finevo-pilot-v2.11.5",
+    "publisher": {
+      "git_commit": "5864bdab362f7d82491bee69edcefd40c564248a",
+      "implementation_base_commit": "34134f2624833e45f0e1f559332b0d11ea1942d6",
+      "publication_provider_calls": 0,
+      "publisher_id": "publication-consumer:reviewer-trace-v1",
+      "required_tracked_head_blobs": {
+        "docs/reviewer_closed_loop_trace_v1.md": "317db7b6c06ceb605d934c3d0ed9908aaeca4cb1",
+        "requirements.txt": "080522e2e9bab3460b2642a51a8f6dc1816ac669",
+        "schemas/reviewer_closed_loop_trace_v1.schema.json": "423ae5f6878044b433878faf23b2a30d3f3248f6",
+        "scripts/build_v2115_reviewer_trace.py": "0e7b5837ff43543a8a50c40a4f2392646277aa31",
+        "tests/test_reviewer_closed_loop_trace.py": "5014bdf1bb3a3e1ed1c667209939247fce2493ea",
+        "verified_memory/reviewer_closed_loop_trace.py": "b87319f1cafa14f93a2ac91507b349cd441c58a8"
+      },
+      "tracked_worktree_clean": true
+    },
+    "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501",
+    "science_source": {
+      "detached_head": true,
+      "git_tag": "pilot-v2.11.5-science",
+      "resolved_git_commit": "2351ac2283f9fedb9dce70067174020be56ed9cc",
+      "source_id": "sealed-science:pilot-v2.11.5-science",
+      "tag_object": "bccfb13cee7d592470d1873cfacc3b12bed38be4",
+      "tracked_worktree_clean": true
+    },
+    "selected_run_complete": true,
+    "selected_run_manifest_sha256": "b0589053dbdbee7900050c135266809481e7c0307e96b8434e2a16e5b33ad35f",
+    "selected_run_scientific_evidence": true,
+    "selected_run_validation_status": "pass",
+    "stage_complete_runs": 17,
+    "stage_denominator_terminal": true,
+    "stage_failed_runs": 3,
+    "stage_go": false,
+    "stage_registered_runs": 20,
+    "stage_scientific_matrix_complete": false,
+    "stage_status": "complete-with-no-go"
+  },
+  "publication_provider_calls": 0,
+  "schema_version": "finevo-reviewer-closed-loop-trace-v1",
+  "selection_policy": {
+    "agent_rule": "minimum-agent-id",
+    "arm_rule": "full-mechanism-arm",
+    "contract_pointers": {
+      "recovery": "/shocks/registered-rate-shock/schedule/2/start",
+      "seed": "/seeds/sets/main/0",
+      "stage": "/stages/4"
+    },
+    "decision_t_rule": "start-of-first-registered-recovery-interval",
+    "excluded_selection_fields": [
+      "actions",
+      "clipping",
+      "macro_deltas",
+      "parse_or_provider_status",
+      "retrieval_scores_or_order",
+      "rule_events_or_status",
+      "selected_rule_ids",
+      "utility_or_utility_advantage",
+      "wealth"
+    ],
+    "fallback_policy": "none-emit-unavailable",
+    "human_prior_case_awareness": true,
+    "model_rule": "sole-primary-model-in-experiment-a",
+    "narrative_rule": "none",
+    "next_t_rule": "decision-t-plus-one",
+    "outcome_fields_used_by_selector": false,
+    "policy_id": "finevo-contract-indexed-first-recovery-trace-v1",
+    "policy_sha256": "0d574fa0d00c02b109872ed2169da1e7c614caae9b712d83850e8b7e20142a77",
+    "preregistered": false,
+    "seed_rule": "first-contract-main-seed",
+    "selected_coordinates": {
+      "agent_id": 0,
+      "arm_id": "full",
+      "decision_t": 8,
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "next_decision_t": 9,
+      "outcome_t": 9,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501",
+      "seed": 1099057501,
+      "stage_id": "experiment-a",
+      "utility_profile_id": "stage0-selected"
+    },
+    "selection_timing": "publication-time-post-seal",
+    "stage_rule": "experiment-a",
+    "utility_rule": "stage0-selected"
+  },
+  "source_files": [
+    {
+      "binding_kind": "frozen-hardcoded-file-hash",
+      "file_sha256": "b96438430231f0c46fd6c5f15ba749713534feb15f964c496aa02606cf11103b",
+      "relative_path": "experiments/pilot_v2_11_5.yaml",
+      "source_id": "contract"
+    },
+    {
+      "binding_kind": "frozen-hardcoded-file-and-content-hash",
+      "file_sha256": "8193f3449663f63c9cf0c881ee5e7759d2682f320f214c4941040489c81734f9",
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/stage_receipt.json",
+      "source_id": "experiment_a_stage_receipt"
+    },
+    {
+      "binding_kind": "stage-receipt-and-hardcoded-file-hash",
+      "file_sha256": "b0589053dbdbee7900050c135266809481e7c0307e96b8434e2a16e5b33ad35f",
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/manifest.json",
+      "source_id": "selected_run_manifest"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "77c29a2f788648f1e7319f533845854da4a3d4239fe9b85e2b4027177fa6357a",
+      "line_count": 1,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/config.json",
+      "source_id": "config"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "fced4c5053b72c6186a1bfdbd1660ddb14c068c7746e792f2c0e6b5cb667ff9f",
+      "line_count": 1,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/provenance.json",
+      "source_id": "provenance"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "59d0c6931b37bbceb954425db0d41d1208dea2f8bf340ee2267fae53b74046de",
+      "line_count": 1,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/schemas.json",
+      "source_id": "schemas"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "2c28c6b59d8fd4282cccca205777d929c3ea2e32573570a8590c1ae26302dea4",
+      "line_count": 48,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/streams/actions.jsonl",
+      "source_id": "actions"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "933cddf143c0364551920862b0b98bf826d8cdf88ba88bd65f738951409d2eec",
+      "line_count": 64,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/streams/api_usage.jsonl",
+      "source_id": "api_usage"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "4d3fa157d7109634e8b2de316d9fe4614fbd66e26133380798bc70f85fd904c8",
+      "line_count": 48,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/streams/context_trace.jsonl",
+      "source_id": "context_trace"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "e38c9f92fb0062fc6259326cde7f438cf9968c91d3b3d224fd0de32caba8fe7a",
+      "line_count": 48,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/streams/decision_snapshots.jsonl",
+      "source_id": "decision_snapshots"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "9f107a875c90fa8a3ec9216965dfac8ebcd4337273ce214cbc71080bc4e57013",
+      "line_count": 48,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/streams/episodes.jsonl",
+      "source_id": "episodes"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "4812ae869f6b84c0efd81b43d9ca276eaa27c1b3fcfd11a43e22dde22c3294ac",
+      "line_count": 12,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/streams/macro_steps.jsonl",
+      "source_id": "macro_steps"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "ebc2e7c5a4124a1898c7a1386ef7f26aa2762577a7d3a2824d7f3e9087fa7d33",
+      "line_count": 16,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/streams/semantic_proposals.jsonl",
+      "source_id": "semantic_proposals"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "6fb57a2bbdf2a7cf72669975e3ef53732bfc4df54cf3703a8533ac9835663c66",
+      "line_count": 132,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/streams/semantic_rule_events.jsonl",
+      "source_id": "semantic_rule_events"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "9f7d88c497e0e80d14203ec7c69ca51b54edd808c6bd378509867dcfea82424f",
+      "line_count": 14,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/streams/semantic_rules.jsonl",
+      "source_id": "semantic_rules"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "eb13d44e90d83166e67ec95392eab1e4137551c3d94c75bb1b2f73c9f51ac1b1",
+      "line_count": 12,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/streams/shock_events.jsonl",
+      "source_id": "shock_events"
+    },
+    {
+      "binding_kind": "selected-run-manifest",
+      "file_sha256": "369f75ddf237a03d71543c3a67cae6b392b5ade61fbc540bed0b4808be174775",
+      "line_count": 48,
+      "relative_path": "experiment_results/pilot-v2.11.5/raw/experiment-a/runs/finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501/streams/utility_ledger.jsonl",
+      "source_id": "utility_ledger"
+    }
+  ],
+  "source_records": [
+    {
+      "copied_to": [
+        "/trace/retrieval/selected_rules/0"
+      ],
+      "line_number": 1,
+      "native_record_hash": null,
+      "native_record_id": "family-757c248bc4729875ca6b:v1",
+      "raw_line_sha256": "e02411f862bca36d4209b9553509c6a511cbfdbf2fda8f43b031e35127e7c7ff",
+      "selector": {
+        "agent_id": 0,
+        "rule_id": "family-757c248bc4729875ca6b:v1"
+      },
+      "source_id": "semantic_proposals"
+    },
+    {
+      "copied_to": [
+        "/trace/retrieval/selected_rules/0/proposal_frozen_source_provider_call"
+      ],
+      "line_number": 13,
+      "native_record_hash": null,
+      "native_record_id": null,
+      "raw_line_sha256": "ba23a3f1467a3c2f0a4140ec0d6e357af269f06e0a53ef063c23a5e1180c8ed1",
+      "selector": {
+        "agent_id": 0,
+        "call_kind": "semantic",
+        "decision_t": 3
+      },
+      "source_id": "api_usage"
+    },
+    {
+      "copied_to": [
+        "/trace/retrieval/selected_rules/0"
+      ],
+      "line_number": 10,
+      "native_record_hash": null,
+      "native_record_id": "rle-000003-5ef5181a2584",
+      "raw_line_sha256": "e3e93199a91784d138c9d2f0ec0fb2f934e370ee0f606617938a202901978e92",
+      "selector": {
+        "event_id": "rle-000003-5ef5181a2584"
+      },
+      "source_id": "semantic_rule_events"
+    },
+    {
+      "copied_to": [
+        "/trace/retrieval/selected_rules/0"
+      ],
+      "line_number": 19,
+      "native_record_hash": null,
+      "native_record_id": "rle-000006-fda7082685df",
+      "raw_line_sha256": "21ec1b9d394d7ae07f265379c34fe3b529822455fefde67d77c205ad12e584a1",
+      "selector": {
+        "event_id": "rle-000006-fda7082685df"
+      },
+      "source_id": "semantic_rule_events"
+    },
+    {
+      "copied_to": [
+        "/trace/retrieval/selected_rules/0/activation_episode_id"
+      ],
+      "line_number": 13,
+      "native_record_hash": "594826521b33840a54303608d346062a239477a2404ec0ad7244af1e7af3f0fc",
+      "native_record_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t3",
+      "raw_line_sha256": "b884252e5c40c22e6d6b74c9fad7113d72e05f43461402a362d8e9823fc5dcbc",
+      "selector": {
+        "episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t3"
+      },
+      "source_id": "episodes"
+    },
+    {
+      "copied_to": [
+        "/trace/retrieval/selected_rules/0"
+      ],
+      "line_number": 68,
+      "native_record_hash": null,
+      "native_record_id": "rle-000016-38a7d744deed",
+      "raw_line_sha256": "eb5419c762f7d314d696a162816c0143134a3e23cc89b646ebbdee60ff9aef8a",
+      "selector": {
+        "event_id": "rle-000016-38a7d744deed"
+      },
+      "source_id": "semantic_rule_events"
+    },
+    {
+      "copied_to": [
+        "/trace/memory_update/events/0"
+      ],
+      "line_number": 69,
+      "native_record_hash": null,
+      "native_record_id": "rle-000017-380d765277d7",
+      "raw_line_sha256": "a59a65eb3488d62e7d7375f0a768be4470cbe9010c652009949c0cf3d3075c8e",
+      "selector": {
+        "event_id": "rle-000017-380d765277d7"
+      },
+      "source_id": "semantic_rule_events"
+    },
+    {
+      "copied_to": [
+        "/trace/memory_update/events/1"
+      ],
+      "line_number": 70,
+      "native_record_hash": null,
+      "native_record_id": "rle-000018-cce6b9827725",
+      "raw_line_sha256": "1c7da7e1c5435a8b6490d82812977dd8d54cdd6db83b7a360db3cbc7934b7ce3",
+      "selector": {
+        "event_id": "rle-000018-cce6b9827725"
+      },
+      "source_id": "semantic_rule_events"
+    },
+    {
+      "copied_to": [
+        "/trace/retrieval/selected_rules/0"
+      ],
+      "line_number": 1,
+      "native_record_hash": null,
+      "native_record_id": "family-757c248bc4729875ca6b:v1",
+      "raw_line_sha256": "c40ef85bb4265820f8750adac5d33553dee8a90cf014032bf69bb11d6f1835bd",
+      "selector": {
+        "agent_id": 0,
+        "rule_id": "family-757c248bc4729875ca6b:v1"
+      },
+      "source_id": "semantic_rules"
+    },
+    {
+      "copied_to": [
+        "/trace/macro_before"
+      ],
+      "line_number": 8,
+      "native_record_hash": null,
+      "native_record_id": null,
+      "raw_line_sha256": "acc2274406fe5dbe89993b709fde8392632d5cf97942f9ed473c58824eff9081",
+      "selector": {
+        "outcome_t": 8
+      },
+      "source_id": "macro_steps"
+    },
+    {
+      "copied_to": [
+        "/trace/macro_after"
+      ],
+      "line_number": 9,
+      "native_record_hash": null,
+      "native_record_id": null,
+      "raw_line_sha256": "90c77997b239ac25417db4a1fe8a6e63882219b54de56b1cc2affefcc07f903c",
+      "selector": {
+        "decision_t": 8,
+        "outcome_t": 9
+      },
+      "source_id": "macro_steps"
+    },
+    {
+      "copied_to": [
+        "/trace/shock"
+      ],
+      "line_number": 9,
+      "native_record_hash": null,
+      "native_record_id": null,
+      "raw_line_sha256": "4abd2fd65ce4bdfafdf3bd7babb3182af76dd7c095e0d65422b9e8e9b6244d2c",
+      "selector": {
+        "decision_t": 8
+      },
+      "source_id": "shock_events"
+    },
+    {
+      "copied_to": [
+        "/trace/context",
+        "/trace/retrieval"
+      ],
+      "line_number": 33,
+      "native_record_hash": null,
+      "native_record_id": null,
+      "raw_line_sha256": "6c4941447598dcd1e7358b5e65bcc9596aa6e2f236a1c6de873501530d8de0bd",
+      "selector": {
+        "agent_id": 0,
+        "decision_t": 8
+      },
+      "source_id": "context_trace"
+    },
+    {
+      "copied_to": [
+        "/trace/next_decision/context",
+        "/trace/next_decision/retrieval_items"
+      ],
+      "line_number": 37,
+      "native_record_hash": null,
+      "native_record_id": null,
+      "raw_line_sha256": "99469bcbf3f64a657665cb26f30a18a4703237622b28253e918440716998c3a2",
+      "selector": {
+        "agent_id": 0,
+        "decision_t": 9
+      },
+      "source_id": "context_trace"
+    },
+    {
+      "copied_to": [
+        "/trace/actor_visible"
+      ],
+      "line_number": 33,
+      "native_record_hash": null,
+      "native_record_id": null,
+      "raw_line_sha256": "df00a26cc9b156f3fb8ad6990091218b1b775a5e250f83d27fb9abf4f3852314",
+      "selector": {
+        "agent_id": 0,
+        "decision_t": 8
+      },
+      "source_id": "decision_snapshots"
+    },
+    {
+      "copied_to": [
+        "/trace/next_decision/actor_visible"
+      ],
+      "line_number": 37,
+      "native_record_hash": null,
+      "native_record_id": null,
+      "raw_line_sha256": "ef3b07fa11e83ecd3537f63b5c4193bec360bca0179eeb1f46c375c7742f08f3",
+      "selector": {
+        "agent_id": 0,
+        "decision_t": 9
+      },
+      "source_id": "decision_snapshots"
+    },
+    {
+      "copied_to": [
+        "/trace/action"
+      ],
+      "line_number": 33,
+      "native_record_hash": null,
+      "native_record_id": null,
+      "raw_line_sha256": "2abcb2dae772693ea2e75bbb196b3c09a451156bf6eb70dceff0dcc7a9eabb0b",
+      "selector": {
+        "agent_id": 0,
+        "decision_t": 8
+      },
+      "source_id": "actions"
+    },
+    {
+      "copied_to": [
+        "/trace/next_decision/action"
+      ],
+      "line_number": 37,
+      "native_record_hash": null,
+      "native_record_id": null,
+      "raw_line_sha256": "dedf49ac3f533a86749d22536fac9a54a11878c44938e8392644b8be4d0be286",
+      "selector": {
+        "agent_id": 0,
+        "decision_t": 9
+      },
+      "source_id": "actions"
+    },
+    {
+      "copied_to": [
+        "/trace/frozen_source_provider_call"
+      ],
+      "line_number": 41,
+      "native_record_hash": null,
+      "native_record_id": null,
+      "raw_line_sha256": "522175ef436804ec5dd5db56a3c4b3620929330cc0d38e7111aab89b318ad001",
+      "selector": {
+        "agent_id": 0,
+        "decision_t": 8
+      },
+      "source_id": "api_usage"
+    },
+    {
+      "copied_to": [
+        "/trace/next_decision/frozen_source_provider_call"
+      ],
+      "line_number": 49,
+      "native_record_hash": null,
+      "native_record_id": null,
+      "raw_line_sha256": "e234334724c212f37c92ac652b179f4c1a154bdc9ebaf8484899c156ab318eeb",
+      "selector": {
+        "agent_id": 0,
+        "decision_t": 9
+      },
+      "source_id": "api_usage"
+    },
+    {
+      "copied_to": [
+        "/trace/focal_state_before",
+        "/trace/outcome",
+        "/trace/focal_state_after"
+      ],
+      "line_number": 33,
+      "native_record_hash": "ae7a349689a58de3e748a5967da08d6e5b4c947a0007d9236b736bccf59b9d12",
+      "native_record_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t8",
+      "raw_line_sha256": "012393f14d05c8386601a3ee1e6b51eb17c8e0110e09a73b5f4f79a0c0641c2e",
+      "selector": {
+        "agent_id": 0,
+        "decision_t": 8
+      },
+      "source_id": "episodes"
+    },
+    {
+      "copied_to": [
+        "/trace/next_decision"
+      ],
+      "line_number": 37,
+      "native_record_hash": "a048c5cacee570e04c2033350e3d4b81260deb62a9f732081a9611e7b3a44ecc",
+      "native_record_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t9",
+      "raw_line_sha256": "4b50a60e565ffa6b13c7495a7b5f59d0bdafa8c26fd1f3f8a0a63d63547c399a",
+      "selector": {
+        "agent_id": 0,
+        "decision_t": 9
+      },
+      "source_id": "episodes"
+    },
+    {
+      "copied_to": [
+        "/trace/outcome"
+      ],
+      "line_number": 33,
+      "native_record_hash": null,
+      "native_record_id": null,
+      "raw_line_sha256": "2fddef8e0544a2fbbb35f08733c362145061b62dcb6d91f306606bfaab174fdf",
+      "selector": {
+        "agent_id": "0",
+        "period": 8
+      },
+      "source_id": "utility_ledger"
+    }
+  ],
+  "status": "complete",
+  "trace": {
+    "action": {
+      "clipped": false,
+      "consumption_action_index": 43,
+      "executed_consumption_rate": 0.86,
+      "executed_labor_hours": 16.0,
+      "labor_action_index": 2,
+      "proposed_consumption_fraction": 0.85,
+      "proposed_work_fraction": 0.0952380952,
+      "reflection": "Work a light schedule to keep utility positive while saving a bit more cash for stability.",
+      "repair_attempts": 0
+    },
+    "actor_visible": {
+      "base_prompt_hash": "a58bf1c96bfe84091cf3b2ba4586a50ca46bc8239e56b9ab6306b2879cd126ac",
+      "context_packet_hash": "c013dcf0440991250748e84244bee5cceb3671363b7568292caf35fd580921ba",
+      "environment_state_hash": "953258081af222b23a37d103007526d088e6620d064baa250e631f8dc537eeec",
+      "full_prompt_hash": "53a29616c92e00633fd46ab25b07527e36618f82876beb8929e6d2ab1c128d51",
+      "memory_hash": "98a1d12ad9dcd1927b3b32fe885366ea7235a6c1305615b01e2190479744e392",
+      "memory_text": "Finalized experience evidence: - [finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t3] state at month 3; worked 8.0h, consumed 96%; realized utility 0.3719, wealth change -2474.18. - [finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t2] state at month 2; worked 40.0h, consumed 80%; realized utility -0.1549, wealth change +2390.00. - [finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t7] state at month 7; worked 8.0h, consumed 92%; realized utility 0.1572, wealth change -183.56. - [finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t1] state at month 1; worked 16.0h, consumed 90%; realized utility 0.2001, wealth change -457.34. - [finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t4] state at month 4; worked 24.0h, consumed 90%; realized utility 0.1406, wealth change +58.80. Verified active rules: - When interest_rate == 0.03 within scope global, keep at least consumption_fraction 0.8 (confidence 57%, family family-757c248bc4729875ca6b v1).",
+      "protected_context_hash": "70228880caf3ebefc74848d258a0ad24d8c738176b88d430dd506fc51974a657",
+      "protected_context_text": "Observed context through t=8 (rolling_n=6): log_price=4.99635, interest_rate=0.03, prior_low_labor_rate=0, inflation=0.0213537, log_wealth=5.00472, employed=1."
+    },
+    "context": {
+      "context_hash": "c013dcf0440991250748e84244bee5cceb3671363b7568292caf35fd580921ba",
+      "context_id": "ctx-c013dcf0440991250748",
+      "context_to_prompt": true,
+      "context_to_retrieval": true,
+      "feature_schema_version": "m1-causal-rolling-v2",
+      "history_start": 3,
+      "observation_count": 6,
+      "observed_through": 8,
+      "prompt_summary": "Observed context through t=8 (rolling_n=6): log_price=4.99635, interest_rate=0.03, prior_low_labor_rate=0, inflation=0.0213537, log_wealth=5.00472, employed=1.",
+      "source_hash": "bf22618f969e77495383f2b81930c3322b3fd114cf0e628b0edc6e22c8e9d89c"
+    },
+    "focal_state_after": {
+      "consumption_quantity": 0.0,
+      "consumption_spend": 0.0,
+      "employed": true,
+      "income": 540.4257531096694,
+      "inflation": 0.038817779599297,
+      "interest_rate": 0.03,
+      "job": "Bank Teller",
+      "low_labor_rate": 0.0,
+      "low_labor_rate_available": 1.0,
+      "price": 152.57363490325508,
+      "timestamp": 9,
+      "unemployment_rate": 0.0,
+      "unemployment_rate_available": 1.0,
+      "wealth": 1585.6287300022973
+    },
+    "focal_state_before": {
+      "consumption_quantity": 11.845016699696151,
+      "consumption_spend": 1703.333326485705,
+      "employed": true,
+      "income": 269.9788129767611,
+      "inflation": 0.021353667231389428,
+      "interest_rate": 0.03,
+      "job": "Bank Teller",
+      "low_labor_rate": 0.0,
+      "low_labor_rate_available": 1.0,
+      "price": 146.87237540553772,
+      "timestamp": 8,
+      "unemployment_rate": 0.0,
+      "unemployment_rate_available": 1.0,
+      "wealth": 148.11594143353955
+    },
+    "frozen_source_provider_call": {
+      "attempts": 1,
+      "output_disposition": "accepted",
+      "parse_mode": "exact_json",
+      "prompt_hash": "53a29616c92e00633fd46ab25b07527e36618f82876beb8929e6d2ab1c128d51",
+      "provider": "openai",
+      "raw_output_hash": "2178fafca9701a19d6c960e8d32c766f1135476434baf72c91fe64d11220a683",
+      "request_profile_id": "gpt52_main",
+      "request_seed": null,
+      "requested_model": "gpt-5.2-2025-12-11",
+      "response_completed": true,
+      "response_model": "gpt-5.2-2025-12-11",
+      "response_provider": "OpenAI-direct",
+      "response_route": "direct",
+      "seed_dispatch": "omitted_unsupported",
+      "served_snapshot": "gpt-5.2-2025-12-11"
+    },
+    "identity": {
+      "agent_id": 0,
+      "arm_id": "full",
+      "decision_t": 8,
+      "episode_length": 12,
+      "model_id": "gpt52_main",
+      "narrative_id": "none",
+      "next_decision_t": 9,
+      "num_agents": 4,
+      "outcome_t": 9,
+      "requested_model": "gpt-5.2-2025-12-11",
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501",
+      "seed": 1099057501,
+      "shock_id": "registered-rate-shock",
+      "stage_id": "experiment-a",
+      "utility_profile_id": "stage0-selected"
+    },
+    "macro_after": {
+      "average_wealth": 10437.0805812914,
+      "low_labor_rate": 0.0,
+      "monthly_inflation": 0.038817779599297,
+      "price": 152.57363490325508,
+      "timestamp": 9
+    },
+    "macro_before": {
+      "average_wealth": 9978.436033829375,
+      "low_labor_rate": 0.0,
+      "monthly_inflation": 0.021353667231389428,
+      "price": 146.87237540553772,
+      "timestamp": 8
+    },
+    "memory_update": {
+      "events": [
+        {
+          "candidate_id": null,
+          "episode_ids": [
+            "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t8"
+          ],
+          "event_id": "rle-000017-380d765277d7",
+          "event_type": "harmful_compliance_evidence_added",
+          "from_status": "active",
+          "metrics": {
+            "confidence": 0.5,
+            "consecutive_failures": 2,
+            "contradiction_score": 3.0,
+            "evidence_type_counts": {
+              "alternative_failure": 0,
+              "alternative_success": 0,
+              "harmful_compliance": 3,
+              "irrelevant": 3,
+              "support": 3
+            },
+            "evidence_weights": {
+              "alternative_failure": 0.0,
+              "alternative_success": 0.5,
+              "harmful_compliance": 1.0,
+              "irrelevant": 0.0,
+              "support": 1.0
+            },
+            "margin": 0.0,
+            "post_proposal_contradiction_count": 2,
+            "post_proposal_evidence_count": 6,
+            "post_proposal_irrelevant_count": 3,
+            "post_proposal_neutral_count": 0,
+            "post_proposal_support_count": 1,
+            "rule_family_id": "family-757c248bc4729875ca6b",
+            "rule_version": 1,
+            "support_score": 3.0
+          },
+          "provenance": {
+            "evidence_type": "harmful_compliance",
+            "evidence_weight": 1.0,
+            "registered_outcome_criterion": {
+              "metric": "utility_advantage",
+              "operator": ">",
+              "tolerance": 0.0,
+              "value": 0.0
+            }
+          },
+          "reason": "guidance was followed but the registered outcome failed",
+          "rule_id": "family-757c248bc4729875ca6b:v1",
+          "timestamp": 9,
+          "to_status": "active"
+        },
+        {
+          "candidate_id": null,
+          "episode_ids": [
+            "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t8"
+          ],
+          "event_id": "rle-000018-cce6b9827725",
+          "event_type": "rule_retired",
+          "from_status": "active",
+          "metrics": {
+            "confidence": 0.5,
+            "consecutive_failures": 2,
+            "contradiction_score": 3.0,
+            "evidence_type_counts": {
+              "alternative_failure": 0,
+              "alternative_success": 0,
+              "harmful_compliance": 3,
+              "irrelevant": 3,
+              "support": 3
+            },
+            "evidence_weights": {
+              "alternative_failure": 0.0,
+              "alternative_success": 0.5,
+              "harmful_compliance": 1.0,
+              "irrelevant": 0.0,
+              "support": 1.0
+            },
+            "margin": 0.0,
+            "post_proposal_contradiction_count": 2,
+            "post_proposal_evidence_count": 6,
+            "post_proposal_irrelevant_count": 3,
+            "post_proposal_neutral_count": 0,
+            "post_proposal_support_count": 1,
+            "rule_family_id": "family-757c248bc4729875ca6b",
+            "rule_version": 1,
+            "support_score": 3.0
+          },
+          "provenance": {},
+          "reason": "retirement patience exhausted",
+          "rule_id": "family-757c248bc4729875ca6b:v1",
+          "timestamp": 9,
+          "to_status": "retired"
+        }
+      ],
+      "ingested_episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t8",
+      "verifier_recomputation": {
+        "classification": "harmful_compliance",
+        "condition_matches": true,
+        "guidance_compliant": true,
+        "guidance_observed_value": 0.86,
+        "outcome_metric": "utility_advantage",
+        "outcome_observed_value": -0.17769995756579202,
+        "outcome_passed": false,
+        "scope_matches": true
+      }
+    },
+    "next_decision": {
+      "action": {
+        "clipped": false,
+        "consumption_action_index": 41,
+        "executed_consumption_rate": 0.8200000000000001,
+        "executed_labor_hours": 8.0,
+        "labor_action_index": 1,
+        "proposed_consumption_fraction": 0.82,
+        "proposed_work_fraction": 0.05,
+        "reflection": "With strong redistribution and modest savings, I’ll work lightly and consume most cash while keeping a buffer for next month.",
+        "repair_attempts": 0
+      },
+      "actor_visible": {
+        "base_prompt_hash": "009c7e54910ac2f795de10cd2258720914fa074b9128888899aa633360c2da80",
+        "context_packet_hash": "0f27e9d4675c836823a152e8bb0b7b3f0e5b80b6e15d4172e5fae4ea378c8d00",
+        "environment_state_hash": "f10e0704fbb81053ff2f9dd83e4e21239e44fa4450bc13036147958e7b59b01e",
+        "full_prompt_hash": "b072c37b2a9e126158c2827351e085f4ca1c884c1475caf395cd8a2cd0412c3a",
+        "memory_hash": "632e6ab64ba930740c64afdc509af4ad44ebc288cca83c864e94a7567eccf0fa",
+        "memory_text": "Finalized experience evidence: - [finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t8] state at month 8; worked 16.0h, consumed 86%; realized utility -0.0392, wealth change +1437.51. - [finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t3] state at month 3; worked 8.0h, consumed 96%; realized utility 0.3719, wealth change -2474.18. - [finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t2] state at month 2; worked 40.0h, consumed 80%; realized utility -0.1549, wealth change +2390.00. - [finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t7] state at month 7; worked 8.0h, consumed 92%; realized utility 0.1572, wealth change -183.56. - [finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t1] state at month 1; worked 16.0h, consumed 90%; realized utility 0.2001, wealth change -457.34.",
+        "protected_context_hash": "a0cf4b1f76dd4c2d20f9bedb76ff71887f27e7febca653a681b1eb39208a12c3",
+        "protected_context_text": "Observed context through t=9 (rolling_n=6): log_price=5.03418, interest_rate=0.03, prior_low_labor_rate=0, inflation=0.0388178, log_wealth=7.36937, employed=1."
+      },
+      "context": {
+        "context_hash": "0f27e9d4675c836823a152e8bb0b7b3f0e5b80b6e15d4172e5fae4ea378c8d00",
+        "context_id": "ctx-0f27e9d4675c836823a1",
+        "context_to_prompt": true,
+        "context_to_retrieval": true,
+        "feature_schema_version": "m1-causal-rolling-v2",
+        "history_start": 4,
+        "observation_count": 6,
+        "observed_through": 9,
+        "prompt_summary": "Observed context through t=9 (rolling_n=6): log_price=5.03418, interest_rate=0.03, prior_low_labor_rate=0, inflation=0.0388178, log_wealth=7.36937, employed=1.",
+        "source_hash": "cdb3de43ef398ad7d9eb0fa2c706316623fcb517de215436cb10be3489a467dc"
+      },
+      "decision_t": 9,
+      "frozen_source_provider_call": {
+        "attempts": 1,
+        "output_disposition": "accepted",
+        "parse_mode": "exact_json",
+        "prompt_hash": "b072c37b2a9e126158c2827351e085f4ca1c884c1475caf395cd8a2cd0412c3a",
+        "provider": "openai",
+        "raw_output_hash": "f23321c19c1400c5b8a074a5c6e2da870c60c9827482212d5cdc4f87dde61661",
+        "request_profile_id": "gpt52_main",
+        "request_seed": null,
+        "requested_model": "gpt-5.2-2025-12-11",
+        "response_completed": true,
+        "response_model": "gpt-5.2-2025-12-11",
+        "response_provider": "OpenAI-direct",
+        "response_route": "direct",
+        "seed_dispatch": "omitted_unsupported",
+        "served_snapshot": "gpt-5.2-2025-12-11"
+      },
+      "prior_episode_rank": 1,
+      "retrieval_items": [
+        {
+          "context_similarity": 0.2475173891276789,
+          "episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t8",
+          "importance": 0.15,
+          "rank": 1,
+          "recency": 0.2375,
+          "score": 0.962712890267304,
+          "state_similarity": 0.32769550113962514
+        },
+        {
+          "context_similarity": 0.24743881939458534,
+          "episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t3",
+          "importance": 0.15,
+          "rank": 2,
+          "recency": 0.18377297265624995,
+          "score": 0.8980047593191004,
+          "state_similarity": 0.3167929672682651
+        },
+        {
+          "context_similarity": 0.24497637204667005,
+          "episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t2",
+          "importance": 0.15,
+          "rank": 3,
+          "recency": 0.17458432402343743,
+          "score": 0.8823076803621736,
+          "state_similarity": 0.3127469842920661
+        },
+        {
+          "context_similarity": 0.2490946780310045,
+          "episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t7",
+          "importance": 0.15,
+          "rank": 4,
+          "recency": 0.225625,
+          "score": 0.868385608919573,
+          "state_similarity": 0.24366593088856847
+        },
+        {
+          "context_similarity": 0.23000710977130087,
+          "episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t1",
+          "importance": 0.15,
+          "rank": 5,
+          "recency": 0.16585510782226556,
+          "score": 0.8550629049543308,
+          "state_similarity": 0.3092006873607644
+        }
+      ],
+      "selected_rule_ids": [],
+      "state_continuity_verified": true
+    },
+    "outcome": {
+      "budget_residual": 2.2737367544323206e-13,
+      "discounted_flow_utility": -0.03616065968507299,
+      "episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t8",
+      "flow_utility": -0.039188152371324926,
+      "lump_sum_transfer": 951.1296107700553,
+      "outcome_t": 9,
+      "proposed_consumption_fraction": 0.85,
+      "proposed_labor_hours": 15.9999999936,
+      "proposed_work_propensity": 0.0952380952,
+      "realized_consumption_quantity": 0.0,
+      "realized_consumption_spend": 0.0,
+      "record_hash": "ae7a349689a58de3e748a5967da08d6e5b4c947a0007d9236b736bccf59b9d12",
+      "requested_consumption_spend": 1363.6407078019754,
+      "supply_rationed": true,
+      "tax_paid": 54.04257531096692,
+      "utility_advantage": -0.17769995756579202,
+      "wealth_change": 1437.5127885687577,
+      "wealth_post": 1585.6287300022973,
+      "wealth_pre": 148.11594143353955
+    },
+    "retrieval": {
+      "items": [
+        {
+          "context_similarity": 0.24151465927859386,
+          "episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t3",
+          "importance": 0.15,
+          "rank": 1,
+          "recency": 0.19344523437499994,
+          "score": 0.9171566161880774,
+          "state_similarity": 0.3321967225344836
+        },
+        {
+          "context_similarity": 0.24127072642584904,
+          "episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t2",
+          "importance": 0.15,
+          "rank": 2,
+          "recency": 0.18377297265624995,
+          "score": 0.9071623779859095,
+          "state_similarity": 0.33211867890381047
+        },
+        {
+          "context_similarity": 0.2495344119082753,
+          "episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t7",
+          "importance": 0.15,
+          "rank": 3,
+          "recency": 0.2375,
+          "score": 0.8826069572733978,
+          "state_similarity": 0.24557254536512246
+        },
+        {
+          "context_similarity": 0.22123501700270706,
+          "episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t1",
+          "importance": 0.15,
+          "rank": 4,
+          "recency": 0.17458432402343743,
+          "score": 0.872146392954749,
+          "state_similarity": 0.3263270519286045
+        },
+        {
+          "context_similarity": 0.2475950446998481,
+          "episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t4",
+          "importance": 0.09261713339236301,
+          "rank": 5,
+          "recency": 0.20362656249999997,
+          "score": 0.8664437744297505,
+          "state_similarity": 0.32260503383753947
+        }
+      ],
+      "k": 5,
+      "selected_rules": [
+        {
+          "action_guidance": {
+            "direction": "at_least",
+            "target": "consumption_fraction",
+            "threshold": 0.8,
+            "tolerance": 0.0
+          },
+          "activation_episode_id": "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t3",
+          "activation_event_id": "rle-000006-fda7082685df",
+          "activation_from_status": "provisional",
+          "activation_t": 4,
+          "activation_to_status": "active",
+          "candidate_id": "cand-134878c05dd7d100237e",
+          "candidate_identity_recomputation": {
+            "candidate_id": "cand-134878c05dd7d100237e",
+            "generator_id": "openai/gpt-5.2-2025-12-11",
+            "migration_notes": [],
+            "provider_raw_output_sha256": "811196d010985982d8a264365f34a6f9468e1676b25a2228341653102be64dde",
+            "raw_response_hash": "86e4187e3aad6c7cde3c2e59348e290981aa8f87453ce7a20b9f250b6bad1e0c",
+            "supporting_episode_ids": [
+              "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t0",
+              "finevo-pilot-v2_11_5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501:s1099057501:a0:t1"
+            ]
+          },
+          "candidate_verified_event_id": "rle-000003-5ef5181a2584",
+          "candidate_verified_from_status": null,
+          "candidate_verified_to_status": "provisional",
+          "condition": {
+            "field": "interest_rate",
+            "operator": "==",
+            "tolerance": 0.0,
+            "value": 0.03
+          },
+          "confidence_at_retrieval": 0.5714285714285714,
+          "context_scope": {
+            "predicates": [],
+            "scope_id": "global"
+          },
+          "final_status": "retired",
+          "final_updated_at": 9,
+          "injected": false,
+          "margin_at_retrieval": 1.0,
+          "outcome_criterion": {
+            "metric": "utility_advantage",
+            "operator": ">",
+            "tolerance": 0.0,
+            "value": 0.0
+          },
+          "proposal_frozen_source_provider_call": {
+            "attempts": 1,
+            "output_disposition": "accepted",
+            "parse_mode": "exact_json",
+            "prompt_hash": "114de1bf99904159da87a942c9109ca528024e45e083939a27f75e0796a95672",
+            "provider": "openai",
+            "raw_output_hash": "811196d010985982d8a264365f34a6f9468e1676b25a2228341653102be64dde",
+            "request_profile_id": "gpt52_main",
+            "request_seed": null,
+            "requested_model": "gpt-5.2-2025-12-11",
+            "response_completed": true,
+            "response_model": "gpt-5.2-2025-12-11",
+            "response_provider": "OpenAI-direct",
+            "response_route": "direct",
+            "seed_dispatch": "omitted_unsupported",
+            "served_snapshot": "gpt-5.2-2025-12-11"
+          },
+          "proposal_parse_mode": "exact_json",
+          "proposal_parse_status": "success",
+          "proposal_prompt_hash": "114de1bf99904159da87a942c9109ca528024e45e083939a27f75e0796a95672",
+          "proposal_raw_output_hash": "811196d010985982d8a264365f34a6f9468e1676b25a2228341653102be64dde",
+          "proposal_t": 3,
+          "retirement_from_status": "active",
+          "retirement_t": 9,
+          "retirement_to_status": "retired",
+          "rule_id": "family-757c248bc4729875ca6b:v1",
+          "searched_counterevidence": true,
+          "status_at_retrieval": "active"
+        }
+      ]
+    },
+    "shock": {
+      "applied_before_prompt": true,
+      "applied_before_step": true,
+      "decision_t": 8,
+      "interest_rate": 0.03,
+      "phase": "recovery",
+      "schema_version": "finevo-shock-event-v1"
+    }
+  }
+}

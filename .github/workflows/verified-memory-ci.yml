@@ -111,6 +111,20 @@ jobs:
           test "$(git rev-parse 'pilot-v2.11.9-science^{object}')" = "${expected_object}"
           test "$(git rev-parse 'pilot-v2.11.9-science^{commit}')" = "${expected_commit}"
 
+      - name: Verify immutable V2.11.10 scientific release tag and receipt source
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_object=7c3de14ddb604436a1dfee1dabfb781849ea68a7
+          expected_commit=aa05e94ee6097916db53c40c0276b044c05a44cc
+          expected_workflow_blob=ce04fba5f4882449d96cdde4ad747fa0b399a260
+          expected_contract_blob=aefdf4fa39280b21ef696fb1b64da3acbb8d47f9
+          test "$(git cat-file -t pilot-v2.11.10-science)" = tag
+          test "$(git rev-parse 'pilot-v2.11.10-science^{object}')" = "${expected_object}"
+          test "$(git rev-parse 'pilot-v2.11.10-science^{commit}')" = "${expected_commit}"
+          test "$(git rev-parse 'pilot-v2.11.10-science:.github/workflows/verified-memory-ci.yml')" = "${expected_workflow_blob}"
+          test "$(git rev-parse 'pilot-v2.11.10-science:experiments/pilot_v2_11_10.yaml')" = "${expected_contract_blob}"
+
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
@@ -433,15 +447,6 @@ jobs:
             printf '%s\n' "checks left the checkout dirty:" "${status}"
             exit 1
           fi
-
-      - name: Emit scientific release CI receipt
-        run: >-
-          python -m verified_memory.ci_release_receipt emit
-          --collection "${RUNNER_TEMP}/finevo-test-collection.json"
-          --sources "${RUNNER_TEMP}/finevo-python-sources.json"
-          --junit "${RUNNER_TEMP}/finevo-test-results.xml"
-          --contract experiments/pilot_v2_11_10.yaml
-          --output "${RUNNER_TEMP}/finevo-ci-release-receipt.json"
 
       - name: Emit publication consumer CI receipt
         run: >-
