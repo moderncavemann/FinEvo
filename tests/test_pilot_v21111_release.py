@@ -8,6 +8,7 @@ import shutil
 import pytest
 
 from verified_memory import pilot_orchestrator as orchestrator
+from verified_memory import pilot_contract as pilot_contract_module
 from verified_memory.pilot_contract import canonical_sha256, load_pilot_contract
 from verified_memory import pilot_v21111_release as release
 import scripts.render_pilot_v21111_source_manifest as renderer
@@ -220,8 +221,10 @@ def test_runtime_binding_is_byte_stable_across_source_then_canonical_pin_freeze(
         ("PILOT_V2_11_11_SOURCE_MANIFEST_FILE_SHA256", "a" * 64),
         ("PILOT_V2_11_11_SOURCE_MANIFEST_CONTENT_SHA256", "b" * 64),
     ):
-        old = f"{name}: Optional[str] = None"
-        new = f'{name}: Optional[str] = "{value}"'
+        current = getattr(pilot_contract_module, name)
+        assert isinstance(current, str)
+        old = f'{name}: Optional[str] = (\n    "{current}"\n)'
+        new = f'{name}: Optional[str] = (\n    "{value}"\n)'
         assert contract_source.count(old) == 1
         contract_source = contract_source.replace(old, new)
     contract_path.write_text(contract_source, encoding="utf-8")
@@ -232,16 +235,32 @@ def test_runtime_binding_is_byte_stable_across_source_then_canonical_pin_freeze(
     start = ci_source.index(marker)
     end = ci_source.index("    },", start)
     row = ci_source[start:end]
-    assert row.count('"file_sha256": None') == 1
-    assert row.count('"content_sha256": None') == 1
-    row = row.replace('"file_sha256": None', f'"file_sha256": "{"a" * 64}"')
-    row = row.replace('"content_sha256": None', f'"content_sha256": "{"b" * 64}"')
+    current_file = pilot_contract_module.PILOT_V2_11_11_SOURCE_MANIFEST_FILE_SHA256
+    current_content = (
+        pilot_contract_module.PILOT_V2_11_11_SOURCE_MANIFEST_CONTENT_SHA256
+    )
+    assert isinstance(current_file, str)
+    assert isinstance(current_content, str)
+    assert row.count(f'"{current_file}"') == 1
+    assert row.count(f'"{current_content}"') == 1
+    row = row.replace(f'"{current_file}"', f'"{"a" * 64}"')
+    row = row.replace(f'"{current_content}"', f'"{"b" * 64}"')
     ci_path.write_text(ci_source[:start] + row + ci_source[end:], encoding="utf-8")
     source_sealed = release._current_runtime_source_bindings(repo)
 
     contract_source = contract_path.read_text(encoding="utf-8")
-    old = "PILOT_CONTRACT_V2_11_11_CANONICAL_SHA256: Optional[str] = None"
-    new = f'PILOT_CONTRACT_V2_11_11_CANONICAL_SHA256: Optional[str] = "{"c" * 64}"'
+    current_canonical = pilot_contract_module.PILOT_CONTRACT_V2_11_11_CANONICAL_SHA256
+    assert isinstance(current_canonical, str)
+    old = (
+        "PILOT_CONTRACT_V2_11_11_CANONICAL_SHA256: Optional[str] = (\n"
+        f'    "{current_canonical}"\n'
+        ")"
+    )
+    new = (
+        "PILOT_CONTRACT_V2_11_11_CANONICAL_SHA256: Optional[str] = (\n"
+        f'    "{"c" * 64}"\n'
+        ")"
+    )
     assert contract_source.count(old) == 1
     contract_path.write_text(contract_source.replace(old, new), encoding="utf-8")
     frozen = release._current_runtime_source_bindings(repo)

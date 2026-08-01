@@ -21,6 +21,7 @@ from verified_memory.pilot_v21111_fresh_cohort import (
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = ROOT / "experiments" / "pilot_v2_11_11.yaml"
+SOURCE_MANIFEST_PATH = ROOT / "experiments" / "pilot_v2_11_11_source_manifest.json"
 KEY_NAMES = (
     "OPENAI_API_KEY",
     "OPENROUTER_API_KEY",
@@ -34,6 +35,10 @@ def _copy_draft_contract(repo: Path) -> Path:
     target = repo / "experiments" / "pilot_v2_11_11.yaml"
     target.parent.mkdir(parents=True)
     shutil.copyfile(CONTRACT_PATH, target)
+    shutil.copyfile(
+        SOURCE_MANIFEST_PATH,
+        target.parent / "pilot_v2_11_11_source_manifest.json",
+    )
     return target
 
 
