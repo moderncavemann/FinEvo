@@ -1,5 +1,5 @@
 {
-  "content_sha256": "56c15e25ea829ee0c960177ad98d47cb0f6632da038c35e8969f9f26c916b064",
+  "content_sha256": "f799044b12217d7ceb3869f2feae5aa3b40a92a07cd791797e634f79f949a297",
   "diagnostic_id": "pilot-v2.11.5-labor-threshold-sensitivity-v1",
   "publication_execution": {
     "credential_reads": 0,
@@ -9,7 +9,7 @@
   },
   "publisher": {
     "credential_reads": 0,
-    "git_commit": "c5b4595381fcbfa74880c0a001ec5a555f6847a2",
+    "git_commit": "06d3dc8b48992daa47d0d2884b8dbad3af84bd33",
     "hosted_cost_usd": 0.0,
     "provider_calls": 0,
     "required_tracked_files": {

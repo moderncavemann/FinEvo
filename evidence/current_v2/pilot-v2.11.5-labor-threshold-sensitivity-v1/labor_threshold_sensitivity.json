@@ -615,7 +615,7 @@
     "retrospective": true,
     "scientific_evidence": false
   },
-  "content_sha256": "32eae1e166353f07e1fadd2e7596544f5459efb22aa43ceda435cd5de1e9dc26",
+  "content_sha256": "954a59d900015879c4e7094ff896e3f04c75cd41860b3d52203a11be1176381b",
   "denominator": {
     "complete_actor_run_count": 37,
     "failed_actor_run_count": 3,
@@ -952,7 +952,7 @@
   ],
   "publisher_binding": {
     "credential_reads": 0,
-    "git_commit": "c5b4595381fcbfa74880c0a001ec5a555f6847a2",
+    "git_commit": "06d3dc8b48992daa47d0d2884b8dbad3af84bd33",
     "hosted_cost_usd": 0.0,
     "provider_calls": 0
   },
