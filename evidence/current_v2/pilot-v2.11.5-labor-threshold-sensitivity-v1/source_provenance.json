@@ -1,5 +1,5 @@
 {
-  "content_sha256": "f799044b12217d7ceb3869f2feae5aa3b40a92a07cd791797e634f79f949a297",
+  "content_sha256": "06a450b97d321468234df3d5a9dcd6fe50801fbd7dd752b694875e8c7388b56f",
   "diagnostic_id": "pilot-v2.11.5-labor-threshold-sensitivity-v1",
   "publication_execution": {
     "credential_reads": 0,
@@ -9,7 +9,7 @@
   },
   "publisher": {
     "credential_reads": 0,
-    "git_commit": "06d3dc8b48992daa47d0d2884b8dbad3af84bd33",
+    "git_commit": "ecc3d9809878a3ba7bfc0a08ac70c1c6511448a3",
     "hosted_cost_usd": 0.0,
     "provider_calls": 0,
     "required_tracked_files": {
@@ -29,9 +29,9 @@
         "sha256": "00dacbd71202bded9bf7218e822ecb32f92535466b3766d222c199856a4ecafe"
       },
       "tests/test_v2115_labor_threshold_sensitivity.py": {
-        "byte_size": 17365,
-        "git_blob_sha1": "97afa95a9619b5ce0e9faa6ba7a63a1ac309f2d4",
-        "sha256": "c3e55231399ed3389a8d26454a07b375e6bcad2d60ccef1ba4221d54e20040bd"
+        "byte_size": 17487,
+        "git_blob_sha1": "050224d6de81616b4fa466d171d740cf7b258918",
+        "sha256": "038ab405821a6686dc4ebc7f9bb3a9852468a6383c306c003bc1ea57538688cd"
       },
       "verified_memory/v2115_labor_threshold_sensitivity.py": {
         "byte_size": 80468,
