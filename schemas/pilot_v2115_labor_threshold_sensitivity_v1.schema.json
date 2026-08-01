@@ -1,0 +1,255 @@
+{
+  "$id": "https://finevo.invalid/schemas/pilot_v2115_labor_threshold_sensitivity_v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "arm_summaries": {
+      "items": {
+        "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 8,
+      "type": "array"
+    },
+    "claim_boundary": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "classification": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_reads": {
+          "const": 0
+        },
+        "descriptive": {
+          "const": true
+        },
+        "diagnostic_only": {
+          "const": true
+        },
+        "hosted_cost_usd": {
+          "const": 0.0
+        },
+        "preregistered": {
+          "const": false
+        },
+        "provider_calls": {
+          "const": 0
+        },
+        "publication_time_analysis": {
+          "const": true
+        },
+        "retrospective": {
+          "const": true
+        },
+        "scientific_evidence": {
+          "const": false
+        }
+      },
+      "required": [
+        "retrospective",
+        "descriptive",
+        "diagnostic_only",
+        "publication_time_analysis",
+        "preregistered",
+        "scientific_evidence",
+        "provider_calls",
+        "hosted_cost_usd",
+        "credential_reads"
+      ],
+      "type": "object"
+    },
+    "content_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "denominator": {
+      "additionalProperties": true,
+      "properties": {
+        "complete_actor_run_count": {
+          "const": 37
+        },
+        "failed_actor_run_count": {
+          "const": 3
+        },
+        "missing_actor_action_count": {
+          "const": 144
+        },
+        "observed_actor_action_count": {
+          "const": 1776
+        },
+        "per_actor_run_registered_action_denominator": {
+          "const": 48
+        },
+        "registered_a_c_cell_count": {
+          "const": 45
+        },
+        "registered_actor_action_opportunities": {
+          "const": 1920
+        },
+        "registered_actor_run_count": {
+          "const": 40
+        },
+        "structural_not_applicable_cell_count": {
+          "const": 5
+        }
+      },
+      "required": [
+        "registered_a_c_cell_count",
+        "registered_actor_run_count",
+        "structural_not_applicable_cell_count",
+        "complete_actor_run_count",
+        "failed_actor_run_count",
+        "per_actor_run_registered_action_denominator",
+        "registered_actor_action_opportunities",
+        "observed_actor_action_count",
+        "missing_actor_action_count",
+        "itt_failure_policy",
+        "structural_na_policy"
+      ],
+      "type": "object"
+    },
+    "diagnostic_id": {
+      "const": "pilot-v2.11.5-labor-threshold-sensitivity-v1"
+    },
+    "metric": {
+      "additionalProperties": true,
+      "properties": {
+        "inference_unit": {
+          "const": "seed/run"
+        },
+        "name": {
+          "const": "below-threshold executed labor action rate"
+        },
+        "not_unemployment": {
+          "const": true
+        },
+        "range": {
+          "const": [
+            0.0,
+            1.0
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "formula",
+        "range",
+        "direction",
+        "aggregation",
+        "missing_values",
+        "inference_unit",
+        "not_unemployment",
+        "non_claim"
+      ],
+      "type": "object"
+    },
+    "paired_contrasts": {
+      "items": {
+        "type": "object"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "type": "array"
+    },
+    "publisher_binding": {
+      "type": "object"
+    },
+    "run_records": {
+      "items": {
+        "additionalProperties": true,
+        "properties": {
+          "metric_name": {
+            "const": "below-threshold executed labor action rate"
+          },
+          "seed": {
+            "enum": [
+              1099057501,
+              1421875452,
+              1769977770,
+              959809858,
+              617806385
+            ]
+          }
+        },
+        "required": [
+          "stage_id",
+          "arm_id",
+          "seed",
+          "run_id",
+          "cell_class",
+          "source_status",
+          "metric_name",
+          "threshold_results"
+        ],
+        "type": "object"
+      },
+      "maxItems": 45,
+      "minItems": 45,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "finevo-pilot-v2.11.5-labor-threshold-sensitivity-diagnostic-v1"
+    },
+    "source_binding": {
+      "type": "object"
+    },
+    "source_claim_boundaries": {
+      "type": "object"
+    },
+    "thresholds": {
+      "const": [
+        {
+          "included_frozen_grid_hours": [
+            0
+          ],
+          "threshold_id": "h_lt_1",
+          "upper_bound_exclusive_hours": 1
+        },
+        {
+          "included_frozen_grid_hours": [
+            0,
+            8,
+            16
+          ],
+          "threshold_id": "h_lt_20",
+          "upper_bound_exclusive_hours": 20
+        },
+        {
+          "included_frozen_grid_hours": [
+            0,
+            8,
+            16,
+            24,
+            32
+          ],
+          "threshold_id": "h_lt_40",
+          "upper_bound_exclusive_hours": 40
+        }
+      ]
+    },
+    "title": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "diagnostic_id",
+    "title",
+    "classification",
+    "metric",
+    "thresholds",
+    "denominator",
+    "run_records",
+    "arm_summaries",
+    "paired_contrasts",
+    "source_claim_boundaries",
+    "claim_boundary",
+    "source_binding",
+    "publisher_binding",
+    "content_sha256"
+  ],
+  "title": "FinEvo V2.11.5 executed-labor threshold diagnostic",
+  "type": "object"
+}
