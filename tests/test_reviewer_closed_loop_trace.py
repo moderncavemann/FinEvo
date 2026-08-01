@@ -718,7 +718,8 @@ def test_path_normalization_and_publication_scan_fail_closed(
     with pytest.raises(ReviewerTraceError, match="symlink"):
         _absolute_without_symlink(bypass, name="test input")
     with pytest.raises(ReviewerTraceError, match="secret scan"):
-        _scan_publication_bytes(b'"outside":"sk-ant-exampleSecret123456"', name="x")
+        secret_shaped_fixture = b'"outside":"sk-' + b'ant-exampleSecret123456"'
+        _scan_publication_bytes(secret_shaped_fixture, name="x")
     with pytest.raises(ReviewerTraceError, match="host-path scan"):
         _scan_publication_bytes(b'"outside":"/Users/example/private"', name="x")
     with pytest.raises(ReviewerTraceError, match="host-path scan"):
