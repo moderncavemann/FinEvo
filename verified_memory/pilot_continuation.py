@@ -85,8 +85,7 @@ MEMORY_PULSE_CONTRACT = {
     "pulse_at_first_continuation_step": True,
     "direct_treatment_only_at_pulse": True,
     "claim_label": (
-        "focal-agent decision-6 memory pulse with six-step downstream "
-        "continuation"
+        "focal-agent decision-6 memory pulse with six-step downstream " "continuation"
     ),
 }
 NARRATIVE_PULSE_CONTRACT = {
@@ -150,9 +149,7 @@ def _gini(values: Sequence[float]) -> float:
         return 0.0
     count = len(ordered)
     total = sum(ordered)
-    weighted = sum(
-        (index + 1) * value for index, value in enumerate(ordered)
-    )
+    weighted = sum((index + 1) * value for index, value in enumerate(ordered))
     return 2 * weighted / (count * total) - (count + 1) / count
 
 
@@ -182,8 +179,7 @@ def _apply_semantic_treatment(
     if treatment not in {"erroneous-verified", "erroneous-unverified"}:
         return {
             "kind": treatment,
-            "applied": treatment
-            in {"no-memory", "shuffled-episodic", "wrong-context"},
+            "applied": treatment in {"no-memory", "shuffled-episodic", "wrong-context"},
         }
     if memory.semantic is None:
         raise PilotContinuationError(
@@ -202,9 +198,7 @@ def _apply_semantic_treatment(
         "lifecycle_policy_at_injection": "unassigned",
     }
     rule = memory.semantic.inject_active_rule(
-        condition=ConditionPredicate.from_dict(
-            FIXED_ERRONEOUS_RULE["condition"]
-        ),
+        condition=ConditionPredicate.from_dict(FIXED_ERRONEOUS_RULE["condition"]),
         action_guidance=ActionGuidance.from_dict(
             FIXED_ERRONEOUS_RULE["action_guidance"]
         ),
@@ -296,13 +290,9 @@ def _checkpoint_bound_shuffle(
         "focal_agent_id": int(focal_agent_id),
         "original_episode_ids": original_ids,
         "permutation": ranked,
-        "shuffled_episode_ids": [
-            str(hit.episode.episode_id) for hit in shuffled
-        ],
+        "shuffled_episode_ids": [str(hit.episode.episode_id) for hit in shuffled],
         "non_identity": ranked != identity,
-        "not_fixed_reversal": (
-            len(ranked) <= 2 or ranked != reversed_identity
-        ),
+        "not_fixed_reversal": (len(ranked) <= 2 or ranked != reversed_identity),
         "deterministic_adjustment": adjustment,
     }
     binding["permutation_hash"] = canonical_hash(binding)
@@ -325,15 +315,10 @@ def _shuffled_memory_text(
     parts: list[str] = []
     if shuffled_hits:
         parts.append("Finalized experience evidence:")
-        parts.extend(
-            f"- {hit.episode.to_prompt_text()}"
-            for hit in shuffled_hits
-        )
+        parts.extend(f"- {hit.episode.to_prompt_text()}" for hit in shuffled_hits)
     if bundle.active_rules:
         parts.append("Verified active rules:")
-        parts.extend(
-            f"- {rule.to_prompt_text()}" for rule in bundle.active_rules
-        )
+        parts.extend(f"- {rule.to_prompt_text()}" for rule in bundle.active_rules)
     return " ".join(parts), shuffle_binding
 
 
@@ -387,9 +372,7 @@ def _memory_text_for_treatment(
         }
     if treatment == "wrong-context":
         donor = next(
-            candidate
-            for candidate in sorted(bundles)
-            if candidate != focal_agent_id
+            candidate for candidate in sorted(bundles) if candidate != focal_agent_id
         )
         treated = bundles[donor].memory_prompt
         return treated, {
@@ -408,9 +391,7 @@ def _memory_text_for_treatment(
     return bundle.memory_prompt, None
 
 
-def _provider_state_restore(
-    checkpoint: PilotCheckpoint, llm: MultiModelLLM
-) -> None:
+def _provider_state_restore(checkpoint: PilotCheckpoint, llm: MultiModelLLM) -> None:
     binding = checkpoint.payload["provider_binding"]
     if llm.get_model_name() != binding["model_name"]:
         raise PilotContinuationError(
@@ -441,12 +422,8 @@ def _pre_generate_rng_schedule(
 
     source = {
         "checkpoint_hash": checkpoint.checkpoint_hash,
-        "numpy_rng_after_prefix": checkpoint.payload[
-            "numpy_rng_after_prefix"
-        ],
-        "python_rng_after_prefix": checkpoint.payload[
-            "python_rng_after_prefix"
-        ],
+        "numpy_rng_after_prefix": checkpoint.payload["numpy_rng_after_prefix"],
+        "python_rng_after_prefix": checkpoint.payload["python_rng_after_prefix"],
     }
     source_hash = canonical_hash(source)
     schedule: list[dict[str, Any]] = []
@@ -524,9 +501,7 @@ def _normalize_journal_target(
     if contract_hash is not None and (
         not isinstance(contract_hash, str) or len(contract_hash) != 64
     ):
-        raise PilotContinuationError(
-            "provider journal target contract_hash is invalid"
-        )
+        raise PilotContinuationError("provider journal target contract_hash is invalid")
     if path.exists():
         raise PilotContinuationError(
             "provider journal already exists; refusing branch redispatch"
@@ -673,13 +648,9 @@ def _finalize_episode_with_lifecycle_policy(
         raise PilotContinuationError(
             "policy-controlled finalization requires semantic memory"
         )
-    observed_rule_ids = {
-        rule.rule_id for rule in tuple(memory.semantic.rules)
-    }
+    observed_rule_ids = {rule.rule_id for rule in tuple(memory.semantic.rules)}
     if excluded_rule_id not in observed_rule_ids:
-        raise PilotContinuationError(
-            "unverified lifecycle exclusion rule is missing"
-        )
+        raise PilotContinuationError("unverified lifecycle exclusion rule is missing")
     for rule in tuple(memory.semantic.rules):
         if rule.rule_id == excluded_rule_id:
             continue
@@ -744,16 +715,10 @@ def _metrics(
     initial_wealths: Mapping[str, float],
 ) -> dict[str, Any]:
     focal = str(focal_agent_id)
-    focal_rows = [
-        row for row in continuation_rows if row["agent_id"] == focal
-    ]
-    focal_actions = [
-        row["decisions"][focal] for row in action_rows
-    ]
+    focal_rows = [row for row in continuation_rows if row["agent_id"] == focal]
+    focal_actions = [row["decisions"][focal] for row in action_rows]
     final_wealths = {
-        str(agent_id): float(
-            state.env.get_agent(str(agent_id)).inventory["Coin"]
-        )
+        str(agent_id): float(state.env.get_agent(str(agent_id)).inventory["Coin"])
         for agent_id in range(state.config.num_agents)
     }
     all_flows = [float(row["flow_utility"]) for row in continuation_rows]
@@ -761,9 +726,7 @@ def _metrics(
     first_action_row = action_rows[0]
     first_focal_decision = first_action_row["decisions"][focal]
     first_focal_ledger = next(
-        row
-        for row in first_action_row["ledger_rows"]
-        if str(row["agent_id"]) == focal
+        row for row in first_action_row["ledger_rows"] if str(row["agent_id"]) == focal
     )
     first_population_ledger = list(first_action_row["ledger_rows"])
     first_population_wealth = [
@@ -774,31 +737,23 @@ def _metrics(
             "agent_id": focal_agent_id,
             "initial_wealth": float(initial_wealths[focal]),
             "final_wealth": final_wealths[focal],
-            "wealth_change": final_wealths[focal]
-            - float(initial_wealths[focal]),
+            "wealth_change": final_wealths[focal] - float(initial_wealths[focal]),
             "flow_utility_sum": sum(focal_flows),
             "discounted_flow_utility_sum": sum(
-                float(row["discounted_flow_utility"])
-                for row in focal_rows
+                float(row["discounted_flow_utility"]) for row in focal_rows
             ),
             "mean_labor_hours": mean(
-                float(row["executed_labor_hours"])
-                for row in focal_actions
+                float(row["executed_labor_hours"]) for row in focal_actions
             ),
             "mean_consumption_rate": mean(
-                float(row["executed_consumption_rate"])
-                for row in focal_actions
+                float(row["executed_consumption_rate"]) for row in focal_actions
             ),
             "first_step": {
-                "labor_hours": float(
-                    first_focal_decision["executed_labor_hours"]
-                ),
+                "labor_hours": float(first_focal_decision["executed_labor_hours"]),
                 "consumption_rate": float(
                     first_focal_decision["executed_consumption_rate"]
                 ),
-                "immediate_flow_utility": float(
-                    first_focal_ledger["flow_utility"]
-                ),
+                "immediate_flow_utility": float(first_focal_ledger["flow_utility"]),
                 "next_wealth": float(first_focal_ledger["wealth_post"]),
                 "next_cumulative_production": float(
                     first_focal_ledger["cumulative_production_post"]
@@ -823,12 +778,9 @@ def _metrics(
                 "average_next_wealth": mean(first_population_wealth),
                 "gini_next_wealth": _gini(first_population_wealth),
                 "flow_utility_sum": sum(
-                    float(row["flow_utility"])
-                    for row in first_population_ledger
+                    float(row["flow_utility"]) for row in first_population_ledger
                 ),
-                "low_labor_rate": float(
-                    first_action_row["low_labor_rate"]
-                ),
+                "low_labor_rate": float(first_action_row["low_labor_rate"]),
             },
         },
     }
@@ -866,9 +818,7 @@ def _run_branch(
     )
     initial_proposals = dict(state.proposals_made)
     initial_wealths = {
-        str(agent_id): float(
-            state.env.get_agent(str(agent_id)).inventory["Coin"]
-        )
+        str(agent_id): float(state.env.get_agent(str(agent_id)).inventory["Coin"])
         for agent_id in range(config.num_agents)
     }
     branch_rows: list[dict[str, Any]] = []
@@ -972,14 +922,10 @@ def _run_branch(
                         "memory pulse was applied more than once in one branch"
                     )
                 memory_pulse_binding = pulse_binding
-            prompt = compose_decision_prompt(
-                base_prompts[agent_id], memory_text
-            )
+            prompt = compose_decision_prompt(base_prompts[agent_id], memory_text)
             composed.append(prompt)
             memory_texts[str(agent_id)] = memory_text
-        prompt_hashes = [
-            prompt.full_prompt_hash for prompt in composed
-        ]
+        prompt_hashes = [prompt.full_prompt_hash for prompt in composed]
         try:
             completions = _complete_actions(
                 config=config,
@@ -992,10 +938,7 @@ def _run_branch(
         except Exception as exc:
             settled = getattr(exc, "structured_completions", None)
             if settled is not None:
-                if (
-                    not isinstance(settled, tuple)
-                    or len(settled) != config.num_agents
-                ):
+                if not isinstance(settled, tuple) or len(settled) != config.num_agents:
                     raise PilotContinuationError(
                         "failed continuation batch exposed an incomplete "
                         "completion denominator"
@@ -1209,8 +1152,7 @@ def _run_branch(
         random.setstate(decode_python_rng_state(seed_state["python"]))
         if encode_python_rng_state(random.getstate()) != seed_state["python"]:
             raise PilotContinuationError(
-                f"common Python RNG seed mismatch in {treatment} "
-                f"at t={decision_t}"
+                f"common Python RNG seed mismatch in {treatment} " f"at t={decision_t}"
             )
         _, rewards, done, _ = state.env.step(
             env_actions,
@@ -1236,14 +1178,9 @@ def _run_branch(
         post_batch = _post_ledger_batch(transitions)
         utility_rows = state.ledger.capture_post(decision_t, post_batch)
         rows_by_agent = {row.agent_id: row for row in utility_rows}
-        continuation_ledger_rows.extend(
-            row.to_dict() for row in utility_rows
-        )
+        continuation_ledger_rows.extend(row.to_dict() for row in utility_rows)
         current_low_labor_rate = mean(
-            float(
-                decision.executed_labor_hours
-                < config.low_labor_threshold_hours
-            )
+            float(decision.executed_labor_hours < config.low_labor_threshold_hours)
             for decision in decisions.values()
         )
         realized_inflation = _monthly_inflation(state.env.world)
@@ -1263,9 +1200,7 @@ def _run_branch(
                 reward=float(rewards[agent_key]),
                 flow_utility=rows_by_agent[agent_key].flow_utility,
                 excluded_rule_id=(
-                    excluded_rule_id
-                    if agent_id == focal_agent_id
-                    else None
+                    excluded_rule_id if agent_id == focal_agent_id else None
                 ),
             )
             state.last_decisions[agent_key] = decision
@@ -1281,9 +1216,7 @@ def _run_branch(
                 ),
                 "shock_prompt_text": _shock_prompt_text(shock),
                 "rng_pre_step_hash": canonical_hash(seed_state),
-                "decisions": {
-                    key: value.to_dict() for key, value in decisions.items()
-                },
+                "decisions": {key: value.to_dict() for key, value in decisions.items()},
                 "prompt_hashes": {
                     str(agent_id): composed[agent_id].full_prompt_hash
                     for agent_id in range(config.num_agents)
@@ -1294,9 +1227,7 @@ def _run_branch(
                 },
                 "memory_texts": memory_texts,
                 "memory_pulse_bindings": memory_pulse_bindings,
-                "ledger_rows": [
-                    row.to_dict() for row in utility_rows
-                ],
+                "ledger_rows": [row.to_dict() for row in utility_rows],
                 "environment_state_hash": canonical_hash(
                     capture_environment_state(state.env)
                 ),
@@ -1326,9 +1257,7 @@ def _run_branch(
         )
     for memory in state.memories.values():
         memory.validate()
-    if semantic_intervention.get("applied") and semantic_intervention.get(
-        "rule_id"
-    ):
+    if semantic_intervention.get("applied") and semantic_intervention.get("rule_id"):
         final_rule = next(
             (
                 rule
@@ -1404,9 +1333,7 @@ def _run_branch(
             "proposal_counters_after": {
                 str(key): value for key, value in state.proposals_made.items()
             },
-            "rng_pre_step_hashes": [
-                canonical_hash(value) for value in rng_schedule
-            ],
+            "rng_pre_step_hashes": [canonical_hash(value) for value in rng_schedule],
             "api_usage": api_usage_rows,
             "api_usage_hash": canonical_hash(api_usage_rows),
             "provider_call_journal": provider_call_journal_binding,
@@ -1438,14 +1365,10 @@ def _normalize_registered_treatments(
 ) -> tuple[str, ...]:
     """Validate one exact, causally interpretable ordered branch subset."""
 
-    if isinstance(treatments, (str, bytes)) or not isinstance(
-        treatments, Sequence
-    ):
+    if isinstance(treatments, (str, bytes)) or not isinstance(treatments, Sequence):
         raise TypeError("Experiment D treatments must be a sequence of strings")
     if any(
-        not isinstance(value, str)
-        or not value
-        or value != value.strip()
+        not isinstance(value, str) or not value or value != value.strip()
         for value in treatments
     ):
         raise ValueError(
@@ -1455,17 +1378,14 @@ def _normalize_registered_treatments(
     if len(normalized) != len(set(normalized)):
         raise ValueError("Experiment D treatments must not contain duplicates")
     unknown = tuple(
-        treatment
-        for treatment in normalized
-        if treatment not in DEFAULT_TREATMENTS
+        treatment for treatment in normalized if treatment not in DEFAULT_TREATMENTS
     )
     if unknown:
         raise ValueError(
             f"Experiment D treatments contain unknown branches: {list(unknown)}"
         )
     default_positions = {
-        treatment: index
-        for index, treatment in enumerate(DEFAULT_TREATMENTS)
+        treatment: index for index, treatment in enumerate(DEFAULT_TREATMENTS)
     }
     positions = tuple(default_positions[treatment] for treatment in normalized)
     if positions != tuple(sorted(positions)):
@@ -1507,9 +1427,7 @@ def run_pilot_continuations(
     if isinstance(horizon, bool) or not isinstance(horizon, int) or horizon < 1:
         raise ValueError("horizon must be a positive integer")
     if horizon != DEFAULT_CONTINUATION_HORIZON:
-        raise ValueError(
-            "Experiment D preregistration fixes a six-period continuation"
-        )
+        raise ValueError("Experiment D preregistration fixes a six-period continuation")
     if checkpoint.next_decision_t != 6:
         raise PilotContinuationError(
             "Experiment D must branch after t=5/before decision 6"
@@ -1586,9 +1504,9 @@ def run_pilot_continuations(
         branches["erroneous-verified"]["trajectory"][0]["prompt_hashes"][
             str(focal_agent_id)
         ]
-        != branches["erroneous-unverified"]["trajectory"][0][
-            "prompt_hashes"
-        ][str(focal_agent_id)]
+        != branches["erroneous-unverified"]["trajectory"][0]["prompt_hashes"][
+            str(focal_agent_id)
+        ]
     ):
         raise PilotContinuationError(
             "verifier assignment changed the intervention-period actor prompt"
@@ -1610,15 +1528,11 @@ def run_pilot_continuations(
                 - baseline["focal"]["first_step"]["labor_hours"]
             ),
             "focal_first_consumption_rate": (
-                branch["metrics"]["focal"]["first_step"][
-                    "consumption_rate"
-                ]
+                branch["metrics"]["focal"]["first_step"]["consumption_rate"]
                 - baseline["focal"]["first_step"]["consumption_rate"]
             ),
             "focal_immediate_flow_utility": (
-                branch["metrics"]["focal"]["first_step"][
-                    "immediate_flow_utility"
-                ]
+                branch["metrics"]["focal"]["first_step"]["immediate_flow_utility"]
                 - baseline["focal"]["first_step"]["immediate_flow_utility"]
             ),
             "focal_next_wealth": (
@@ -1634,40 +1548,24 @@ def run_pilot_continuations(
                 - baseline["focal"]["flow_utility_sum"]
             ),
             "focal_discounted_flow_utility_sum": (
-                branch["metrics"]["focal"][
-                    "discounted_flow_utility_sum"
-                ]
+                branch["metrics"]["focal"]["discounted_flow_utility_sum"]
                 - baseline["focal"]["discounted_flow_utility_sum"]
             ),
             "population_first_step_flow_utility_sum": (
-                branch["metrics"]["population"]["first_step"][
-                    "flow_utility_sum"
-                ]
+                branch["metrics"]["population"]["first_step"]["flow_utility_sum"]
                 - baseline["population"]["first_step"]["flow_utility_sum"]
             ),
             "population_next_average_wealth": (
-                branch["metrics"]["population"]["first_step"][
-                    "average_next_wealth"
-                ]
-                - baseline["population"]["first_step"][
-                    "average_next_wealth"
-                ]
+                branch["metrics"]["population"]["first_step"]["average_next_wealth"]
+                - baseline["population"]["first_step"]["average_next_wealth"]
             ),
             "population_next_gini": (
-                branch["metrics"]["population"]["first_step"][
-                    "gini_next_wealth"
-                ]
-                - baseline["population"]["first_step"][
-                    "gini_next_wealth"
-                ]
+                branch["metrics"]["population"]["first_step"]["gini_next_wealth"]
+                - baseline["population"]["first_step"]["gini_next_wealth"]
             ),
             "population_next_low_labor_rate": (
-                branch["metrics"]["population"]["first_step"][
-                    "low_labor_rate"
-                ]
-                - baseline["population"]["first_step"][
-                    "low_labor_rate"
-                ]
+                branch["metrics"]["population"]["first_step"]["low_labor_rate"]
+                - baseline["population"]["first_step"]["low_labor_rate"]
             ),
             "population_average_final_wealth": (
                 branch["metrics"]["population"]["average_final_wealth"]
@@ -1699,9 +1597,7 @@ def run_pilot_continuations(
         "wrong_context_source_agent_id": 1,
         "memory_pulse_contract": dict(MEMORY_PULSE_CONTRACT),
         "action_grid": {
-            "labor_step_hours": float(
-                checkpoint.payload["run_config"]["labor_step"]
-            ),
+            "labor_step_hours": float(checkpoint.payload["run_config"]["labor_step"]),
             "consumption_step": float(
                 checkpoint.payload["run_config"]["consumption_step"]
             ),
@@ -1717,10 +1613,7 @@ def run_pilot_continuations(
         "rng_schedule_binding": rng_schedule_binding,
         "erroneous_forced_active_common_start": {
             "equal": True,
-            **{
-                field: verified_start[field]
-                for field in common_start_fields
-            },
+            **{field: verified_start[field] for field in common_start_fields},
             "verifier_assignment_timing": "after-common-start",
         },
         "matched_replay_equal": matched_replay_equal,
@@ -1730,6 +1623,86 @@ def run_pilot_continuations(
     return PilotContinuationResult(payload)
 
 
+def run_pilot_continuation_branch(
+    checkpoint: PilotCheckpoint | Mapping[str, Any],
+    *,
+    llm: MultiModelLLM,
+    budget: RunBudget,
+    treatment: str,
+    horizon: int = DEFAULT_CONTINUATION_HORIZON,
+    focal_agent_id: int = 0,
+    strict_code_binding: bool = True,
+    provider_call_journal: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Execute one independently terminalized Experiment-D branch.
+
+    The ordinary aggregate runner remains unchanged for historical contracts.
+    Fresh cohorts can use this entrypoint to give every registered branch its
+    own reservation and failure boundary while deriving the exact same common
+    RNG schedule from the shared checkpoint on every invocation.
+    """
+
+    if not isinstance(checkpoint, PilotCheckpoint):
+        checkpoint = PilotCheckpoint.from_dict(checkpoint)
+    if not isinstance(llm, MultiModelLLM):
+        raise TypeError("llm must be MultiModelLLM")
+    if not isinstance(budget, RunBudget):
+        raise TypeError("budget must be RunBudget")
+    if treatment not in DEFAULT_TREATMENTS:
+        raise ValueError("single continuation treatment is not registered")
+    if horizon != DEFAULT_CONTINUATION_HORIZON:
+        raise ValueError("Experiment D preregistration fixes a six-period continuation")
+    if checkpoint.next_decision_t != 6:
+        raise PilotContinuationError(
+            "Experiment D must branch after t=5/before decision 6"
+        )
+    if checkpoint.payload["run_config"]["num_agents"] != 4:
+        raise PilotContinuationError(
+            "Experiment D requires exactly four continuing agents"
+        )
+    if focal_agent_id != MEMORY_PULSE_CONTRACT["focal_agent_id"]:
+        raise ValueError("Experiment D freezes focal_agent_id=0")
+    validate_preflight_p95_reservations(
+        config_from_dict(checkpoint.payload["run_config"]),
+        provider_model_name=llm.get_model_name(),
+    )
+    common_rng_schedule, rng_schedule_binding = _pre_generate_rng_schedule(
+        checkpoint,
+        horizon=horizon,
+    )
+    branch, observed_schedule = _run_branch(
+        checkpoint=checkpoint,
+        llm=llm,
+        budget=budget,
+        treatment=treatment,
+        horizon=horizon,
+        focal_agent_id=focal_agent_id,
+        common_rng_schedule=common_rng_schedule,
+        strict_code_binding=strict_code_binding,
+        provider_call_journal=provider_call_journal,
+    )
+    if observed_schedule != common_rng_schedule:
+        raise PilotContinuationError(
+            f"pre-generated RNG schedule differs in branch {treatment}"
+        )
+    payload = {
+        "schema_version": "finevo-pilot-continuation-branch-v1",
+        "checkpoint_hash": checkpoint.checkpoint_hash,
+        "prefix_hash": checkpoint.payload["prefix_hash"],
+        "treatment": treatment,
+        "horizon": horizon,
+        "num_agents": 4,
+        "focal_agent_id": focal_agent_id,
+        "rng_schedule_binding": rng_schedule_binding,
+        "pre_generated_rng_hashes": [
+            canonical_hash(value) for value in common_rng_schedule
+        ],
+        "branch": branch,
+    }
+    payload["result_hash"] = canonical_hash(payload)
+    return payload
+
+
 def _narrative_branch_metrics(branch: Mapping[str, Any]) -> dict[str, float]:
     trajectory = branch["trajectory"]
     if not trajectory:
@@ -1737,14 +1710,10 @@ def _narrative_branch_metrics(branch: Mapping[str, Any]) -> dict[str, float]:
     first = trajectory[0]
     focal = str(branch["narrative"]["focal_agent_id"])
     decision = first["decisions"][focal]
-    ledger = next(
-        row for row in first["ledger_rows"] if str(row["agent_id"]) == focal
-    )
+    ledger = next(row for row in first["ledger_rows"] if str(row["agent_id"]) == focal)
     return {
         "first_labor_hours": float(decision["executed_labor_hours"]),
-        "first_consumption_rate": float(
-            decision["executed_consumption_rate"]
-        ),
+        "first_consumption_rate": float(decision["executed_consumption_rate"]),
         "immediate_flow_utility": float(ledger["flow_utility"]),
         "six_step_discounted_flow_utility": float(
             branch["metrics"]["focal"]["discounted_flow_utility_sum"]
@@ -1773,9 +1742,7 @@ def run_pilot_narratives(
     if focal_agent_id != NARRATIVE_PULSE_CONTRACT["focal_agent_id"]:
         raise ValueError("Experiment D freezes narrative focal_agent_id=0")
     if checkpoint.next_decision_t != 6:
-        raise PilotContinuationError(
-            "narrative branches must start before decision 6"
-        )
+        raise PilotContinuationError("narrative branches must start before decision 6")
     validate_preflight_p95_reservations(
         config_from_dict(checkpoint.payload["run_config"]),
         provider_model_name=llm.get_model_name(),
@@ -1882,6 +1849,82 @@ def run_pilot_narratives(
     return PilotContinuationResult(payload)
 
 
+def run_pilot_narrative_branch(
+    checkpoint: PilotCheckpoint | Mapping[str, Any],
+    *,
+    llm: MultiModelLLM,
+    budget: RunBudget,
+    narrative_id: str,
+    horizon: int = DEFAULT_CONTINUATION_HORIZON,
+    focal_agent_id: int = 0,
+    strict_code_binding: bool = True,
+    provider_call_journal: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Execute one independently terminalized narrative continuation."""
+
+    if not isinstance(checkpoint, PilotCheckpoint):
+        checkpoint = PilotCheckpoint.from_dict(checkpoint)
+    if not isinstance(llm, MultiModelLLM):
+        raise TypeError("llm must be MultiModelLLM")
+    if not isinstance(budget, RunBudget):
+        raise TypeError("budget must be RunBudget")
+    if narrative_id not in DEFAULT_NARRATIVES:
+        raise ValueError("single narrative branch is not registered")
+    if horizon != DEFAULT_CONTINUATION_HORIZON:
+        raise ValueError("Experiment D preregistration fixes a six-period continuation")
+    if checkpoint.next_decision_t != 6:
+        raise PilotContinuationError("narrative branches must start before decision 6")
+    if checkpoint.payload["run_config"]["num_agents"] != 4:
+        raise PilotContinuationError(
+            "Experiment D requires exactly four continuing agents"
+        )
+    if focal_agent_id != NARRATIVE_PULSE_CONTRACT["focal_agent_id"]:
+        raise ValueError("Experiment D freezes narrative focal_agent_id=0")
+    validate_preflight_p95_reservations(
+        config_from_dict(checkpoint.payload["run_config"]),
+        provider_model_name=llm.get_model_name(),
+    )
+    common_rng_schedule, rng_schedule_binding = _pre_generate_rng_schedule(
+        checkpoint,
+        horizon=horizon,
+    )
+    branch, observed_schedule = _run_branch(
+        checkpoint=checkpoint,
+        llm=llm,
+        budget=budget,
+        treatment=f"narrative-{narrative_id}",
+        horizon=horizon,
+        focal_agent_id=focal_agent_id,
+        common_rng_schedule=common_rng_schedule,
+        strict_code_binding=strict_code_binding,
+        narrative_text=DEFAULT_NARRATIVES[narrative_id],
+        narrative_id=narrative_id,
+        provider_call_journal=provider_call_journal,
+    )
+    if observed_schedule != common_rng_schedule:
+        raise PilotContinuationError(
+            f"narrative RNG schedule differs in {narrative_id}"
+        )
+    payload = {
+        "schema_version": "finevo-pilot-narrative-branch-v1",
+        "checkpoint_hash": checkpoint.checkpoint_hash,
+        "prefix_hash": checkpoint.payload["prefix_hash"],
+        "narrative_id": narrative_id,
+        "narrative_text_sha256": canonical_hash(DEFAULT_NARRATIVES[narrative_id]),
+        "horizon": horizon,
+        "num_agents": 4,
+        "focal_agent_id": focal_agent_id,
+        "rng_schedule_binding": rng_schedule_binding,
+        "pre_generated_rng_hashes": [
+            canonical_hash(value) for value in common_rng_schedule
+        ],
+        "metrics": _narrative_branch_metrics(branch),
+        "branch": branch,
+    }
+    payload["result_hash"] = canonical_hash(payload)
+    return payload
+
+
 __all__ = [
     "DEFAULT_CONTINUATION_HORIZON",
     "DEFAULT_NARRATIVES",
@@ -1896,5 +1939,7 @@ __all__ = [
     "SHUFFLE_ALGORITHM",
     "V24_GPT_TREATMENTS",
     "run_pilot_continuations",
+    "run_pilot_continuation_branch",
+    "run_pilot_narrative_branch",
     "run_pilot_narratives",
 ]

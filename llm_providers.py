@@ -13,6 +13,7 @@ import time
 import json
 import hashlib
 import importlib.metadata
+import math
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -208,9 +209,7 @@ def _completion_finish_state(
 ) -> tuple[bool, Optional[str], Optional[str]]:
     """Classify a terminal response, failing closed unless it is an exact stop."""
 
-    if finish_reason == "stop" and (
-        not require_provider_done or provider_done is True
-    ):
+    if finish_reason == "stop" and (not require_provider_done or provider_done is True):
         return True, None, None
     if finish_reason == "length":
         return False, "IncompleteCompletionError", "completion_length"
@@ -258,7 +257,9 @@ def _reported_cost(usage: object) -> Optional[float]:
     if isinstance(usage, Mapping):
         candidates.extend([usage.get("cost"), usage.get("cost_usd")])
     else:
-        candidates.extend([getattr(usage, "cost", None), getattr(usage, "cost_usd", None)])
+        candidates.extend(
+            [getattr(usage, "cost", None), getattr(usage, "cost_usd", None)]
+        )
         model_extra = getattr(usage, "model_extra", None)
         if isinstance(model_extra, Mapping):
             candidates.extend([model_extra.get("cost"), model_extra.get("cost_usd")])
@@ -390,7 +391,7 @@ def _required_metadata_text(
         _route_attestation_error(
             "OR_RA_002_METADATA_SCHEMA_INVALID",
             path,
-            f"OpenRouter route attestation field {name} is missing or invalid"
+            f"OpenRouter route attestation field {name} is missing or invalid",
         )
     return candidate
 
@@ -410,7 +411,7 @@ def _required_metadata_sequence(
         _route_attestation_error(
             "OR_RA_002_METADATA_SCHEMA_INVALID",
             path,
-            f"OpenRouter route attestation field {name} is missing or invalid"
+            f"OpenRouter route attestation field {name} is missing or invalid",
         )
     return candidate
 
@@ -461,7 +462,7 @@ def _validate_openrouter_response_route(
         _route_attestation_error(
             "OR_RA_003_REQUEST_MODEL_MISMATCH",
             "openrouter_metadata.requested",
-            "OpenRouter route attestation requested-model mismatch"
+            "OpenRouter route attestation requested-model mismatch",
         )
     strategy = _required_metadata_text(
         metadata,
@@ -472,7 +473,7 @@ def _validate_openrouter_response_route(
         _route_attestation_error(
             "OR_RA_004_ROUTING_NOT_DIRECT",
             "openrouter_metadata.strategy",
-            "OpenRouter route attestation did not use direct routing"
+            "OpenRouter route attestation did not use direct routing",
         )
     router_attempt = _sdk_metadata_field(metadata, "attempt")
     if router_attempt is _METADATA_MISSING:
@@ -489,7 +490,7 @@ def _validate_openrouter_response_route(
         _route_attestation_error(
             "OR_RA_005_ROUTER_ATTEMPT_INVALID",
             "openrouter_metadata.attempt",
-            "OpenRouter route attestation did not complete on router attempt 1"
+            "OpenRouter route attestation did not complete on router attempt 1",
         )
 
     endpoints = _sdk_metadata_field(metadata, "endpoints")
@@ -497,7 +498,7 @@ def _validate_openrouter_response_route(
         _route_attestation_error(
             "OR_RA_002_METADATA_SCHEMA_INVALID",
             "openrouter_metadata.endpoints",
-            "OpenRouter route attestation endpoints are absent"
+            "OpenRouter route attestation endpoints are absent",
         )
     available = _required_metadata_sequence(
         endpoints,
@@ -517,7 +518,7 @@ def _validate_openrouter_response_route(
             _route_attestation_error(
                 "OR_RA_006_ENDPOINT_SELECTION_INVALID",
                 "openrouter_metadata.endpoints.available[].selected",
-                "OpenRouter route attestation endpoint selection is invalid"
+                "OpenRouter route attestation endpoint selection is invalid",
             )
         if selected_flag:
             selected.append(endpoint)
@@ -525,7 +526,7 @@ def _validate_openrouter_response_route(
         _route_attestation_error(
             "OR_RA_006_ENDPOINT_SELECTION_INVALID",
             "openrouter_metadata.endpoints.available",
-            "OpenRouter route attestation must identify exactly one selected endpoint"
+            "OpenRouter route attestation must identify exactly one selected endpoint",
         )
 
     selected_provider = _required_metadata_text(
@@ -542,14 +543,14 @@ def _validate_openrouter_response_route(
         _route_attestation_error(
             "OR_RA_007_PROVIDER_PIN_MISMATCH",
             "openrouter_metadata.endpoints.available[].provider",
-            "OpenRouter route attestation selected-provider mismatch"
+            "OpenRouter route attestation selected-provider mismatch",
         )
     expected_model = dict(profile.artifact_identity).get("served_snapshot")
     if expected_model is None or selected_model != expected_model:
         _route_attestation_error(
             "OR_RA_008_SNAPSHOT_MISMATCH",
             "openrouter_metadata.endpoints.available[].model",
-            "OpenRouter route attestation selected-model mismatch"
+            "OpenRouter route attestation selected-model mismatch",
         )
 
     attempts = _sdk_metadata_field(metadata, "attempts")
@@ -655,9 +656,7 @@ def _usage_record(
     uncached_prompt_tokens = prompt_tokens - cached_prompt_tokens
     frozen_price_estimate = (
         uncached_prompt_tokens / 1000 * costs["prompt"]
-        + cached_prompt_tokens
-        / 1000
-        * costs.get("cached_prompt", costs["prompt"])
+        + cached_prompt_tokens / 1000 * costs.get("cached_prompt", costs["prompt"])
         + completion_tokens / 1000 * costs["completion"]
     )
     cost = (
@@ -906,8 +905,7 @@ class StructuredCompletion:
         ):
             raise TypeError("response_completed must be a boolean or None")
         if not isinstance(self.request_parameters, tuple) or any(
-            not isinstance(item, str) or not item
-            for item in self.request_parameters
+            not isinstance(item, str) or not item for item in self.request_parameters
         ):
             raise TypeError("request_parameters must be a tuple of non-empty strings")
         if len(self.request_parameters) != len(set(self.request_parameters)):
@@ -928,8 +926,7 @@ class StructuredCompletion:
         if not isinstance(self.output_disposition, str) or not self.output_disposition:
             raise TypeError("output_disposition must be a non-empty string")
         if not isinstance(self.request_provider_pin, tuple) or any(
-            not isinstance(item, str) or not item
-            for item in self.request_provider_pin
+            not isinstance(item, str) or not item for item in self.request_provider_pin
         ):
             raise TypeError("request_provider_pin must be a tuple of non-empty strings")
         if not isinstance(self.request_artifact_identity, tuple) or any(
@@ -938,9 +935,7 @@ class StructuredCompletion:
             or not all(isinstance(value, str) and value for value in item)
             for item in self.request_artifact_identity
         ):
-            raise TypeError(
-                "request_artifact_identity must be a tuple of string pairs"
-            )
+            raise TypeError("request_artifact_identity must be a tuple of string pairs")
 
     @property
     def cost(self) -> float:
@@ -1000,9 +995,7 @@ class StructuredCompletion:
         payload.pop("text")
         payload["schema_version"] = "finevo-provider-completion-audit-v2"
         payload["output_bytes"] = len(self.text.encode("utf-8"))
-        payload["output_sha256"] = hashlib.sha256(
-            self.text.encode("utf-8")
-        ).hexdigest()
+        payload["output_sha256"] = hashlib.sha256(self.text.encode("utf-8")).hexdigest()
 
         # These values originate in provider responses. Even apparently
         # identifier-shaped strings can contain echoed secrets, so diagnostic
@@ -1124,6 +1117,7 @@ class OpenAIProvider(LLMProvider):
         model: str = "gpt-4o",
         max_retries: Optional[int] = None,
         request_profile: Optional[ProviderRequestProfile] = None,
+        request_timeout_seconds: Optional[float] = None,
     ):
         api_key = _validated_api_key(api_key, "OpenAI")
         self.api_key = api_key
@@ -1131,18 +1125,14 @@ class OpenAIProvider(LLMProvider):
         if request_profile is not None and not isinstance(
             request_profile, ProviderRequestProfile
         ):
-            raise TypeError(
-                "request_profile must be a ProviderRequestProfile or None"
-            )
+            raise TypeError("request_profile must be a ProviderRequestProfile or None")
         self.request_profile = request_profile
         default_retries = (
             request_profile.max_attempts if request_profile is not None else 20
         )
         self.max_retries = _validated_retry_count(max_retries, default_retries)
         if request_profile is None:
-            self.costs = MODEL_COSTS.get(
-                model, {"prompt": 0.003, "completion": 0.012}
-            )
+            self.costs = MODEL_COSTS.get(model, {"prompt": 0.003, "completion": 0.012})
         else:
             request_profile.validate_provider_configuration(
                 transport="openai",
@@ -1152,7 +1142,17 @@ class OpenAIProvider(LLMProvider):
             _require_pinned_package_version("openai")
             self.costs = request_profile.price_snapshot.costs_per_1k()
         from openai import OpenAI
+
         client_options: Dict[str, object] = {"api_key": api_key}
+        if request_timeout_seconds is not None:
+            if (
+                isinstance(request_timeout_seconds, bool)
+                or not isinstance(request_timeout_seconds, (int, float))
+                or not math.isfinite(float(request_timeout_seconds))
+                or float(request_timeout_seconds) <= 0.0
+            ):
+                raise ValueError("request_timeout_seconds must be finite and positive")
+            client_options["timeout"] = float(request_timeout_seconds)
         if request_profile is not None:
             # The SDK otherwise retries selected failures internally, outside
             # this provider's auditable attempt counter. Pin the official
@@ -1168,7 +1168,9 @@ class OpenAIProvider(LLMProvider):
         max_tokens: int = 800,
         top_p: float = 1.0,
     ) -> Tuple[str, float]:
-        result = self.get_structured_completion(messages, temperature, max_tokens, top_p)
+        result = self.get_structured_completion(
+            messages, temperature, max_tokens, top_p
+        )
         legacy_cost = (
             result.usage.prompt_tokens / 1000 * self.costs["prompt"]
             + result.usage.completion_tokens / 1000 * self.costs["completion"]
@@ -1208,6 +1210,29 @@ class OpenAIProvider(LLMProvider):
                 "explicit" if dispatch_temperature else "omitted_unsupported"
             )
             try:
+                if (
+                    request_profile is not None
+                    and request_profile.short_context_prompt_token_ceiling is not None
+                ):
+                    # UTF-8 byte length is a conservative upper bound on the
+                    # number of BPE tokens.  Enforcing it before constructing
+                    # the SDK request guarantees that the frozen short-context
+                    # price tier cannot silently cross its token boundary.
+                    prompt_token_upper_bound = len(
+                        json.dumps(
+                            messages,
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                        ).encode("utf-8")
+                    )
+                    if (
+                        prompt_token_upper_bound
+                        > request_profile.short_context_prompt_token_ceiling
+                    ):
+                        raise PilotContractError(
+                            "conservative prompt-token upper bound exceeds the "
+                            "frozen short-context ceiling"
+                        )
                 request: Dict[str, object] = {
                     "model": self.model,
                     "messages": messages,
@@ -1248,7 +1273,11 @@ class OpenAIProvider(LLMProvider):
                         options.pop("reasoning_effort", None)
                     request.update(options)
                 # GPT-5.x and newer models use max_completion_tokens
-                if self.model.startswith("gpt-5") or self.model.startswith("o1") or self.model.startswith("o3"):
+                if (
+                    self.model.startswith("gpt-5")
+                    or self.model.startswith("o1")
+                    or self.model.startswith("o3")
+                ):
                     request["max_completion_tokens"] = max_tokens
                 else:
                     request["max_tokens"] = max_tokens
@@ -1287,9 +1316,7 @@ class OpenAIProvider(LLMProvider):
                     response_completed,
                     completion_error_type,
                     completion_error_code,
-                ) = _completion_finish_state(
-                    finish_reason
-                )
+                ) = _completion_finish_state(finish_reason)
                 if request_profile is not None:
                     try:
                         request_profile.validate_served_model(response_model)
@@ -1366,8 +1393,7 @@ class OpenAIProvider(LLMProvider):
                         temperature_dispatch=temperature_dispatch,
                         output_disposition=(
                             "discarded_incomplete"
-                            if completion_error_type
-                            == "IncompleteCompletionError"
+                            if completion_error_type == "IncompleteCompletionError"
                             else "discarded_invalid_finish"
                         ),
                         **profile_metadata,
@@ -1455,6 +1481,7 @@ class GeminiProvider(LLMProvider):
         self.last_request_time = 0
 
         import google.generativeai as genai
+
         genai.configure(api_key=api_key)
         self.client = genai.GenerativeModel(model)
 
@@ -1465,7 +1492,9 @@ class GeminiProvider(LLMProvider):
         max_tokens: int = 800,
         top_p: float = 1.0,
     ) -> Tuple[str, float]:
-        result = self.get_structured_completion(messages, temperature, max_tokens, top_p)
+        result = self.get_structured_completion(
+            messages, temperature, max_tokens, top_p
+        )
         # Preserve the historical tuple API's character-based estimate even
         # when the structured path has exact SDK token metadata.
         if result.error_type is not None:
@@ -1522,9 +1551,13 @@ class GeminiProvider(LLMProvider):
                     elif role == "assistant":
                         gemini_messages.append({"role": "model", "parts": [content]})
 
-                chat = self.client.start_chat(history=gemini_messages[:-1] if len(gemini_messages) > 1 else [])
+                chat = self.client.start_chat(
+                    history=gemini_messages[:-1] if len(gemini_messages) > 1 else []
+                )
 
-                last_message = gemini_messages[-1]["parts"][0] if gemini_messages else ""
+                last_message = (
+                    gemini_messages[-1]["parts"][0] if gemini_messages else ""
+                )
                 if system_prompt:
                     last_message = f"{system_prompt}\n\n{last_message}"
 
@@ -1534,7 +1567,7 @@ class GeminiProvider(LLMProvider):
                         temperature=temperature,
                         max_output_tokens=max_tokens,
                         top_p=top_p,
-                    )
+                    ),
                 )
 
                 usage_metadata = getattr(response, "usage_metadata", None)
@@ -1550,7 +1583,9 @@ class GeminiProvider(LLMProvider):
                 )
                 # Older Gemini SDK responses do not expose usage metadata.
                 if prompt_tokens == 0:
-                    prompt_tokens = sum(len(m["parts"][0]) // 4 for m in gemini_messages)
+                    prompt_tokens = sum(
+                        len(m["parts"][0]) // 4 for m in gemini_messages
+                    )
                 if completion_tokens == 0:
                     completion_tokens = len(response.text) // 4
                 usage = _usage_record(
@@ -1611,7 +1646,9 @@ class LocalAPIProvider(LLMProvider):
         max_tokens: int = 800,
         top_p: float = 1.0,
     ) -> Tuple[str, float]:
-        result = self.get_structured_completion(messages, temperature, max_tokens, top_p)
+        result = self.get_structured_completion(
+            messages, temperature, max_tokens, top_p
+        )
         return result.text, 0
 
     def get_structured_completion(
@@ -1646,7 +1683,7 @@ class LocalAPIProvider(LLMProvider):
                         "Content-Type": "application/json",
                     },
                     json=payload,
-                    timeout=300
+                    timeout=300,
                 )
                 response.raise_for_status()
                 result = response.json()
@@ -1716,6 +1753,7 @@ class ThirdPartyProvider(LLMProvider):
         app_name: str = "FinEvo",
         max_retries: Optional[int] = None,
         request_profile: Optional[ProviderRequestProfile] = None,
+        request_timeout_seconds: Optional[float] = None,
     ):
         api_key = _validated_api_key(api_key, "Third-party")
         self.api_key = api_key
@@ -1724,18 +1762,14 @@ class ThirdPartyProvider(LLMProvider):
         if request_profile is not None and not isinstance(
             request_profile, ProviderRequestProfile
         ):
-            raise TypeError(
-                "request_profile must be a ProviderRequestProfile or None"
-            )
+            raise TypeError("request_profile must be a ProviderRequestProfile or None")
         self.request_profile = request_profile
         default_retries = (
             request_profile.max_attempts if request_profile is not None else 20
         )
         self.max_retries = _validated_retry_count(max_retries, default_retries)
         if request_profile is None:
-            self.costs = MODEL_COSTS.get(
-                model, {"prompt": 0, "completion": 0}
-            )
+            self.costs = MODEL_COSTS.get(model, {"prompt": 0, "completion": 0})
         else:
             if base_url.rstrip("/") != STRICT_OPENROUTER_BASE_URL:
                 raise PilotContractError(
@@ -1750,6 +1784,7 @@ class ThirdPartyProvider(LLMProvider):
             self.costs = request_profile.price_snapshot.costs_per_1k()
 
         from openai import OpenAI
+
         default_headers = {
             "HTTP-Referer": "https://github.com/moderncavemann/FinEvo",
             "X-Title": app_name,
@@ -1761,6 +1796,15 @@ class ThirdPartyProvider(LLMProvider):
             "base_url": base_url,
             "default_headers": default_headers,
         }
+        if request_timeout_seconds is not None:
+            if (
+                isinstance(request_timeout_seconds, bool)
+                or not isinstance(request_timeout_seconds, (int, float))
+                or not math.isfinite(float(request_timeout_seconds))
+                or float(request_timeout_seconds) <= 0.0
+            ):
+                raise ValueError("request_timeout_seconds must be finite and positive")
+            client_options["timeout"] = float(request_timeout_seconds)
         if request_profile is not None:
             # One pilot attempt means one wire attempt; disable SDK retries.
             client_options["max_retries"] = 0
@@ -1773,7 +1817,9 @@ class ThirdPartyProvider(LLMProvider):
         max_tokens: int = 800,
         top_p: float = 1.0,
     ) -> Tuple[str, float]:
-        result = self.get_structured_completion(messages, temperature, max_tokens, top_p)
+        result = self.get_structured_completion(
+            messages, temperature, max_tokens, top_p
+        )
         legacy_cost = (
             result.usage.prompt_tokens / 1000 * self.costs["prompt"]
             + result.usage.completion_tokens / 1000 * self.costs["completion"]
@@ -1902,9 +1948,7 @@ class ThirdPartyProvider(LLMProvider):
                     response_completed,
                     completion_error_type,
                     completion_error_code,
-                ) = _completion_finish_state(
-                    finish_reason
-                )
+                ) = _completion_finish_state(finish_reason)
                 route_attestation_source = _openrouter_metadata_source(response)
                 if request_profile is not None:
                     response_provider: Optional[str] = None
@@ -1948,9 +1992,7 @@ class ThirdPartyProvider(LLMProvider):
                             route_attestation_source=route_attestation_source,
                             request_parameters=request_parameters,
                             temperature_dispatch=temperature_dispatch,
-                            output_disposition=(
-                                "discarded_due_to_attestation_failure"
-                            ),
+                            output_disposition=("discarded_due_to_attestation_failure"),
                             **profile_metadata,
                         )
                     try:
@@ -1997,9 +2039,7 @@ class ThirdPartyProvider(LLMProvider):
                             route_attestation_source=route_attestation_source,
                             request_parameters=request_parameters,
                             temperature_dispatch=temperature_dispatch,
-                            output_disposition=(
-                                "discarded_due_to_attestation_failure"
-                            ),
+                            output_disposition=("discarded_due_to_attestation_failure"),
                             **profile_metadata,
                         )
                 else:
@@ -2046,8 +2086,7 @@ class ThirdPartyProvider(LLMProvider):
                         temperature_dispatch=temperature_dispatch,
                         output_disposition=(
                             "discarded_incomplete"
-                            if completion_error_type
-                            == "IncompleteCompletionError"
+                            if completion_error_type == "IncompleteCompletionError"
                             else "discarded_invalid_finish"
                         ),
                         **profile_metadata,
@@ -2131,9 +2170,7 @@ class OllamaProvider(LLMProvider):
         if request_profile is not None and not isinstance(
             request_profile, ProviderRequestProfile
         ):
-            raise TypeError(
-                "request_profile must be a ProviderRequestProfile or None"
-            )
+            raise TypeError("request_profile must be a ProviderRequestProfile or None")
         self.request_profile = request_profile
         default_retries = (
             request_profile.max_attempts if request_profile is not None else 10
@@ -2144,9 +2181,7 @@ class OllamaProvider(LLMProvider):
             self.costs = {"prompt": 0, "completion": 0}
         else:
             identity = dict(request_profile.artifact_identity)
-            frozen_host = str(
-                identity.get("base_url", STRICT_OLLAMA_BASE_URL)
-            )
+            frozen_host = str(identity.get("base_url", STRICT_OLLAMA_BASE_URL))
             requested_host = frozen_host if host is None else host
             if requested_host.rstrip("/") != frozen_host.rstrip("/"):
                 raise PilotContractError(
@@ -2168,7 +2203,9 @@ class OllamaProvider(LLMProvider):
         max_tokens: int = 800,
         top_p: float = 1.0,
     ) -> Tuple[str, float]:
-        result = self.get_structured_completion(messages, temperature, max_tokens, top_p)
+        result = self.get_structured_completion(
+            messages, temperature, max_tokens, top_p
+        )
         return result.text, 0
 
     def get_structured_completion(
@@ -2245,21 +2282,21 @@ class OllamaProvider(LLMProvider):
                 request_parameters = tuple(sorted(request_body))
                 stage = "ollama.chat.create"
                 response = requests.post(
-                    f"{self.host}/api/chat",
-                    json=request_body,
-                    timeout=300
+                    f"{self.host}/api/chat", json=request_body, timeout=300
                 )
                 response.raise_for_status()
                 stage = "ollama.response.decode"
                 result = response.json()
-                prompt_tokens = _usage_value(result, "prompt_eval_count", "prompt_tokens")
-                completion_tokens = _usage_value(result, "eval_count", "completion_tokens")
+                prompt_tokens = _usage_value(
+                    result, "prompt_eval_count", "prompt_tokens"
+                )
+                completion_tokens = _usage_value(
+                    result, "eval_count", "completion_tokens"
+                )
                 usage = _usage_record(prompt_tokens, completion_tokens, self.costs)
                 response_model = str(result.get("model") or self.model)
                 provider_done = (
-                    result.get("done")
-                    if isinstance(result.get("done"), bool)
-                    else None
+                    result.get("done") if isinstance(result.get("done"), bool) else None
                 )
                 native_finish_reason = (
                     str(result["done_reason"])
@@ -2338,8 +2375,7 @@ class OllamaProvider(LLMProvider):
                         temperature_dispatch=temperature_dispatch,
                         output_disposition=(
                             "discarded_incomplete"
-                            if completion_error_type
-                            == "IncompleteCompletionError"
+                            if completion_error_type == "IncompleteCompletionError"
                             else "discarded_invalid_finish"
                         ),
                         **profile_metadata,
@@ -2443,7 +2479,9 @@ class MultiModelLLM:
                 seed=seed,
             )
             if not isinstance(result, StructuredCompletion):
-                raise TypeError("provider structured API must return StructuredCompletion")
+                raise TypeError(
+                    "provider structured API must return StructuredCompletion"
+                )
         except Exception as exc:
             # Invocation has begun, so the call may have reached the provider.  It
             # must consume its reserved call slot even when exact usage is unknown.
@@ -2617,7 +2655,9 @@ class MultiModelLLM:
             raise ValueError("tags length must match dialogs length")
         if any(not isinstance(value, Mapping) for value in normalized):
             raise TypeError("each tags item must be a mapping")
-        return [dict(value, batch_index=index) for index, value in enumerate(normalized)]
+        return [
+            dict(value, batch_index=index) for index, value in enumerate(normalized)
+        ]
 
     @staticmethod
     def _normalize_estimates(
@@ -2644,7 +2684,9 @@ class MultiModelLLM:
         *,
         budget: Optional[RunBudget] = None,
         labels: Optional[Union[str, Sequence[str]]] = None,
-        tags: Optional[Union[Mapping[str, object], Sequence[Mapping[str, object]]]] = None,
+        tags: Optional[
+            Union[Mapping[str, object], Sequence[Mapping[str, object]]]
+        ] = None,
         estimated_usages: Optional[Union[UsageRecord, Sequence[UsageRecord]]] = None,
         max_retries: Optional[int] = None,
         seed: Optional[int] = None,
@@ -2755,7 +2797,9 @@ class MultiModelLLM:
                 )
             raise first_error
         if any(result is None for result in results):
-            raise RuntimeError("structured batch completed without a result for every dialog")
+            raise RuntimeError(
+                "structured batch completed without a result for every dialog"
+            )
         return [result for result in results if result is not None]
 
     def get_model_name(self) -> str:
@@ -2769,6 +2813,7 @@ def create_llm_provider(
     base_url: str = None,
     max_retries: Optional[int] = None,
     request_profile: Optional[ProviderRequestProfile] = None,
+    request_timeout_seconds: Optional[float] = None,
 ) -> LLMProvider:
     """
     Factory function to create LLM provider instance
@@ -2786,9 +2831,7 @@ def create_llm_provider(
     """
     if request_profile is not None:
         if not isinstance(request_profile, ProviderRequestProfile):
-            raise TypeError(
-                "request_profile must be a ProviderRequestProfile or None"
-            )
+            raise TypeError("request_profile must be a ProviderRequestProfile or None")
         if model is None:
             model = request_profile.requested_model
         elif model != request_profile.requested_model:
@@ -2798,7 +2841,7 @@ def create_llm_provider(
 
     if provider_type == "openai":
         if api_key is None:
-            api_key = os.environ.get('OPENAI_API_KEY')
+            api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OpenAI API key required")
         model = model or "gpt-4o"
@@ -2807,6 +2850,7 @@ def create_llm_provider(
             model=model,
             max_retries=max_retries,
             request_profile=request_profile,
+            request_timeout_seconds=request_timeout_seconds,
         )
 
     elif provider_type == "gemini":
@@ -2815,7 +2859,7 @@ def create_llm_provider(
                 "strict Gemini pilot profiles must use OpenRouter thirdparty transport"
             )
         if api_key is None:
-            api_key = os.environ.get('GEMINI_API_KEY')
+            api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("Gemini API key required")
         model = model or "gemini-3-pro-preview"
@@ -2850,7 +2894,7 @@ def create_llm_provider(
 
     elif provider_type == "thirdparty":
         if api_key is None:
-            api_key = os.environ.get('OPENROUTER_API_KEY')
+            api_key = os.environ.get("OPENROUTER_API_KEY")
         if not api_key:
             raise ValueError("Third-party API key required")
         model = model or "google/gemini-3-flash-preview"
@@ -2867,6 +2911,7 @@ def create_llm_provider(
             base_url=base_url,
             max_retries=max_retries,
             request_profile=request_profile,
+            request_timeout_seconds=request_timeout_seconds,
         )
 
     else:

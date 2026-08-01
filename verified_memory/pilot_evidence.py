@@ -263,19 +263,19 @@ def _is_v211_family_contract(contract: PilotContract) -> bool:
 def _is_v2119_recovery_contract(contract: PilotContract) -> bool:
     """Return whether the exact reduced V2.11.9 continuation applies."""
 
-    return (
-        _is_v2_contract(contract)
-        and contract.contract_id == "finevo-pilot-v2.11.9"
-    )
+    return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.11.9"
 
 
 def _is_v21110_recovery_contract(contract: PilotContract) -> bool:
     """Return whether the exact reduced V2.11.10 continuation applies."""
 
-    return (
-        _is_v2_contract(contract)
-        and contract.contract_id == "finevo-pilot-v2.11.10"
-    )
+    return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.11.10"
+
+
+def _is_v21111_contract(contract: PilotContract) -> bool:
+    """Return whether the fresh, branch-isolated V2.11.11 wire applies."""
+
+    return _is_v2_contract(contract) and contract.contract_id == "finevo-pilot-v2.11.11"
 
 
 def _is_v210_prerequisite_family_contract(contract: PilotContract) -> bool:
@@ -361,12 +361,31 @@ def _stage_sets(
 ) -> tuple[frozenset[str], frozenset[str]]:
     """Return the exact gating/scientific stage partition for this contract."""
 
-    if _is_v211_family_contract(contract):
+    declared_classes = {
+        stage.stage_id: stage.evidence_class
+        for stage in contract.stages
+        if stage.evidence_class is not None
+    }
+    if declared_classes:
+        if len(declared_classes) != len(contract.stages):
+            raise PilotEvidenceError(
+                "contract stage evidence_class declarations are incomplete"
+            )
+        non_scientific = frozenset(
+            stage_id
+            for stage_id, evidence_class in declared_classes.items()
+            if evidence_class == "operational"
+        )
+        scientific = frozenset(
+            stage_id
+            for stage_id, evidence_class in declared_classes.items()
+            if evidence_class == "scientific"
+        )
+    elif _is_v211_family_contract(contract):
         non_scientific = V211_NON_SCIENTIFIC_STAGES
         scientific = V211_SCIENTIFIC_STAGES
-    elif (
-        _is_v2119_recovery_contract(contract)
-        or _is_v21110_recovery_contract(contract)
+    elif _is_v2119_recovery_contract(contract) or _is_v21110_recovery_contract(
+        contract
     ):
         non_scientific = V211_RECOVERY_NON_SCIENTIFIC_STAGES
         scientific = V211_RECOVERY_SCIENTIFIC_STAGES
@@ -1980,9 +1999,7 @@ def _validate_capability_v3(
             _capability_v3_same_usage(
                 provider_reported_usage,
                 usage,
-                name=(
-                    f"capability v5 row {task_id} provider-reported alias"
-                ),
+                name=(f"capability v5 row {task_id} provider-reported alias"),
             )
             budget_accounted_usage = _capability_v3_usage(
                 row.get("budget_accounted_usage"),
@@ -2135,14 +2152,11 @@ def _validate_capability_v3(
                 f"capability v3 row {task_id!r} has invalid provider details"
             )
         if _separated_usage_accounting:
-            expected_reported_usage_available = (
-                provider_error is None
-                or any(
-                    (
-                        int(usage["prompt_tokens"]) > 0,
-                        int(usage["completion_tokens"]) > 0,
-                        float(usage["cost_usd"]) > 0,
-                    )
+            expected_reported_usage_available = provider_error is None or any(
+                (
+                    int(usage["prompt_tokens"]) > 0,
+                    int(usage["completion_tokens"]) > 0,
+                    float(usage["cost_usd"]) > 0,
                 )
             )
             if (
@@ -2429,16 +2443,13 @@ def _validate_capability_v3(
                 if item["row"].get("provider_error") is not None
                 else dict(row_usage)
             )
-            expected_accounted_usage["total_tokens"] = (
-                int(expected_accounted_usage["prompt_tokens"])
-                + int(expected_accounted_usage["completion_tokens"])
-            )
+            expected_accounted_usage["total_tokens"] = int(
+                expected_accounted_usage["prompt_tokens"]
+            ) + int(expected_accounted_usage["completion_tokens"])
             _capability_v3_same_usage(
                 row_accounted_usage,
                 expected_accounted_usage,
-                name=(
-                    f"capability v5 row {task.task_id} budget accounting"
-                ),
+                name=(f"capability v5 row {task.task_id} budget accounting"),
             )
         _capability_v3_same_usage(
             completion_usage,
@@ -2540,9 +2551,7 @@ def _validate_capability_v5(capability: Mapping[str, Any]) -> None:
         "maximum_upper_bound_tokens",
         "passed",
     }:
-        raise PilotEvidenceError(
-            "capability v5 prompt-tier gate schema is incomplete"
-        )
+        raise PilotEvidenceError("capability v5 prompt-tier gate schema is incomplete")
     maximum_upper_bound = max(
         conservative_prompt_token_upper_bound(task.prompt)
         for task in build_capability_tasks()
@@ -2558,15 +2567,11 @@ def _validate_capability_v5(capability: Mapping[str, Any]) -> None:
             "capability v5 prompt-tier ceiling is invalid or reached"
         )
     if (
-        prompt_tier_gate.get("upper_bound_method")
-        != PROMPT_TIER_UPPER_BOUND_METHOD
-        or prompt_tier_gate.get("maximum_upper_bound_tokens")
-        != maximum_upper_bound
+        prompt_tier_gate.get("upper_bound_method") != PROMPT_TIER_UPPER_BOUND_METHOD
+        or prompt_tier_gate.get("maximum_upper_bound_tokens") != maximum_upper_bound
         or prompt_tier_gate.get("passed") is not True
     ):
-        raise PilotEvidenceError(
-            "capability v5 prompt-tier gate is inconsistent"
-        )
+        raise PilotEvidenceError("capability v5 prompt-tier gate is inconsistent")
     _validate_capability_v3(
         capability,
         _schema_version=CAPABILITY_V5_SCHEMA_VERSION,
@@ -3195,6 +3200,1477 @@ def _validate_v210_family_qref_terminal_marker(
         )
 
 
+def _v21111_bound_file(
+    raw_root: Path,
+    path_value: Any,
+    sha256_value: Any,
+    *,
+    name: str,
+) -> Path:
+    """Resolve one V2.11.11 path below raw and verify its byte identity."""
+
+    if not _is_sha256(sha256_value):
+        raise PilotEvidenceError(f"{name} lacks a valid SHA-256 binding")
+    path = _resolve_artifact(raw_root, path_value)
+    if not path.is_file() or _sha256_file(path) != sha256_value:
+        raise PilotEvidenceError(f"{name} byte identity drifted")
+    return path
+
+
+def _v21111_usage(value: Any, *, name: str) -> dict[str, Any]:
+    row = _mapping(value, name)
+    expected = {"prompt_tokens", "completion_tokens", "total_tokens", "cost_usd"}
+    if set(row) != expected:
+        raise PilotEvidenceError(f"{name} must contain exactly {sorted(expected)}")
+    prompt = row.get("prompt_tokens")
+    completion = row.get("completion_tokens")
+    if (
+        isinstance(prompt, bool)
+        or not isinstance(prompt, int)
+        or prompt < 0
+        or isinstance(completion, bool)
+        or not isinstance(completion, int)
+        or completion < 0
+        or row.get("total_tokens") != prompt + completion
+        or not _is_finite_scalar(row.get("cost_usd"))
+        or float(row["cost_usd"]) < 0
+    ):
+        raise PilotEvidenceError(f"{name} is not finite non-negative usage")
+    return {
+        "prompt_tokens": prompt,
+        "completion_tokens": completion,
+        "total_tokens": prompt + completion,
+        "cost_usd": float(row["cost_usd"]),
+    }
+
+
+def _validate_v21111_isolated_budget(
+    value: Any,
+    *,
+    contract: PilotContract,
+    spec: Mapping[str, Any],
+    api_usage: Sequence[Mapping[str, Any]],
+    raw_root: Path,
+    expected_treatment: str,
+) -> dict[str, Any]:
+    """Bind the exact 24-call per-branch RunBudget receipt."""
+
+    budget = _mapping(value, "V2.11.11 isolated branch budget")
+    expected_keys = {
+        "budget_id",
+        "limits",
+        "accounted_usage",
+        "reserved_usage",
+        "effective_usage",
+        "completed_calls",
+        "active_calls",
+        "rolled_back_calls",
+        "elapsed_seconds",
+        "stopped",
+        "stop_reasons",
+        "active_reservations",
+        "completions",
+    }
+    if set(budget) != expected_keys:
+        raise PilotEvidenceError(
+            "V2.11.11 isolated branch budget snapshot shape drifted"
+        )
+    budget_id = f"{spec['run_id']}-budget"
+    limits = _mapping(budget.get("limits"), "V2.11.11 isolated budget limits")
+    limit_keys = {
+        "max_calls",
+        "max_prompt_tokens",
+        "max_completion_tokens",
+        "max_total_tokens",
+        "max_cost_usd",
+        "max_elapsed_seconds",
+    }
+    expected_projection = _v21111_split_reservation(
+        contract,
+        raw_root=raw_root,
+        run_id=str(spec["run_id"]),
+        calls_by_kind={"action": 24},
+        storage_bytes=5_000_000,
+    )
+    expected_limits = {
+        "max_calls": 24,
+        "max_prompt_tokens": expected_projection["basis"]["prompt_tokens"],
+        "max_completion_tokens": expected_projection["basis"]["completion_tokens"],
+        "max_total_tokens": expected_projection["basis"]["total_tokens"],
+        "max_cost_usd": max(float(expected_projection["cost_usd"]), 1e-9),
+        "max_elapsed_seconds": 3600.0,
+    }
+    if (
+        set(limits) != limit_keys
+        or dict(limits) != expected_limits
+        or budget.get("budget_id") != budget_id
+        or budget.get("completed_calls") != 24
+        or budget.get("active_calls") != 0
+        or budget.get("rolled_back_calls") != 0
+        or not _is_finite_scalar(budget.get("elapsed_seconds"))
+        or float(budget["elapsed_seconds"]) < 0
+        or budget.get("stopped") is not True
+        or budget.get("stop_reasons") != ["call_limit"]
+        or budget.get("active_reservations") != []
+    ):
+        raise PilotEvidenceError(
+            "V2.11.11 isolated budget is not the exact terminal 24-call budget"
+        )
+    completions = budget.get("completions")
+    if not isinstance(completions, list) or len(completions) != 24:
+        raise PilotEvidenceError("V2.11.11 isolated budget lacks 24 completion records")
+    api_by_coordinate: dict[tuple[int, int], Mapping[str, Any]] = {}
+    for row in api_usage:
+        coordinate = (int(row["decision_t"]), int(row["agent_id"]))
+        if coordinate in api_by_coordinate:
+            raise PilotEvidenceError("V2.11.11 branch API coordinates are duplicated")
+        api_by_coordinate[coordinate] = row
+    expected_coordinates = {
+        (decision_t, agent_id) for decision_t in range(6, 12) for agent_id in range(4)
+    }
+    if set(api_by_coordinate) != expected_coordinates:
+        raise PilotEvidenceError("V2.11.11 branch API denominator is not 4x6")
+    observed_coordinates: set[tuple[int, int]] = set()
+    accounted = {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "cost_usd": 0.0,
+    }
+    reservation_ids: set[int] = set()
+    completion_keys = {
+        "budget_id",
+        "reservation_id",
+        "label",
+        "model",
+        "started_elapsed_seconds",
+        "finished_elapsed_seconds",
+        "elapsed_seconds",
+        "estimated_usage",
+        "usage",
+        "tags",
+    }
+    expected_tag_keys = {
+        "call_kind",
+        "treatment",
+        "decision_t",
+        "agent_id",
+        "batch_index",
+    }
+    for index, completion in enumerate(completions, start=1):
+        completion = _mapping(
+            completion,
+            f"V2.11.11 isolated budget completion {index}",
+        )
+        tags = _mapping(
+            completion.get("tags"),
+            f"V2.11.11 isolated budget completion {index} tags",
+        )
+        try:
+            coordinate = (int(tags["decision_t"]), int(tags["agent_id"]))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise PilotEvidenceError(
+                "V2.11.11 isolated budget completion lacks a call coordinate"
+            ) from exc
+        api_row = api_by_coordinate.get(coordinate)
+        reservation_id = completion.get("reservation_id")
+        usage = _v21111_usage(
+            completion.get("usage"),
+            name=f"V2.11.11 isolated budget completion {index} usage",
+        )
+        if (
+            set(completion) != completion_keys
+            or set(tags) != expected_tag_keys
+            or api_row is None
+            or coordinate in observed_coordinates
+            or completion.get("budget_id") != budget_id
+            or isinstance(reservation_id, bool)
+            or not isinstance(reservation_id, int)
+            or reservation_id < 1
+            or reservation_id > 24
+            or reservation_id in reservation_ids
+            or tags.get("call_kind") != "pilot_continuation_action"
+            or tags.get("treatment") != expected_treatment
+            or tags.get("decision_t") != str(coordinate[0])
+            or tags.get("agent_id") != str(coordinate[1])
+            or tags.get("batch_index") != str(coordinate[1])
+            or completion.get("label")
+            != (f"pilot-D:{expected_treatment}:t{coordinate[0]}:" f"a{coordinate[1]}")
+            or api_row.get("treatment") != expected_treatment
+            or not _is_finite_scalar(completion.get("started_elapsed_seconds"))
+            or not _is_finite_scalar(completion.get("finished_elapsed_seconds"))
+            or not _is_finite_scalar(completion.get("elapsed_seconds"))
+            or float(completion["started_elapsed_seconds"]) < 0
+            or float(completion["finished_elapsed_seconds"])
+            < float(completion["started_elapsed_seconds"])
+            or float(completion["elapsed_seconds"]) < 0
+            or _v21111_usage(
+                completion.get("estimated_usage"),
+                name=(f"V2.11.11 isolated budget completion {index} estimate"),
+            )["total_tokens"]
+            <= 0
+            or usage
+            != _v21111_usage(
+                api_row.get("usage"),
+                name=f"V2.11.11 branch API usage {coordinate}",
+            )
+        ):
+            raise PilotEvidenceError(
+                "V2.11.11 isolated budget completions differ from the branch API ledger"
+            )
+        observed_coordinates.add(coordinate)
+        reservation_ids.add(reservation_id)
+        accounted["prompt_tokens"] += usage["prompt_tokens"]
+        accounted["completion_tokens"] += usage["completion_tokens"]
+        accounted["total_tokens"] += usage["total_tokens"]
+        accounted["cost_usd"] += usage["cost_usd"]
+    if observed_coordinates != expected_coordinates or reservation_ids != set(
+        range(1, 25)
+    ):
+        raise PilotEvidenceError("V2.11.11 isolated budget call grid is incomplete")
+    observed_accounted = _v21111_usage(
+        budget.get("accounted_usage"),
+        name="V2.11.11 isolated budget accounted_usage",
+    )
+    zero_usage = {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "cost_usd": 0.0,
+    }
+    reserved = _v21111_usage(
+        budget.get("reserved_usage"),
+        name="V2.11.11 isolated budget reserved_usage",
+    )
+    effective = _v21111_usage(
+        budget.get("effective_usage"),
+        name="V2.11.11 isolated budget effective_usage",
+    )
+    if (
+        observed_accounted["prompt_tokens"] != accounted["prompt_tokens"]
+        or observed_accounted["completion_tokens"] != accounted["completion_tokens"]
+        or observed_accounted["total_tokens"] != accounted["total_tokens"]
+        or not math.isclose(
+            observed_accounted["cost_usd"],
+            accounted["cost_usd"],
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        )
+        or reserved != zero_usage
+        or effective != observed_accounted
+        or any(
+            not _is_finite_scalar(limits.get(name))
+            or float(limits[name]) < float(observed_accounted[field])
+            for name, field in (
+                ("max_prompt_tokens", "prompt_tokens"),
+                ("max_completion_tokens", "completion_tokens"),
+                ("max_total_tokens", "total_tokens"),
+                ("max_cost_usd", "cost_usd"),
+            )
+        )
+        or int(limits["max_total_tokens"])
+        != int(limits["max_prompt_tokens"]) + int(limits["max_completion_tokens"])
+    ):
+        raise PilotEvidenceError(
+            "V2.11.11 isolated budget accounting or limits drifted"
+        )
+    return {
+        "budget_id": budget_id,
+        "completed_calls": 24,
+        "accounted_usage": observed_accounted,
+        "snapshot_sha256": canonical_sha256(budget),
+    }
+
+
+def _validate_v21111_trajectory(
+    branch: Mapping[str, Any],
+    *,
+    api_usage: Sequence[Mapping[str, Any]],
+    shock_schedule: Sequence[Mapping[str, Any]],
+) -> tuple[list[Mapping[str, Any]], dict[str, Any]]:
+    trajectory = branch.get("trajectory")
+    if not isinstance(trajectory, list) or len(trajectory) != 6:
+        raise PilotEvidenceError("V2.11.11 branch trajectory is not six steps")
+    expected_agents = {str(agent_id) for agent_id in range(4)}
+    api_coordinates = {
+        (int(row["decision_t"]), int(row["agent_id"])): row for row in api_usage
+    }
+    shock_by_t = {int(row["decision_t"]): _json_copy(row) for row in shock_schedule}
+    for offset, raw_row in enumerate(trajectory):
+        row = _mapping(raw_row, f"V2.11.11 trajectory row {offset}")
+        decisions = _mapping(row.get("decisions"), "V2.11.11 trajectory decisions")
+        prompt_hashes = _mapping(
+            row.get("prompt_hashes"), "V2.11.11 trajectory prompt hashes"
+        )
+        memory_hashes = _mapping(
+            row.get("memory_hashes"), "V2.11.11 trajectory memory hashes"
+        )
+        memory_texts = _mapping(
+            row.get("memory_texts"), "V2.11.11 trajectory memory texts"
+        )
+        pulses = _mapping(
+            row.get("memory_pulse_bindings"),
+            "V2.11.11 trajectory memory pulse bindings",
+        )
+        ledger_rows = row.get("ledger_rows")
+        decision_t = 6 + offset
+        if (
+            row.get("decision_t") != decision_t
+            or row.get("outcome_t") != decision_t + 1
+            or set(decisions) != expected_agents
+            or set(prompt_hashes) != expected_agents
+            or set(memory_hashes) != expected_agents
+            or set(memory_texts) != expected_agents
+            or (offset > 0 and pulses)
+            or not isinstance(ledger_rows, list)
+            or len(ledger_rows) != 4
+            or not _is_sha256(row.get("rng_pre_step_hash"))
+            or not _is_sha256(row.get("environment_state_hash"))
+            or row.get("shock_event") != shock_by_t.get(decision_t)
+            or row.get("shock_event_hash")
+            != canonical_sha256(shock_by_t.get(decision_t))
+        ):
+            raise PilotEvidenceError(
+                "V2.11.11 trajectory lacks its exact 4-agent step binding"
+            )
+        ledger_agents: set[str] = set()
+        for agent_key in sorted(expected_agents):
+            decision = _mapping(
+                decisions[agent_key],
+                f"V2.11.11 trajectory t={decision_t} agent={agent_key} decision",
+            )
+            memory_text = memory_texts[agent_key]
+            api_row = api_coordinates.get((decision_t, int(agent_key)))
+            if (
+                decision.get("clipped") is not False
+                or not isinstance(memory_text, str)
+                or not _is_sha256(prompt_hashes[agent_key])
+                or memory_hashes[agent_key]
+                != hashlib.sha256(memory_text.strip().encode("utf-8")).hexdigest()
+                or api_row is None
+                or api_row.get("prompt_hash") != prompt_hashes[agent_key]
+                or api_row.get("raw_output_hash") != decision.get("raw_output_hash")
+                or isinstance(decision.get("labor_action_index"), bool)
+                or not isinstance(decision.get("labor_action_index"), int)
+                or decision["labor_action_index"] not in range(22)
+                or isinstance(decision.get("consumption_action_index"), bool)
+                or not isinstance(decision.get("consumption_action_index"), int)
+                or decision["consumption_action_index"] not in range(51)
+                or not _is_finite_scalar(decision.get("executed_labor_hours"))
+                or not _is_finite_scalar(decision.get("executed_consumption_rate"))
+                or not math.isclose(
+                    float(decision.get("executed_labor_hours", math.nan)),
+                    decision["labor_action_index"] * 8.0,
+                    rel_tol=0.0,
+                    abs_tol=1e-12,
+                )
+                or not math.isclose(
+                    float(decision.get("executed_consumption_rate", math.nan)),
+                    decision["consumption_action_index"] * 0.02,
+                    rel_tol=0.0,
+                    abs_tol=1e-12,
+                )
+            ):
+                raise PilotEvidenceError(
+                    "V2.11.11 trajectory action/prompt/memory binding drifted"
+                )
+        for ledger_row in ledger_rows:
+            ledger_row = _mapping(ledger_row, "V2.11.11 trajectory utility row")
+            agent_key = str(ledger_row.get("agent_id"))
+            residual = ledger_row.get("budget_residual")
+            if (
+                agent_key not in expected_agents
+                or agent_key in ledger_agents
+                or ledger_row.get("period") != decision_t
+                or not _is_finite_scalar(residual)
+                or abs(float(residual)) > 1e-8
+                or not _is_finite_scalar(ledger_row.get("flow_utility"))
+                or not _is_finite_scalar(ledger_row.get("discounted_flow_utility"))
+                or not _is_finite_scalar(ledger_row.get("wealth_pre"))
+                or not _is_finite_scalar(ledger_row.get("wealth_post"))
+                or not _is_finite_scalar(ledger_row.get("cumulative_production_post"))
+                or ledger_row.get("executed_labor_hours")
+                != decisions[agent_key].get("executed_labor_hours")
+                or ledger_row.get("executed_consumption_rate")
+                != decisions[agent_key].get("executed_consumption_rate")
+            ):
+                raise PilotEvidenceError(
+                    "V2.11.11 trajectory utility ledger is invalid"
+                )
+            ledger_agents.add(agent_key)
+        if ledger_agents != expected_agents:
+            raise PilotEvidenceError("V2.11.11 utility cohort is incomplete")
+    first = trajectory[0]
+    return trajectory, {
+        "trajectory_rows_sha256": canonical_sha256(trajectory),
+        "first_step_prompt_hashes": _json_copy(first["prompt_hashes"]),
+        "first_step_memory_hashes": _json_copy(first["memory_hashes"]),
+        "first_step_memory_text_sha256": {
+            key: canonical_sha256(value) for key, value in first["memory_texts"].items()
+        },
+        "first_step_memory_pulse_bindings": _json_copy(first["memory_pulse_bindings"]),
+        "later_memory_pulses_empty": all(
+            not row["memory_pulse_bindings"] for row in trajectory[1:]
+        ),
+    }
+
+
+def _v21111_gini(values: Sequence[float]) -> float:
+    ordered = sorted(max(float(value), 0.0) for value in values)
+    if not ordered or sum(ordered) == 0:
+        return 0.0
+    count = len(ordered)
+    total = sum(ordered)
+    weighted = sum((index + 1) * value for index, value in enumerate(ordered))
+    return 2 * weighted / (count * total) - (count + 1) / count
+
+
+def _v21111_recomputed_branch_metrics(
+    checkpoint: Any,
+    trajectory: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Recompute every published continuation metric from sealed rows."""
+
+    previous_state = _mapping(
+        checkpoint.payload.get("previous_state"),
+        "V2.11.11 checkpoint previous state",
+    )
+    agents = _mapping(
+        previous_state.get("agents"),
+        "V2.11.11 checkpoint agents",
+    )
+    initial_wealths: dict[str, float] = {}
+    for agent_id in range(4):
+        agent = _mapping(agents.get(str(agent_id)), "V2.11.11 checkpoint agent")
+        state = _mapping(agent.get("state"), "V2.11.11 checkpoint agent state")
+        inventory = _mapping(
+            state.get("inventory"),
+            "V2.11.11 checkpoint agent inventory",
+        )
+        wealth = inventory.get("Coin")
+        if not _is_finite_scalar(wealth):
+            raise PilotEvidenceError("V2.11.11 checkpoint wealth is non-finite")
+        initial_wealths[str(agent_id)] = float(wealth)
+
+    utility_config = _mapping(
+        checkpoint.payload.get("run_config", {}).get("utility"),
+        "V2.11.11 checkpoint utility config",
+    )
+    discount_factor = utility_config.get("discount_factor")
+    if not _is_finite_scalar(discount_factor):
+        raise PilotEvidenceError("V2.11.11 discount factor is non-finite")
+    previous_wealths = dict(initial_wealths)
+    for step in trajectory:
+        for raw_row in step["ledger_rows"]:
+            row = _mapping(raw_row, "V2.11.11 continuation utility row")
+            agent_id = str(row["agent_id"])
+            expected_discount_weight = float(discount_factor) ** int(row["period"])
+            if (
+                not _is_finite_scalar(row.get("discount_weight"))
+                or float(row["wealth_pre"]) != previous_wealths[agent_id]
+                or not math.isclose(
+                    float(row["discount_weight"]),
+                    expected_discount_weight,
+                    rel_tol=0.0,
+                    abs_tol=1e-15,
+                )
+                or not math.isclose(
+                    float(row["discounted_flow_utility"]),
+                    float(row["flow_utility"]) * float(row["discount_weight"]),
+                    rel_tol=0.0,
+                    abs_tol=1e-15,
+                )
+            ):
+                raise PilotEvidenceError(
+                    "V2.11.11 utility trajectory continuity drifted"
+                )
+            previous_wealths[agent_id] = float(row["wealth_post"])
+
+    all_ledger_rows = [
+        _mapping(row, "V2.11.11 continuation utility row")
+        for step in trajectory
+        for row in step["ledger_rows"]
+    ]
+    focal_rows = [row for row in all_ledger_rows if str(row["agent_id"]) == "0"]
+    focal_actions = [step["decisions"]["0"] for step in trajectory]
+    final_rows = {str(row["agent_id"]): row for row in trajectory[-1]["ledger_rows"]}
+    if set(final_rows) != {"0", "1", "2", "3"} or len(focal_rows) != 6:
+        raise PilotEvidenceError("V2.11.11 metric rows have an invalid cohort")
+    final_wealths = {
+        agent_id: float(final_rows[agent_id]["wealth_post"])
+        for agent_id in ("0", "1", "2", "3")
+    }
+    first_rows = list(trajectory[0]["ledger_rows"])
+    first_focal = next(row for row in first_rows if str(row["agent_id"]) == "0")
+    first_wealths = [float(row["wealth_post"]) for row in first_rows]
+    focal_flows = [float(row["flow_utility"]) for row in focal_rows]
+    all_flows = [float(row["flow_utility"]) for row in all_ledger_rows]
+    return {
+        "focal": {
+            "agent_id": 0,
+            "initial_wealth": initial_wealths["0"],
+            "final_wealth": final_wealths["0"],
+            "wealth_change": final_wealths["0"] - initial_wealths["0"],
+            "flow_utility_sum": sum(focal_flows),
+            "discounted_flow_utility_sum": sum(
+                float(row["discounted_flow_utility"]) for row in focal_rows
+            ),
+            "mean_labor_hours": mean(
+                float(row["executed_labor_hours"]) for row in focal_actions
+            ),
+            "mean_consumption_rate": mean(
+                float(row["executed_consumption_rate"]) for row in focal_actions
+            ),
+            "first_step": {
+                "labor_hours": float(focal_actions[0]["executed_labor_hours"]),
+                "consumption_rate": float(
+                    focal_actions[0]["executed_consumption_rate"]
+                ),
+                "immediate_flow_utility": float(first_focal["flow_utility"]),
+                "next_wealth": float(first_focal["wealth_post"]),
+                "next_cumulative_production": float(
+                    first_focal["cumulative_production_post"]
+                ),
+            },
+        },
+        "population": {
+            "num_agents": 4,
+            "average_initial_wealth": mean(initial_wealths.values()),
+            "average_final_wealth": mean(final_wealths.values()),
+            "average_wealth_change": mean(
+                final_wealths[key] - initial_wealths[key] for key in final_wealths
+            ),
+            "gini_final_wealth": _v21111_gini(list(final_wealths.values())),
+            "flow_utility_sum": sum(all_flows),
+            "mean_agent_period_flow_utility": mean(all_flows),
+            "mean_low_labor_rate": mean(
+                float(row["low_labor_rate"]) for row in trajectory
+            ),
+            "first_step": {
+                "average_next_wealth": mean(first_wealths),
+                "gini_next_wealth": _v21111_gini(first_wealths),
+                "flow_utility_sum": sum(
+                    float(row["flow_utility"]) for row in first_rows
+                ),
+                "low_labor_rate": float(trajectory[0]["low_labor_rate"]),
+            },
+        },
+    }
+
+
+def _validate_v21111_prefix_checkpoint_evidence(
+    contract: PilotContract,
+    spec: Mapping[str, Any],
+    checkpoint: Any,
+    *,
+    checkpoint_path: Path,
+    raw_root: Path,
+) -> dict[str, Any]:
+    """Reopen the shared-prefix denominator embedded in a checkpoint."""
+
+    calls = checkpoint.payload.get("provider_calls")
+    if not isinstance(calls, list) or len(calls) != 32:
+        raise PilotEvidenceError("V2.11.11 checkpoint lacks 32 provider calls")
+    _validate_provider_usage_rows(contract, spec, calls)
+    action_calls = sum(row.get("call_kind") == "action" for row in calls)
+    semantic_calls = sum(row.get("call_kind") == "semantic" for row in calls)
+    if action_calls != 24 or semantic_calls != 8:
+        raise PilotEvidenceError(
+            "V2.11.11 checkpoint prefix denominator is not 24 action + 8 semantic"
+        )
+    journal_binding = _mapping(
+        checkpoint.payload.get("provider_call_journal_binding"),
+        "V2.11.11 checkpoint provider journal binding",
+    )
+    journal_name = journal_binding.get("path_name")
+    if not isinstance(journal_name, str) or Path(journal_name).name != journal_name:
+        raise PilotEvidenceError("V2.11.11 checkpoint journal path is unsafe")
+    journal_path = checkpoint_path.parent / journal_name
+    if journal_path.is_symlink():
+        raise PilotEvidenceError("V2.11.11 checkpoint journal symlink is forbidden")
+    try:
+        resolved_journal = journal_path.resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise PilotEvidenceError("V2.11.11 checkpoint journal is missing") from exc
+    if not resolved_journal.is_relative_to(raw_root.resolve()):
+        raise PilotEvidenceError("V2.11.11 checkpoint journal escapes raw root")
+    try:
+        journal = verify_provider_call_journal(
+            resolved_journal,
+            expected_run_id=journal_binding.get("run_id"),
+            expected_contract_hash=contract.canonical_hash,
+            require_terminal_dispositions=True,
+        )
+    except (OSError, VerifiedRunError) as exc:
+        raise PilotEvidenceError(
+            f"V2.11.11 checkpoint journal failed verification: {exc}"
+        ) from exc
+    journal_completions = [
+        event["payload"]
+        for event in journal["events"]
+        if event["event_type"] == "completion_received"
+    ]
+    dispositions = [
+        event["payload"]
+        for event in journal["events"]
+        if event["event_type"] == "parse_disposition"
+    ]
+    if (
+        journal.get("journal_sha256") != journal_binding.get("journal_sha256")
+        or journal_completions != calls
+        or len(dispositions) != 32
+        or any(
+            row.get("parse_status") != "success"
+            or row.get("parse_mode") != "exact_json"
+            or row.get("accepted") is not True
+            for row in dispositions
+        )
+    ):
+        raise PilotEvidenceError(
+            "V2.11.11 checkpoint journal differs from its provider denominator"
+        )
+    budget = _mapping(
+        checkpoint.payload.get("budget_snapshot_at_checkpoint"),
+        "V2.11.11 checkpoint budget snapshot",
+    )
+    prefix_budget_id = (
+        f"{contract.contract_id}--experiment-d--gpt52_main--"
+        f"checkpoint-prefix--s{int(spec['environment_seed'])}--budget"
+    )
+    prefix_run_id = prefix_budget_id.removesuffix("--budget")
+    expected_projection = _v21111_split_reservation(
+        contract,
+        raw_root=raw_root,
+        run_id=prefix_run_id,
+        calls_by_kind={"action": 24, "semantic": 8},
+        storage_bytes=25_000_000,
+    )
+    expected_limits = {
+        "max_calls": 32,
+        "max_prompt_tokens": expected_projection["basis"]["prompt_tokens"],
+        "max_completion_tokens": expected_projection["basis"]["completion_tokens"],
+        "max_total_tokens": expected_projection["basis"]["total_tokens"],
+        "max_cost_usd": max(float(expected_projection["cost_usd"]), 1e-9),
+        "max_elapsed_seconds": 3600.0,
+    }
+    accounted = _v21111_usage(
+        budget.get("accounted_usage"),
+        name="V2.11.11 checkpoint accounted usage",
+    )
+    summed = {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "cost_usd": 0.0,
+    }
+    calls_by_coordinate: dict[tuple[str, int, int], Mapping[str, Any]] = {}
+    for index, call in enumerate(calls):
+        usage = _v21111_usage(
+            call.get("usage"),
+            name=f"V2.11.11 checkpoint provider usage {index}",
+        )
+        coordinate = (
+            str(call.get("call_kind")),
+            int(call.get("decision_t")),
+            int(call.get("agent_id")),
+        )
+        if coordinate in calls_by_coordinate:
+            raise PilotEvidenceError(
+                "V2.11.11 checkpoint provider call coordinates are duplicated"
+            )
+        calls_by_coordinate[coordinate] = call
+        for field in summed:
+            summed[field] += usage[field]
+    expected_coordinates = {
+        ("action", decision_t, agent_id)
+        for decision_t in range(6)
+        for agent_id in range(4)
+    } | {
+        ("semantic", current_t, agent_id)
+        for current_t in (3, 6)
+        for agent_id in range(4)
+    }
+    completions = budget.get("completions")
+    limits = _mapping(budget.get("limits"), "V2.11.11 checkpoint budget limits")
+    completion_keys = {
+        "budget_id",
+        "reservation_id",
+        "label",
+        "model",
+        "started_elapsed_seconds",
+        "finished_elapsed_seconds",
+        "elapsed_seconds",
+        "estimated_usage",
+        "usage",
+        "tags",
+    }
+    reservation_ids: set[int] = set()
+    completed_coordinates: set[tuple[str, int, int]] = set()
+    if not isinstance(completions, list) or len(completions) != 32:
+        raise PilotEvidenceError(
+            "V2.11.11 checkpoint budget lacks 32 completion records"
+        )
+    for index, raw_completion in enumerate(completions):
+        completion = _mapping(
+            raw_completion,
+            f"V2.11.11 checkpoint budget completion {index}",
+        )
+        tags = _mapping(
+            completion.get("tags"),
+            f"V2.11.11 checkpoint budget completion {index} tags",
+        )
+        budget_kind = tags.get("call_kind")
+        if budget_kind == "pilot_prefix_action":
+            provider_kind = "action"
+            time_key = "decision_t"
+            expected_tag_keys = {
+                "call_kind",
+                "decision_t",
+                "agent_id",
+                "batch_index",
+            }
+            label_prefix = "pilot-prefix-action"
+        elif budget_kind == "pilot_prefix_semantic":
+            provider_kind = "semantic"
+            time_key = "current_t"
+            expected_tag_keys = {
+                "call_kind",
+                "current_t",
+                "agent_id",
+                "batch_index",
+            }
+            label_prefix = "pilot-prefix-semantic"
+        else:
+            raise PilotEvidenceError("V2.11.11 checkpoint budget call kind drifted")
+        try:
+            coordinate = (
+                provider_kind,
+                int(tags[time_key]),
+                int(tags["agent_id"]),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise PilotEvidenceError(
+                "V2.11.11 checkpoint budget coordinate is malformed"
+            ) from exc
+        provider_row = calls_by_coordinate.get(coordinate)
+        reservation_id = completion.get("reservation_id")
+        usage = _v21111_usage(
+            completion.get("usage"),
+            name=f"V2.11.11 checkpoint budget completion {index} usage",
+        )
+        if (
+            set(completion) != completion_keys
+            or set(tags) != expected_tag_keys
+            or provider_row is None
+            or coordinate in completed_coordinates
+            or completion.get("budget_id") != prefix_budget_id
+            or isinstance(reservation_id, bool)
+            or not isinstance(reservation_id, int)
+            or reservation_id < 1
+            or reservation_id > 32
+            or reservation_id in reservation_ids
+            or tags.get(time_key) != str(coordinate[1])
+            or tags.get("agent_id") != str(coordinate[2])
+            or tags.get("batch_index") != str(coordinate[2])
+            or completion.get("label")
+            != f"{label_prefix}:t{coordinate[1]}:a{coordinate[2]}"
+            or usage
+            != _v21111_usage(
+                provider_row.get("usage"),
+                name=f"V2.11.11 checkpoint API usage {coordinate}",
+            )
+            or _v21111_usage(
+                completion.get("estimated_usage"),
+                name=f"V2.11.11 checkpoint budget estimate {index}",
+            )["total_tokens"]
+            <= 0
+        ):
+            raise PilotEvidenceError(
+                "V2.11.11 checkpoint budget differs from its provider ledger"
+            )
+        reservation_ids.add(reservation_id)
+        completed_coordinates.add(coordinate)
+    if (
+        set(budget)
+        != {
+            "budget_id",
+            "limits",
+            "accounted_usage",
+            "reserved_usage",
+            "effective_usage",
+            "completed_calls",
+            "active_calls",
+            "rolled_back_calls",
+            "elapsed_seconds",
+            "stopped",
+            "stop_reasons",
+            "active_reservations",
+            "completions",
+        }
+        or dict(limits) != expected_limits
+        or budget.get("budget_id") != prefix_budget_id
+        or budget.get("completed_calls") != 32
+        or budget.get("active_calls") != 0
+        or budget.get("rolled_back_calls") != 0
+        or budget.get("active_reservations") != []
+        or budget.get("stopped") is not True
+        or budget.get("stop_reasons") != ["call_limit"]
+        or budget.get("reserved_usage")
+        != {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+            "cost_usd": 0.0,
+        }
+        or budget.get("effective_usage") != budget.get("accounted_usage")
+        or not _is_finite_scalar(budget.get("elapsed_seconds"))
+        or float(budget["elapsed_seconds"]) < 0
+        or completed_coordinates != expected_coordinates
+        or reservation_ids != set(range(1, 33))
+        or accounted["prompt_tokens"] != summed["prompt_tokens"]
+        or accounted["completion_tokens"] != summed["completion_tokens"]
+        or accounted["total_tokens"] != summed["total_tokens"]
+        or not math.isclose(
+            accounted["cost_usd"],
+            summed["cost_usd"],
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        )
+    ):
+        raise PilotEvidenceError("V2.11.11 checkpoint budget accounting drifted")
+    return {
+        "budget_id": prefix_budget_id,
+        "completed_calls": 32,
+        "accounted_usage": accounted,
+        "snapshot_sha256": canonical_sha256(budget),
+        "provider_calls_sha256": canonical_sha256(calls),
+        "provider_journal_file_sha256": _sha256_file(resolved_journal),
+        "provider_journal_sha256": journal["journal_sha256"],
+    }
+
+
+def _validate_v21111_isolated_d_terminal(
+    contract: PilotContract,
+    spec: Mapping[str, Any],
+    payload: Mapping[str, Any],
+    *,
+    raw_root: Path,
+) -> dict[str, Any]:
+    """Validate and normalize one independently terminalized D branch."""
+
+    if (
+        not _is_v21111_contract(contract)
+        or spec.get("stage_id") != "experiment-d"
+        or spec.get("model_id") != "gpt52_main"
+        or spec.get("execution_mode") != "checkpoint_continuation"
+    ):
+        raise PilotEvidenceError("isolated D validation used outside V2.11.11")
+    expected_payload_keys = {
+        "metrics",
+        "gate_evidence",
+        "isolated_branch",
+        "shared_checkpoint",
+        "shared_checkpoint_sha256",
+        "branch_source",
+        "branch_source_sha256",
+        "completion_receipt",
+        "provider_call_journal",
+    }
+    if set(payload) != expected_payload_keys:
+        raise PilotEvidenceError("V2.11.11 isolated D payload shape drifted")
+    gate = _mapping(payload.get("gate_evidence"), "V2.11.11 D gate evidence")
+    isolated = _mapping(payload.get("isolated_branch"), "V2.11.11 isolated branch")
+    completion = _mapping(
+        payload.get("completion_receipt"),
+        "V2.11.11 D completion receipt",
+    )
+    expected_gate_keys = {
+        "execution_mode",
+        "checkpoint_hash",
+        "prefix_hash",
+        "rng_schedule_binding",
+        "pre_generated_rng_hashes",
+        "branch_id",
+        "branch_result_hash",
+    }
+    if (
+        set(gate) != expected_gate_keys
+        or gate.get("execution_mode") != "isolated-branch"
+        or set(isolated) != {"kind", "treatment_id", "branch"}
+        or set(completion)
+        != {
+            "branch_action_completions",
+            "observed_trajectory_action_rows",
+            "isolated_budget",
+        }
+        or completion.get("branch_action_completions") != 24
+        or completion.get("observed_trajectory_action_rows") != 24
+    ):
+        raise PilotEvidenceError("V2.11.11 isolated D terminal marker is incomplete")
+    narrative = spec.get("arm_id") == "narrative-content"
+    expected_kind = "narrative" if narrative else "continuation"
+    expected_treatment = (
+        str(spec.get("narrative_id"))
+        if narrative
+        else {
+            "matched-a": "matched-a",
+            "matched-b": "matched-b",
+            "no-memory": "no-memory",
+            "shuffled-episodic": "shuffled-episodic",
+            "wrong-context": "wrong-context",
+            "error-verified": "erroneous-verified",
+            "error-unverified": "erroneous-unverified",
+        }.get(str(spec.get("arm_id")))
+    )
+    expected_branch_id = (
+        f"narrative-{expected_treatment}" if narrative else expected_treatment
+    )
+    if (
+        expected_treatment is None
+        or isolated.get("kind") != expected_kind
+        or isolated.get("treatment_id") != expected_treatment
+        or gate.get("branch_id") != expected_branch_id
+    ):
+        raise PilotEvidenceError("V2.11.11 isolated D treatment identity drifted")
+
+    checkpoint_path = _v21111_bound_file(
+        raw_root,
+        payload.get("shared_checkpoint"),
+        payload.get("shared_checkpoint_sha256"),
+        name="V2.11.11 shared checkpoint",
+    )
+    source_path = _v21111_bound_file(
+        raw_root,
+        payload.get("branch_source"),
+        payload.get("branch_source_sha256"),
+        name="V2.11.11 branch source",
+    )
+    checkpoint_value = _strict_json_load(checkpoint_path)
+    try:
+        from .pilot_checkpoint import (  # pylint: disable=import-outside-toplevel
+            PilotCheckpoint,
+            PilotCheckpointError,
+        )
+
+        checkpoint = PilotCheckpoint.from_dict(checkpoint_value)
+    except (KeyError, TypeError, ValueError, PilotCheckpointError) as exc:
+        raise PilotEvidenceError(
+            f"V2.11.11 shared checkpoint failed validation: {exc}"
+        ) from exc
+    checkpoint_config = _mapping(
+        checkpoint.payload.get("run_config"),
+        "V2.11.11 checkpoint run config",
+    )
+    expected_prefix_run_id = (
+        f"{contract.contract_id}--experiment-d--gpt52_main--"
+        f"checkpoint-group--s{int(spec['environment_seed'])}--prefix"
+    )
+    expected_action_grid = _mapping(
+        contract.stop_go["experiment_d"]["action_grid"],
+        "V2.11.11 action grid",
+    )
+    try:
+        from .pilot_v21111_fresh_cohort import (  # pylint: disable=import-outside-toplevel
+            PilotV21111FreshCohortError,
+            verified_calibration_for_v21111,
+        )
+
+        calibration = verified_calibration_for_v21111(
+            contract,
+            raw_root=raw_root,
+        )
+    except (OSError, TypeError, ValueError, PilotV21111FreshCohortError) as exc:
+        raise PilotEvidenceError(
+            f"V2.11.11 checkpoint calibration authority failed: {exc}"
+        ) from exc
+    selected_utility = _mapping(
+        calibration.get("selected_utility"),
+        "V2.11.11 selected utility",
+    )
+    expected_utility = {
+        key: value for key, value in selected_utility.items() if key != "profile_id"
+    }
+    expected_config_controls = {
+        "context_mode": "full",
+        "enable_episodic_retrieval": True,
+        "enable_semantic": True,
+        "retrieval_k": 5,
+        "rule_budget": 3,
+        "semantic_proposal_after": 3,
+        "semantic_proposal_interval": 3,
+        "max_rule_proposals_per_agent": 4,
+        "semantic_policy": "evidence-grounded",
+        "error_rule_mode": "none",
+        "error_rule_injection_t": 5,
+        "freeze_new_proposals_after": 6,
+        "semantic_parse_failure_policy": "record-and-skip",
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "max_retries": 1,
+        "send_decoding_seed": False,
+        "accepted_action_parse_modes": ["exact_json"],
+        "accepted_semantic_parse_modes": ["exact_json"],
+        "action_max_tokens": contract.task_output_contracts[
+            "actor-action"
+        ].max_completion_tokens,
+        "rule_max_tokens": contract.task_output_contracts[
+            "semantic-proposal"
+        ].max_completion_tokens,
+        "action_max_visible_json_bytes": contract.task_output_contracts[
+            "actor-action"
+        ].max_visible_json_bytes,
+        "rule_max_visible_json_bytes": contract.task_output_contracts[
+            "semantic-proposal"
+        ].max_visible_json_bytes,
+    }
+    if (
+        checkpoint.checkpoint_hash != gate.get("checkpoint_hash")
+        or checkpoint.payload.get("prefix_hash") != gate.get("prefix_hash")
+        or checkpoint.next_decision_t != 6
+        or checkpoint_config.get("run_id") != expected_prefix_run_id
+        or checkpoint_config.get("seed") != spec.get("environment_seed")
+        or checkpoint_config.get("num_agents") != 4
+        or checkpoint_config.get("episode_length") != 12
+        or spec.get("utility_profile_id") != calibration.get("selected_profile_id")
+        or checkpoint_config.get("utility") != expected_utility
+        or any(
+            checkpoint_config.get(key) != expected
+            for key, expected in expected_config_controls.items()
+        )
+        or checkpoint_config.get("pilot_contract_hash") != contract.canonical_hash
+        or checkpoint_config.get("pilot_tag")
+        != contract.implementation["required_git_tag"]
+        or checkpoint_config.get("scientific_scope") != CURRENT_SCIENTIFIC_SCOPE
+        or checkpoint_config.get("allow_scientific_scope") is not True
+        or checkpoint_config.get("labor_step")
+        != expected_action_grid["labor_step_hours"]
+        or checkpoint_config.get("consumption_step")
+        != expected_action_grid["consumption_step"]
+        or checkpoint_config.get("shock_schedule")
+        != contract.shocks[str(spec["shock_id"])]["schedule"]
+    ):
+        raise PilotEvidenceError(
+            "V2.11.11 shared checkpoint differs from its registered seed/config"
+        )
+    prefix_budget_binding = _validate_v21111_prefix_checkpoint_evidence(
+        contract,
+        spec,
+        checkpoint,
+        checkpoint_path=checkpoint_path,
+        raw_root=raw_root,
+    )
+
+    source = _strict_json_load(source_path)
+    source_body = _json_copy(source)
+    source_result_hash = source_body.pop("result_hash", None)
+    for appended in (
+        "contract_sha256",
+        "run_spec",
+        "diagnostic_only",
+        "scientific_evidence",
+    ):
+        source_body.pop(appended, None)
+    expected_source_keys = {
+        "schema_version",
+        "checkpoint_hash",
+        "prefix_hash",
+        "horizon",
+        "num_agents",
+        "focal_agent_id",
+        "rng_schedule_binding",
+        "pre_generated_rng_hashes",
+        "branch",
+        "result_hash",
+        "contract_sha256",
+        "run_spec",
+        "diagnostic_only",
+        "scientific_evidence",
+    } | (
+        {"narrative_id", "narrative_text_sha256", "metrics"}
+        if narrative
+        else {"treatment"}
+    )
+    expected_schema = (
+        "finevo-pilot-narrative-branch-v1"
+        if narrative
+        else "finevo-pilot-continuation-branch-v1"
+    )
+    if (
+        set(source) != expected_source_keys
+        or source.get("schema_version") != expected_schema
+        or not _is_sha256(source_result_hash)
+        or canonical_sha256(source_body) != source_result_hash
+        or source_result_hash != gate.get("branch_result_hash")
+        or source.get("contract_sha256") != contract.canonical_hash
+        or source.get("run_spec") != dict(spec)
+        or source.get("diagnostic_only") is not False
+        or source.get("scientific_evidence") is not True
+        or source.get("checkpoint_hash") != checkpoint.checkpoint_hash
+        or source.get("prefix_hash") != checkpoint.payload["prefix_hash"]
+        or source.get("horizon") != 6
+        or source.get("num_agents") != 4
+        or source.get("focal_agent_id") != 0
+    ):
+        raise PilotEvidenceError("V2.11.11 branch source seal/scope drifted")
+    rng_binding = _validate_rng_binding(
+        source.get("rng_schedule_binding"),
+        name="V2.11.11 isolated D RNG binding",
+    )
+    rng_hashes = source.get("pre_generated_rng_hashes")
+    if (
+        gate.get("rng_schedule_binding") != rng_binding
+        or gate.get("pre_generated_rng_hashes") != rng_hashes
+        or not isinstance(rng_hashes, list)
+        or len(rng_hashes) != 6
+        or any(not _is_sha256(value) for value in rng_hashes)
+    ):
+        raise PilotEvidenceError("V2.11.11 isolated D RNG source drifted")
+    branch = _mapping(source.get("branch"), "V2.11.11 branch source payload")
+    expected_branch_keys = {
+        "api_usage",
+        "api_usage_hash",
+        "checkpoint_hash",
+        "freeze_proposals",
+        "intervention",
+        "metrics",
+        "narrative",
+        "prefix_hash",
+        "proposal_counters_after",
+        "proposal_counters_before",
+        "provider_call_journal",
+        "rng_pre_step_hashes",
+        "shock_schedule_hash",
+        "trajectory",
+        "trajectory_hash",
+        "treatment",
+    }
+    if set(branch) != expected_branch_keys:
+        raise PilotEvidenceError("V2.11.11 branch source shape drifted")
+    if isolated.get("branch") != branch:
+        raise PilotEvidenceError("V2.11.11 terminal branch differs from source")
+    api_usage = branch.get("api_usage")
+    if not isinstance(api_usage, list) or len(api_usage) != 24:
+        raise PilotEvidenceError("V2.11.11 branch lacks 24 API usage rows")
+    if branch.get("api_usage_hash") != canonical_sha256(api_usage):
+        raise PilotEvidenceError("V2.11.11 branch API usage self-hash drifted")
+    _validate_provider_usage_rows(contract, spec, api_usage)
+    trajectory, trajectory_binding = _validate_v21111_trajectory(
+        branch,
+        api_usage=api_usage,
+        shock_schedule=checkpoint_config["shock_schedule"],
+    )
+    recomputed_metrics = _v21111_recomputed_branch_metrics(
+        checkpoint,
+        trajectory,
+    )
+    if (
+        branch.get("checkpoint_hash") != checkpoint.checkpoint_hash
+        or branch.get("prefix_hash") != checkpoint.payload["prefix_hash"]
+        or branch.get("freeze_proposals") is not True
+        or branch.get("proposal_counters_before")
+        != checkpoint.payload["proposals_made"]
+        or branch.get("proposal_counters_after") != checkpoint.payload["proposals_made"]
+        or branch.get("rng_pre_step_hashes") != rng_hashes
+        or branch.get("shock_schedule_hash")
+        != canonical_sha256(checkpoint_config["shock_schedule"])
+        # The producer's trajectory hash also commits to the final memory and
+        # ledger hashes, which are intentionally not duplicated in the branch
+        # rows.  The sealed branch source binds that producer hash; separately,
+        # ``trajectory_binding`` records the directly recomputable row hash.
+        or not _is_sha256(branch.get("trajectory_hash"))
+        or branch.get("metrics") != recomputed_metrics
+    ):
+        raise PilotEvidenceError(
+            "V2.11.11 branch checkpoint/RNG/proposal binding drifted"
+        )
+    journal = _validate_branch_provider_journal_binding(
+        payload.get("provider_call_journal"),
+        name="V2.11.11 isolated D provider journal",
+        contract_hash=contract.canonical_hash,
+    )
+    if branch.get("provider_call_journal") != journal:
+        raise PilotEvidenceError("V2.11.11 branch journal binding drifted")
+    _verify_branch_provider_journal_file(
+        journal,
+        name="V2.11.11 isolated D provider journal",
+        raw_root=raw_root,
+        expected_api_usage=api_usage,
+        expected_treatment=expected_branch_id,
+    )
+    budget_binding = _validate_v21111_isolated_budget(
+        completion.get("isolated_budget"),
+        contract=contract,
+        spec=spec,
+        api_usage=api_usage,
+        raw_root=raw_root,
+        expected_treatment=str(expected_branch_id),
+    )
+
+    intervention = _mapping(branch.get("intervention"), "V2.11.11 branch intervention")
+    narrative_meta = _mapping(branch.get("narrative"), "V2.11.11 branch narrative")
+    simple_intervention_keys = {
+        "applied",
+        "continuation_horizon_steps",
+        "decision_t",
+        "focal_agent_id",
+        "kind",
+        "memory_pulse_binding",
+        "pulse_only",
+    }
+    error_intervention_keys = simple_intervention_keys | {
+        "final_rule_hash",
+        "final_rule_status",
+        "forced_active_common_start",
+        "forced_active_memory_hash",
+        "forced_active_rule_hash",
+        "forced_active_start_hash",
+        "lifecycle_event_types",
+        "lifecycle_policy",
+        "rule_id",
+        "rule_status",
+        "verifier_bypassed",
+        "verifier_enabled_after_start",
+    }
+    if (
+        intervention.get("decision_t") != 6
+        or intervention.get("focal_agent_id") != 0
+        or intervention.get("continuation_horizon_steps") != 6
+        or set(narrative_meta)
+        != {
+            "continuation_horizon_steps",
+            "decision_t",
+            "focal_agent_id",
+            "narrative_id",
+            "pulse_only",
+            "text",
+            "text_hash",
+        }
+        or narrative_meta.get("decision_t") != 6
+        or narrative_meta.get("focal_agent_id") != 0
+        or narrative_meta.get("continuation_horizon_steps") != 6
+    ):
+        raise PilotEvidenceError("V2.11.11 branch intervention scope drifted")
+    (
+        memory_pulse_contract,
+        narrative_pulse_contract,
+        shuffle_policy,
+    ) = _v2_d_contract_extensions(contract)
+    pulse_arms = set(memory_pulse_contract["treatment_arms"])
+    pulse_binding: Mapping[str, Any] | None = None
+    first_memory_texts = trajectory[0]["memory_texts"]
+    first_pulses = trajectory[0]["memory_pulse_bindings"]
+    if narrative:
+        expected_text = str(contract.narratives[str(expected_treatment)]["text"])
+        expected_pulse = expected_treatment in set(
+            narrative_pulse_contract["treatment_narratives"]
+        )
+        expected_metrics = {
+            "first_labor_hours": branch["metrics"]["focal"]["first_step"][
+                "labor_hours"
+            ],
+            "first_consumption_rate": branch["metrics"]["focal"]["first_step"][
+                "consumption_rate"
+            ],
+            "immediate_flow_utility": branch["metrics"]["focal"]["first_step"][
+                "immediate_flow_utility"
+            ],
+            "six_step_discounted_flow_utility": branch["metrics"]["focal"][
+                "discounted_flow_utility_sum"
+            ],
+            "final_wealth": branch["metrics"]["focal"]["final_wealth"],
+        }
+        if (
+            set(intervention) != simple_intervention_keys
+            or intervention.get("applied") is not False
+            or source.get("narrative_id") != expected_treatment
+            or source.get("narrative_text_sha256") != canonical_sha256(expected_text)
+            or source.get("metrics") != expected_metrics
+            or payload.get("metrics") != {"narrative": expected_metrics}
+            or branch.get("treatment") != expected_branch_id
+            or narrative_meta.get("narrative_id") != expected_treatment
+            or narrative_meta.get("text") != expected_text
+            or narrative_meta.get("text_hash") != canonical_sha256(expected_text)
+            or narrative_meta.get("pulse_only") is not expected_pulse
+            or intervention.get("kind") != expected_branch_id
+            or intervention.get("pulse_only") is not False
+            or first_pulses
+        ):
+            raise PilotEvidenceError("V2.11.11 narrative branch semantics drifted")
+        _require_finite_fields(
+            expected_metrics,
+            tuple(expected_metrics),
+            name="V2.11.11 narrative metrics",
+        )
+    else:
+        if (
+            set(intervention)
+            != (
+                error_intervention_keys
+                if expected_treatment in {"erroneous-verified", "erroneous-unverified"}
+                else simple_intervention_keys
+            )
+            or source.get("treatment") != expected_treatment
+            or branch.get("treatment") != expected_treatment
+            or payload.get("metrics") != {"continuation": branch.get("metrics")}
+            or intervention.get("kind") != expected_treatment
+            or narrative_meta.get("narrative_id") is not None
+        ):
+            raise PilotEvidenceError("V2.11.11 continuation branch semantics drifted")
+        if expected_treatment in pulse_arms:
+            pulse_binding = _validate_memory_pulse_binding(
+                intervention.get("memory_pulse_binding"),
+                name="V2.11.11 isolated memory pulse",
+                treatment=str(expected_treatment),
+                checkpoint_hash=checkpoint.checkpoint_hash,
+                pulse_contract=memory_pulse_contract,
+                shuffle_policy=shuffle_policy,
+            )
+            if (
+                intervention.get("applied") is not True
+                or intervention.get("pulse_only") is not True
+                or first_pulses != {"0": pulse_binding}
+                or canonical_sha256(first_memory_texts["0"])
+                != pulse_binding["treated_memory_hash"]
+                or (expected_treatment == "no-memory" and first_memory_texts["0"] != "")
+                or (
+                    expected_treatment == "wrong-context"
+                    and first_memory_texts["0"] != first_memory_texts["1"]
+                )
+            ):
+                raise PilotEvidenceError(
+                    "V2.11.11 isolated memory pulse content/scope drifted"
+                )
+        elif (
+            intervention.get("applied")
+            is not (
+                expected_treatment in {"erroneous-verified", "erroneous-unverified"}
+            )
+            or intervention.get("pulse_only") is not False
+            or intervention.get("memory_pulse_binding") is not None
+            or first_pulses
+        ):
+            raise PilotEvidenceError(
+                "V2.11.11 non-pulse continuation contains a memory pulse"
+            )
+        focal = _mapping(branch["metrics"].get("focal"), "V2.11.11 focal metrics")
+        population = _mapping(
+            branch["metrics"].get("population"), "V2.11.11 population metrics"
+        )
+        _require_finite_fields(
+            focal,
+            ("discounted_flow_utility_sum", "final_wealth"),
+            name="V2.11.11 focal metrics",
+        )
+        _require_finite_fields(
+            population,
+            (
+                "average_final_wealth",
+                "gini_final_wealth",
+                "flow_utility_sum",
+                "mean_low_labor_rate",
+            ),
+            name="V2.11.11 population metrics",
+        )
+
+    error_start: Mapping[str, Any] | None = None
+    if expected_treatment in {"erroneous-verified", "erroneous-unverified"}:
+        error_start = {
+            field: intervention.get(field)
+            for field in (
+                "rule_id",
+                "forced_active_rule_hash",
+                "forced_active_memory_hash",
+                "forced_active_start_hash",
+            )
+        }
+        if (
+            intervention.get("forced_active_common_start") is not True
+            or intervention.get("rule_status") != "active"
+            or intervention.get("final_rule_status") not in {"active", "retired"}
+            or not _is_sha256(intervention.get("final_rule_hash"))
+            or not isinstance(intervention.get("lifecycle_event_types"), list)
+            or not intervention["lifecycle_event_types"]
+            or any(
+                not isinstance(event, str) or not event
+                for event in intervention["lifecycle_event_types"]
+            )
+            or any(
+                not isinstance(error_start[field], str) or not error_start[field]
+                for field in ("rule_id",)
+            )
+            or any(
+                not _is_sha256(error_start[field])
+                for field in (
+                    "forced_active_rule_hash",
+                    "forced_active_memory_hash",
+                    "forced_active_start_hash",
+                )
+            )
+        ):
+            raise PilotEvidenceError("V2.11.11 erroneous-rule start is incomplete")
+        if expected_treatment == "erroneous-verified":
+            if (
+                intervention.get("verifier_bypassed") is not False
+                or intervention.get("verifier_enabled_after_start") is not True
+                or intervention.get("lifecycle_policy") != "observe-and-retire"
+            ):
+                raise PilotEvidenceError(
+                    "V2.11.11 verified erroneous-rule policy drifted"
+                )
+        elif (
+            intervention.get("verifier_bypassed") is not True
+            or intervention.get("verifier_enabled_after_start") is not False
+            or intervention.get("lifecycle_policy")
+            != "skip-injected-rule-evidence-and-retirement"
+            or intervention.get("final_rule_status") != "active"
+            or intervention.get("final_rule_hash")
+            != intervention.get("forced_active_rule_hash")
+        ):
+            raise PilotEvidenceError(
+                "V2.11.11 unverified erroneous-rule policy drifted"
+            )
+    elif intervention.get("forced_active_start_hash") is not None:
+        raise PilotEvidenceError("V2.11.11 non-error branch has an error start")
+
+    normalized_gate = {
+        **_json_copy(gate),
+        "isolated_branch_binding": {
+            "schema_version": "finevo-pilot-v2.11.11-isolated-d-binding-v1",
+            "kind": expected_kind,
+            "treatment_id": expected_treatment,
+            "branch_id": expected_branch_id,
+            "checkpoint_hash": checkpoint.checkpoint_hash,
+            "checkpoint_file_sha256": payload["shared_checkpoint_sha256"],
+            "prefix_hash": checkpoint.payload["prefix_hash"],
+            "shock_schedule_hash": branch["shock_schedule_hash"],
+            "pre_generated_rng_hashes": _json_copy(rng_hashes),
+            "rng_schedule_binding": _json_copy(rng_binding),
+            "branch_rng_pre_step_hashes": _json_copy(branch["rng_pre_step_hashes"]),
+            "proposal_counters_before": _json_copy(branch["proposal_counters_before"]),
+            "proposal_counters_after": _json_copy(branch["proposal_counters_after"]),
+            "proposals_frozen": True,
+            "focal_agent_id": 0,
+            "action_grid": _json_copy(expected_action_grid),
+            "branch_result_hash": source_result_hash,
+            "branch_source_file_sha256": payload["branch_source_sha256"],
+            "branch_trajectory_hash": branch.get("trajectory_hash"),
+            **trajectory_binding,
+            "memory_pulse_binding": _json_copy(pulse_binding),
+            "intervention": _json_copy(intervention),
+            "narrative": _json_copy(narrative_meta),
+            "error_start": _json_copy(error_start),
+            "provider_call_journal": _json_copy(journal),
+            "prefix_budget_binding": prefix_budget_binding,
+            "isolated_budget_binding": budget_binding,
+        },
+    }
+    return {
+        "metrics": _json_copy(payload["metrics"]),
+        "gate_evidence": normalized_gate,
+        "narrative": _json_copy(narrative_meta if narrative else {}),
+    }
+
+
 def _validate_terminal_payload_marker(
     contract: PilotContract,
     spec: Mapping[str, Any],
@@ -3216,6 +4692,66 @@ def _validate_terminal_payload_marker(
     metrics = _mapping(payload.get("metrics", {}), "terminal metrics")
     gate = _mapping(payload.get("gate_evidence", {}), "terminal gate_evidence")
     if mode == "parent_authority_import":
+        if _is_v21111_contract(contract):
+            try:
+                from .pilot_v21111_fresh_cohort import (  # pylint: disable=import-outside-toplevel
+                    OPERATIONAL_STAGE_IDS,
+                    SCIENTIFIC_STAGE_IDS,
+                    PilotV21111FreshCohortError,
+                    verify_parent_import_receipt,
+                )
+
+                receipt_path = raw_root / "parent-import" / "parent_import_receipt.json"
+                receipt = verify_parent_import_receipt(
+                    receipt_path,
+                    contract=contract,
+                )
+            except (OSError, TypeError, ValueError, PilotV21111FreshCohortError) as exc:
+                raise PilotEvidenceError(
+                    f"V2.11.11 parent-authority receipt failed revalidation: {exc}"
+                ) from exc
+            expected_partition = {
+                "operational": list(OPERATIONAL_STAGE_IDS),
+                "scientific": list(SCIENTIFIC_STAGE_IDS),
+            }
+            expected_gate = {
+                "parent_import_content_sha256": receipt["integrity"]["content_sha256"],
+                "v21110_terminal_rows_bound": 87,
+                "fresh_scientific_cells_registered": 86,
+                "evidence_partition": expected_partition,
+            }
+            expected_payload_keys = {
+                "metrics",
+                "gate_evidence",
+                "provider_construction",
+                "provider_calls",
+                "imported_effect_cells",
+                "historical_rows_imported_as_child_rows",
+                "claim_boundary",
+            }
+            if (
+                set(payload) != expected_payload_keys
+                or metrics
+                or gate != expected_gate
+                or payload.get("provider_construction") is not False
+                or payload.get("provider_calls") != 0
+                or payload.get("imported_effect_cells") != 0
+                or payload.get("historical_rows_imported_as_child_rows") != 0
+                or payload.get("claim_boundary") != receipt.get("claim_boundary")
+                or receipt.get("evidence_partition") != expected_partition
+                or receipt.get("provider_boundary")
+                != {
+                    "provider_construction": False,
+                    "provider_calls": 0,
+                    "hosted_cost_usd": 0.0,
+                }
+                or receipt.get("scientific_evidence") is not False
+            ):
+                raise PilotEvidenceError(
+                    "V2.11.11 parent-authority import lacks its exact zero-call "
+                    "lineage-only marker"
+                )
+            return
         version_label: str
         if _is_v24_contract(contract):
             version_label = "V2.4"
@@ -3953,11 +5489,29 @@ def _load_terminal_summary(
     source_repo_root: Path | None = None,
 ) -> dict[str, Any]:
     value = _strict_json_load(path)
+    if _is_v21111_contract(contract) and set(value) != {
+        "schema_version",
+        "contract_id",
+        "contract_sha256",
+        "run_spec",
+        "provenance",
+        "evidence_scope",
+        "diagnostic_only",
+        "scientific_evidence",
+        "payload",
+        "integrity",
+    }:
+        raise PilotEvidenceError("V2.11.11 terminal summary shape drifted")
     if value.get("schema_version") != PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION:
         raise PilotEvidenceError(
             f"completed non-runner artifact is not a sealed terminal summary: {path}"
         )
     integrity = _mapping(value.get("integrity"), "terminal summary integrity")
+    if _is_v21111_contract(contract) and set(integrity) != {
+        "canonicalization",
+        "content_sha256",
+    }:
+        raise PilotEvidenceError("V2.11.11 terminal integrity shape drifted")
     if integrity.get("canonicalization") != "json-sort-keys-utf8-v1":
         raise PilotEvidenceError("unsupported terminal summary canonicalization")
     if integrity.get("content_sha256") != _terminal_summary_hash(value):
@@ -3971,6 +5525,17 @@ def _load_terminal_summary(
     ):
         raise PilotEvidenceError("terminal summary run spec differs from ITT ledger")
     provenance = _mapping(value.get("provenance"), "terminal provenance")
+    if _is_v21111_contract(contract) and set(provenance) != {
+        "git_tag",
+        "resolved_git_commit",
+        "commit_resolution",
+        "p0_base_commit",
+        "contract_id",
+        "contract_sha256",
+        "tag_object_type",
+        "worktree_clean",
+    }:
+        raise PilotEvidenceError("V2.11.11 terminal provenance shape drifted")
     binding = _validate_binding(
         contract,
         git_tag=provenance.get("git_tag"),
@@ -4007,6 +5572,7 @@ def _load_terminal_summary(
     )
     payload = _mapping(value.get("payload"), "terminal payload")
     imported_stage0: Mapping[str, Any] | None = None
+    isolated_v21111: Mapping[str, Any] | None = None
     if _is_imported_stage0_spec(contract, spec):
         from .pilot_orchestrator import (  # pylint: disable=import-outside-toplevel
             PilotOrchestrationError,
@@ -4040,6 +5606,16 @@ def _load_terminal_summary(
             raise PilotEvidenceError(
                 "imported Stage-0 envelope failed exact replay " f"verification: {exc}"
             ) from exc
+    elif (
+        _is_v21111_contract(contract)
+        and spec.get("execution_mode") == "checkpoint_continuation"
+    ):
+        isolated_v21111 = _validate_v21111_isolated_d_terminal(
+            contract,
+            spec,
+            payload,
+            raw_root=raw_root,
+        )
     else:
         _validate_terminal_payload_marker(
             contract,
@@ -4049,8 +5625,16 @@ def _load_terminal_summary(
             resolved_git_commit=str(binding["resolved_git_commit"]),
             source_repo_root=source_repo_root,
         )
-    metrics = payload.get("metrics", {})
-    gate_evidence = payload.get("gate_evidence", {})
+    metrics = (
+        isolated_v21111["metrics"]
+        if isolated_v21111 is not None
+        else payload.get("metrics", {})
+    )
+    gate_evidence = (
+        isolated_v21111["gate_evidence"]
+        if isolated_v21111 is not None
+        else payload.get("gate_evidence", {})
+    )
     if not isinstance(metrics, Mapping) or not isinstance(gate_evidence, Mapping):
         raise PilotEvidenceError("terminal metrics and gate_evidence must be objects")
     if imported_stage0 is not None:
@@ -4075,7 +5659,11 @@ def _load_terminal_summary(
         "metrics": _json_copy(metrics),
         "gate_evidence": _json_copy(gate_evidence),
         "capability": _json_copy(payload.get("capability", {})),
-        "narrative": _json_copy(payload.get("narrative", {})),
+        "narrative": _json_copy(
+            isolated_v21111.get("narrative", {})
+            if isolated_v21111 is not None
+            else payload.get("narrative", {})
+        ),
     }
 
 
@@ -4645,11 +6233,9 @@ def _validate_v2_run_ledger_integrity(
             if isinstance(row, Mapping) and "artifact_binding" in row:
                 assert terminal_state is not None
                 terminal_state["artifact_binding"] = row.get("artifact_binding")
-            if (
-                not isinstance(row, Mapping)
-                or payload.get("terminal_state_sha256")
-                != canonical_sha256(terminal_state)
-            ):
+            if not isinstance(row, Mapping) or payload.get(
+                "terminal_state_sha256"
+            ) != canonical_sha256(terminal_state):
                 raise PilotEvidenceError(
                     "V2 pilot run ledger finalization differs from rows"
                 )
@@ -4814,6 +6400,14 @@ def _validated_experiment_c_sensitivity(
     """Strictly recompute the registered zero-API 3x3 C sensitivity artifact."""
 
     c_rows = [row for row in rows if row["stage_id"] == "experiment-c"]
+    if "experiment-c" not in contract.stage_ids:
+        return None, {
+            "pass": True,
+            "available": False,
+            "applicable": False,
+            "path": str(raw_root / "experiment-c" / "rule_sensitivity.json"),
+            "reason": "Experiment C is not registered in this child contract",
+        }
     c_complete = bool(c_rows) and all(
         row["status"] == "complete" and row["scientific_eligible"] is True
         for row in c_rows
@@ -5232,8 +6826,15 @@ def _expected_parent_budget_debit(
     from .pilot_v210_parent_import import parent_budget_debit_for_v210
     from .pilot_v2101_parent_import import parent_budget_debit_for_v2101
     from .pilot_v2102_parent_import import parent_budget_debit_for_v2102
+    from .pilot_v21111_fresh_cohort import parent_budget_debit_for_v21111
 
-    debit = parent_budget_debit_for_v2102(contract)
+    debit = (
+        parent_budget_debit_for_v21111(contract)
+        if _is_v21111_contract(contract)
+        else None
+    )
+    if debit is None:
+        debit = parent_budget_debit_for_v2102(contract)
     if debit is None:
         debit = parent_budget_debit_for_v2101(contract)
     if debit is None:
@@ -5257,6 +6858,117 @@ def _expected_parent_budget_debit(
     if debit is None:
         debit = parent_budget_debit_for_contract(contract)
     return None if debit is None else debit.to_dict()
+
+
+def _v21111_split_reservation(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    run_id: str,
+    calls_by_kind: Mapping[str, int],
+    storage_bytes: int,
+) -> dict[str, Any]:
+    """Recompute one V2.11.11 D reservation from sealed child authority."""
+
+    try:
+        from .pilot_v21111_fresh_cohort import (  # pylint: disable=import-outside-toplevel
+            PilotV21111FreshCohortError,
+            verified_projection_for_v21111,
+        )
+
+        projection, source_path = verified_projection_for_v21111(
+            contract,
+            "gpt52_main",
+            raw_root=raw_root,
+        )
+    except (OSError, TypeError, ValueError, PilotV21111FreshCohortError) as exc:
+        raise PilotEvidenceError(
+            f"V2.11.11 split-budget authority failed revalidation: {exc}"
+        ) from exc
+    by_kind: dict[str, Mapping[str, Any]] = {}
+    for key, raw_row in _mapping(
+        projection.get("projection"),
+        "V2.11.11 imported p95 projection",
+    ).items():
+        _, separator, kind = str(key).rpartition("::")
+        if not separator or not isinstance(raw_row, Mapping):
+            raise PilotEvidenceError("V2.11.11 imported p95 projection drifted")
+        by_kind[kind] = raw_row
+    totals = {
+        "prompt_tokens": 0.0,
+        "completion_tokens": 0.0,
+        "total_tokens": 0.0,
+        "cost_usd": 0.0,
+    }
+    for kind, count in calls_by_kind.items():
+        row = by_kind.get(kind)
+        reserved = row.get("reserved_p95") if isinstance(row, Mapping) else None
+        if not isinstance(reserved, Mapping):
+            raise PilotEvidenceError(
+                f"V2.11.11 imported p95 lacks {kind!r} reservation"
+            )
+        for field in totals:
+            value = reserved.get(field)
+            if not _is_finite_scalar(value) or float(value) < 0:
+                raise PilotEvidenceError(
+                    f"V2.11.11 imported p95 {kind}.{field} is invalid"
+                )
+            totals[field] += float(value) * int(count)
+    call_limit = sum(int(value) for value in calls_by_kind.values())
+    return {
+        "run_id": run_id,
+        "stage_bucket": "hosted_v21111",
+        "cost_usd": totals["cost_usd"],
+        "completions": call_limit,
+        "storage_bytes": storage_bytes,
+        "basis": {
+            "method": "v21111-isolated-p95-times-1.25",
+            "source": str(source_path),
+            "calls_by_kind": dict(calls_by_kind),
+            "run_call_limit": call_limit,
+            "hosted_completion_cap_counted": True,
+            "prompt_tokens": math.ceil(totals["prompt_tokens"]),
+            "completion_tokens": math.ceil(totals["completion_tokens"]),
+            "total_tokens": math.ceil(totals["total_tokens"]),
+            "cost_usd": totals["cost_usd"],
+        },
+    }
+
+
+def _v21111_parent_reservation(
+    contract: PilotContract,
+    *,
+    run_id: str,
+) -> dict[str, Any]:
+    """Return the exact zero-call lineage reservation used by V2.11.11."""
+
+    parent_specs = tuple(contract.expand(stage="parent-import"))
+    if (
+        not _is_v21111_contract(contract)
+        or len(parent_specs) != 1
+        or parent_specs[0].run_id != run_id
+    ):
+        raise PilotEvidenceError("V2.11.11 parent reservation identity drifted")
+    return {
+        "run_id": run_id,
+        "stage_bucket": parent_specs[0].budget_bucket,
+        "cost_usd": 0.0,
+        "completions": 0,
+        "storage_bytes": 5_000_000,
+        "basis": {
+            "method": "v2.11.11-fresh-cohort-lineage-import",
+            "artifact_headroom_bytes": 5_000_000,
+            "provider_construction": False,
+            "provider_calls": 0,
+            "v21110_terminal_rows_bound": 87,
+            "v2115_authority_rows_bound": 87,
+            "new_scientific_cells_registered": 86,
+            "imported_parent_terminal_cells_as_child_rows": 0,
+            "imported_effect_cells": 0,
+            "raw_tree_copied": False,
+            "hosted_completion_cap_counted": False,
+        },
+    }
 
 
 def _validate_v2_budget_hash_chain(
@@ -5804,6 +7516,125 @@ def _validated_release_controls(
         "reasons": stage0_reasons,
     }
 
+    if _is_v21111_contract(contract):
+        # V2.11.11 does not rerun or import Stage-0 rows.  Its sole calibration
+        # authority is the zero-call V2.11.5 wrapper sealed inside the child
+        # parent receipt, so validate that adapter instead of requiring a
+        # nonexistent local Stage-0 stage.
+        imported_reasons: list[str] = []
+        try:
+            from .pilot_v21111_fresh_cohort import (  # pylint: disable=import-outside-toplevel
+                PilotV21111FreshCohortError,
+                verified_calibration_for_v21111,
+            )
+
+            imported = verified_calibration_for_v21111(
+                contract,
+                raw_root=raw_root,
+            )
+            selected = _mapping(
+                imported.get("selected_utility"),
+                "V2.11.11 imported selected utility",
+            )
+            threshold = _mapping(
+                imported.get("absolute_flow_utility_threshold"),
+                "V2.11.11 imported absolute utility threshold",
+            )
+            profile_id = imported.get("selected_profile_id")
+            profiles = _mapping(
+                contract.utility.get("profiles"),
+                "V2.11.11 utility profiles",
+            )
+            candidate = profiles.get(profile_id)
+            candidate = (
+                _mapping(candidate, "V2.11.11 selected contract profile")
+                if isinstance(candidate, Mapping)
+                else {}
+            )
+            q_ref = imported.get("q_ref")
+            expected_selected_keys = {
+                "profile_id",
+                "rho",
+                "labor_weight",
+                "inverse_frisch",
+                "consumption_scale",
+                "discount_factor",
+                "budget_tolerance",
+                "max_labor_hours",
+            }
+            selected_matches_contract = bool(
+                profile_id in profiles
+                and profile_id != "stage0-selected"
+                and selected.get("profile_id") == profile_id
+                and selected.get("rho") == candidate.get("rho")
+                and selected.get("labor_weight") == candidate.get("labor_weight")
+                and selected.get("inverse_frisch") == candidate.get("inverse_frisch")
+                and selected.get("discount_factor") == candidate.get("discount_factor")
+                and _is_finite_scalar(q_ref)
+                and float(q_ref) > 0
+                and selected.get("consumption_scale")
+                == float(q_ref)
+                * float(candidate.get("consumption_scale_multiplier_of_q_ref"))
+            )
+            stage0_checks = {
+                "child_parent_receipt_and_calibration_wrapper_reverified": True,
+                "outcome_blind_selected_profile_matches_contract": (
+                    set(selected) == expected_selected_keys
+                    and selected_matches_contract
+                    and selected.get("budget_tolerance") == 1e-8
+                    and selected.get("max_labor_hours") == 168.0
+                ),
+                "q_ref_finite_positive_and_bound_to_q0": (
+                    _is_finite_scalar(q_ref)
+                    and float(q_ref) > 0
+                    and selected.get("consumption_scale") == q_ref
+                ),
+                "absolute_threshold_finite_and_outcome_blind": (
+                    set(threshold) == {"value", "treatment_outcomes_inspected"}
+                    and _is_finite_scalar(threshold.get("value"))
+                    and threshold.get("treatment_outcomes_inspected") is False
+                ),
+                "source_wrapper_hash_bound": _is_sha256(
+                    imported.get("source_wrapper_content_sha256")
+                ),
+                "all_fresh_science_uses_stage0_selected": all(
+                    spec.utility_profile_id == "stage0-selected"
+                    for spec in contract.expand()
+                    if spec.stage_id in {"experiment-b", "experiment-d", "cross-model"}
+                ),
+            }
+            stage0_pass = all(stage0_checks.values())
+            imported_reasons.extend(
+                name for name, passed in stage0_checks.items() if not passed
+            )
+            result["stage0_selection"] = {
+                "pass": stage0_pass,
+                "path": imported["receipt"]["path"],
+                "stage_receipt_path": None,
+                "source": "V2.11.11 child-bound V2.11.5 calibration authority",
+                "selected_profile_id": profile_id,
+                "q_ref": q_ref,
+                "absolute_flow_utility_threshold": threshold.get("value"),
+                "checks": stage0_checks,
+                "reasons": imported_reasons,
+            }
+        except (
+            OSError,
+            TypeError,
+            ValueError,
+            PilotV21111FreshCohortError,
+            PilotEvidenceError,
+        ) as exc:
+            stage0_pass = False
+            result["stage0_selection"] = {
+                "pass": False,
+                "path": str(raw_root / "parent-import" / "parent_import_receipt.json"),
+                "stage_receipt_path": None,
+                "source": "V2.11.11 child-bound V2.11.5 calibration authority",
+                "checks": {},
+                "reasons": [str(exc)],
+            }
+
     budget_path = raw_root / "budget_ledger.json"
     budget_reasons: list[str] = []
     raw_storage_bytes = sum(
@@ -5832,12 +7663,48 @@ def _validated_release_controls(
                 "parent_authority_import",
             }
         }
-        expected_d_ids = {
-            f"{contract.contract_id}--{spec.stage_id}--{spec.model_id}--"
-            f"checkpoint-group--s{spec.environment_seed}"
-            for spec in contract.expand()
-            if spec.execution_mode == "checkpoint_continuation"
-        }
+        if _is_v21111_contract(contract):
+            expected_d_branch_ids = {
+                spec.run_id
+                for spec in contract.expand(stage="experiment-d")
+                if spec.execution_mode == "checkpoint_continuation"
+            }
+            expected_d_prefix_ids = {
+                f"{contract.contract_id}--experiment-d--gpt52_main--"
+                f"checkpoint-prefix--s{seed}"
+                for seed in contract.seeds["sets"]["main"]
+            }
+            expected_d_ids = expected_d_branch_ids | expected_d_prefix_ids
+            try:
+                from .pilot_v21111_dispatch_refresh import (  # pylint: disable=import-outside-toplevel
+                    PilotV21111DispatchRefreshError,
+                    refresh_projections,
+                )
+
+                expected_refresh_projections = {
+                    projection.run_id: projection.to_dict()
+                    for projection in refresh_projections(contract)
+                }
+            except (
+                TypeError,
+                ValueError,
+                PilotV21111DispatchRefreshError,
+            ) as exc:
+                raise PilotEvidenceError(
+                    f"V2.11.11 refresh projections failed revalidation: {exc}"
+                ) from exc
+            expected_refresh_ids = set(expected_refresh_projections)
+        else:
+            expected_d_branch_ids = set()
+            expected_d_prefix_ids = set()
+            expected_refresh_projections = {}
+            expected_refresh_ids = set()
+            expected_d_ids = {
+                f"{contract.contract_id}--{spec.stage_id}--{spec.model_id}--"
+                f"checkpoint-group--s{spec.environment_seed}"
+                for spec in contract.expand()
+                if spec.execution_mode == "checkpoint_continuation"
+            }
         expected_parent_ids = (
             {
                 spec.run_id
@@ -5849,11 +7716,15 @@ def _validated_release_controls(
                 or _is_v28_contract(contract)
                 or _is_v29_contract(contract)
                 or _is_v210_prerequisite_family_contract(contract)
+                or _is_v21111_contract(contract)
             )
             else set()
         )
         expected_budget_ids = (
-            expected_standard_ids | expected_d_ids | expected_parent_ids
+            expected_standard_ids
+            | expected_d_ids
+            | expected_parent_ids
+            | expected_refresh_ids
         )
         required_import_budget_ids: set[str] = set()
         if (
@@ -5861,6 +7732,7 @@ def _validated_release_controls(
             or _is_v28_contract(contract)
             or _is_v29_contract(contract)
             or _is_v210_prerequisite_family_contract(contract)
+            or _is_v21111_contract(contract)
         ):
             required_import_budget_ids.update(expected_parent_ids)
             for stage_id in (
@@ -5871,6 +7743,16 @@ def _validated_release_controls(
                     required_import_budget_ids.update(
                         spec.run_id for spec in contract.expand(stage=stage_id)
                     )
+        if _is_v21111_contract(contract) and (
+            (raw_root / "dispatch-refresh" / "dispatch_refresh_receipt.json").is_file()
+            or any(
+                row.get("artifact_kind") is not None
+                and row.get("stage_id")
+                in {"experiment-b", "experiment-d", "cross-model"}
+                for row in rows
+            )
+        ):
+            required_import_budget_ids.update(expected_refresh_ids)
         expected_parent_debit = _expected_parent_budget_debit(contract)
         totals = {
             "cost_usd": (
@@ -5926,6 +7808,38 @@ def _validated_release_controls(
                 ):
                     rows_valid = False
                     break
+                if _is_v21111_contract(contract):
+                    if run_id in expected_refresh_projections:
+                        if reservation != expected_refresh_projections[run_id]:
+                            rows_valid = False
+                            break
+                    elif run_id in expected_parent_ids:
+                        if reservation != _v21111_parent_reservation(
+                            contract,
+                            run_id=run_id,
+                        ):
+                            rows_valid = False
+                            break
+                    elif run_id in expected_d_prefix_ids:
+                        if reservation != _v21111_split_reservation(
+                            contract,
+                            raw_root=raw_root,
+                            run_id=run_id,
+                            calls_by_kind={"action": 24, "semantic": 8},
+                            storage_bytes=25_000_000,
+                        ):
+                            rows_valid = False
+                            break
+                    elif run_id in expected_d_branch_ids:
+                        if reservation != _v21111_split_reservation(
+                            contract,
+                            raw_root=raw_root,
+                            run_id=run_id,
+                            calls_by_kind={"action": 24},
+                            storage_bytes=5_000_000,
+                        ):
+                            rows_valid = False
+                            break
                 for field in ("cost_usd", "completions", "storage_bytes"):
                     if not _is_finite_scalar(actual.get(field)):
                         rows_valid = False
@@ -5960,15 +7874,33 @@ def _validated_release_controls(
                 and row.get("artifact_kind") is not None
             )
         }
-        artifact_backed_d_ids = {
-            f"{contract.contract_id}--{row['stage_id']}--{row['model_id']}--"
-            f"checkpoint-group--s{int(row['environment_seed'])}"
-            for row in rows
-            if (
-                row["execution_mode"] == "checkpoint_continuation"
-                and row.get("artifact_kind") is not None
-            )
-        }
+        if _is_v21111_contract(contract):
+            artifact_backed_d_ids = {
+                str(row["run_id"])
+                for row in rows
+                if (
+                    row["execution_mode"] == "checkpoint_continuation"
+                    and row.get("artifact_kind") is not None
+                )
+            } | {
+                f"{contract.contract_id}--experiment-d--gpt52_main--"
+                f"checkpoint-prefix--s{int(row['environment_seed'])}"
+                for row in rows
+                if (
+                    row["execution_mode"] == "checkpoint_continuation"
+                    and row.get("artifact_kind") is not None
+                )
+            }
+        else:
+            artifact_backed_d_ids = {
+                f"{contract.contract_id}--{row['stage_id']}--{row['model_id']}--"
+                f"checkpoint-group--s{int(row['environment_seed'])}"
+                for row in rows
+                if (
+                    row["execution_mode"] == "checkpoint_continuation"
+                    and row.get("artifact_kind") is not None
+                )
+            }
         artifact_backed_parent_ids = {
             str(row["run_id"])
             for row in rows
@@ -5978,6 +7910,7 @@ def _validated_release_controls(
                     or _is_v28_contract(contract)
                     or _is_v29_contract(contract)
                     or _is_v210_prerequisite_family_contract(contract)
+                    or _is_v21111_contract(contract)
                 )
                 and row["execution_mode"] == "parent_authority_import"
                 and row.get("artifact_kind") is not None
@@ -5988,6 +7921,61 @@ def _validated_release_controls(
             | artifact_backed_d_ids
             | artifact_backed_parent_ids
         ).issubset(set(budget_runs))
+        v21111_isolated_budget_bindings_valid = True
+        if _is_v21111_contract(contract):
+            for evidence_row in rows:
+                if (
+                    evidence_row.get("execution_mode") != "checkpoint_continuation"
+                    or evidence_row.get("artifact_kind") is None
+                ):
+                    continue
+                branch_budget = budget_runs.get(str(evidence_row["run_id"]))
+                prefix_id = (
+                    f"{contract.contract_id}--experiment-d--gpt52_main--"
+                    f"checkpoint-prefix--s{int(evidence_row['environment_seed'])}"
+                )
+                prefix_budget = budget_runs.get(prefix_id)
+                isolated_binding = _dig(
+                    evidence_row,
+                    "gate_evidence.isolated_branch_binding.isolated_budget_binding",
+                )
+                prefix_binding = _dig(
+                    evidence_row,
+                    "gate_evidence.isolated_branch_binding.prefix_budget_binding",
+                )
+                if (
+                    not isinstance(branch_budget, Mapping)
+                    or branch_budget.get("status") != "complete"
+                    or not isinstance(prefix_budget, Mapping)
+                    or prefix_budget.get("status") != "complete"
+                    or not isinstance(isolated_binding, Mapping)
+                    or not isinstance(prefix_binding, Mapping)
+                    or branch_budget.get("actual", {}).get("completions") != 24
+                    or prefix_budget.get("actual", {}).get("completions") != 32
+                    or prefix_binding.get("budget_id") != f"{prefix_id}-budget"
+                    or not math.isclose(
+                        float(branch_budget.get("actual", {}).get("cost_usd", -1)),
+                        float(
+                            isolated_binding.get("accounted_usage", {}).get(
+                                "cost_usd", -2
+                            )
+                        ),
+                        rel_tol=0.0,
+                        abs_tol=1e-12,
+                    )
+                    or not math.isclose(
+                        float(prefix_budget.get("actual", {}).get("cost_usd", -1)),
+                        float(
+                            prefix_binding.get("accounted_usage", {}).get(
+                                "cost_usd", -2
+                            )
+                        ),
+                        rel_tol=0.0,
+                        abs_tol=1e-12,
+                    )
+                ):
+                    v21111_isolated_budget_bindings_valid = False
+                    break
         within_caps = bool(
             totals["cost_usd"] <= expected_caps["dispatchable_usd"] + 1e-12
             and totals["completions"] <= expected_caps["max_completions"]
@@ -6022,6 +8010,15 @@ def _validated_release_controls(
             "valid_finalized_dispatch_units": rows_valid,
             "all_artifact_backed_dispatches_accounted": (
                 dispatched_artifacts_accounted
+            ),
+            **(
+                {
+                    "isolated_d_branch_and_prefix_budget_bindings": (
+                        v21111_isolated_budget_bindings_valid
+                    )
+                }
+                if _is_v21111_contract(contract)
+                else {}
             ),
             "actual_totals_within_caps": within_caps,
         }
@@ -7013,6 +9010,185 @@ def _paired_metric_deltas(
     return output
 
 
+def _v21111_isolated_binding(
+    row: Mapping[str, Any],
+    *,
+    name: str,
+    expected_kind: str,
+) -> Mapping[str, Any]:
+    binding = _mapping(
+        _dig(row, "gate_evidence.isolated_branch_binding"),
+        name,
+    )
+    if (
+        binding.get("schema_version") != "finevo-pilot-v2.11.11-isolated-d-binding-v1"
+        or binding.get("kind") != expected_kind
+        or not _is_sha256(binding.get("checkpoint_hash"))
+        or not _is_sha256(binding.get("checkpoint_file_sha256"))
+        or not _is_sha256(binding.get("prefix_hash"))
+        or not _is_sha256(binding.get("shock_schedule_hash"))
+        or not _is_sha256(binding.get("branch_result_hash"))
+        or not _is_sha256(binding.get("branch_source_file_sha256"))
+        or not _is_sha256(binding.get("trajectory_rows_sha256"))
+        or binding.get("proposals_frozen") is not True
+        or binding.get("later_memory_pulses_empty") is not True
+    ):
+        raise PilotEvidenceError(f"{name} is not a verified isolated D binding")
+    return binding
+
+
+def _v21111_experiment_d_binding_checks(
+    contract: PilotContract,
+    by_arm: Mapping[str, Mapping[int, Mapping[str, Any]]],
+    *,
+    expected: Sequence[int],
+    arms: Sequence[str],
+    action_grid: Mapping[str, Any],
+) -> dict[str, Any]:
+    expected_treatments = {
+        "matched-a": "matched-a",
+        "matched-b": "matched-b",
+        "no-memory": "no-memory",
+        "shuffled-episodic": "shuffled-episodic",
+        "wrong-context": "wrong-context",
+        "error-verified": "erroneous-verified",
+        "error-unverified": "erroneous-unverified",
+    }
+    common_fields = (
+        "checkpoint_hash",
+        "checkpoint_file_sha256",
+        "prefix_hash",
+        "shock_schedule_hash",
+        "pre_generated_rng_hashes",
+        "rng_schedule_binding",
+        "branch_rng_pre_step_hashes",
+        "proposal_counters_before",
+        "proposal_counters_after",
+        "action_grid",
+        "prefix_budget_binding",
+    )
+    checks: dict[str, Any] = {}
+    for seed in expected:
+        values: dict[str, Mapping[str, Any]] = {}
+        errors: list[str] = []
+        for arm in arms:
+            row = by_arm[arm].get(int(seed))
+            if row is None:
+                errors.append(f"{arm}:missing or non-scientific terminal row")
+                continue
+            try:
+                binding = _v21111_isolated_binding(
+                    row,
+                    name=f"V2.11.11 D seed {seed} {arm}",
+                    expected_kind="continuation",
+                )
+            except PilotEvidenceError as exc:
+                errors.append(f"{arm}:{exc}")
+                continue
+            expected_treatment = expected_treatments[arm]
+            if (
+                binding.get("treatment_id") != expected_treatment
+                or binding.get("branch_id") != expected_treatment
+                or binding.get("action_grid") != action_grid
+                or binding.get("branch_rng_pre_step_hashes")
+                != binding.get("pre_generated_rng_hashes")
+            ):
+                errors.append(f"{arm}:isolated treatment/RNG/action-grid mismatch")
+                continue
+            values[arm] = binding
+        complete_set = len(values) == len(arms)
+        common = False
+        matched_replay_equal: bool | None = None
+        error_start_equal = False
+        pulse_isolation = False
+        if complete_set:
+            first = values[arms[0]]
+            common = all(
+                all(value.get(field) == first.get(field) for field in common_fields)
+                for value in values.values()
+            )
+            baseline = values["matched-a"]
+            matched_replay_equal = bool(
+                baseline.get("trajectory_rows_sha256")
+                == values["matched-b"].get("trajectory_rows_sha256")
+            )
+            verified_error = values["error-verified"]
+            unverified_error = values["error-unverified"]
+            error_start_equal = bool(
+                isinstance(verified_error.get("error_start"), Mapping)
+                and verified_error.get("error_start")
+                == unverified_error.get("error_start")
+                and verified_error.get("first_step_prompt_hashes")
+                == unverified_error.get("first_step_prompt_hashes")
+            )
+            baseline_memory = _mapping(
+                baseline.get("first_step_memory_text_sha256"),
+                "V2.11.11 matched-a first memory hashes",
+            )
+            baseline_prompts = _mapping(
+                baseline.get("first_step_prompt_hashes"),
+                "V2.11.11 matched-a first prompt hashes",
+            )
+            pulse_isolation = True
+            for arm in ("no-memory", "shuffled-episodic", "wrong-context"):
+                pulse = values[arm].get("memory_pulse_binding")
+                memory_hashes = values[arm].get("first_step_memory_text_sha256")
+                prompts = values[arm].get("first_step_prompt_hashes")
+                if (
+                    not isinstance(pulse, Mapping)
+                    or not isinstance(memory_hashes, Mapping)
+                    or not isinstance(prompts, Mapping)
+                    or pulse.get("original_memory_hash") != baseline_memory.get("0")
+                    or pulse.get("treated_memory_hash") != memory_hashes.get("0")
+                    or prompts.get("0") == baseline_prompts.get("0")
+                    or any(
+                        prompts.get(str(agent_id))
+                        != baseline_prompts.get(str(agent_id))
+                        for agent_id in range(1, 4)
+                    )
+                    or any(
+                        memory_hashes.get(str(agent_id))
+                        != baseline_memory.get(str(agent_id))
+                        for agent_id in range(1, 4)
+                    )
+                ):
+                    pulse_isolation = False
+                    break
+            if values["wrong-context"].get("first_step_memory_text_sha256", {}).get(
+                "0"
+            ) != baseline_memory.get("1"):
+                pulse_isolation = False
+            if any(
+                values[arm].get("memory_pulse_binding") is not None
+                for arm in (
+                    "matched-a",
+                    "matched-b",
+                    "error-verified",
+                    "error-unverified",
+                )
+            ):
+                pulse_isolation = False
+        passed = bool(
+            complete_set
+            and common
+            and error_start_equal
+            and pulse_isolation
+            and not errors
+        )
+        checks[str(seed)] = {
+            "pass": passed,
+            "complete_arm_count": len(values),
+            "registered_arm_count": len(arms),
+            "common_checkpoint_prefix_rng_and_proposal_start": common,
+            "matched_a_b_trajectory_equal": matched_replay_equal,
+            "matched_a_b_used_as_observed_null_not_required_equal": True,
+            "erroneous_rule_common_start_and_first_prompt": error_start_equal,
+            "memory_pulse_isolated_to_focal_decision_6": pulse_isolation,
+            "errors": errors,
+        }
+    return checks
+
+
 def _experiment_d_gate(
     contract: PilotContract,
     rows: Sequence[Mapping[str, Any]],
@@ -7042,6 +9218,19 @@ def _experiment_d_gate(
     if (
         len(normalized_arms) != len(set(normalized_arms))
         or not required_controls <= set(normalized_arms)
+        or (
+            _is_v21111_contract(contract)
+            and set(normalized_arms)
+            != {
+                "matched-a",
+                "matched-b",
+                "no-memory",
+                "shuffled-episodic",
+                "wrong-context",
+                "error-verified",
+                "error-unverified",
+            }
+        )
         or any(
             arm
             not in {
@@ -7104,83 +9293,94 @@ def _experiment_d_gate(
         "error-verified": "erroneous-verified",
         "error-unverified": "erroneous-unverified",
     }
-    for seed in expected:
-        seed_rows = {
-            arm: by_arm[arm][seed] for arm in normalized_arms if seed in by_arm[arm]
-        }
-        if not seed_rows:
-            continue
-        values: dict[str, Mapping[str, Any]] = {}
-        errors: list[str] = []
-        for arm, row in seed_rows.items():
-            gate = _dig(row, "gate_evidence")
-            if not isinstance(gate, Mapping):
-                errors.append(f"{arm}:missing gate_evidence")
-                continue
-            if gate.get("matched_replay_equal") is not True:
-                errors.append(f"{arm}:matched replay not equal")
-                continue
-            try:
-                causal = _validate_causal_bindings(
-                    gate.get("causal_bindings"),
-                    name=f"experiment-d seed {seed} {arm} causal bindings",
-                    narrative=False,
-                    action_grid=action_grid,
-                    contract_hash=(
-                        contract.canonical_hash if _is_v2_contract(contract) else None
-                    ),
-                    memory_pulse_contract=memory_pulse_contract,
-                    narrative_pulse_contract=narrative_pulse_contract,
-                    shuffle_policy=shuffle_policy,
-                )
-            except PilotEvidenceError as exc:
-                errors.append(f"{arm}:{exc}")
-                continue
-            if gate.get("checkpoint_hash") != causal.get("checkpoint_hash") or gate.get(
-                "prefix_hash"
-            ) != causal.get("prefix_hash"):
-                errors.append(f"{arm}:top-level hash mismatch")
-                continue
-            forced_hash = causal.get("branch_forced_active_start_hash")
-            if (
-                causal.get("branch_treatment") != expected_treatments[arm]
-                or (
-                    arm in {"error-verified", "error-unverified"}
-                    and not _is_sha256(forced_hash)
-                )
-                or (
-                    arm not in {"error-verified", "error-unverified"}
-                    and forced_hash is not None
-                )
-            ):
-                errors.append(f"{arm}:branch treatment/error-start mismatch")
-                continue
-            values[arm] = causal
-        complete_set = len(values) == len(normalized_arms)
-        common = bool(
-            complete_set
-            and all(
-                all(
-                    value.get(field) == next(iter(values.values())).get(field)
-                    for field in shared_fields
-                )
-                for value in values.values()
-            )
+    if _is_v21111_contract(contract):
+        causal_binding_checks = _v21111_experiment_d_binding_checks(
+            contract,
+            by_arm,
+            expected=expected,
+            arms=normalized_arms,
+            action_grid=action_grid,
         )
-        if common and values:
-            common = (
-                values["error-verified"]["branch_forced_active_start_hash"]
-                == values["error-unverified"]["branch_forced_active_start_hash"]
-                == values["error-verified"]["error_common_start_hash"]
+    else:
+        for seed in expected:
+            seed_rows = {
+                arm: by_arm[arm][seed] for arm in normalized_arms if seed in by_arm[arm]
+            }
+            if not seed_rows:
+                continue
+            values: dict[str, Mapping[str, Any]] = {}
+            errors: list[str] = []
+            for arm, row in seed_rows.items():
+                gate = _dig(row, "gate_evidence")
+                if not isinstance(gate, Mapping):
+                    errors.append(f"{arm}:missing gate_evidence")
+                    continue
+                if gate.get("matched_replay_equal") is not True:
+                    errors.append(f"{arm}:matched replay not equal")
+                    continue
+                try:
+                    causal = _validate_causal_bindings(
+                        gate.get("causal_bindings"),
+                        name=f"experiment-d seed {seed} {arm} causal bindings",
+                        narrative=False,
+                        action_grid=action_grid,
+                        contract_hash=(
+                            contract.canonical_hash
+                            if _is_v2_contract(contract)
+                            else None
+                        ),
+                        memory_pulse_contract=memory_pulse_contract,
+                        narrative_pulse_contract=narrative_pulse_contract,
+                        shuffle_policy=shuffle_policy,
+                    )
+                except PilotEvidenceError as exc:
+                    errors.append(f"{arm}:{exc}")
+                    continue
+                if gate.get("checkpoint_hash") != causal.get(
+                    "checkpoint_hash"
+                ) or gate.get("prefix_hash") != causal.get("prefix_hash"):
+                    errors.append(f"{arm}:top-level hash mismatch")
+                    continue
+                forced_hash = causal.get("branch_forced_active_start_hash")
+                if (
+                    causal.get("branch_treatment") != expected_treatments[arm]
+                    or (
+                        arm in {"error-verified", "error-unverified"}
+                        and not _is_sha256(forced_hash)
+                    )
+                    or (
+                        arm not in {"error-verified", "error-unverified"}
+                        and forced_hash is not None
+                    )
+                ):
+                    errors.append(f"{arm}:branch treatment/error-start mismatch")
+                    continue
+                values[arm] = causal
+            complete_set = len(values) == len(normalized_arms)
+            common = bool(
+                complete_set
+                and all(
+                    all(
+                        value.get(field) == next(iter(values.values())).get(field)
+                        for field in shared_fields
+                    )
+                    for value in values.values()
+                )
             )
-        passed = bool(complete_set and common and not errors)
-        causal_binding_checks[str(seed)] = {
-            "pass": passed,
-            "complete_arm_count": len(values),
-            "registered_arm_count": len(normalized_arms),
-            "common_checkpoint_prefix_rng_and_error_start": common,
-            "errors": errors,
-        }
+            if common and values:
+                common = (
+                    values["error-verified"]["branch_forced_active_start_hash"]
+                    == values["error-unverified"]["branch_forced_active_start_hash"]
+                    == values["error-verified"]["error_common_start_hash"]
+                )
+            passed = bool(complete_set and common and not errors)
+            causal_binding_checks[str(seed)] = {
+                "pass": passed,
+                "complete_arm_count": len(values),
+                "registered_arm_count": len(normalized_arms),
+                "common_checkpoint_prefix_rng_and_error_start": common,
+                "errors": errors,
+            }
     results: dict[str, Any] = {}
     supported: list[str] = []
     prompt_only: list[str] = []
@@ -7421,6 +9621,119 @@ def _narrative_gate(
     ]
     causal_binding_checks: dict[str, Any] = {}
     for seed in complete_seeds:
+        if _is_v21111_contract(contract):
+            errors: list[str] = []
+            narrative_bindings: dict[str, Mapping[str, Any]] = {}
+            matched_bindings: dict[str, Mapping[str, Any]] = {}
+            for narrative_id, seed_rows in narratives.items():
+                try:
+                    binding = _v21111_isolated_binding(
+                        seed_rows[seed],
+                        name=f"V2.11.11 narrative seed {seed} {narrative_id}",
+                        expected_kind="narrative",
+                    )
+                except PilotEvidenceError as exc:
+                    errors.append(f"{narrative_id}:{exc}")
+                    continue
+                if (
+                    binding.get("treatment_id") != narrative_id
+                    or binding.get("branch_id") != f"narrative-{narrative_id}"
+                    or binding.get("action_grid") != action_grid
+                    or binding.get("branch_rng_pre_step_hashes")
+                    != binding.get("pre_generated_rng_hashes")
+                ):
+                    errors.append(f"{narrative_id}:treatment/RNG/action-grid mismatch")
+                    continue
+                narrative_bindings[narrative_id] = binding
+            for arm, seed_rows in matched.items():
+                try:
+                    binding = _v21111_isolated_binding(
+                        seed_rows[seed],
+                        name=f"V2.11.11 narrative null seed {seed} {arm}",
+                        expected_kind="continuation",
+                    )
+                except PilotEvidenceError as exc:
+                    errors.append(f"{arm}:{exc}")
+                    continue
+                if binding.get("treatment_id") != arm:
+                    errors.append(f"{arm}:treatment mismatch")
+                    continue
+                matched_bindings[arm] = binding
+            common_fields = (
+                "checkpoint_hash",
+                "checkpoint_file_sha256",
+                "prefix_hash",
+                "shock_schedule_hash",
+                "pre_generated_rng_hashes",
+                "rng_schedule_binding",
+                "branch_rng_pre_step_hashes",
+                "proposal_counters_before",
+                "proposal_counters_after",
+                "action_grid",
+                "prefix_budget_binding",
+            )
+            all_bindings = {**narrative_bindings, **matched_bindings}
+            common_source = bool(
+                len(narrative_bindings) == 4
+                and len(matched_bindings) == 2
+                and all(
+                    all(
+                        value.get(field) == next(iter(all_bindings.values())).get(field)
+                        for field in common_fields
+                    )
+                    for value in all_bindings.values()
+                )
+            )
+            pulse_isolation = False
+            if len(narrative_bindings) == 4:
+                none_binding = narrative_bindings["none"]
+                none_prompts = _mapping(
+                    none_binding.get("first_step_prompt_hashes"),
+                    "V2.11.11 no-text first prompt hashes",
+                )
+                none_memory = _mapping(
+                    none_binding.get("first_step_memory_text_sha256"),
+                    "V2.11.11 no-text first memory hashes",
+                )
+                pulse_isolation = bool(
+                    none_binding.get("narrative", {}).get("pulse_only") is False
+                    and all(
+                        binding.get("memory_pulse_binding") is None
+                        and binding.get("first_step_memory_pulse_bindings") == {}
+                        and binding.get("first_step_memory_text_sha256") == none_memory
+                        and binding.get("narrative", {}).get("pulse_only") is True
+                        and binding.get("first_step_prompt_hashes", {}).get("0")
+                        != none_prompts.get("0")
+                        and all(
+                            binding.get("first_step_prompt_hashes", {}).get(
+                                str(agent_id)
+                            )
+                            == none_prompts.get(str(agent_id))
+                            for agent_id in range(1, 4)
+                        )
+                        for narrative_id, binding in narrative_bindings.items()
+                        if narrative_id != "none"
+                    )
+                )
+            passed = bool(common_source and pulse_isolation and not errors)
+            causal_binding_checks[str(seed)] = {
+                "pass": passed,
+                "narrative_common": common_source,
+                "matched_null_common": common_source,
+                "narrative_and_null_common_source": common_source,
+                "narrative_pulse_isolated_to_focal_decision_6": pulse_isolation,
+                "matched_a_b_trajectory_equal": (
+                    matched_bindings.get("matched-a", {}).get("trajectory_rows_sha256")
+                    == matched_bindings.get("matched-b", {}).get(
+                        "trajectory_rows_sha256"
+                    )
+                    if len(matched_bindings) == 2
+                    else None
+                ),
+                "matched_a_b_used_as_observed_null_not_required_equal": True,
+                "errors": errors,
+            }
+            continue
         errors: list[str] = []
         narrative_bindings: dict[str, Mapping[str, Any]] = {}
         matched_bindings: dict[str, Mapping[str, Any]] = {}
@@ -7760,6 +10073,8 @@ def _narrative_gate(
 def _capability_by_model(
     rows: Sequence[Mapping[str, Any]],
     contract: PilotContract | None = None,
+    *,
+    raw_root: Path | None = None,
 ) -> dict[str, dict[str, Any]]:
     if contract is None or not _is_v2_contract(contract):
         result: dict[str, dict[str, Any]] = {}
@@ -7776,6 +10091,109 @@ def _capability_by_model(
                 ),
             }
         return result
+
+    if contract is not None and _is_v21111_contract(contract):
+        if raw_root is None:
+            raise PilotEvidenceError(
+                "V2.11.11 capability publication requires its raw parent receipt"
+            )
+        try:
+            from .pilot_v21111_fresh_cohort import (  # pylint: disable=import-outside-toplevel
+                PilotV21111FreshCohortError,
+                verify_parent_import_receipt,
+            )
+
+            receipt = verify_parent_import_receipt(
+                raw_root / "parent-import" / "parent_import_receipt.json",
+                contract=contract,
+            )
+        except (OSError, TypeError, ValueError, PilotV21111FreshCohortError) as exc:
+            raise PilotEvidenceError(
+                f"V2.11.11 imported capability receipt failed validation: {exc}"
+            ) from exc
+        capability_wrappers = _mapping(
+            receipt.get("capability_wrappers"),
+            "V2.11.11 imported capability wrappers",
+        )
+        preflight_wrappers = _mapping(
+            receipt.get("preflight_authority_wrappers"),
+            "V2.11.11 imported preflight wrappers",
+        )
+        expected_models = {"gpt52_main", "gpt56_diagnostic"}
+        if (
+            set(capability_wrappers) != expected_models
+            or set(preflight_wrappers) != expected_models
+        ):
+            raise PilotEvidenceError(
+                "V2.11.11 imported capability/preflight model denominator drifted"
+            )
+        imported: dict[str, dict[str, Any]] = {}
+        for model_id in sorted(expected_models):
+            wrapper = _mapping(
+                capability_wrappers[model_id],
+                f"V2.11.11 {model_id} capability wrapper",
+            )
+            capability = _mapping(
+                wrapper.get("capability"),
+                f"V2.11.11 {model_id} capability payload",
+            )
+            preflight = _mapping(
+                preflight_wrappers[model_id],
+                f"V2.11.11 {model_id} preflight wrapper",
+            )
+            capability_ok = bool(
+                capability.get("capability_pass") is True
+                and capability.get("interface_pass") is True
+                and capability.get("capability_assessment", {}).get("pass") is True
+                and capability.get("parse_failure_count") == 0
+                and capability.get("provider_failure_count") == 0
+            )
+            preflight_ok = bool(
+                preflight.get("model_id") == model_id
+                and preflight.get("sample_counts") == {"action": 24, "semantic": 8}
+                and preflight.get("provider_construction_current_attempt") is False
+                and preflight.get("provider_calls_current_attempt") == 0
+                and preflight.get("scientific_evidence") is False
+            )
+            imported[model_id] = {
+                "ledger_status": (
+                    "complete" if capability_ok and preflight_ok else "capability-no-go"
+                ),
+                "artifact_validated": capability_ok and preflight_ok,
+                "capability": {
+                    "schema_version": (
+                        "finevo-pilot-v2.11.11-imported-capability-view-v1"
+                    ),
+                    "pass": capability_ok,
+                    "preflight_go": preflight_ok,
+                    "capability": _json_copy(capability),
+                    "source_capability_wrapper_content_sha256": wrapper.get(
+                        "integrity", {}
+                    ).get("content_sha256"),
+                    "source_preflight_wrapper_content_sha256": preflight.get(
+                        "integrity", {}
+                    ).get("content_sha256"),
+                    "provider_calls_current_attempt": 0,
+                    "scientific_evidence": False,
+                },
+                "registered_dispatch_cells": sum(
+                    spec.model_id == model_id
+                    for spec in contract.expand()
+                    if spec.stage_id in {"experiment-b", "experiment-d", "cross-model"}
+                ),
+                "contract_role": contract.model_roles[model_id].role,
+                "dispatch_eligible": True,
+                "ineligibility_reason": None,
+                "capability_gate": {
+                    "source": "verified V2.11.11 parent capability wrapper",
+                    "provider_calls_current_attempt": 0,
+                },
+                "closed_loop_preflight": {
+                    "source": "verified V2.11.11 parent preflight authority wrapper",
+                    "provider_calls_current_attempt": 0,
+                },
+            }
+        return imported
 
     components: dict[str, dict[str, Any]] = {}
     capability_stages = {
@@ -7889,7 +10307,7 @@ def _cross_model_summary(
     rows: Sequence[Mapping[str, Any]],
     capability: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Any]:
-    if _is_v211_family_contract(contract):
+    if _is_v211_family_contract(contract) or _is_v21111_contract(contract):
         source_stages = {
             "gpt52_main": "experiment-b",
             "gpt56_diagnostic": "cross-model",
@@ -8154,12 +10572,10 @@ def _cross_model_summary(
                 ),
             }
             if (
-                _is_v211_family_contract(contract)
-                and contract.stop_go["cross_model"].get(
-                    "seed_unsupported_directional_replication_requires_registered_matched_a_a_null"
-                )
-                is False
-            ):
+                _is_v211_family_contract(contract) or _is_v21111_contract(contract)
+            ) and contract.stop_go["cross_model"].get(
+                "seed_unsupported_directional_replication_requires_registered_matched_a_a_null"
+            ) is False:
                 # V2.11.x preregisters this lane as directional-only when the
                 # provider omits decoding seed.  The absence of a model-specific
                 # matched A/A null still forbids repeatability/effect-size claims,
@@ -9023,7 +11439,7 @@ def build_pilot_evidence_package(
         "experiment_d": _experiment_d_gate(contract, rows),
         "narrative": _narrative_gate(contract, rows),
     }
-    capability = _capability_by_model(rows, contract)
+    capability = _capability_by_model(rows, contract, raw_root=raw)
     cross_model = _cross_model_summary(contract, rows, capability)
     rule_sensitivity, sensitivity_control = _validated_experiment_c_sensitivity(
         contract,
