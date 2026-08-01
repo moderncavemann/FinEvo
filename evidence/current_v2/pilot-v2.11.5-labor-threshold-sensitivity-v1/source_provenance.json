@@ -1,0 +1,83 @@
+{
+  "content_sha256": "06a450b97d321468234df3d5a9dcd6fe50801fbd7dd752b694875e8c7388b56f",
+  "diagnostic_id": "pilot-v2.11.5-labor-threshold-sensitivity-v1",
+  "publication_execution": {
+    "credential_reads": 0,
+    "hosted_cost_usd": 0.0,
+    "provider_calls": 0,
+    "source_mutations": 0
+  },
+  "publisher": {
+    "credential_reads": 0,
+    "git_commit": "ecc3d9809878a3ba7bfc0a08ac70c1c6511448a3",
+    "hosted_cost_usd": 0.0,
+    "provider_calls": 0,
+    "required_tracked_files": {
+      "docs/v2115_labor_threshold_sensitivity_v1.md": {
+        "byte_size": 2282,
+        "git_blob_sha1": "5b0e17f24d8da8dc44d462010256e1287b545fb1",
+        "sha256": "63702207b003cca7da91fcee58bb34f72c676adaaf2c9299ba0ebb7977dc47c2"
+      },
+      "schemas/pilot_v2115_labor_threshold_sensitivity_v1.schema.json": {
+        "byte_size": 5841,
+        "git_blob_sha1": "c20fb3589c5ba32e927c1eb071bb1c90f14bc37b",
+        "sha256": "95208a05d80177f5caa1bd28298d0cefffc6fa3d1c701f0d6155bc36cf0f1136"
+      },
+      "scripts/build_v2115_labor_threshold_sensitivity.py": {
+        "byte_size": 2546,
+        "git_blob_sha1": "e96977f462259cb2251ba867b9831b617afd5275",
+        "sha256": "00dacbd71202bded9bf7218e822ecb32f92535466b3766d222c199856a4ecafe"
+      },
+      "tests/test_v2115_labor_threshold_sensitivity.py": {
+        "byte_size": 17487,
+        "git_blob_sha1": "050224d6de81616b4fa466d171d740cf7b258918",
+        "sha256": "038ab405821a6686dc4ebc7f9bb3a9852468a6383c306c003bc1ea57538688cd"
+      },
+      "verified_memory/v2115_labor_threshold_sensitivity.py": {
+        "byte_size": 80468,
+        "git_blob_sha1": "2e9ec467876c854aab3b41414470e4c53903778e",
+        "sha256": "9bc3c2b6057d3e4ac502952634f599fe39a8c259c758accb0206eb051205b692"
+      }
+    },
+    "tracked_worktree_clean": true
+  },
+  "schema_version": "finevo-pilot-v2.11.5-labor-threshold-source-provenance-v1",
+  "source_package": {
+    "aggregate_byte_size": 12178082,
+    "aggregate_sha256": "5b50767e7e6f6f53aee8cc64f7f99a7c83a61cf8d57f28c73b0a205e30ac0c97",
+    "checksums_content_sha256": "e2759c9226391cdbe94d0cf31f686558768d3b035867a35dbd592bdfb1601650",
+    "checksums_sha256": "1c57592cc14689eee3ed9832996cacb3a4edde764647e1d704f5765fe2920576",
+    "file_count_including_checksums": 23,
+    "git_commit": "34134f2624833e45f0e1f559332b0d11ea1942d6",
+    "git_tag": "pilot-v2.11.5-diagnostic-evidence-v1",
+    "git_tag_object": "7b83cf3953c4f59e3c79051f40c1e40456b92ef2",
+    "inventory_content_sha256": "2827a705c7b115a08efa11bc4dca9f4c74d3cbe190995c7c44ac7d072aa32955",
+    "logical_path": "evidence/current_v2/pilot-v2.11.5",
+    "package_manifest_byte_size": 1433789,
+    "package_manifest_sha256": "99d4db05cc4dbfd2b9339f9034748396d36f49d6db46f91c2b73970388d3b333",
+    "required_tagged_files": {
+      "evidence/current_v2/pilot-v2.11.5/aggregate.json": {
+        "byte_size": 12178082,
+        "git_blob_sha1": "b786663d7bb0df74f4b8c3a7603303dca1c72a35",
+        "sha256": "5b50767e7e6f6f53aee8cc64f7f99a7c83a61cf8d57f28c73b0a205e30ac0c97"
+      },
+      "evidence/current_v2/pilot-v2.11.5/checksums.json": {
+        "byte_size": 4427,
+        "git_blob_sha1": "8561ad79634ebf806724edfb1ee6b88bf787a782",
+        "sha256": "1c57592cc14689eee3ed9832996cacb3a4edde764647e1d704f5765fe2920576"
+      },
+      "evidence/current_v2/pilot-v2.11.5/package_manifest.json": {
+        "byte_size": 1433789,
+        "git_blob_sha1": "dea9366ae991eb4cc2ff9b28dc12b44a21c4c8ae",
+        "sha256": "99d4db05cc4dbfd2b9339f9034748396d36f49d6db46f91c2b73970388d3b333"
+      }
+    },
+    "schema_version": "finevo-pilot-package-checksums-v1",
+    "science_anchor": {
+      "contract_id": "finevo-pilot-v2.11.5",
+      "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+      "git_commit": "2351ac2283f9fedb9dce70067174020be56ed9cc",
+      "git_tag": "pilot-v2.11.5-science"
+    }
+  }
+}

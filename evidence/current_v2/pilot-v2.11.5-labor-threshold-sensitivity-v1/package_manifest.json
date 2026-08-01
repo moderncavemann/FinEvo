@@ -1,0 +1,28 @@
+{
+  "claim_boundary": "This zero-provider retrospective diagnostic cannot restore or reverse the authoritative Experiment A retrieval-effect no-go or Experiment C rule-reliability no-go.",
+  "classification": "retrospective-descriptive-diagnostic-only",
+  "content_sha256": "2fd69a71934fc4930a278290ecedf41da61d50ea9cdc0c82bb66dafc080eb730",
+  "credential_reads": 0,
+  "diagnostic_content_sha256": "5e5c937723b390c13292c312d6293872bc7e49638539f393cdeb0f957ad3450b",
+  "diagnostic_id": "pilot-v2.11.5-labor-threshold-sensitivity-v1",
+  "hosted_cost_usd": 0.0,
+  "provider_calls": 0,
+  "published_files": [
+    "labor_threshold_sensitivity.json",
+    "per_run.csv",
+    "paired_contrasts.csv",
+    "failure_ledger.json",
+    "source_provenance.json",
+    "schema.json",
+    "report.md",
+    "package_manifest.json",
+    "checksums.json"
+  ],
+  "publisher_commit": "ecc3d9809878a3ba7bfc0a08ac70c1c6511448a3",
+  "schema_version": "finevo-pilot-v2.11.5-labor-threshold-package-manifest-v1",
+  "scientific_evidence": false,
+  "source_aggregate_sha256": "5b50767e7e6f6f53aee8cc64f7f99a7c83a61cf8d57f28c73b0a205e30ac0c97",
+  "source_evidence_commit": "34134f2624833e45f0e1f559332b0d11ea1942d6",
+  "source_evidence_tag": "pilot-v2.11.5-diagnostic-evidence-v1",
+  "source_package": "evidence/current_v2/pilot-v2.11.5"
+}
