@@ -54,6 +54,9 @@ def test_v21110_frozen_v2119_boundary_matches_contract_validator() -> None:
 
 
 def test_v21110_parent_debit_is_exact_terminal_v2119_debit() -> None:
+    assert continuation.V21110_PARENT_TERMINAL_EVIDENCE_SCOPE == (
+        "preregistered_terminal_lineage_authority_import"
+    )
     expected = {
         "parent_contract_sha256": continuation.V2119_CONTRACT_SHA256,
         "parent_run_ledger_sha256": continuation.V2119_RUN_LEDGER_SHA256,
@@ -73,6 +76,74 @@ def test_v21110_parent_debit_is_exact_terminal_v2119_debit() -> None:
         "schema_version": "finevo-parent-budget-debit-v1",
         "record_sha256": continuation.V21110_PARENT_DEBIT_RECORD_SHA256,
     }
+
+    call = {
+        "call_kind": "action",
+        "decision_t": 4,
+        "agent_id": 2,
+        "prompt_hash": "a" * 64,
+        "raw_output_hash": "b" * 64,
+    }
+    completion = {
+        **call,
+        "provider": "openai",
+        "model": "gpt-5.2-2025-12-11",
+        "completion_tokens": 17,
+    }
+    disposition = {
+        **call,
+        "parse_status": "success",
+        "parse_mode": "exact_json",
+        "accepted": True,
+    }
+
+    def project(
+        completion_payload: Mapping[str, Any],
+        disposition_payload: Mapping[str, Any],
+    ) -> list[dict[str, Any]]:
+        return continuation._v21110_journal_api_usage_projection(
+            {
+                "events": [
+                    {
+                        "event_type": "completion_received",
+                        "payload": dict(completion_payload),
+                    },
+                    {
+                        "event_type": "parse_disposition",
+                        "payload": dict(disposition_payload),
+                    },
+                ]
+            }
+        )
+
+    sealed = [{**completion, "action_parse_mode": "exact_json"}]
+    assert project(completion, disposition) == sealed
+
+    with pytest.raises(
+        continuation.PilotV21110ContinuationError,
+        match="action parse disposition",
+    ):
+        project(completion, {**disposition, "accepted": False})
+    with pytest.raises(
+        continuation.PilotV21110ContinuationError,
+        match="action parse disposition",
+    ):
+        project(completion, {**disposition, "raw_output_hash": "c" * 64})
+
+    parse_mode_drift = project(
+        completion,
+        {**disposition, "parse_mode": "fenced_recovery"},
+    )
+    provider_field_drift = project(
+        {**completion, "completion_tokens": 18},
+        disposition,
+    )
+    assert pilot_contract.canonical_sha256(parse_mode_drift) != (
+        pilot_contract.canonical_sha256(sealed)
+    )
+    assert pilot_contract.canonical_sha256(provider_field_drift) != (
+        pilot_contract.canonical_sha256(sealed)
+    )
 
 
 def _contract_pin_source(

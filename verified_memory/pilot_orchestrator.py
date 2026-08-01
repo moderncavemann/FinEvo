@@ -524,6 +524,7 @@ from .pilot_v2119_continuation import (
 from .pilot_v21110_continuation import (
     PilotV21110ContinuationError,
     V21110_ACCEPTANCE_FILENAME,
+    V21110_PARENT_TERMINAL_EVIDENCE_SCOPE,
     _verify_v21110_bound_working_directory,
     assert_v21110_dispatch_target_fresh,
     audit_v21110_scientific_stage_namespace,
@@ -25451,7 +25452,7 @@ def _execute_v21110_parent_import_stage(
                 payload=payload,
                 scientific_evidence=False,
                 diagnostic_only=False,
-                evidence_scope="preregistered_terminal_lineage_authority_import",
+                evidence_scope=V21110_PARENT_TERMINAL_EVIDENCE_SCOPE,
             )
         if run_ledger.status(spec.run_id) == "scheduled":
             run_ledger.finalize(

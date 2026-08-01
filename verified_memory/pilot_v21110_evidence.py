@@ -28,6 +28,11 @@ import tempfile
 from typing import Any, Mapping, Sequence
 
 from . import pilot_v2117_continuation as v2117
+from .ci_release_receipt import (
+    PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
+    CIReleaseReceiptError,
+    load_publication_consumer_ci_authority,
+)
 from .pilot_analysis import paired_delta_summary
 from .pilot_budget import PilotBudgetLedger
 from .pilot_contract import PilotContract, canonical_sha256, load_pilot_contract
@@ -77,6 +82,7 @@ from .pilot_v2115_evidence import (
 from .pilot_v21110_continuation import (
     V21110_ACCEPTANCE_FILENAME,
     V21110_CONTRACT_ID,
+    V21110_PARENT_TERMINAL_EVIDENCE_SCOPE,
     V21110_RAW_ROOT,
     V21110_SCIENCE_TAG,
     V21110_SOURCE_MANIFEST_PATH,
@@ -140,6 +146,21 @@ LOGICAL_REGISTERED_DENOMINATOR = 136
 LOGICAL_SCIENTIFIC_DENOMINATOR = 131
 CAPABILITY_MODELS = ("gpt52_main", "gpt56_diagnostic")
 SCIENCE_STAGES = frozenset({"experiment-d", "experiment-b", "cross-model"})
+_PUBLISHER_REQUIRED_TRACKED_FILES = (
+    ".github/workflows/verified-memory-ci.yml",
+    PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
+    "run_pilot.py",
+    "verified_memory/ci_release_receipt.py",
+    "verified_memory/pilot_evidence.py",
+    "verified_memory/pilot_orchestrator.py",
+    "verified_memory/pilot_v21110_continuation.py",
+    "verified_memory/pilot_v21110_evidence.py",
+    "tests/test_ci_release_receipt.py",
+    "tests/test_pilot_v21110_continuation.py",
+    "tests/test_pilot_v2119_continuation.py",
+    "tests/test_pilot_v21110_evidence.py",
+    "tests/test_run_pilot_v21110_cli.py",
+)
 
 
 def _mapping(value: Any, name: str) -> Mapping[str, Any]:
@@ -990,6 +1011,69 @@ def _git(repo_root: Path, *args: str) -> str:
         ) from exc
 
 
+def _tracked_head_blobs(
+    repo_root: Path,
+    relative_paths: Sequence[str],
+) -> dict[str, str]:
+    blobs: dict[str, str] = {}
+    for relative in relative_paths:
+        if (
+            _git(repo_root, "ls-files", "--error-unmatch", "--", relative)
+            != relative
+        ):
+            raise PilotEvidenceError(
+                f"required publisher file is not tracked exactly: {relative}"
+            )
+        _git(repo_root, "diff", "--quiet", "HEAD", "--", relative)
+        blobs[relative] = _git(repo_root, "rev-parse", f"HEAD:{relative}")
+    return blobs
+
+
+def _publisher_provenance(
+    code_root: Path,
+    *,
+    science_commit: str,
+) -> dict[str, Any]:
+    """Bind a clean, CI-authorized descendant evidence consumer."""
+
+    root = code_root.resolve()
+    top_level = Path(_git(root, "rev-parse", "--show-toplevel")).resolve()
+    head = _git(root, "rev-parse", "HEAD")
+    status = _git(root, "status", "--porcelain", "--untracked-files=all")
+    if top_level != root or status:
+        raise PilotEvidenceError(
+            "V2.11.10 evidence publisher must be the exact clean repository root"
+        )
+    if head == science_commit:
+        raise PilotEvidenceError(
+            "V2.11.10 evidence publisher must be a newer committed consumer"
+        )
+    _git(root, "merge-base", "--is-ancestor", science_commit, head)
+    tracked_blobs = _tracked_head_blobs(root, _PUBLISHER_REQUIRED_TRACKED_FILES)
+    try:
+        consumer_ci = load_publication_consumer_ci_authority(root)
+    except CIReleaseReceiptError as exc:
+        raise PilotEvidenceError(
+            "V2.11.10 publisher publication-consumer CI authority failed validation"
+        ) from exc
+    if consumer_ci.get("consumer_head_sha") != head:
+        raise PilotEvidenceError(
+            "V2.11.10 publisher commit differs from its consumer CI authority"
+        )
+    return {
+        "repository_root": str(root),
+        "git_commit": head,
+        "science_source_commit": science_commit,
+        "branch": _git(root, "rev-parse", "--abbrev-ref", "HEAD"),
+        "tracked_worktree_clean": True,
+        "required_tracked_head_blobs": tracked_blobs,
+        "publication_consumer_ci": consumer_ci,
+        "scientific_evidence": False,
+        "science_dispatch_authority": False,
+        "provider_calls": 0,
+    }
+
+
 def _resolve_current_paths(
     *,
     source_repo_root: str | Path | None,
@@ -1188,7 +1272,7 @@ def _normalize_current_ledger(
             if (
                 terminal.get("schema_version") != PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION
                 or terminal.get("evidence_scope")
-                != "preregistered_dual_root_authority_import"
+                != V21110_PARENT_TERMINAL_EVIDENCE_SCOPE
                 or terminal.get("scientific_evidence") is not False
                 or terminal.get("diagnostic_only") is not False
                 or terminal.get("payload")
@@ -2430,6 +2514,11 @@ def _build_pilot_v21110_evidence_package_guarded(
         current_commit,
         release_attestation=paid.release_attestation,
     )
+    code_root = Path(__file__).resolve().parents[1]
+    publisher = _publisher_provenance(
+        code_root,
+        science_commit=current_commit,
+    )
     try:
         current_source_manifest = validate_v21110_source_manifest(
             contract=current_contract,
@@ -2608,6 +2697,7 @@ def _build_pilot_v21110_evidence_package_guarded(
         "provider_calls": 0,
         "current_release": current_release,
         "current_source": current_source,
+        "publisher": publisher,
         "current_source_manifest": {
             "path": V21110_SOURCE_MANIFEST_PATH.as_posix(),
             "file_sha256": _sha256_file(
@@ -2712,6 +2802,16 @@ def _build_pilot_v21110_evidence_package_guarded(
             parent_contract,
             expected_commit=parent_commit,
         )
+        if (
+            _publisher_provenance(
+                code_root,
+                science_commit=current_commit,
+            )
+            != publisher
+        ):
+            raise PilotEvidenceError(
+                "evidence publisher provenance drifted before installation"
+            )
         try:
             final_failed_state = verify_v2119_terminal_no_go(
                 failed_repo_root=failed_root,

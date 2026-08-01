@@ -1990,10 +1990,13 @@ def test_v2119_development_matrix_is_complete_resumable_and_tamper_evident(
 def test_v2119_evidence_uses_exact_recovery_stage_partition() -> None:
     from verified_memory import pilot_evidence
 
-    contract = load_pilot_contract(ROOT / "experiments/pilot_v2_11_9.yaml")
-    non_scientific, scientific = pilot_evidence._stage_sets(contract)
-    assert non_scientific == {"parent-import"}
-    assert scientific == {"experiment-d", "experiment-b", "cross-model"}
+    for contract_name in ("pilot_v2_11_9.yaml", "pilot_v2_11_10.yaml"):
+        contract = load_pilot_contract(ROOT / "experiments" / contract_name)
+        non_scientific, scientific = pilot_evidence._stage_sets(contract)
+        assert non_scientific == {"parent-import"}
+        assert scientific == {"experiment-d", "experiment-b", "cross-model"}
+        assert non_scientific.isdisjoint(scientific)
+        assert non_scientific | scientific == set(contract.stage_ids)
 
 
 def test_terminal_scientific_verifier_replays_completed_b_before_resume(

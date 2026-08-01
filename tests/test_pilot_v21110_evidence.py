@@ -37,6 +37,7 @@ from verified_memory.pilot_v21110_evidence import (
     _failure_artifact_evidence,
     _observed_owner_linkage,
     _package_target,
+    _publisher_provenance,
     _resolve_current_paths,
     _validate_current_git,
     _verify_package_tree,
@@ -1406,7 +1407,7 @@ def test_reviewer_deliverable_shape_is_provider_free(tmp_path, monkeypatch):
         )
 
 
-def test_current_git_rejects_untracked_source(tmp_path):
+def test_current_git_rejects_untracked_source(tmp_path, monkeypatch):
     current, _ = _contracts()
 
     def git(*args):
@@ -1444,8 +1445,38 @@ def test_current_git_rejects_untracked_source(tmp_path):
             tmp_path.resolve(), current, commit, release_attestation=tampered
         )
 
-    (tmp_path / "untracked_source.py").write_text("VALUE = 1\n", encoding="utf-8")
+    untracked = tmp_path / "untracked_source.py"
+    untracked.write_text("VALUE = 1\n", encoding="utf-8")
     with pytest.raises(PilotEvidenceError, match="tracked-clean annotated tag"):
         _validate_current_git(
             tmp_path.resolve(), current, commit, release_attestation=release
         )
+
+    untracked.unlink()
+    tracked = tmp_path / "tracked.txt"
+    tracked.write_text("consumer\n", encoding="utf-8")
+    git("commit", "-qam", "consumer")
+    consumer_commit = git("rev-parse", "HEAD")
+
+    monkeypatch.setattr(
+        pilot_v21110_evidence,
+        "_PUBLISHER_REQUIRED_TRACKED_FILES",
+        ("tracked.txt",),
+    )
+    monkeypatch.setattr(
+        pilot_v21110_evidence,
+        "load_publication_consumer_ci_authority",
+        lambda _root: {"consumer_head_sha": consumer_commit},
+    )
+    provenance = _publisher_provenance(
+        tmp_path,
+        science_commit=commit,
+    )
+    assert provenance["git_commit"] == consumer_commit
+    assert provenance["science_source_commit"] == commit
+    assert provenance["provider_calls"] == 0
+    assert provenance["science_dispatch_authority"] is False
+
+    tracked.write_text("DRIFTED = True\n", encoding="utf-8")
+    with pytest.raises(PilotEvidenceError, match="exact clean repository root"):
+        _publisher_provenance(tmp_path, science_commit=commit)
