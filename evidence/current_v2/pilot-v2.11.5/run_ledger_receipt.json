@@ -1,0 +1,63 @@
+{
+  "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+  "denominator": {
+    "all_completed_artifacts_validated": true,
+    "all_rows_present": true,
+    "all_rows_terminal": false,
+    "expected_count": 136,
+    "frozen_partial_snapshot_valid": true,
+    "itt_failures_retained": 3,
+    "observed_ledger_count": 136,
+    "pass": false,
+    "run_ledger_event_inventory": {
+      "acceptance_event_index": 7,
+      "acceptance_receipt_content_sha256": "41bae59ac6ac34182091aeb1720777f5c391b1f6d1e61df9cdb2d92e537894cf",
+      "acceptance_receipt_path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/scientific_dispatch_acceptance.json",
+      "accepted_budget_event_count": 12,
+      "accepted_run_event_count": 7,
+      "event_chain_head": "61489ef64e71400e603e2fb1110e5e8af3ba772ac083361338a4ccff9641022f",
+      "event_count": 53
+    },
+    "scheduled_cells_excluded_from_effect_evidence": 86,
+    "scheduled_row_count": 86,
+    "stage_status_counts": {
+      "capability-gate": {
+        "complete": 2
+      },
+      "cross-model": {
+        "scheduled": 6
+      },
+      "experiment-a": {
+        "complete": 17,
+        "failed": 3
+      },
+      "experiment-b": {
+        "scheduled": 25
+      },
+      "experiment-c": {
+        "complete": 25
+      },
+      "experiment-d": {
+        "scheduled": 55
+      },
+      "long-context-preflight": {
+        "complete": 2
+      },
+      "parent-import": {
+        "complete": 1
+      }
+    },
+    "status_counts": {
+      "complete": 47,
+      "failed": 3,
+      "scheduled": 86
+    },
+    "terminal_row_count": 50
+  },
+  "event_chain_head": "61489ef64e71400e603e2fb1110e5e8af3ba772ac083361338a4ccff9641022f",
+  "event_count": 53,
+  "file_sha256": "16c368ab7ad5c3da2d53ba9b15a17ef83ce7a72639af0adc317eaa3605e27c28",
+  "ledger_sha256": "8a86231f0906ea117626190cc7a2699933c968ce555612cb1bc6378473601fa7",
+  "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/run_ledger.json",
+  "schema_version": "finevo-pilot-v2.11.5-run-ledger-audit-v1"
+}

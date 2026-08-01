@@ -1,0 +1,116 @@
+{
+  "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+  "files": [
+    {
+      "byte_size": 26120648,
+      "path": "aggregate.csv",
+      "sha256": "dc4738a9ea78029234cbd3aff41141eda0f6e5616bfe57f778c136dfdf9e892d"
+    },
+    {
+      "byte_size": 12178082,
+      "path": "aggregate.json",
+      "sha256": "5b50767e7e6f6f53aee8cc64f7f99a7c83a61cf8d57f28c73b0a205e30ac0c97"
+    },
+    {
+      "byte_size": 128871,
+      "path": "audit/budget_ledger.json",
+      "sha256": "49c21f5b2b21b773a8a0814ffe115ccd69cc67d947b67b5b4e3ecdaf2b5a2afb"
+    },
+    {
+      "byte_size": 6221,
+      "path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501.json",
+      "sha256": "cbaed1939a2f021ad626ee56350f4570c64ac32e20523839f6eeeaa66482432f"
+    },
+    {
+      "byte_size": 6221,
+      "path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452.json",
+      "sha256": "a6a01720a6c5c9bc319fbedb7ad656689e9c1f49b4d08f73826109b3210350eb"
+    },
+    {
+      "byte_size": 6221,
+      "path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770.json",
+      "sha256": "a662b4dde2a66249c048d5537c359d7b3edaeb5bf77fd7fb0f19c1c58bab3744"
+    },
+    {
+      "byte_size": 6219,
+      "path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385.json",
+      "sha256": "baeee57d94bde747ca90541ef92d21552982c9daed89e1b11b733f2d33be0fcf"
+    },
+    {
+      "byte_size": 6219,
+      "path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858.json",
+      "sha256": "2f7991939ab90a26ff6b53cede1423d1ebf7fe95d58bc2fb994b30fb2f3c8550"
+    },
+    {
+      "byte_size": 205294,
+      "path": "audit/run_ledger.json",
+      "sha256": "16c368ab7ad5c3da2d53ba9b15a17ef83ce7a72639af0adc317eaa3605e27c28"
+    },
+    {
+      "byte_size": 1768,
+      "path": "budget_receipt.json",
+      "sha256": "5fe7fbfb950f0b5c69980eb7ac169228e430c8c2b0589a369cc244d3c3758eeb"
+    },
+    {
+      "byte_size": 54830,
+      "path": "contract/pilot_v2_11_5.yaml",
+      "sha256": "b96438430231f0c46fd6c5f15ba749713534feb15f964c496aa02606cf11103b"
+    },
+    {
+      "byte_size": 45076,
+      "path": "contract/pilot_v2_11_5_source_manifest.json",
+      "sha256": "fea5a276fb64fdd5bf0539014687ea39a891e9d305205b1d2046a2c15a892d16"
+    },
+    {
+      "byte_size": 3974186,
+      "path": "experiment_c_rule_sensitivity_diagnostic.json",
+      "sha256": "b5f9589e95a670e0e6fc24f475636ac00a33d1647660706f4ad27fa056c0d776"
+    },
+    {
+      "byte_size": 33648,
+      "path": "failure_ledger.json",
+      "sha256": "4774d0a0f73d44ad7ab9e0dd49437575a5cca299c08f54d517d929600e4bc671"
+    },
+    {
+      "byte_size": 7272,
+      "path": "method_differences_scaffold.json",
+      "sha256": "4dceeebd34a4bd9cbf0eb7284eef3c1337c0f6ef717df541bba001b34c15468a"
+    },
+    {
+      "byte_size": 6533,
+      "path": "offline_candidate_admission_audit.json",
+      "sha256": "f9b046f4d02d5bc8d292bdb3343de4ecc09c561fa4bbb298fbdbc4ca5cfc50d1"
+    },
+    {
+      "byte_size": 1433789,
+      "path": "package_manifest.json",
+      "sha256": "99d4db05cc4dbfd2b9339f9034748396d36f49d6db46f91c2b73970388d3b333"
+    },
+    {
+      "byte_size": 6465,
+      "path": "post_gate_authority.json",
+      "sha256": "08b33162c91a07b392bacefc40d6abee9d89633600608a3de798f171e427a35a"
+    },
+    {
+      "byte_size": 62127,
+      "path": "reviewer_report.md",
+      "sha256": "6470e12b1ee7292f606362942b26486a94efbb4c806a6b7a3ab5af838dbbdd9a"
+    },
+    {
+      "byte_size": 2175,
+      "path": "run_ledger_receipt.json",
+      "sha256": "556d2f9a3e0c56193dd80871d2f68868f651b36230482a3697815b2b06e22f07"
+    },
+    {
+      "byte_size": 11835,
+      "path": "source_receipts/experiment-c-stage_receipt.json",
+      "sha256": "958cb161785c144c89861da3e9536e53069e8f1070a64c03f54647cbfe05b322"
+    },
+    {
+      "byte_size": 5218,
+      "path": "stage_receipts.json",
+      "sha256": "8abd954710d26c20e7ba25bde1bf6bf09bfe3af538fcf08dddcf2f039654e965"
+    }
+  ],
+  "schema_version": "finevo-pilot-package-checksums-v1"
+}

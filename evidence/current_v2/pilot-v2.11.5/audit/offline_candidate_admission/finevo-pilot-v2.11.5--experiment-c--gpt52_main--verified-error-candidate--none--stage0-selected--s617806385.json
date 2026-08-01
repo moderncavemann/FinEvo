@@ -1,0 +1,199 @@
+{
+  "candidate": {
+    "action_guidance": {
+      "direction": "at_most",
+      "target": "consumption_fraction",
+      "threshold": 0.0,
+      "tolerance": 0.0
+    },
+    "candidate_id": "cand-320fb0fa6eb4c5ffbbe4",
+    "condition": {
+      "field": "interest_rate",
+      "operator": ">=",
+      "tolerance": 0.0,
+      "value": 0.0
+    },
+    "context_scope": {
+      "predicates": [],
+      "scope_id": "global"
+    },
+    "generator_id": "fixed-preregistered-error",
+    "migration_notes": [],
+    "outcome_criterion": {
+      "metric": "utility_advantage",
+      "operator": ">",
+      "tolerance": 0.0,
+      "value": 0.0
+    },
+    "rationale": "Fixed unsupported rule for candidate-admission audit.",
+    "raw_response_hash": "af71527c1f3e0c7236d58cc2e549d7c16f3dc46f1def780009cd52383b275566",
+    "rule_family_id": "family-f603878f4a413b6d0a55",
+    "rule_key": "rule-5473c7c5c73665844c59",
+    "schema_version": "m3-rule-candidate-v2",
+    "supporting_episode_ids": [
+      "unsupported-a",
+      "unsupported-b"
+    ]
+  },
+  "check": {
+    "false_rule_ever_active": false,
+    "provider_calls": 0,
+    "same_candidate_content": true,
+    "unsupported_candidate_rejected": true,
+    "unverified_false_rule_ever_active": true
+  },
+  "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+  "diagnostic_only": false,
+  "run_spec": {
+    "arm_id": "verified-error-candidate",
+    "budget_bucket": "hosted_v2115",
+    "contract_id": "finevo-pilot-v2.11.5",
+    "decoding_seed": null,
+    "environment_seed": 617806385,
+    "episode_length": 12,
+    "execution_mode": "offline_candidate_admission",
+    "model_id": "gpt52_main",
+    "narrative_id": "none",
+    "num_agents": 4,
+    "requested_model": "gpt-5.2-2025-12-11",
+    "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385",
+    "shock_id": "registered-rate-shock",
+    "stage_id": "experiment-c",
+    "utility_profile_id": "stage0-selected"
+  },
+  "schema_version": "finevo-pilot-offline-admission-v1",
+  "scientific_evidence": true,
+  "unverified_rule": {
+    "action_guidance": {
+      "direction": "at_most",
+      "target": "consumption_fraction",
+      "threshold": 0.0,
+      "tolerance": 0.0
+    },
+    "activation_episode_id": null,
+    "alternative_failure_episode_ids": [],
+    "alternative_success_episode_ids": [],
+    "candidate_ids": [],
+    "condition": {
+      "field": "interest_rate",
+      "operator": ">=",
+      "tolerance": 0.0,
+      "value": 0.0
+    },
+    "confidence": 1.0,
+    "consecutive_failures": 0,
+    "context_scope": {
+      "predicates": [],
+      "scope_id": "global"
+    },
+    "contradicting_episode_ids": [],
+    "contradiction_score": 0.0,
+    "created_at": 5,
+    "derived_from_rule_ids": [],
+    "harmful_compliance_episode_ids": [],
+    "injected": true,
+    "injection_provenance": {
+      "evidence_admission": false,
+      "generator_id": "fixed-preregistered-error",
+      "initial_confidence": 1.0,
+      "injection_id": "unverified:cand-320fb0fa6eb4c5ffbbe4",
+      "raw_response_hash": "af71527c1f3e0c7236d58cc2e549d7c16f3dc46f1def780009cd52383b275566",
+      "requested_support_ids": [
+        "unsupported-a",
+        "unsupported-b"
+      ],
+      "retirement_enabled": false,
+      "semantic_policy": "unverified-immediate",
+      "source_candidate_id": "cand-320fb0fa6eb4c5ffbbe4"
+    },
+    "irrelevant_episode_ids": [],
+    "margin": 0.0,
+    "outcome_criterion": {
+      "metric": "utility_advantage",
+      "operator": ">",
+      "tolerance": 0.0,
+      "value": 0.0
+    },
+    "post_proposal_contradiction_count": 0,
+    "post_proposal_evidence_count": 0,
+    "post_proposal_irrelevant_count": 0,
+    "post_proposal_neutral_count": 0,
+    "post_proposal_support_count": 0,
+    "rationale": "Fixed unsupported rule for candidate-admission audit.",
+    "rule_family_id": "family-f603878f4a413b6d0a55:injected:7b892feb6c4b",
+    "rule_id": "family-f603878f4a413b6d0a55:injected:7b892feb6c4b:v1",
+    "rule_key": "rule-5473c7c5c73665844c59",
+    "rule_version": 1,
+    "schema_version": "m3-verified-rule-v2",
+    "status": "active",
+    "supersedes_rule_id": null,
+    "support_score": 0.0,
+    "supporting_episode_ids": [],
+    "updated_at": 5,
+    "verification_reasons": [
+      "experimental injection bypass"
+    ]
+  },
+  "verified_rule": {
+    "action_guidance": {
+      "direction": "at_most",
+      "target": "consumption_fraction",
+      "threshold": 0.0,
+      "tolerance": 0.0
+    },
+    "activation_episode_id": null,
+    "alternative_failure_episode_ids": [],
+    "alternative_success_episode_ids": [],
+    "candidate_ids": [
+      "cand-320fb0fa6eb4c5ffbbe4"
+    ],
+    "condition": {
+      "field": "interest_rate",
+      "operator": ">=",
+      "tolerance": 0.0,
+      "value": 0.0
+    },
+    "confidence": 0.5,
+    "consecutive_failures": 0,
+    "context_scope": {
+      "predicates": [],
+      "scope_id": "global"
+    },
+    "contradicting_episode_ids": [],
+    "contradiction_score": 0.0,
+    "created_at": 5,
+    "derived_from_rule_ids": [],
+    "harmful_compliance_episode_ids": [],
+    "injected": false,
+    "injection_provenance": null,
+    "irrelevant_episode_ids": [],
+    "margin": 0.0,
+    "outcome_criterion": {
+      "metric": "utility_advantage",
+      "operator": ">",
+      "tolerance": 0.0,
+      "value": 0.0
+    },
+    "post_proposal_contradiction_count": 0,
+    "post_proposal_evidence_count": 0,
+    "post_proposal_irrelevant_count": 0,
+    "post_proposal_neutral_count": 0,
+    "post_proposal_support_count": 0,
+    "rationale": "Fixed unsupported rule for candidate-admission audit.",
+    "rule_family_id": "family-f603878f4a413b6d0a55",
+    "rule_id": "family-f603878f4a413b6d0a55:v1",
+    "rule_key": "rule-5473c7c5c73665844c59",
+    "rule_version": 1,
+    "schema_version": "m3-verified-rule-v2",
+    "status": "rejected",
+    "supersedes_rule_id": null,
+    "support_score": 0.0,
+    "supporting_episode_ids": [],
+    "updated_at": 5,
+    "verification_reasons": [
+      "supporting episode does not exist: unsupported-a",
+      "supporting episode does not exist: unsupported-b",
+      "only 0 claimed episodes pass all verification checks"
+    ]
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "authority_sources": {
+    "gpt52_main": {
+      "per_model_receipt": {
+        "content_sha256": "0ba90095d70922c1705196d7663551b7f7541a18de8d804299ccd91b8267bca6",
+        "file_sha256": "867194aa41299aa06adcce186c09bb1e90902396706d1c514dfee1c8d79f3d26",
+        "path": "experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/observed_p95_authority_receipt.json"
+      },
+      "source_preflight": {
+        "execution_artifact_sha256": "5578ba3e5029c7df55739be11d968c6846273a3266c8b8fcd9aa0b8fa1c621fc",
+        "model_id": "gpt52_main",
+        "provider_call_journal_sha256": "2af6faa1f8e214fb606a87ed764253535f9895fb7bbbe0680f1f76f020ab68c3",
+        "run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376",
+        "run_spec_sha256": "cfbdb7c7dc27078335cf2857fb0ddcc9a02648a34fe8a185dbe416b12a5f603f",
+        "served_model": "gpt-5.2-2025-12-11"
+      },
+      "v2_11_2_gate": {
+        "commit": "78870956b528946d415a9be5f5769b0893d16d74",
+        "content_sha256": "0d95374c3e2db9fc5bf5c6156fb7bcdf0a9c94e26ed9995f74a2a542a8961aaa",
+        "file_sha256": "52ade890b123cd030b3d7242aa8347d7dc3a7040fe5f56de0b95938daa029312",
+        "tag": "pilot-v2.11.2-science"
+      }
+    },
+    "gpt56_diagnostic": {
+      "per_model_receipt": {
+        "content_sha256": "5e74a260f0df49739cbb5c11c3df0ae800d20845968fe553f2ef1549fc384e02",
+        "file_sha256": "ddda0bcc289c2e9455aaac4fd60ee501cff9ff3cc1b80bddf1459ebc79cb51ba",
+        "path": "experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt56_diagnostic/observed_p95_authority_receipt.json"
+      },
+      "source_preflight": {
+        "execution_artifact_sha256": "47e69aa79a842c431e6410dfd797bff5271db560660af2daf1427d4d2673c31a",
+        "model_id": "gpt56_diagnostic",
+        "provider_call_journal_sha256": "c7bbc0d9056f8dd22a57bf990cdb62010e2a917db13842ae35b2f69d245f2dba",
+        "run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376",
+        "run_spec_sha256": "542879e77287c54ce469038cca6d36c7873f3d7720e7c7714fa203893cb6d75c",
+        "served_model": "gpt-5.6-sol"
+      },
+      "v2_11_2_gate": {
+        "commit": "78870956b528946d415a9be5f5769b0893d16d74",
+        "content_sha256": "0d95374c3e2db9fc5bf5c6156fb7bcdf0a9c94e26ed9995f74a2a542a8961aaa",
+        "file_sha256": "52ade890b123cd030b3d7242aa8347d7dc3a7040fe5f56de0b95938daa029312",
+        "tag": "pilot-v2.11.2-science"
+      }
+    }
+  },
+  "bindings": {
+    "ledger_event_chain_head": "0caf68977f5c13e1db34702387c03cc90bfaf8e412907ddcf52b6a7c48b576f2",
+    "parent_import_receipt_content_sha256": "3eb37262ca7a3df78436e964bc202768e7b5ca4417d947c7a61f419eec24a658",
+    "source_v2_11_2_gate_content_sha256": "0d95374c3e2db9fc5bf5c6156fb7bcdf0a9c94e26ed9995f74a2a542a8961aaa",
+    "source_v2_11_2_gate_file_sha256": "52ade890b123cd030b3d7242aa8347d7dc3a7040fe5f56de0b95938daa029312"
+  },
+  "calibration_wrapper_content_sha256": "50a238c086aa698badb69ae4b2fa22f465b8c6e49273897ba6227fbe4b459ffe",
+  "capability_wrapper_content_sha256": {
+    "gpt52_main": "be8684bd1208bb5049be744910c10bdaf5f48e69ad6f13ae086ecef9ce42e32f",
+    "gpt56_diagnostic": "f3a3025347327545e33d42149efe1ed0d29c3279429b3f379ecc88c6cdeab863"
+  },
+  "claim_boundary": "V2.11.5 prospective dispatch-budget authority only; all 131 scientific cells remain fresh V2.11.5 denominator cells.",
+  "contract_id": "finevo-pilot-v2.11.5",
+  "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+  "denominator": {
+    "complete_authority_import_cells": 2,
+    "eligible_model_ids": [
+      "gpt52_main",
+      "gpt56_diagnostic"
+    ],
+    "historical_action_samples_per_model": 24,
+    "historical_semantic_samples_per_model": 8,
+    "registered_authority_import_cells": 2,
+    "registered_model_ids": [
+      "gpt52_main",
+      "gpt56_diagnostic"
+    ]
+  },
+  "go": true,
+  "provider_boundary": {
+    "hosted_cost_usd_during_authority_import": 0.0,
+    "hosted_provider_calls_during_authority_import": 0,
+    "provider_calls_during_authority_import": 0,
+    "provider_construction_during_authority_import": false
+  },
+  "reasons": [],
+  "receipt_sha256": "19e18c1641ecaf55e48340694e126416ff30f0b39307c66f5335c9c9e9a46abc",
+  "release": {
+    "commit": "2351ac2283f9fedb9dce70067174020be56ed9cc",
+    "tag": "pilot-v2.11.5-science"
+  },
+  "reservations": {
+    "openai/gpt-5.2-2025-12-11": {
+      "action": {
+        "raw_p95": {
+          "completion_tokens": 2601.0,
+          "cost_usd": 0.037905,
+          "prompt_tokens": 892.0,
+          "total_tokens": 3493.0
+        },
+        "reserve_multiplier": 1.25,
+        "reserved_p95": {
+          "completion_tokens": 3252,
+          "cost_usd": 0.04738125,
+          "prompt_tokens": 1115,
+          "total_tokens": 4367
+        },
+        "sample_count": 24
+      },
+      "semantic": {
+        "raw_p95": {
+          "completion_tokens": 1093.0,
+          "cost_usd": 0.019626249999999998,
+          "prompt_tokens": 2475.0,
+          "total_tokens": 3568.0
+        },
+        "reserve_multiplier": 1.25,
+        "reserved_p95": {
+          "completion_tokens": 1367,
+          "cost_usd": 0.024532812499999997,
+          "prompt_tokens": 3094,
+          "total_tokens": 4461
+        },
+        "sample_count": 8
+      }
+    },
+    "openai/gpt-5.6-sol": {
+      "action": {
+        "raw_p95": {
+          "completion_tokens": 1250.0,
+          "cost_usd": 0.041555,
+          "prompt_tokens": 859.0,
+          "total_tokens": 2109.0
+        },
+        "reserve_multiplier": 1.25,
+        "reserved_p95": {
+          "completion_tokens": 1563,
+          "cost_usd": 0.051943750000000004,
+          "prompt_tokens": 1074,
+          "total_tokens": 2637
+        },
+        "sample_count": 24
+      },
+      "semantic": {
+        "raw_p95": {
+          "completion_tokens": 927.0,
+          "cost_usd": 0.040245,
+          "prompt_tokens": 2487.0,
+          "total_tokens": 3414.0
+        },
+        "reserve_multiplier": 1.25,
+        "reserved_p95": {
+          "completion_tokens": 1159,
+          "cost_usd": 0.050306250000000004,
+          "prompt_tokens": 3109,
+          "total_tokens": 4268
+        },
+        "sample_count": 8
+      }
+    }
+  },
+  "schema_version": "finevo-pilot-v2.11.5-post-gate-authority-v1",
+  "scientific_evidence": false
+}
