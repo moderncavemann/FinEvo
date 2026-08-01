@@ -31,7 +31,7 @@
   "failure_reason": null,
   "integrity": {
     "canonicalization": "json-sort-keys-utf8-v1",
-    "content_sha256": "6f616f4d9003f81d3b57c396fa25b44f92a6c204e52f9bf44833b88637c1e44b"
+    "content_sha256": "414e31d9e1249d074dea08bcea5ed8fa197e40dda6afd968d5e79f4fa14b8497"
   },
   "link_checks": {
     "all_pass": true,
@@ -85,7 +85,7 @@
     "contract_file_sha256": "b96438430231f0c46fd6c5f15ba749713534feb15f964c496aa02606cf11103b",
     "contract_id": "finevo-pilot-v2.11.5",
     "publisher": {
-      "git_commit": "274cadd1be884d429619056b1e5adc2ea63b8a47",
+      "git_commit": "5864bdab362f7d82491bee69edcefd40c564248a",
       "implementation_base_commit": "34134f2624833e45f0e1f559332b0d11ea1942d6",
       "publication_provider_calls": 0,
       "publisher_id": "publication-consumer:reviewer-trace-v1",
@@ -94,7 +94,7 @@
         "requirements.txt": "080522e2e9bab3460b2642a51a8f6dc1816ac669",
         "schemas/reviewer_closed_loop_trace_v1.schema.json": "423ae5f6878044b433878faf23b2a30d3f3248f6",
         "scripts/build_v2115_reviewer_trace.py": "0e7b5837ff43543a8a50c40a4f2392646277aa31",
-        "tests/test_reviewer_closed_loop_trace.py": "d48ef49d4f4d5e34efd75eb77857ed659cc97e1f",
+        "tests/test_reviewer_closed_loop_trace.py": "5014bdf1bb3a3e1ed1c667209939247fce2493ea",
         "verified_memory/reviewer_closed_loop_trace.py": "b87319f1cafa14f93a2ac91507b349cd441c58a8"
       },
       "tracked_worktree_clean": true
