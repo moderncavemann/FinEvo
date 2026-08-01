@@ -1,0 +1,47 @@
+{
+  "content_sha256": "b8632dec2bbf95640ac8283b7a81e5558cc02106dae133fae67e9629cafaec24",
+  "diagnostic_id": "pilot-v2.11.5-labor-threshold-sensitivity-v1",
+  "files": [
+    {
+      "byte_size": 2806,
+      "path": "failure_ledger.json",
+      "sha256": "4a2cf4392e76c2d85cb7f5c1f354a8242a887c3e89251e3d0181e6a38dccc2ba"
+    },
+    {
+      "byte_size": 94955,
+      "path": "labor_threshold_sensitivity.json",
+      "sha256": "07c04671675ebe6cb7395e94d5eeac8225f1c5356222cabd280555e1001831a8"
+    },
+    {
+      "byte_size": 1310,
+      "path": "package_manifest.json",
+      "sha256": "43fd6c715045c56dde820c897e52326bf678d37f552544a9fc2fb40fb6be2a39"
+    },
+    {
+      "byte_size": 9677,
+      "path": "paired_contrasts.csv",
+      "sha256": "c2fd484649fa21abff136f8160cbdee0424fc51d4f4dd4460018df4f6d90e932"
+    },
+    {
+      "byte_size": 15927,
+      "path": "per_run.csv",
+      "sha256": "d753d11749738e05e9702c51dd3644a2a91f765cbf420e151c83900b32d45147"
+    },
+    {
+      "byte_size": 4405,
+      "path": "report.md",
+      "sha256": "2a548e70e4566e70ec50dd415d1a4ae7575e381bc02e2fb9c2812f08bb098884"
+    },
+    {
+      "byte_size": 5841,
+      "path": "schema.json",
+      "sha256": "95208a05d80177f5caa1bd28298d0cefffc6fa3d1c701f0d6155bc36cf0f1136"
+    },
+    {
+      "byte_size": 3888,
+      "path": "source_provenance.json",
+      "sha256": "10a11b8ff37615e53761256df216bb1ece728251629ee2b7a506cf5c8276faca"
+    }
+  ],
+  "schema_version": "finevo-pilot-v2.11.5-labor-threshold-package-checksums-v1"
+}

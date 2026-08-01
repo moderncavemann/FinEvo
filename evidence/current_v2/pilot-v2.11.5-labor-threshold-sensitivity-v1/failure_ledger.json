@@ -1,0 +1,72 @@
+{
+  "content_sha256": "d1421f223eb64fa81ebe68d515bc26a8bb231faff03480280a06491dc32dc818",
+  "diagnostic_id": "pilot-v2.11.5-labor-threshold-sensitivity-v1",
+  "failure_count": 3,
+  "failures": [
+    {
+      "arm_id": "no-context",
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message_bytes": 66,
+        "message_sha256": "93e8ea055c44a0514de9500c5ea526249548552a3f0901ee9c6662b0a007a224",
+        "message_truncated": false
+      },
+      "imputed": false,
+      "missing_action_count": 48,
+      "observed_action_count": 0,
+      "registered_action_denominator": 48,
+      "replacement_seed": null,
+      "retried_for_diagnostic": false,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s617806385",
+      "seed": 617806385,
+      "source_artifact_sha256": "3b1d1730a7feba6b1704369ba3b0874c07166155b9c1ef8b6221aee80b652ac2",
+      "stage_id": "experiment-a",
+      "threshold_results": null
+    },
+    {
+      "arm_id": "retrieval-only",
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message_bytes": 66,
+        "message_sha256": "93e8ea055c44a0514de9500c5ea526249548552a3f0901ee9c6662b0a007a224",
+        "message_truncated": false
+      },
+      "imputed": false,
+      "missing_action_count": 48,
+      "observed_action_count": 0,
+      "registered_action_denominator": 48,
+      "replacement_seed": null,
+      "retried_for_diagnostic": false,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1769977770",
+      "seed": 1769977770,
+      "source_artifact_sha256": "dec949ba1bd8a37f1b52c24cee7ce70500c2e7f6f59430c96c707c798133b4d9",
+      "stage_id": "experiment-a",
+      "threshold_results": null
+    },
+    {
+      "arm_id": "retrieval-only",
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message_bytes": 66,
+        "message_sha256": "14bef66c962cd98cb81a71d94fa5c33decd55a688e579f73cb5ff4d05bc2cd77",
+        "message_truncated": false
+      },
+      "imputed": false,
+      "missing_action_count": 48,
+      "observed_action_count": 0,
+      "registered_action_denominator": 48,
+      "replacement_seed": null,
+      "retried_for_diagnostic": false,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s959809858",
+      "seed": 959809858,
+      "source_artifact_sha256": "ac2269da6238f5f218fe0c98d8fb6a670155441eb95135507a36e34c436e7474",
+      "stage_id": "experiment-a",
+      "threshold_results": null
+    }
+  ],
+  "missing_action_count": 144,
+  "policy": "ITT retained; null outcomes; no imputation, retry, or replacement",
+  "provider_calls": 0,
+  "schema_version": "finevo-pilot-v2.11.5-labor-threshold-failure-ledger-v1",
+  "scientific_evidence": false
+}

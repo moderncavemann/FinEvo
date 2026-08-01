@@ -1,0 +1,2963 @@
+{
+  "arm_summaries": [
+    {
+      "arm_id": "no-context",
+      "complete_seed_count": 4,
+      "complete_seeds": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858
+      ],
+      "failed_seed_count": 1,
+      "failed_seeds": [
+        617806385
+      ],
+      "inference_unit": "seed/run",
+      "missing_action_count": 48,
+      "observed_action_count": 192,
+      "registered_action_opportunities": 240,
+      "registered_seed_count": 5,
+      "stage_id": "experiment-a",
+      "thresholds": {
+        "h_lt_1": {
+          "rates_by_seed": {
+            "1099057501": 0.0,
+            "1421875452": 0.0,
+            "1769977770": 0.0,
+            "617806385": null,
+            "959809858": 0.020833333333333332
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.005208333333333333,
+            "median": 0.0,
+            "n": 4,
+            "range": [
+              0.0,
+              0.020833333333333332
+            ]
+          }
+        },
+        "h_lt_20": {
+          "rates_by_seed": {
+            "1099057501": 0.2708333333333333,
+            "1421875452": 0.25,
+            "1769977770": 0.2916666666666667,
+            "617806385": null,
+            "959809858": 0.2708333333333333
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.2708333333333333,
+            "median": 0.2708333333333333,
+            "n": 4,
+            "range": [
+              0.25,
+              0.2916666666666667
+            ]
+          }
+        },
+        "h_lt_40": {
+          "rates_by_seed": {
+            "1099057501": 0.5416666666666666,
+            "1421875452": 0.5416666666666666,
+            "1769977770": 0.6666666666666666,
+            "617806385": null,
+            "959809858": 0.5625
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.578125,
+            "median": 0.5520833333333333,
+            "n": 4,
+            "range": [
+              0.5416666666666666,
+              0.6666666666666666
+            ]
+          }
+        }
+      }
+    },
+    {
+      "arm_id": "prompt-only",
+      "complete_seed_count": 5,
+      "complete_seeds": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ],
+      "failed_seed_count": 0,
+      "failed_seeds": [],
+      "inference_unit": "seed/run",
+      "missing_action_count": 0,
+      "observed_action_count": 240,
+      "registered_action_opportunities": 240,
+      "registered_seed_count": 5,
+      "stage_id": "experiment-a",
+      "thresholds": {
+        "h_lt_1": {
+          "rates_by_seed": {
+            "1099057501": 0.0,
+            "1421875452": 0.0,
+            "1769977770": 0.0,
+            "617806385": 0.0,
+            "959809858": 0.0
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.0,
+            "median": 0.0,
+            "n": 5,
+            "range": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "h_lt_20": {
+          "rates_by_seed": {
+            "1099057501": 0.1875,
+            "1421875452": 0.22916666666666666,
+            "1769977770": 0.22916666666666666,
+            "617806385": 0.041666666666666664,
+            "959809858": 0.16666666666666666
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.17083333333333334,
+            "median": 0.1875,
+            "n": 5,
+            "range": [
+              0.041666666666666664,
+              0.22916666666666666
+            ]
+          }
+        },
+        "h_lt_40": {
+          "rates_by_seed": {
+            "1099057501": 0.375,
+            "1421875452": 0.3958333333333333,
+            "1769977770": 0.6458333333333334,
+            "617806385": 0.3541666666666667,
+            "959809858": 0.3958333333333333
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.4333333333333333,
+            "median": 0.3958333333333333,
+            "n": 5,
+            "range": [
+              0.3541666666666667,
+              0.6458333333333334
+            ]
+          }
+        }
+      }
+    },
+    {
+      "arm_id": "retrieval-only",
+      "complete_seed_count": 3,
+      "complete_seeds": [
+        1099057501,
+        1421875452,
+        617806385
+      ],
+      "failed_seed_count": 2,
+      "failed_seeds": [
+        1769977770,
+        959809858
+      ],
+      "inference_unit": "seed/run",
+      "missing_action_count": 96,
+      "observed_action_count": 144,
+      "registered_action_opportunities": 240,
+      "registered_seed_count": 5,
+      "stage_id": "experiment-a",
+      "thresholds": {
+        "h_lt_1": {
+          "rates_by_seed": {
+            "1099057501": 0.0,
+            "1421875452": 0.0,
+            "1769977770": null,
+            "617806385": 0.020833333333333332,
+            "959809858": null
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.006944444444444444,
+            "median": 0.0,
+            "n": 3,
+            "range": [
+              0.0,
+              0.020833333333333332
+            ]
+          }
+        },
+        "h_lt_20": {
+          "rates_by_seed": {
+            "1099057501": 0.20833333333333334,
+            "1421875452": 0.3333333333333333,
+            "1769977770": null,
+            "617806385": 0.3958333333333333,
+            "959809858": null
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.3125,
+            "median": 0.3333333333333333,
+            "n": 3,
+            "range": [
+              0.20833333333333334,
+              0.3958333333333333
+            ]
+          }
+        },
+        "h_lt_40": {
+          "rates_by_seed": {
+            "1099057501": 0.5625,
+            "1421875452": 0.5,
+            "1769977770": null,
+            "617806385": 0.5833333333333334,
+            "959809858": null
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.5486111111111112,
+            "median": 0.5625,
+            "n": 3,
+            "range": [
+              0.5,
+              0.5833333333333334
+            ]
+          }
+        }
+      }
+    },
+    {
+      "arm_id": "full",
+      "complete_seed_count": 5,
+      "complete_seeds": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ],
+      "failed_seed_count": 0,
+      "failed_seeds": [],
+      "inference_unit": "seed/run",
+      "missing_action_count": 0,
+      "observed_action_count": 240,
+      "registered_action_opportunities": 240,
+      "registered_seed_count": 5,
+      "stage_id": "experiment-a",
+      "thresholds": {
+        "h_lt_1": {
+          "rates_by_seed": {
+            "1099057501": 0.0,
+            "1421875452": 0.0,
+            "1769977770": 0.0,
+            "617806385": 0.0,
+            "959809858": 0.0
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.0,
+            "median": 0.0,
+            "n": 5,
+            "range": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "h_lt_20": {
+          "rates_by_seed": {
+            "1099057501": 0.1875,
+            "1421875452": 0.125,
+            "1769977770": 0.08333333333333333,
+            "617806385": 0.020833333333333332,
+            "959809858": 0.0
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.08333333333333334,
+            "median": 0.08333333333333333,
+            "n": 5,
+            "range": [
+              0.0,
+              0.1875
+            ]
+          }
+        },
+        "h_lt_40": {
+          "rates_by_seed": {
+            "1099057501": 0.4166666666666667,
+            "1421875452": 0.375,
+            "1769977770": 0.4375,
+            "617806385": 0.20833333333333334,
+            "959809858": 0.125
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.3125,
+            "median": 0.375,
+            "n": 5,
+            "range": [
+              0.125,
+              0.4375
+            ]
+          }
+        }
+      }
+    },
+    {
+      "arm_id": "full",
+      "complete_seed_count": 5,
+      "complete_seeds": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ],
+      "failed_seed_count": 0,
+      "failed_seeds": [],
+      "inference_unit": "seed/run",
+      "missing_action_count": 0,
+      "observed_action_count": 240,
+      "registered_action_opportunities": 240,
+      "registered_seed_count": 5,
+      "stage_id": "experiment-c",
+      "thresholds": {
+        "h_lt_1": {
+          "rates_by_seed": {
+            "1099057501": 0.0,
+            "1421875452": 0.0,
+            "1769977770": 0.0,
+            "617806385": 0.0,
+            "959809858": 0.0
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.0,
+            "median": 0.0,
+            "n": 5,
+            "range": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "h_lt_20": {
+          "rates_by_seed": {
+            "1099057501": 0.020833333333333332,
+            "1421875452": 0.22916666666666666,
+            "1769977770": 0.22916666666666666,
+            "617806385": 0.041666666666666664,
+            "959809858": 0.08333333333333333
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.12083333333333332,
+            "median": 0.08333333333333333,
+            "n": 5,
+            "range": [
+              0.020833333333333332,
+              0.22916666666666666
+            ]
+          }
+        },
+        "h_lt_40": {
+          "rates_by_seed": {
+            "1099057501": 0.3333333333333333,
+            "1421875452": 0.5625,
+            "1769977770": 0.4791666666666667,
+            "617806385": 0.375,
+            "959809858": 0.2708333333333333
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.4041666666666667,
+            "median": 0.375,
+            "n": 5,
+            "range": [
+              0.2708333333333333,
+              0.5625
+            ]
+          }
+        }
+      }
+    },
+    {
+      "arm_id": "unverified-dual",
+      "complete_seed_count": 5,
+      "complete_seeds": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ],
+      "failed_seed_count": 0,
+      "failed_seeds": [],
+      "inference_unit": "seed/run",
+      "missing_action_count": 0,
+      "observed_action_count": 240,
+      "registered_action_opportunities": 240,
+      "registered_seed_count": 5,
+      "stage_id": "experiment-c",
+      "thresholds": {
+        "h_lt_1": {
+          "rates_by_seed": {
+            "1099057501": 0.0,
+            "1421875452": 0.0,
+            "1769977770": 0.020833333333333332,
+            "617806385": 0.0,
+            "959809858": 0.020833333333333332
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.008333333333333333,
+            "median": 0.0,
+            "n": 5,
+            "range": [
+              0.0,
+              0.020833333333333332
+            ]
+          }
+        },
+        "h_lt_20": {
+          "rates_by_seed": {
+            "1099057501": 0.1875,
+            "1421875452": 0.25,
+            "1769977770": 0.20833333333333334,
+            "617806385": 0.1875,
+            "959809858": 0.22916666666666666
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.2125,
+            "median": 0.20833333333333334,
+            "n": 5,
+            "range": [
+              0.1875,
+              0.25
+            ]
+          }
+        },
+        "h_lt_40": {
+          "rates_by_seed": {
+            "1099057501": 0.4791666666666667,
+            "1421875452": 0.5,
+            "1769977770": 0.3958333333333333,
+            "617806385": 0.4791666666666667,
+            "959809858": 0.4166666666666667
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.4541666666666667,
+            "median": 0.4791666666666667,
+            "n": 5,
+            "range": [
+              0.3958333333333333,
+              0.5
+            ]
+          }
+        }
+      }
+    },
+    {
+      "arm_id": "verified-error-forced",
+      "complete_seed_count": 5,
+      "complete_seeds": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ],
+      "failed_seed_count": 0,
+      "failed_seeds": [],
+      "inference_unit": "seed/run",
+      "missing_action_count": 0,
+      "observed_action_count": 240,
+      "registered_action_opportunities": 240,
+      "registered_seed_count": 5,
+      "stage_id": "experiment-c",
+      "thresholds": {
+        "h_lt_1": {
+          "rates_by_seed": {
+            "1099057501": 0.08333333333333333,
+            "1421875452": 0.08333333333333333,
+            "1769977770": 0.0625,
+            "617806385": 0.14583333333333334,
+            "959809858": 0.20833333333333334
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.11666666666666667,
+            "median": 0.08333333333333333,
+            "n": 5,
+            "range": [
+              0.0625,
+              0.20833333333333334
+            ]
+          }
+        },
+        "h_lt_20": {
+          "rates_by_seed": {
+            "1099057501": 0.4583333333333333,
+            "1421875452": 0.2916666666666667,
+            "1769977770": 0.3125,
+            "617806385": 0.2916666666666667,
+            "959809858": 0.3333333333333333
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.3375,
+            "median": 0.3125,
+            "n": 5,
+            "range": [
+              0.2916666666666667,
+              0.4583333333333333
+            ]
+          }
+        },
+        "h_lt_40": {
+          "rates_by_seed": {
+            "1099057501": 0.6875,
+            "1421875452": 0.4791666666666667,
+            "1769977770": 0.5208333333333334,
+            "617806385": 0.5833333333333334,
+            "959809858": 0.5208333333333334
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.5583333333333333,
+            "median": 0.5208333333333334,
+            "n": 5,
+            "range": [
+              0.4791666666666667,
+              0.6875
+            ]
+          }
+        }
+      }
+    },
+    {
+      "arm_id": "unverified-error-forced",
+      "complete_seed_count": 5,
+      "complete_seeds": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ],
+      "failed_seed_count": 0,
+      "failed_seeds": [],
+      "inference_unit": "seed/run",
+      "missing_action_count": 0,
+      "observed_action_count": 240,
+      "registered_action_opportunities": 240,
+      "registered_seed_count": 5,
+      "stage_id": "experiment-c",
+      "thresholds": {
+        "h_lt_1": {
+          "rates_by_seed": {
+            "1099057501": 0.1875,
+            "1421875452": 0.25,
+            "1769977770": 0.3125,
+            "617806385": 0.25,
+            "959809858": 0.25
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.25,
+            "median": 0.25,
+            "n": 5,
+            "range": [
+              0.1875,
+              0.3125
+            ]
+          }
+        },
+        "h_lt_20": {
+          "rates_by_seed": {
+            "1099057501": 0.20833333333333334,
+            "1421875452": 0.3958333333333333,
+            "1769977770": 0.375,
+            "617806385": 0.4166666666666667,
+            "959809858": 0.4375
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.36666666666666664,
+            "median": 0.3958333333333333,
+            "n": 5,
+            "range": [
+              0.20833333333333334,
+              0.4375
+            ]
+          }
+        },
+        "h_lt_40": {
+          "rates_by_seed": {
+            "1099057501": 0.6041666666666666,
+            "1421875452": 0.6041666666666666,
+            "1769977770": 0.5208333333333334,
+            "617806385": 0.5208333333333334,
+            "959809858": 0.4375
+          },
+          "summary_over_complete_seed_runs": {
+            "mean": 0.5375,
+            "median": 0.5208333333333334,
+            "n": 5,
+            "range": [
+              0.4375,
+              0.6041666666666666
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "claim_boundary": "This zero-provider retrospective diagnostic cannot restore or reverse the authoritative Experiment A retrieval-effect no-go or Experiment C rule-reliability no-go.",
+  "classification": {
+    "credential_reads": 0,
+    "descriptive": true,
+    "diagnostic_only": true,
+    "hosted_cost_usd": 0.0,
+    "preregistered": false,
+    "provider_calls": 0,
+    "publication_time_analysis": true,
+    "retrospective": true,
+    "scientific_evidence": false
+  },
+  "content_sha256": "32eae1e166353f07e1fadd2e7596544f5459efb22aa43ceda435cd5de1e9dc26",
+  "denominator": {
+    "complete_actor_run_count": 37,
+    "failed_actor_run_count": 3,
+    "itt_failure_policy": "all registered actor runs retained; failed runs have null threshold values and contribute 48 missing actions; no imputation",
+    "missing_actor_action_count": 144,
+    "observed_actor_action_count": 1776,
+    "per_actor_run_registered_action_denominator": 48,
+    "registered_a_c_cell_count": 45,
+    "registered_actor_action_opportunities": 1920,
+    "registered_actor_run_count": 40,
+    "structural_na_policy": "candidate-admission cells are retained in the 45-cell inventory but excluded from the actor action-opportunity denominator",
+    "structural_not_applicable_cell_count": 5
+  },
+  "diagnostic_id": "pilot-v2.11.5-labor-threshold-sensitivity-v1",
+  "metric": {
+    "aggregation": "compute per complete seed/run, then report raw seed values and unweighted mean, median, and range across complete seed/runs",
+    "direction": "descriptive only; lower values mean fewer executed actions below the stated threshold, not lower unemployment",
+    "formula": "count(executed labor_hours < h) / 48 for each complete seed/run",
+    "inference_unit": "seed/run",
+    "missing_values": "failed seed/runs remain null; no imputation or seed replacement",
+    "name": "below-threshold executed labor action rate",
+    "non_claim": "This action-frequency diagnostic is not an unemployment rate, employment-state estimate, causal effect, or effectiveness result.",
+    "not_unemployment": true,
+    "range": [
+      0.0,
+      1.0
+    ]
+  },
+  "paired_contrasts": [
+    {
+      "complete_pair_count": 5,
+      "complete_pair_seeds": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ],
+      "contrast_id": "a_full_minus_prompt_only",
+      "delta_definition": "left_arm rate minus right_arm rate",
+      "excluded_pair_count": 0,
+      "excluded_pairs": {},
+      "inference_unit": "paired seed/run",
+      "left_arm": "full",
+      "registered_pair_count": 5,
+      "right_arm": "prompt-only",
+      "stage_id": "experiment-a",
+      "thresholds": {
+        "h_lt_1": {
+          "raw_paired_deltas_by_seed": {
+            "1099057501": 0.0,
+            "1421875452": 0.0,
+            "1769977770": 0.0,
+            "617806385": 0.0,
+            "959809858": 0.0
+          },
+          "summary_over_complete_pairs": {
+            "mean": 0.0,
+            "median": 0.0,
+            "n": 5,
+            "range": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "h_lt_20": {
+          "raw_paired_deltas_by_seed": {
+            "1099057501": 0.0,
+            "1421875452": -0.10416666666666666,
+            "1769977770": -0.14583333333333331,
+            "617806385": -0.020833333333333332,
+            "959809858": -0.16666666666666666
+          },
+          "summary_over_complete_pairs": {
+            "mean": -0.0875,
+            "median": -0.10416666666666666,
+            "n": 5,
+            "range": [
+              -0.16666666666666666,
+              0.0
+            ]
+          }
+        },
+        "h_lt_40": {
+          "raw_paired_deltas_by_seed": {
+            "1099057501": 0.041666666666666685,
+            "1421875452": -0.020833333333333315,
+            "1769977770": -0.20833333333333337,
+            "617806385": -0.14583333333333334,
+            "959809858": -0.2708333333333333
+          },
+          "summary_over_complete_pairs": {
+            "mean": -0.12083333333333332,
+            "median": -0.14583333333333334,
+            "n": 5,
+            "range": [
+              -0.2708333333333333,
+              0.041666666666666685
+            ]
+          }
+        }
+      }
+    },
+    {
+      "complete_pair_count": 2,
+      "complete_pair_seeds": [
+        1099057501,
+        1421875452
+      ],
+      "contrast_id": "a_retrieval_only_minus_no_context",
+      "delta_definition": "left_arm rate minus right_arm rate",
+      "excluded_pair_count": 3,
+      "excluded_pairs": {
+        "1769977770": {
+          "left_status": "failed",
+          "paired_delta": null,
+          "right_status": "complete"
+        },
+        "617806385": {
+          "left_status": "complete",
+          "paired_delta": null,
+          "right_status": "failed"
+        },
+        "959809858": {
+          "left_status": "failed",
+          "paired_delta": null,
+          "right_status": "complete"
+        }
+      },
+      "inference_unit": "paired seed/run",
+      "left_arm": "retrieval-only",
+      "registered_pair_count": 5,
+      "right_arm": "no-context",
+      "stage_id": "experiment-a",
+      "thresholds": {
+        "h_lt_1": {
+          "raw_paired_deltas_by_seed": {
+            "1099057501": 0.0,
+            "1421875452": 0.0
+          },
+          "summary_over_complete_pairs": {
+            "mean": 0.0,
+            "median": 0.0,
+            "n": 2,
+            "range": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "h_lt_20": {
+          "raw_paired_deltas_by_seed": {
+            "1099057501": -0.06249999999999997,
+            "1421875452": 0.08333333333333331
+          },
+          "summary_over_complete_pairs": {
+            "mean": 0.010416666666666671,
+            "median": 0.010416666666666671,
+            "n": 2,
+            "range": [
+              -0.06249999999999997,
+              0.08333333333333331
+            ]
+          }
+        },
+        "h_lt_40": {
+          "raw_paired_deltas_by_seed": {
+            "1099057501": 0.02083333333333337,
+            "1421875452": -0.04166666666666663
+          },
+          "summary_over_complete_pairs": {
+            "mean": -0.01041666666666663,
+            "median": -0.01041666666666663,
+            "n": 2,
+            "range": [
+              -0.04166666666666663,
+              0.02083333333333337
+            ]
+          }
+        }
+      }
+    },
+    {
+      "complete_pair_count": 5,
+      "complete_pair_seeds": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ],
+      "contrast_id": "c_full_minus_unverified_dual",
+      "delta_definition": "left_arm rate minus right_arm rate",
+      "excluded_pair_count": 0,
+      "excluded_pairs": {},
+      "inference_unit": "paired seed/run",
+      "left_arm": "full",
+      "registered_pair_count": 5,
+      "right_arm": "unverified-dual",
+      "stage_id": "experiment-c",
+      "thresholds": {
+        "h_lt_1": {
+          "raw_paired_deltas_by_seed": {
+            "1099057501": 0.0,
+            "1421875452": 0.0,
+            "1769977770": -0.020833333333333332,
+            "617806385": 0.0,
+            "959809858": -0.020833333333333332
+          },
+          "summary_over_complete_pairs": {
+            "mean": -0.008333333333333333,
+            "median": 0.0,
+            "n": 5,
+            "range": [
+              -0.020833333333333332,
+              0.0
+            ]
+          }
+        },
+        "h_lt_20": {
+          "raw_paired_deltas_by_seed": {
+            "1099057501": -0.16666666666666666,
+            "1421875452": -0.020833333333333343,
+            "1769977770": 0.020833333333333315,
+            "617806385": -0.14583333333333334,
+            "959809858": -0.14583333333333331
+          },
+          "summary_over_complete_pairs": {
+            "mean": -0.09166666666666667,
+            "median": -0.14583333333333331,
+            "n": 5,
+            "range": [
+              -0.16666666666666666,
+              0.020833333333333315
+            ]
+          }
+        },
+        "h_lt_40": {
+          "raw_paired_deltas_by_seed": {
+            "1099057501": -0.14583333333333337,
+            "1421875452": 0.0625,
+            "1769977770": 0.08333333333333337,
+            "617806385": -0.10416666666666669,
+            "959809858": -0.14583333333333337
+          },
+          "summary_over_complete_pairs": {
+            "mean": -0.05000000000000001,
+            "median": -0.10416666666666669,
+            "n": 5,
+            "range": [
+              -0.14583333333333337,
+              0.08333333333333337
+            ]
+          }
+        }
+      }
+    },
+    {
+      "complete_pair_count": 5,
+      "complete_pair_seeds": [
+        1099057501,
+        1421875452,
+        1769977770,
+        959809858,
+        617806385
+      ],
+      "contrast_id": "c_verified_error_forced_minus_unverified_error_forced",
+      "delta_definition": "left_arm rate minus right_arm rate",
+      "excluded_pair_count": 0,
+      "excluded_pairs": {},
+      "inference_unit": "paired seed/run",
+      "left_arm": "verified-error-forced",
+      "registered_pair_count": 5,
+      "right_arm": "unverified-error-forced",
+      "stage_id": "experiment-c",
+      "thresholds": {
+        "h_lt_1": {
+          "raw_paired_deltas_by_seed": {
+            "1099057501": -0.10416666666666667,
+            "1421875452": -0.16666666666666669,
+            "1769977770": -0.25,
+            "617806385": -0.10416666666666666,
+            "959809858": -0.04166666666666666
+          },
+          "summary_over_complete_pairs": {
+            "mean": -0.13333333333333333,
+            "median": -0.10416666666666667,
+            "n": 5,
+            "range": [
+              -0.25,
+              -0.04166666666666666
+            ]
+          }
+        },
+        "h_lt_20": {
+          "raw_paired_deltas_by_seed": {
+            "1099057501": 0.24999999999999997,
+            "1421875452": -0.10416666666666663,
+            "1769977770": -0.0625,
+            "617806385": -0.125,
+            "959809858": -0.10416666666666669
+          },
+          "summary_over_complete_pairs": {
+            "mean": -0.029166666666666667,
+            "median": -0.10416666666666663,
+            "n": 5,
+            "range": [
+              -0.125,
+              0.24999999999999997
+            ]
+          }
+        },
+        "h_lt_40": {
+          "raw_paired_deltas_by_seed": {
+            "1099057501": 0.08333333333333337,
+            "1421875452": -0.12499999999999994,
+            "1769977770": 0.0,
+            "617806385": 0.0625,
+            "959809858": 0.08333333333333337
+          },
+          "summary_over_complete_pairs": {
+            "mean": 0.02083333333333336,
+            "median": 0.0625,
+            "n": 5,
+            "range": [
+              -0.12499999999999994,
+              0.08333333333333337
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "publisher_binding": {
+    "credential_reads": 0,
+    "git_commit": "c5b4595381fcbfa74880c0a001ec5a555f6847a2",
+    "hosted_cost_usd": 0.0,
+    "provider_calls": 0
+  },
+  "run_records": [
+    {
+      "action_metric_applicable": true,
+      "arm_id": "no-context",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 2,
+        "24": 1,
+        "32": 12,
+        "40": 7,
+        "48": 8,
+        "56": 4,
+        "64": 1,
+        "72": 1,
+        "8": 11,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1099057501",
+      "seed": 1099057501,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "fa9d2889911cfbe45f6e864d35d2ecd207196aefecebac77a556b56f867334f7",
+      "source_row_content_sha256": "e9311150b454a375b70f64af57517c0386b088b84196b6b2b354847d0fbbc6a8",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 13,
+          "rate": 0.2708333333333333,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 26,
+          "rate": 0.5416666666666666,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "no-context",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 4,
+        "24": 10,
+        "32": 4,
+        "40": 7,
+        "48": 10,
+        "56": 4,
+        "8": 8,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1421875452",
+      "seed": 1421875452,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "25cce3bb9b18b8ed464ce47f9154dd08608a192c68db491c9c0c040849c305ec",
+      "source_row_content_sha256": "02bcb0660a167677a7915e71104c0ea5aca5af678f026377bc9c3ffe1439afa7",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 12,
+          "rate": 0.25,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 26,
+          "rate": 0.5416666666666666,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "no-context",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 4,
+        "24": 6,
+        "32": 12,
+        "40": 5,
+        "48": 3,
+        "56": 1,
+        "72": 2,
+        "8": 10,
+        "80": 3,
+        "88": 2
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s1769977770",
+      "seed": 1769977770,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "3937d769dcb993143bacd43fe90eaae0e1e3b07246639852fed6dd687be7e9f3",
+      "source_row_content_sha256": "33c43e1f10eb2fe8d7eab456d2376b487abb33ae8ccd780538469fea109aeb6e",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 14,
+          "rate": 0.2916666666666667,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 32,
+          "rate": 0.6666666666666666,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "no-context",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 1,
+        "16": 2,
+        "24": 12,
+        "32": 2,
+        "40": 8,
+        "48": 4,
+        "56": 6,
+        "64": 1,
+        "72": 1,
+        "8": 10,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s959809858",
+      "seed": 959809858,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "57b3fcf0b7deea349243c4248caf0b6c1a36e6384ed70cf6cf234bc696e730ec",
+      "source_row_content_sha256": "95895c59e7b15af373cbcf89e264f1b091c6f0eaf6bb45b3e4696980df73e59a",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 1,
+          "rate": 0.020833333333333332,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 13,
+          "rate": 0.2708333333333333,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 27,
+          "rate": 0.5625,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "no-context",
+      "cell_class": "actor-run",
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message_bytes": 66,
+        "message_sha256": "93e8ea055c44a0514de9500c5ea526249548552a3f0901ee9c6662b0a007a224",
+        "message_truncated": false
+      },
+      "labor_hours_counts": null,
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 48,
+      "missing_reason": "source actor run failed; threshold values are null",
+      "observed_action_count": 0,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s617806385",
+      "seed": 617806385,
+      "source_artifact_kind": "failure-audit-artifact",
+      "source_artifact_sha256": "3b1d1730a7feba6b1704369ba3b0874c07166155b9c1ef8b6221aee80b652ac2",
+      "source_row_content_sha256": "afb8216519451b842e6336778686bd5655972fc59d638c9b3e399f7fc02d577d",
+      "source_scientific_eligible": false,
+      "source_status": "failed",
+      "stage_id": "experiment-a",
+      "threshold_results": null
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "prompt-only",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 5,
+        "24": 3,
+        "32": 6,
+        "40": 8,
+        "48": 10,
+        "56": 6,
+        "64": 5,
+        "8": 4,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1099057501",
+      "seed": 1099057501,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "7f2adb18de06bce4e88e0eee008ca06aa0d66c71d8ce1d736fae45fe66f7f599",
+      "source_row_content_sha256": "c248daee21904660e1e09d0eae7228a60525cec53a50b22de366a693e8b7446e",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 9,
+          "rate": 0.1875,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 18,
+          "rate": 0.375,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "prompt-only",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 4,
+        "24": 2,
+        "32": 6,
+        "40": 2,
+        "48": 13,
+        "56": 6,
+        "64": 3,
+        "72": 2,
+        "8": 7,
+        "88": 3
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1421875452",
+      "seed": 1421875452,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "c461ff82cea039ffcb9375a6d39d873988e7fe4b4d08e67f7d03ead15f31988b",
+      "source_row_content_sha256": "f3b8556af2f604e86bf68e98b6f063c6e717ae3ce027cc14265bc70b6b13a522",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 11,
+          "rate": 0.22916666666666666,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 19,
+          "rate": 0.3958333333333333,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "prompt-only",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 8,
+        "24": 12,
+        "32": 8,
+        "40": 8,
+        "48": 3,
+        "56": 3,
+        "64": 1,
+        "8": 3,
+        "88": 2
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s1769977770",
+      "seed": 1769977770,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "6a63f408f8efbf7843e2043ce50fd34f76ba4789ab1d375f59b5e684e598e576",
+      "source_row_content_sha256": "3f12c1c922a4eef93407894cc97ffdc56dd023d64241c59d63fb8cf209ca14a8",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 11,
+          "rate": 0.22916666666666666,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 31,
+          "rate": 0.6458333333333334,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "prompt-only",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 8,
+        "24": 6,
+        "32": 5,
+        "40": 6,
+        "48": 8,
+        "56": 3,
+        "64": 4,
+        "72": 6,
+        "88": 2
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s959809858",
+      "seed": 959809858,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "03b230e036794a8e4b4efc1f1198ebfbdfcf2b46e63c89cdaf5da0a063a784e8",
+      "source_row_content_sha256": "510d36b86debc36a48a2ea034e95e5f8377e664324ca3f012d42031f17d1a958",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 8,
+          "rate": 0.16666666666666666,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 19,
+          "rate": 0.3958333333333333,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "prompt-only",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 2,
+        "24": 9,
+        "32": 6,
+        "40": 12,
+        "48": 7,
+        "56": 4,
+        "64": 3,
+        "72": 4,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--prompt-only--none--stage0-selected--s617806385",
+      "seed": 617806385,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "010507144b83ca46ab48c0c5edd25cb516573eef3e31c8abe0222b89334baa9b",
+      "source_row_content_sha256": "abc5768cd372069fd88d4ab89b44e63bc445e46afd1b2e876cad86b523f8e5e0",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 2,
+          "rate": 0.041666666666666664,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 17,
+          "rate": 0.3541666666666667,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "retrieval-only",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 1,
+        "24": 7,
+        "32": 10,
+        "40": 4,
+        "48": 8,
+        "64": 2,
+        "72": 1,
+        "8": 9,
+        "88": 4,
+        "96": 2
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1099057501",
+      "seed": 1099057501,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "42d70444e4e121383e82db89722c249bf8f17c953d752fc9c193d3d7f570035e",
+      "source_row_content_sha256": "e1865d3294c32cda7de2af6fb4dceff483f97a8fb7ccf091efad1e52c73dc7af",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 10,
+          "rate": 0.20833333333333334,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 27,
+          "rate": 0.5625,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "retrieval-only",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 13,
+        "24": 5,
+        "32": 3,
+        "40": 8,
+        "48": 6,
+        "56": 6,
+        "64": 3,
+        "8": 3,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1421875452",
+      "seed": 1421875452,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "d4d80f6a09e2da90b5822d36ef91dad52d3c8bbf71e74f26ce6f19aa611c386a",
+      "source_row_content_sha256": "79ad999590785bcffb61ee99d4a0269de76c91cb992bdd58bbfa9e67dce6c698",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 16,
+          "rate": 0.3333333333333333,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 24,
+          "rate": 0.5,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "retrieval-only",
+      "cell_class": "actor-run",
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message_bytes": 66,
+        "message_sha256": "93e8ea055c44a0514de9500c5ea526249548552a3f0901ee9c6662b0a007a224",
+        "message_truncated": false
+      },
+      "labor_hours_counts": null,
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 48,
+      "missing_reason": "source actor run failed; threshold values are null",
+      "observed_action_count": 0,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1769977770",
+      "seed": 1769977770,
+      "source_artifact_kind": "failure-audit-artifact",
+      "source_artifact_sha256": "dec949ba1bd8a37f1b52c24cee7ce70500c2e7f6f59430c96c707c798133b4d9",
+      "source_row_content_sha256": "1c2f9a37876a5178c56ed808899e4d833afed79aed4265088a640dd7f26e7d44",
+      "source_scientific_eligible": false,
+      "source_status": "failed",
+      "stage_id": "experiment-a",
+      "threshold_results": null
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "retrieval-only",
+      "cell_class": "actor-run",
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message_bytes": 66,
+        "message_sha256": "14bef66c962cd98cb81a71d94fa5c33decd55a688e579f73cb5ff4d05bc2cd77",
+        "message_truncated": false
+      },
+      "labor_hours_counts": null,
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 48,
+      "missing_reason": "source actor run failed; threshold values are null",
+      "observed_action_count": 0,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s959809858",
+      "seed": 959809858,
+      "source_artifact_kind": "failure-audit-artifact",
+      "source_artifact_sha256": "ac2269da6238f5f218fe0c98d8fb6a670155441eb95135507a36e34c436e7474",
+      "source_row_content_sha256": "d9af60018eae90ddeaeef0b86ee55249c682afabd6fd3ab2abfcce2bc5c445bf",
+      "source_scientific_eligible": false,
+      "source_status": "failed",
+      "stage_id": "experiment-a",
+      "threshold_results": null
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "retrieval-only",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 1,
+        "152": 1,
+        "16": 13,
+        "24": 6,
+        "32": 3,
+        "40": 5,
+        "48": 1,
+        "56": 3,
+        "64": 6,
+        "72": 3,
+        "8": 5,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s617806385",
+      "seed": 617806385,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "92f393ccc5f724b92fd39070abb1adcdc2654b62e2b3a0126652c8fef8cb0ab4",
+      "source_row_content_sha256": "08b552d2b64358c8cb44e0e7b99da6d543923e383141973d28335e31c1202877",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 1,
+          "rate": 0.020833333333333332,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 19,
+          "rate": 0.3958333333333333,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 28,
+          "rate": 0.5833333333333334,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "full",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 5,
+        "24": 5,
+        "32": 6,
+        "40": 8,
+        "48": 3,
+        "56": 9,
+        "64": 7,
+        "8": 4,
+        "96": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1099057501",
+      "seed": 1099057501,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "b0589053dbdbee7900050c135266809481e7c0307e96b8434e2a16e5b33ad35f",
+      "source_row_content_sha256": "7a65cb9cbd376df9258bbf541e1138869f626b1efef56cb022f48f0d7b1eff0f",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 9,
+          "rate": 0.1875,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 20,
+          "rate": 0.4166666666666667,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "full",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 6,
+        "24": 10,
+        "32": 2,
+        "40": 10,
+        "48": 6,
+        "64": 1,
+        "72": 1,
+        "80": 1,
+        "88": 9,
+        "96": 2
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1421875452",
+      "seed": 1421875452,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "8d8cead697f9b3672d12c9da08b4671b448e158d24abe0a9c1977b8368cef105",
+      "source_row_content_sha256": "060bbf054a387d07d49d5920ac2b25b1141fa12c99ad1c0d31293017bb6f0a5d",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 6,
+          "rate": 0.125,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 18,
+          "rate": 0.375,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "full",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 3,
+        "24": 13,
+        "32": 4,
+        "40": 13,
+        "48": 1,
+        "64": 10,
+        "8": 1,
+        "88": 2,
+        "96": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s1769977770",
+      "seed": 1769977770,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "33dcbb1d2749864093dfc1d4a9c8ffcb10651fb598401f0651a6f01a0670d586",
+      "source_row_content_sha256": "5678320dc286b5065a4c03580fcb6b57ba9e3b01e6be7af113ce8cf4623ff96a",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 4,
+          "rate": 0.08333333333333333,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 21,
+          "rate": 0.4375,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "full",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "24": 5,
+        "32": 1,
+        "40": 6,
+        "48": 18,
+        "56": 6,
+        "64": 2,
+        "72": 7,
+        "80": 2,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s959809858",
+      "seed": 959809858,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "2e148b6bf4bad5efd81f435eff9c798ef6d366c0faa6d079682ad50e8bbdad7e",
+      "source_row_content_sha256": "9dfb5a8d8048c432bebc1ec2e59548428e92febf1105476f1e7c5ed6d245bb72",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 6,
+          "rate": 0.125,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "full",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 1,
+        "32": 9,
+        "40": 14,
+        "48": 10,
+        "56": 10,
+        "64": 2,
+        "72": 1,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--stage0-selected--s617806385",
+      "seed": 617806385,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "0c0899a1e618b0d502d99eb7cd0cad85e3b2f951e79c4946b270b1c0e8f08d94",
+      "source_row_content_sha256": "3077c6dd5aed7ee57b86a0152581e96dac7172b3d07d78420053806af089bc3a",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-a",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 1,
+          "rate": 0.020833333333333332,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 10,
+          "rate": 0.20833333333333334,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "full",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 1,
+        "24": 8,
+        "32": 7,
+        "40": 2,
+        "48": 10,
+        "56": 13,
+        "64": 4,
+        "72": 2,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1099057501",
+      "seed": 1099057501,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "6953c11bd89861c46e2a3b73b10e2dd4ca3eea857aebf93e9aa9e3c8931cd7c8",
+      "source_row_content_sha256": "f5656031d2a93308278b58539423b70e108bc617e6f74d89a2fec27122dd2621",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 1,
+          "rate": 0.020833333333333332,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 16,
+          "rate": 0.3333333333333333,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "full",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 4,
+        "24": 11,
+        "32": 5,
+        "48": 5,
+        "56": 1,
+        "64": 1,
+        "72": 6,
+        "8": 7,
+        "88": 7,
+        "96": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1421875452",
+      "seed": 1421875452,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "b3649169e652fec0f63f86333678443d20ae6ea835cec23a2afd754a7fbede94",
+      "source_row_content_sha256": "a0bba897fc78254abab5cb7392e2d6529f8375caa171d253ff33c3c3d153919d",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 11,
+          "rate": 0.22916666666666666,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 27,
+          "rate": 0.5625,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "full",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 3,
+        "24": 11,
+        "32": 1,
+        "40": 7,
+        "48": 3,
+        "56": 12,
+        "64": 1,
+        "8": 8,
+        "88": 2
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s1769977770",
+      "seed": 1769977770,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "753ef56d753849a59e7016069e5e352bac78a791941165009aeae8aa72068c29",
+      "source_row_content_sha256": "fcd7d580bd97968c5d4f6d966b84125aef14e933e46ea31679e6c6c14c269c03",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 11,
+          "rate": 0.22916666666666666,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 23,
+          "rate": 0.4791666666666667,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "full",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "104": 1,
+        "16": 4,
+        "24": 6,
+        "32": 3,
+        "40": 15,
+        "48": 7,
+        "56": 7,
+        "64": 3,
+        "72": 2
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s959809858",
+      "seed": 959809858,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "4335d5efd42ee989297d2e659c00fc6f68033e5cbeb485742562c08c8daac199",
+      "source_row_content_sha256": "65e54cfb6cda6e45f4846825714044d6a6e972d8ca55273b93cfe564a6a16c0e",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 4,
+          "rate": 0.08333333333333333,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 13,
+          "rate": 0.2708333333333333,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "full",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 2,
+        "24": 4,
+        "32": 12,
+        "40": 5,
+        "48": 8,
+        "56": 9,
+        "64": 5,
+        "72": 2,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--full--none--stage0-selected--s617806385",
+      "seed": 617806385,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "58f49d36e4e275b0eac920747691cda261164f287925965a7fb745f290685943",
+      "source_row_content_sha256": "027e31303262fb51aff19e5beaee69cab90a66b7d9dfa04614b45e4c279527b0",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 2,
+          "rate": 0.041666666666666664,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 18,
+          "rate": 0.375,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "unverified-dual",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 7,
+        "24": 3,
+        "32": 11,
+        "40": 6,
+        "48": 6,
+        "56": 2,
+        "64": 10,
+        "8": 2,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1099057501",
+      "seed": 1099057501,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "0a267bf7131814e0a4e96b3215e179c2ce41e58fdbe353ffdead55d9f59637fa",
+      "source_row_content_sha256": "91f47868459e3d29c2653a350c0a2cdaaf9b159f8360e8c967d67d1ffc60f771",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 9,
+          "rate": 0.1875,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 23,
+          "rate": 0.4791666666666667,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "unverified-dual",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 2,
+        "24": 4,
+        "32": 8,
+        "40": 6,
+        "48": 3,
+        "56": 8,
+        "64": 2,
+        "72": 4,
+        "8": 10,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1421875452",
+      "seed": 1421875452,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "42f7711d1988c6e8861b8e4e71572a4fb0e33ccf2ca02fab7946df9d01508cd9",
+      "source_row_content_sha256": "3db4a2cf8c6f418f78ce2fa632fdbb3cdadaecede1f17f0aac9c926c53b22822",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 12,
+          "rate": 0.25,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 24,
+          "rate": 0.5,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "unverified-dual",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 1,
+        "16": 8,
+        "24": 3,
+        "32": 6,
+        "40": 12,
+        "48": 4,
+        "56": 1,
+        "72": 1,
+        "8": 1,
+        "88": 11
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s1769977770",
+      "seed": 1769977770,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "709518b872472c8a75734e98350a79ae60d6411cbfcc95b9abfa230dfdad3a38",
+      "source_row_content_sha256": "85054164bed8579f03efbee168f1a54c336e6ca9523d940e7a391b25b64f8af8",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 1,
+          "rate": 0.020833333333333332,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 10,
+          "rate": 0.20833333333333334,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 19,
+          "rate": 0.3958333333333333,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "unverified-dual",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 1,
+        "16": 9,
+        "24": 2,
+        "32": 7,
+        "40": 1,
+        "48": 3,
+        "56": 2,
+        "64": 10,
+        "72": 9,
+        "8": 1,
+        "80": 3
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s959809858",
+      "seed": 959809858,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "6cc171901fc67e833427618c654738209e465cd5f35d551fa734951dc9dabf09",
+      "source_row_content_sha256": "38b72271e438f21781797b5090b570da98c0d0add9cf01bfb8a7c929ee45616c",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 1,
+          "rate": 0.020833333333333332,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 11,
+          "rate": 0.22916666666666666,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 20,
+          "rate": 0.4166666666666667,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "unverified-dual",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "16": 9,
+        "24": 2,
+        "32": 12,
+        "40": 7,
+        "48": 7,
+        "56": 8,
+        "64": 1,
+        "72": 1,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-dual--none--stage0-selected--s617806385",
+      "seed": 617806385,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "39c365ebb596e564364dfddb46e7c3161728bcd2333b80807f42f765ef4236c7",
+      "source_row_content_sha256": "afad7dba82b0390f145d0da83521f5631ea1555c61b23c76edae82483c65a164",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 0,
+          "rate": 0.0,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 9,
+          "rate": 0.1875,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 23,
+          "rate": 0.4791666666666667,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "verified-error-forced",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 4,
+        "16": 10,
+        "24": 6,
+        "32": 5,
+        "48": 5,
+        "56": 4,
+        "72": 2,
+        "8": 8,
+        "88": 2,
+        "96": 2
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1099057501",
+      "seed": 1099057501,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "fae7e26e25f1b3d6f96fd4f62eaf9330f73d6d6578c5ee697e3d2706c8ea8ef8",
+      "source_row_content_sha256": "c1a3892bab2b19ee7e10543ce22d9ae45603030b9714d74121464536a9b07000",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 4,
+          "rate": 0.08333333333333333,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 22,
+          "rate": 0.4583333333333333,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 33,
+          "rate": 0.6875,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "verified-error-forced",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 4,
+        "16": 7,
+        "24": 5,
+        "32": 4,
+        "40": 10,
+        "48": 8,
+        "56": 4,
+        "8": 3,
+        "88": 2,
+        "96": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1421875452",
+      "seed": 1421875452,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "aa775fb077ded674dd0f32928abc055aac00bf7e260a4c72cfa32a0b5e56693f",
+      "source_row_content_sha256": "85c7c6df5fb99559abb676b0990be481c129c3bd2250ecb69904070a8b0e6df1",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 4,
+          "rate": 0.08333333333333333,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 14,
+          "rate": 0.2916666666666667,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 23,
+          "rate": 0.4791666666666667,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "verified-error-forced",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 3,
+        "112": 1,
+        "16": 2,
+        "24": 6,
+        "32": 4,
+        "40": 1,
+        "48": 7,
+        "56": 12,
+        "64": 1,
+        "8": 10,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s1769977770",
+      "seed": 1769977770,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "b417aaace4a10ca915687310f808b5cb4709892654037bcb0e60c6a7bdd7bb22",
+      "source_row_content_sha256": "aebac358b70789525493e8fa890250028ea04a233bafccab958c87e80134ccb0",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 3,
+          "rate": 0.0625,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 15,
+          "rate": 0.3125,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 25,
+          "rate": 0.5208333333333334,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "verified-error-forced",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 10,
+        "16": 4,
+        "24": 5,
+        "32": 4,
+        "40": 7,
+        "48": 6,
+        "56": 2,
+        "64": 7,
+        "8": 2,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s959809858",
+      "seed": 959809858,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "b9b69015e6dc253a01d8fe3ba3276d718ceaa7d9fa4798cd98ad1ca11151af1e",
+      "source_row_content_sha256": "594e3adea582b65f15a1ec492773088cb730293b4ddfb9c80ac88822cdf54636",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 10,
+          "rate": 0.20833333333333334,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 16,
+          "rate": 0.3333333333333333,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 25,
+          "rate": 0.5208333333333334,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "verified-error-forced",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 7,
+        "16": 6,
+        "24": 2,
+        "32": 12,
+        "40": 4,
+        "48": 6,
+        "56": 3,
+        "64": 3,
+        "72": 3,
+        "8": 1,
+        "96": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-forced--none--stage0-selected--s617806385",
+      "seed": 617806385,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "5d71bf3f9d243d5cf20b68189834c9751939f8eb388387fb1b398300fade54fe",
+      "source_row_content_sha256": "a1c29eb05459651032d028b9efc4c0b2430ed0de6aef93ff12508aadcd755780",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 7,
+          "rate": 0.14583333333333334,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 14,
+          "rate": 0.2916666666666667,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 28,
+          "rate": 0.5833333333333334,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "unverified-error-forced",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 9,
+        "16": 1,
+        "24": 19,
+        "48": 13,
+        "56": 3,
+        "64": 1,
+        "72": 1,
+        "88": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1099057501",
+      "seed": 1099057501,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "272136616f113f3e73105f066dda1553112bd43de95e372ea9951026a295a841",
+      "source_row_content_sha256": "232414c8302fdb7ce5868feb93a0446d47797d4f84a7bc023501ee392fb1b14b",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 9,
+          "rate": 0.1875,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 10,
+          "rate": 0.20833333333333334,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 29,
+          "rate": 0.6041666666666666,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "unverified-error-forced",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 12,
+        "104": 5,
+        "16": 6,
+        "24": 7,
+        "32": 3,
+        "40": 3,
+        "48": 3,
+        "56": 1,
+        "64": 1,
+        "72": 1,
+        "8": 1,
+        "88": 1,
+        "96": 4
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1421875452",
+      "seed": 1421875452,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "bf4bf3853adab553a176fd163a0c660e6589df232b597a9a38240556b162d83a",
+      "source_row_content_sha256": "042a91c3fbdf17671ff6a78472094018eca12319a78c34f6ce2075f2aa0ac3e8",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 12,
+          "rate": 0.25,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 19,
+          "rate": 0.3958333333333333,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 29,
+          "rate": 0.6041666666666666,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "unverified-error-forced",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 15,
+        "16": 3,
+        "24": 1,
+        "32": 6,
+        "40": 1,
+        "48": 2,
+        "56": 8,
+        "64": 9,
+        "88": 2,
+        "96": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s1769977770",
+      "seed": 1769977770,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "e6e15924b3c34061989fb4f0b68fa4ce36db8f6bed01040914f9d7c2452c3532",
+      "source_row_content_sha256": "c7ab4d075ade7d451f6a4d7abad0f446335440602e269d25468e193f73d274da",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 15,
+          "rate": 0.3125,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 18,
+          "rate": 0.375,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 25,
+          "rate": 0.5208333333333334,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "unverified-error-forced",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 12,
+        "16": 9,
+        "40": 4,
+        "48": 13,
+        "88": 9,
+        "96": 1
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s959809858",
+      "seed": 959809858,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "0b199c24e034af4777295434cd3016a776a71f96f76d6dace2ae46b5c2ad0560",
+      "source_row_content_sha256": "cac1fe2f7cd7ca01be3924642b23227b707c3b8f37900cfccb7a259106eaa728",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 12,
+          "rate": 0.25,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 21,
+          "rate": 0.4375,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 21,
+          "rate": 0.4375,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": true,
+      "arm_id": "unverified-error-forced",
+      "cell_class": "actor-run",
+      "failure": null,
+      "labor_hours_counts": {
+        "0": 12,
+        "24": 2,
+        "32": 3,
+        "40": 2,
+        "48": 11,
+        "56": 4,
+        "64": 6,
+        "8": 8
+      },
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": 0,
+      "missing_reason": null,
+      "observed_action_count": 48,
+      "registered_action_denominator": 48,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--unverified-error-forced--none--stage0-selected--s617806385",
+      "seed": 617806385,
+      "source_artifact_kind": "verified-run-manifest",
+      "source_artifact_sha256": "80553863b702c77f44232fdce09a8a684b449e0410390b000c361db762d5afa4",
+      "source_row_content_sha256": "7f71fd11d5c0ad72898f93952cd00c30b3774fe355e0460d6c4d33aa619e6ff2",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": {
+        "h_lt_1": {
+          "below_threshold_count": 12,
+          "rate": 0.25,
+          "registered_action_denominator": 48
+        },
+        "h_lt_20": {
+          "below_threshold_count": 20,
+          "rate": 0.4166666666666667,
+          "registered_action_denominator": 48
+        },
+        "h_lt_40": {
+          "below_threshold_count": 25,
+          "rate": 0.5208333333333334,
+          "registered_action_denominator": 48
+        }
+      }
+    },
+    {
+      "action_metric_applicable": false,
+      "arm_id": "verified-error-candidate",
+      "cell_class": "structural-not-applicable",
+      "failure": null,
+      "labor_hours_counts": null,
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": null,
+      "missing_reason": "deterministic candidate-admission cell has no actor action stream",
+      "observed_action_count": null,
+      "registered_action_denominator": null,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501",
+      "seed": 1099057501,
+      "source_artifact_kind": "terminal-summary",
+      "source_artifact_sha256": "a3eaaa1fce01d81a342d61551e4c624da77f130d034b5f75b74ae3e88b2d6a09",
+      "source_row_content_sha256": "15e83aa179b43ae2d0ec5cd754a290a509f070719528b287263bd9d49ff5ca07",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": null
+    },
+    {
+      "action_metric_applicable": false,
+      "arm_id": "verified-error-candidate",
+      "cell_class": "structural-not-applicable",
+      "failure": null,
+      "labor_hours_counts": null,
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": null,
+      "missing_reason": "deterministic candidate-admission cell has no actor action stream",
+      "observed_action_count": null,
+      "registered_action_denominator": null,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452",
+      "seed": 1421875452,
+      "source_artifact_kind": "terminal-summary",
+      "source_artifact_sha256": "0b4d1ebbfdf904917462d1aa1bf40e4315b29b45f23d502de29aaed9d7d4f030",
+      "source_row_content_sha256": "8fa3f6dc31038d1ed3b4c5bfe30f9561cf634e9cc830d218aec42c728702cd68",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": null
+    },
+    {
+      "action_metric_applicable": false,
+      "arm_id": "verified-error-candidate",
+      "cell_class": "structural-not-applicable",
+      "failure": null,
+      "labor_hours_counts": null,
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": null,
+      "missing_reason": "deterministic candidate-admission cell has no actor action stream",
+      "observed_action_count": null,
+      "registered_action_denominator": null,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770",
+      "seed": 1769977770,
+      "source_artifact_kind": "terminal-summary",
+      "source_artifact_sha256": "1ef9060b6e410e01d8af1273f1deb0a81058cc901732972e8198c2a39af530a7",
+      "source_row_content_sha256": "29c753108c9aff8140b3334131761e78e8d2aa85fd09d54803966d3faff3e4cc",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": null
+    },
+    {
+      "action_metric_applicable": false,
+      "arm_id": "verified-error-candidate",
+      "cell_class": "structural-not-applicable",
+      "failure": null,
+      "labor_hours_counts": null,
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": null,
+      "missing_reason": "deterministic candidate-admission cell has no actor action stream",
+      "observed_action_count": null,
+      "registered_action_denominator": null,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858",
+      "seed": 959809858,
+      "source_artifact_kind": "terminal-summary",
+      "source_artifact_sha256": "910ab87e773f15c8feb2dc0e41e9422139aa3e65ce94c89ab22f017f4d933202",
+      "source_row_content_sha256": "cf87891eff883de6da004b3746d15395b3bddc04f12f0740a4a8677c482748ee",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": null
+    },
+    {
+      "action_metric_applicable": false,
+      "arm_id": "verified-error-candidate",
+      "cell_class": "structural-not-applicable",
+      "failure": null,
+      "labor_hours_counts": null,
+      "metric_name": "below-threshold executed labor action rate",
+      "missing_action_count": null,
+      "missing_reason": "deterministic candidate-admission cell has no actor action stream",
+      "observed_action_count": null,
+      "registered_action_denominator": null,
+      "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385",
+      "seed": 617806385,
+      "source_artifact_kind": "terminal-summary",
+      "source_artifact_sha256": "00adf1a157868bd800463e74292c8daf8d077905bab598ac52c5d51b611a0e25",
+      "source_row_content_sha256": "f24aa6f8c66e3a0b0e2cd2049af7312ee9995ddc0adf4016139676863943761c",
+      "source_scientific_eligible": true,
+      "source_status": "complete",
+      "stage_id": "experiment-c",
+      "threshold_results": null
+    }
+  ],
+  "schema_version": "finevo-pilot-v2.11.5-labor-threshold-sensitivity-diagnostic-v1",
+  "source_binding": {
+    "selected_row_count": 45,
+    "selected_row_projection_sha256": "91d3ad1a2c60cbf32fa87d926dc034cb78845058590c90a81b1d90e5dbb52002",
+    "source_aggregate_sha256": "5b50767e7e6f6f53aee8cc64f7f99a7c83a61cf8d57f28c73b0a205e30ac0c97",
+    "source_package": "evidence/current_v2/pilot-v2.11.5"
+  },
+  "source_claim_boundaries": {
+    "experiment_a": {
+      "primary_direction_count": 3,
+      "primary_median_relative_effect": 0.030620326693089294,
+      "primary_pair_count": 5,
+      "scientific_evidence_complete": false,
+      "status": "no-go",
+      "support_retrieval_effect": false,
+      "threshold_checks": {
+        "at_least_four_complete_pairs": true,
+        "at_least_four_same_direction": false,
+        "median_relative_effect_at_least_5pct": false
+      }
+    },
+    "experiment_c": {
+      "reasons": [
+        "preregistered zero-API rule sensitivity was not sealed by the authoritative Experiment C stage"
+      ],
+      "scientific_evidence_complete": false,
+      "status": "no-go",
+      "support_rule_reliability": false
+    }
+  },
+  "thresholds": [
+    {
+      "included_frozen_grid_hours": [
+        0
+      ],
+      "threshold_id": "h_lt_1",
+      "upper_bound_exclusive_hours": 1
+    },
+    {
+      "included_frozen_grid_hours": [
+        0,
+        8,
+        16
+      ],
+      "threshold_id": "h_lt_20",
+      "upper_bound_exclusive_hours": 20
+    },
+    {
+      "included_frozen_grid_hours": [
+        0,
+        8,
+        16,
+        24,
+        32
+      ],
+      "threshold_id": "h_lt_40",
+      "upper_bound_exclusive_hours": 40
+    }
+  ],
+  "title": "V2.11.5 below-threshold executed labor action sensitivity"
+}
