@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import replace
+import hashlib
 from pathlib import Path
+import subprocess
 from types import SimpleNamespace
 from typing import Any, Mapping
 
 import pytest
 
+from verified_memory import observed_p95_authority
 from verified_memory import pilot_orchestrator as orchestrator
 from verified_memory import pilot_v2115_acceptance as acceptance
 from verified_memory import runner
@@ -413,9 +416,7 @@ def test_v2115_real_config_audit_covers_126_cells_and_five_d_groups_without_prov
 
     contract = load_pilot_contract(CONTRACT_PATH)
     paid = _paid(contract)
-    authorities, projections, global_binding = _v2115_binding_fixtures(
-        contract, paid
-    )
+    authorities, projections, global_binding = _v2115_binding_fixtures(contract, paid)
     raw_root = tmp_path / "experiment_results" / "pilot-v2.11.5" / "raw"
     raw_root.mkdir(parents=True)
 
@@ -468,6 +469,150 @@ def test_v2115_real_config_audit_covers_126_cells_and_five_d_groups_without_prov
     assert d_groups["group_count"] == 5
     assert d_groups["cells_per_group"] == 11
     assert len(d_groups["groups"]) == 5
+
+
+def test_v2115_d_group_rebuild_keeps_cross_head_authority_context(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Revalidate prefix replacements against a distinct historical checkout."""
+
+    contract = load_pilot_contract(CONTRACT_PATH)
+    authority_root = tmp_path / "v2115-authority-release"
+    authority_root.mkdir()
+    receipt_relative = acceptance.V2115_POST_GATE_RELATIVE_PATH
+    receipt_path = authority_root.joinpath(*receipt_relative.parts)
+    receipt_path.parent.mkdir(parents=True)
+    receipt_path.write_bytes(b'{"fixture":"cross-head-authority"}\n')
+
+    def git(*args: str, capture: bool = False) -> str:
+        completed = subprocess.run(
+            ("git", *args),
+            cwd=authority_root,
+            check=True,
+            stdout=subprocess.PIPE if capture else subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        return completed.stdout.strip() if capture else ""
+
+    git("init")
+    git("config", "user.name", "FinEvo test")
+    git("config", "user.email", "finevo-test@example.invalid")
+    git("add", ".")
+    git("commit", "-m", "fixture historical authority")
+    git("tag", "-a", "pilot-v2.11.5-science", "-m", "fixture release")
+    authority_commit = git("rev-parse", "HEAD", capture=True)
+    current_commit = subprocess.run(
+        ("git", "rev-parse", "HEAD"),
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    ).stdout.strip()
+    assert authority_root.resolve() != ROOT.resolve()
+    assert authority_commit != current_commit
+
+    paid = replace(
+        _paid(contract),
+        head_commit=authority_commit,
+        tag_commit=authority_commit,
+    )
+    authorities, projections, global_binding = _v2115_binding_fixtures(
+        contract, paid
+    )
+    global_binding["receipt_file_sha256"] = hashlib.sha256(
+        receipt_path.read_bytes()
+    ).hexdigest()
+    global_binding["receipt_content_sha256"] = hashlib.sha256(
+        b"cross-head-authority-content"
+    ).hexdigest()
+    authority_roots_seen: list[Path] = []
+
+    def verified_binding(
+        path: str | Path,
+        *,
+        repo_root: str | Path,
+        expected_git_commit: str,
+        **_kwargs: Any,
+    ) -> dict[str, Any]:
+        root = Path(repo_root).resolve()
+        authority_roots_seen.append(root)
+        assert root == authority_root.resolve()
+        assert Path(path) == receipt_relative
+        assert expected_git_commit == authority_commit
+        assert (
+            hashlib.sha256(
+                root.joinpath(*receipt_relative.parts).read_bytes()
+            ).hexdigest()
+            == global_binding["receipt_file_sha256"]
+        )
+        return deepcopy(global_binding)
+
+    monkeypatch.setattr(
+        orchestrator,
+        "verified_v2115_observed_p95_authority_binding",
+        lambda path, **_kwargs: authorities[_model_from_import_path(path)],
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "verified_v2115_observed_p95_projection_binding",
+        lambda path, **_kwargs: projections[_model_from_import_path(path)],
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_verified_observed_p95_binding",
+        lambda *_args, **_kwargs: global_binding,
+    )
+    monkeypatch.setattr(
+        observed_p95_authority,
+        "verified_observed_p95_authority_binding",
+        verified_binding,
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "resolve_utility",
+        lambda *_args, **_kwargs: orchestrator._utility_from_mapping(
+            {
+                "rho": 1.0,
+                "labor_weight": 2.0,
+                "inverse_frisch": 1.0,
+                "consumption_scale": 1.0,
+                "discount_factor": 0.99,
+            }
+        ),
+    )
+    representatives = tuple(
+        spec
+        for spec in acceptance._science_specs(contract)
+        if spec.stage_id == "experiment-d" and spec.arm_id == "matched-a"
+    )
+    assert len(representatives) == 5
+    monkeypatch.setattr(
+        acceptance,
+        "_science_specs",
+        lambda _contract: representatives,
+    )
+    monkeypatch.setattr(
+        acceptance,
+        "V2115_EXPECTED_PROVIDER_CELLS",
+        len(representatives),
+    )
+
+    with acceptance._provider_boundary_stack():
+        configs, d_groups = acceptance._audit_configs_and_d_groups(
+            contract,
+            repo_root=authority_root,
+            raw_root=authority_root / "experiment_results/pilot-v2.11.5/raw",
+            paid=paid,
+        )
+
+    assert configs["provider_config_count"] == len(representatives)
+    assert d_groups["group_count"] == 5
+    assert len(d_groups["groups"]) == 5
+    assert authority_roots_seen
+    assert set(authority_roots_seen) == {authority_root.resolve()}
 
 
 def test_v2115_projection_audit_covers_81_units_and_5816_calls(

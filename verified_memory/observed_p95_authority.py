@@ -89,6 +89,9 @@ DEDICATED_OBSERVED_P95_BINDING_SCHEMA_REGISTRY: Mapping[str, str] = (
             "finevo-pilot-v2.11.7-continuation-observed-p95-authority-v1": (
                 "v2.11.7-continuation-authority"
             ),
+            "finevo-pilot-v2.11.8-continuation-observed-p95-authority-v1": (
+                "v2.11.8-continuation-authority"
+            ),
         }
     )
 )
@@ -142,6 +145,10 @@ _V2116_CONTINUATION_AUTHORITY_PATH = PurePosixPath(
 )
 _V2117_CONTINUATION_AUTHORITY_PATH = PurePosixPath(
     "experiment_results/pilot-v2.11.7/raw/parent-import/current_authority/"
+    "post_gate_authority.json"
+)
+_V2118_CONTINUATION_AUTHORITY_PATH = PurePosixPath(
+    "experiment_results/pilot-v2.11.8/raw/parent-import/current_authority/"
     "post_gate_authority.json"
 )
 _V27_ALLOWED_P95_PROFILES = frozenset({"gpt52_main", "llama33_local_controlled"})
@@ -2946,6 +2953,63 @@ def _verified_dedicated_observed_p95_binding(
         ):
             raise ObservedP95AuthorityError(
                 "V2.11.7 continuation receipt bytes or binding changed during "
+                "dedicated verification"
+            )
+        return _json_copy(binding)
+    elif adapter_id == "v2.11.8-continuation-authority":
+        from .pilot_contract import PILOT_CONTRACT_V2_11_8_CANONICAL_SHA256
+        from .pilot_v2118_continuation import (
+            PilotV2118ContinuationError,
+            V2118_CURRENT_AUTHORITY_SCHEMA_VERSION,
+            verified_v2118_observed_p95_authority_binding,
+        )
+
+        if schema_version != V2118_CURRENT_AUTHORITY_SCHEMA_VERSION:
+            raise ObservedP95AuthorityError(
+                "V2.11.8 observed-p95 producer/consumer schema registry drifted"
+            )
+        if relative != _V2118_CONTINUATION_AUTHORITY_PATH:
+            raise ObservedP95AuthorityError(
+                "V2.11.8 continuation authority is outside its exact path"
+            )
+        if PILOT_CONTRACT_V2_11_8_CANONICAL_SHA256 is None:
+            raise ObservedP95AuthorityError(
+                "V2.11.8 frozen contract identity is unavailable"
+            )
+        try:
+            binding = verified_v2118_observed_p95_authority_binding(
+                relative.as_posix(),
+                repo_root=repo_root,
+                expected_git_commit=expected_git_commit,
+                expected_contract_sha256=(
+                    PILOT_CONTRACT_V2_11_8_CANONICAL_SHA256
+                ),
+            )
+        except PilotV2118ContinuationError as exc:
+            raise ObservedP95AuthorityError(
+                "V2.11.8 continuation observed-p95 authority failed validation: "
+                f"{exc}"
+            ) from exc
+        integrity = receipt.get("integrity")
+        expected_binding = {
+            "receipt_path": relative.as_posix(),
+            "receipt_file_sha256": _sha256_bytes(raw),
+            "receipt_content_sha256": (
+                integrity.get("content_sha256")
+                if isinstance(integrity, Mapping)
+                else None
+            ),
+            "git_commit": expected_git_commit,
+        }
+        if (
+            not isinstance(binding, Mapping)
+            or set(binding) != {*expected_binding, "reservations"}
+            or {name: binding.get(name) for name in expected_binding}
+            != expected_binding
+            or not isinstance(binding.get("reservations"), Mapping)
+        ):
+            raise ObservedP95AuthorityError(
+                "V2.11.8 continuation receipt bytes or binding changed during "
                 "dedicated verification"
             )
         return _json_copy(binding)
