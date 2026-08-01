@@ -1194,11 +1194,17 @@ def _audit_configs_and_d_groups(
                 "Experiment D group lacks its matched-a representative"
             )
         try:
-            plan = orch.build_v2115_experiment_d_group_plan(
-                contract,
-                group_specs,
-                base_config=configs[representative.run_id],
-            )
+            # The planner derives its prefix config with ``dataclasses.replace``,
+            # which reruns VerifiedRunConfig.__post_init__ and therefore the
+            # source-backed observed-p95 verifier.  Keep that reconstruction
+            # bound to the historical release checkout instead of allowing the
+            # verifier to fall back to the importing checkout's HEAD.
+            with observed_p95_authority_repo_context(repo_root):
+                plan = orch.build_v2115_experiment_d_group_plan(
+                    contract,
+                    group_specs,
+                    base_config=configs[representative.run_id],
+                )
         except Exception as exc:
             raise PilotV2115AcceptanceError(
                 f"Experiment D group {model_id}/{seed} failed validation: {exc}"

@@ -341,11 +341,12 @@ def test_scientific_source_manifest_anchors_match_release_bytes():
         "experiments/pilot_v2_11_5_source_manifest.json",
         "experiments/pilot_v2_11_6_source_manifest.json",
         "experiments/pilot_v2_11_7_source_manifest.json",
+        "experiments/pilot_v2_11_8_source_manifest.json",
     ]
     for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS:
         if anchor["file_sha256"] is None or anchor["content_sha256"] is None:
             assert anchor["path"] == (
-                "experiments/pilot_v2_11_7_source_manifest.json"
+                "experiments/pilot_v2_11_8_source_manifest.json"
             )
             assert anchor["file_sha256"] is None
             assert anchor["content_sha256"] is None
@@ -359,8 +360,8 @@ def test_scientific_source_manifest_anchors_match_release_bytes():
 
 def test_unsealed_scientific_source_manifest_anchor_fails_closed(tmp_path: Path):
     anchor = {
-        "path": "experiments/pilot_v2_11_7_source_manifest.json",
-        "schema_version": "finevo-pilot-v2.11.7-source-manifest-v1",
+        "path": "experiments/pilot_v2_11_8_source_manifest.json",
+        "schema_version": "finevo-pilot-v2.11.8-source-manifest-v1",
         "file_sha256": None,
         "content_sha256": None,
     }
@@ -873,19 +874,22 @@ def test_verified_memory_ci_uses_descendant_consumer_authority_not_science_contr
     assert "- macos-14" in workflow
 
 
-def test_verified_memory_ci_emits_v2117_scientific_release_receipt() -> None:
+def test_verified_memory_ci_emits_v2118_scientific_release_receipt() -> None:
     workflow = (ROOT / ".github/workflows/verified-memory-ci.yml").read_text(
         encoding="utf-8"
     )
     emit = workflow.split("- name: Emit scientific release CI receipt", 1)[1]
     emit = emit.split("- name: Emit publication consumer CI receipt", 1)[0]
     assert "python -m verified_memory.ci_release_receipt emit" in emit
-    assert "--contract experiments/pilot_v2_11_7.yaml" in emit
+    assert "--contract experiments/pilot_v2_11_8.yaml" in emit
     assert "--output \"${RUNNER_TEMP}/finevo-ci-release-receipt.json\"" in emit
-    assert "Verify V2.11.3 through V2.11.7 scientific source manifests" in workflow
+    assert "Verify V2.11.3 through V2.11.8 scientific source manifests" in workflow
     assert "Verify immutable V2.11.6 pre-dispatch no-go tag anchor" in workflow
     assert "6355d2329d800c95595c89f5e41e032ba6129fb7" in workflow
     assert "0a7eb29a76c5f9c90486052a4c335ad1d2000bf0" in workflow
+    assert "Verify immutable V2.11.7 terminal no-go tag anchor" in workflow
+    assert "6ce166fecfb126c07788bc87c31fcdc6ecb42078" in workflow
+    assert "57c53588440dc2647f6b6ffae519049db4cd4844" in workflow
 
 
 def test_tracked_v2113_frozen_contract_accepts_its_exact_ci_inventory() -> None:

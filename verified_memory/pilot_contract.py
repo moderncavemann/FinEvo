@@ -84,6 +84,7 @@ PILOT_CONTRACT_ID_V2_11_4 = "finevo-pilot-v2.11.4"
 PILOT_CONTRACT_ID_V2_11_5 = "finevo-pilot-v2.11.5"
 PILOT_CONTRACT_ID_V2_11_6 = "finevo-pilot-v2.11.6"
 PILOT_CONTRACT_ID_V2_11_7 = "finevo-pilot-v2.11.7"
+PILOT_CONTRACT_ID_V2_11_8 = "finevo-pilot-v2.11.8"
 PILOT_CONTRACT_TAG_V2 = "pilot-v2-science"
 PILOT_CONTRACT_TAG_V2_1 = "pilot-v2.1-science"
 PILOT_CONTRACT_TAG_V2_2 = "pilot-v2.2-science"
@@ -105,6 +106,7 @@ PILOT_CONTRACT_TAG_V2_11_4 = "pilot-v2.11.4-science"
 PILOT_CONTRACT_TAG_V2_11_5 = "pilot-v2.11.5-science"
 PILOT_CONTRACT_TAG_V2_11_6 = "pilot-v2.11.6-science"
 PILOT_CONTRACT_TAG_V2_11_7 = "pilot-v2.11.7-science"
+PILOT_CONTRACT_TAG_V2_11_8 = "pilot-v2.11.8-science"
 _PILOT_V2_4_AUTHORIZED_HARD_CAP_USD = 500.0
 _PILOT_V2_4_HOSTED_STAGE_CAP_USD = 495.787229125
 _PILOT_V2_4_HARD_CAP_STATUS = "authorized-explicit-user-2026-07-27"
@@ -304,6 +306,20 @@ PILOT_V2_11_7_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = (
 )
 PILOT_V2_11_7_SOURCE_MANIFEST_CONTENT_SHA256: Optional[str] = (
     "64be1bf836d131d8ec0542e68388dbc328314af7e891549600f5871f8f61f2b0"
+)
+# V2.11.8 is a prospective recovery release.  Source, design, and expanded
+# contract identities remain unpinned until the independent freeze passes.
+PILOT_CONTRACT_V2_11_8_CANONICAL_SHA256: Optional[str] = (
+    "25d43667520633c5dfa299a693fd4a42736524c2737c2acf6422e2d32f0106c8"
+)
+PILOT_CONTRACT_V2_11_8_SCIENCE_DESIGN_SHA256: Optional[str] = (
+    "9ace9d3796940b6cf32c28c80b2f1cd2f583bf934f8e87a73be2f75a02893024"
+)
+PILOT_V2_11_8_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = (
+    "acfc9dc6c751e8ab9f314133de856bae7a0a4021c067f693ed8ebff938b230a6"
+)
+PILOT_V2_11_8_SOURCE_MANIFEST_CONTENT_SHA256: Optional[str] = (
+    "104b63db289234820aebf14f42808c26cd01d9f8a19029fef793887bfff47cd3"
 )
 PILOT_V2_10_2_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = (
     "f1d953f5b39ab1032ffeb37b73db7c80d54296fba046eddf7e2485e4dc1cc2bd"
@@ -1260,6 +1276,7 @@ class ReleaseRequirements:
             PILOT_CONTRACT_TAG_V2_11_5,
             PILOT_CONTRACT_TAG_V2_11_6,
             PILOT_CONTRACT_TAG_V2_11_7,
+            PILOT_CONTRACT_TAG_V2_11_8,
         }:
             raise PilotContractError(
                 "V2 release tag must be a registered annotated science tag"
@@ -7585,6 +7602,207 @@ def _validate_v2_11_7_recovery_boundary(
     return _freeze_json(boundary)
 
 
+def _v2_11_8_expected_recovery_boundary(*, status: str) -> dict[str, Any]:
+    """Bind V2.11.7's zero-call no-go and recover its repository context."""
+
+    if status not in {"draft", "frozen"}:
+        raise PilotContractError("V2.11.8 recovery boundary status is invalid")
+    boundary = _json_copy(_v2_11_7_expected_recovery_boundary(status="frozen"))
+    boundary["schema_version"] = (
+        "finevo-pilot-v2.11.8-observed-p95-context-recovery-boundary-v1"
+    )
+    boundary["source_manifest"] = {
+        "path": "experiments/pilot_v2_11_8_source_manifest.json",
+        "schema_version": "finevo-pilot-v2.11.8-source-manifest-v1",
+        "file_sha256": PILOT_V2_11_8_SOURCE_MANIFEST_FILE_SHA256,
+        "content_sha256": PILOT_V2_11_8_SOURCE_MANIFEST_CONTENT_SHA256,
+    }
+
+    failed = boundary["failed_release_no_go"]
+    failed.update(
+        {
+            "contract_id": PILOT_CONTRACT_ID_V2_11_7,
+            "contract_path": "experiments/pilot_v2_11_7.yaml",
+            "contract_file_sha256": (
+                "4b570b212f391c1887b4a7cb3554ab65e6fac77b6d35e0a3aa8b0509e84c8d85"
+            ),
+            "contract_sha256": PILOT_CONTRACT_V2_11_7_CANONICAL_SHA256,
+            "science_tag": PILOT_CONTRACT_TAG_V2_11_7,
+            "science_tag_object": "6ce166fecfb126c07788bc87c31fcdc6ecb42078",
+            "science_commit": "57c53588440dc2647f6b6ffae519049db4cd4844",
+            "source_manifest_path": (
+                "experiments/pilot_v2_11_7_source_manifest.json"
+            ),
+            "source_manifest_file_sha256": (
+                "dd124c09359d0bd08411add3486cc43887cbee207fdbb6f9bc929e5c1eb81ef9"
+            ),
+            "source_manifest_content_sha256": (
+                "64be1bf836d131d8ec0542e68388dbc328314af7e891549600f5871f8f61f2b0"
+            ),
+        }
+    )
+    failed["raw_inventory"].update(
+        {
+            "root": "experiment_results/pilot-v2.11.7/raw",
+            "storage_bytes": 224071,
+            "inventory_sha256": (
+                "af4053b3e7fc2b706707f47d552d56ac25dfff4fbf5df5d58a6739e375f160ec"
+            ),
+        }
+    )
+    failed["run_ledger"].update(
+        {
+            "path": "experiment_results/pilot-v2.11.7/raw/run_ledger.json",
+            "file_sha256": (
+                "8dc580d7030f7aab182429bc7dd7bc72c6a0d61e7944477bce8a52836ac324cc"
+            ),
+            "ledger_sha256": (
+                "bb6d497308097cf6f348c282339f2f6d4cb6721950604744c1e6b0751e913681"
+            ),
+            "event_head_sha256": (
+                "5446a8981e9f8579893c1faea39a0722972ee709967967e99086be614414dab6"
+            ),
+        }
+    )
+    failed["budget_ledger"].update(
+        {
+            "path": "experiment_results/pilot-v2.11.7/raw/budget_ledger.json",
+            "file_sha256": (
+                "f9e0216cbc8e5d3ea6ceb7728ca1a4df0fd71ecfb49124a1ccacd3b0758d9272"
+            ),
+            "ledger_sha256": (
+                "bc6cc622beaff05e2480e866408929f3edd7f02a7555bdb26202fe94ae3e9c77"
+            ),
+            "event_head_sha256": (
+                "66333a703087c3aae041171eb2d2a96ff2f7e3ff60aa454d8b55a08bda2f5fdd"
+            ),
+        }
+    )
+    failed["budget_ledger"]["current_actual"]["storage_bytes"] = 1797
+    failed["stage_receipt"].update(
+        {
+            "path": (
+                "experiment_results/pilot-v2.11.7/raw/parent-import/"
+                "stage_receipt.json"
+            ),
+            "file_sha256": (
+                "d8e276f8eaa725b1b32666f09508c984d536c9e5eb05e54cf6bb6faaff2b0ddc"
+            ),
+            "content_sha256": (
+                "914ee31e0b2f1102d77b18b26e2ae133247df13ae403c9df97545be80637abba"
+            ),
+            "failure_error_type": "V2117ParentImportIntegrityError",
+            "failure_cause_type": "PilotV2115AcceptanceError",
+            "failure_message": (
+                "Experiment D group gpt52_main/617806385 failed validation: "
+                "source-backed observed p95 release commit differs from the "
+                "annotated tag or current HEAD"
+            ),
+        }
+    )
+    failed["release_attestation"].update(
+        {
+            "path": (
+                "experiment_results/pilot-v2.11.7/raw/release_attestation.json"
+            ),
+            "file_sha256": (
+                "07805c14c5a6673805de1f0d1d3a423a98270d9b420227c5ac1865e2ffc64a7e"
+            ),
+            "attestation_sha256": (
+                "df033a800e85d3a0a918e10b4627f01bba3bb8aa046c04a3a3440370e6ea226c"
+            ),
+        }
+    )
+    failed["scientific_launch_input"].update(
+        {
+            "path": (
+                "experiment_results/pilot-v2.11.7/raw/scientific_launch_input.json"
+            ),
+            "file_sha256": (
+                "0a29ceb2d7d21f3d99032d40543c074cc0095f5ac5acebf206e3c37cb8215e27"
+            ),
+            "launch_input_sha256": (
+                "2ae474f0958a31e070b36d85a4cbe28a6b2301c8f9bf2b8a47da2e30303b8f2b"
+            ),
+        }
+    )
+
+    boundary["parent_budget_debit"].update(
+        {
+            "parent_contract_sha256": PILOT_CONTRACT_V2_11_7_CANONICAL_SHA256,
+            "parent_run_ledger_sha256": (
+                "bb6d497308097cf6f348c282339f2f6d4cb6721950604744c1e6b0751e913681"
+            ),
+            "parent_budget_ledger_sha256": (
+                "bc6cc622beaff05e2480e866408929f3edd7f02a7555bdb26202fe94ae3e9c77"
+            ),
+            "stage_bucket": "parent_v2117",
+            "storage_bytes": 270191728,
+            "record_sha256": (
+                "a8281fea88c404d504792b08d8bef75ee5d33d890ee5a44ed91962012ba87f1e"
+            ),
+        }
+    )
+    boundary["continuation_budget"].update(
+        {
+            "parent_stage_bucket": "parent_v2117",
+            "hosted_stage_bucket": "hosted_v2118",
+            "projected_cumulative_storage_bytes": 1290191728,
+        }
+    )
+    matrix = boundary["continuation_matrix"]
+    matrix["a_c_reclassified_as_v2118"] = matrix.pop(
+        "a_c_reclassified_as_v2117"
+    )
+    matrix["failed_v2117_rows_are_aborted_release_audit_only"] = matrix.pop(
+        "failed_v2116_rows_are_aborted_release_audit_only"
+    )
+    matrix["canonical_86_row_mapping_sha256"] = (
+        "812781508a1cbfb8a827de0a981c3b6e189cff497decb7e9343ce6f8aa4d4ca5"
+    )
+    immutability = boundary["immutability"]
+    for key in (
+        "v2116_no_go_raw_read_only",
+        "v2116_statuses_preserved",
+        "v2116_resume_forbidden",
+        "v2116_failure_reclassification_forbidden",
+    ):
+        immutability.pop(key)
+    immutability.update(
+        {
+            "v2117_no_go_raw_read_only": True,
+            "v2117_statuses_preserved": True,
+            "v2117_resume_forbidden": True,
+            "v2117_failure_reclassification_forbidden": True,
+            "new_raw_namespace_required": "experiment_results/pilot-v2.11.8/raw",
+        }
+    )
+    boundary["paid_provenance"]["required_annotated_tag"] = (
+        PILOT_CONTRACT_TAG_V2_11_8
+    )
+    return boundary
+
+
+def _validate_v2_11_8_recovery_boundary(
+    value: Any,
+    *,
+    status: str,
+) -> Mapping[str, Any]:
+    boundary = _mapping(value, "v2118_recovery_boundary")
+    expected = _v2_11_8_expected_recovery_boundary(status=status)
+    _strict_keys(boundary, required=set(expected), name="v2118_recovery_boundary")
+    if _json_copy(boundary) != expected:
+        raise PilotContractError("V2.11.8 recovery boundary drifted")
+    if status == "frozen" and (
+        PILOT_V2_11_8_SOURCE_MANIFEST_FILE_SHA256 is None
+        or PILOT_V2_11_8_SOURCE_MANIFEST_CONTENT_SHA256 is None
+    ):
+        raise PilotContractError(
+            "V2.11.8 source manifest hashes must be sealed before freezing"
+        )
+    return _freeze_json(boundary)
+
+
 def _v2_11_expected_model_roles() -> dict[str, Any]:
     hosted_roles = [
         "capability-choice",
@@ -7924,6 +8142,19 @@ def _v2_11_7_expected_stages() -> list[dict[str, Any]]:
     return stages
 
 
+def _v2_11_8_expected_stages() -> list[dict[str, Any]]:
+    """Retain all 86 science rows under the fresh recovery budget buckets."""
+
+    stages = _json_copy(_v2_11_7_expected_stages())
+    for stage in stages:
+        stage["budget_bucket"] = (
+            "parent_v2117"
+            if stage["stage_id"] == "parent-import"
+            else "hosted_v2118"
+        )
+    return stages
+
+
 def _v2_11_3_expected_preflight_arm() -> dict[str, Any]:
     return {
         "arm_id": "closed-loop-preflight",
@@ -7997,6 +8228,12 @@ def _v2_11_7_expected_parent_import_arm() -> dict[str, Any]:
     }
 
 
+def _v2_11_8_expected_parent_import_arm() -> dict[str, Any]:
+    """Keep the V2.11.7 dual-lineage import semantics unchanged."""
+
+    return _json_copy(_v2_11_7_expected_parent_import_arm())
+
+
 def _v2_11_1_expected_model_roles() -> dict[str, Any]:
     roles = _json_copy(_v2_11_expected_model_roles())
     for model_id in ("gpt52_main", "gpt56_diagnostic"):
@@ -8036,6 +8273,12 @@ def _v2_11_7_expected_model_roles() -> dict[str, Any]:
     """Keep the V2.11.6 role and stage surface unchanged."""
 
     return _json_copy(_v2_11_6_expected_model_roles())
+
+
+def _v2_11_8_expected_model_roles() -> dict[str, Any]:
+    """Keep the V2.11.7 role and stage surface unchanged."""
+
+    return _json_copy(_v2_11_7_expected_model_roles())
 
 
 def _v2_11_expected_non_claims() -> list[str]:
@@ -8371,6 +8614,56 @@ def _v2_11_7_expected_non_claims() -> list[str]:
     ]
 
 
+def _v2_11_8_expected_non_claims() -> list[str]:
+    return [
+        (
+            "V2.11.5 remains the immutable scientific authority: 47 complete, 3 "
+            "failed, and 86 never-dispatched scheduled rows. Its terminal A/C and "
+            "operational rows are not retried, deleted, or reclassified."
+        ),
+        (
+            "V2.11.7 remains an immutable 87-row observed-p95 context no-go with "
+            "zero provider calls. Its integrity-stopped rows remain audit-only and "
+            "are neither resumed nor reclassified as V2.11.8 evidence."
+        ),
+        (
+            "V2.11.8 contains one zero-provider dual-lineage import and maps exactly "
+            "the 86 V2.11.5 never-dispatched D/B/cross-model cells one-to-one; "
+            "cross-release deduplication preserves the original 136-cell registered "
+            "and 131-cell scientific denominator."
+        ),
+        (
+            "The recovery changes only the repository context used while reverifying "
+            "source-backed observed-p95 authority. It is performance-outcome-blind "
+            "and changes no prompt, seed, arm, model, environment, utility, threshold, "
+            "metric, decoding output, or scientific interpretation."
+        ),
+        (
+            "The V2.11.5 Experiment A retrieval-effect gate remains a negative result, "
+            "and its three ITT failures remain failures; continuation cannot revise "
+            "that conclusion or replace those seeds."
+        ),
+        (
+            "The V2.11.5 Experiment C formal publishability result remains a no-go "
+            "because its preregistered offline sensitivity artifact is absent; its "
+            "narrow forced-active diagnostic is not upgraded to a full reliability claim."
+        ),
+        (
+            "GPT-5.6 is a route/model-ID boundary without an immutable dated weight "
+            "snapshot or a model-specific matched A/A null."
+        ),
+        (
+            "The three-seed GPT-5.6 lane can support only a capability-qualified "
+            "directional small-pilot statement, never backbone independence."
+        ),
+        (
+            "The combined lineage is a 4-agent by 12-month mechanism micro-pilot, "
+            "not the 10x24x5 confirmatory pilot and not evidence for 100x240 claims."
+        ),
+        "No paid V2.11.8 dispatch is authorized while the contract status is draft.",
+    ]
+
+
 @dataclass(frozen=True, slots=True)
 class PilotContract:
     schema_version: str
@@ -8421,6 +8714,7 @@ class PilotContract:
     ] = None
     v2116_continuation_boundary: Optional[Mapping[str, Any]] = None
     v2117_recovery_boundary: Optional[Mapping[str, Any]] = None
+    v2118_recovery_boundary: Optional[Mapping[str, Any]] = None
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "PilotContract":
@@ -8473,6 +8767,7 @@ class PilotContract:
             is_v2_11_5 = False
             is_v2_11_6 = False
             is_v2_11_7 = False
+            is_v2_11_8 = False
         elif schema_version == PILOT_CONTRACT_SCHEMA_VERSION_V2:
             fields = base_fields | v2_fields
             is_v2 = True
@@ -8497,6 +8792,7 @@ class PilotContract:
             is_v2_11_5 = contract_id == PILOT_CONTRACT_ID_V2_11_5
             is_v2_11_6 = contract_id == PILOT_CONTRACT_ID_V2_11_6
             is_v2_11_7 = contract_id == PILOT_CONTRACT_ID_V2_11_7
+            is_v2_11_8 = contract_id == PILOT_CONTRACT_ID_V2_11_8
             if is_v2_1:
                 fields = fields | {"operational_amendment"}
             elif is_v2_2:
@@ -8619,6 +8915,8 @@ class PilotContract:
                 fields = fields | {"v2116_continuation_boundary"}
             elif is_v2_11_7:
                 fields = fields | {"v2117_recovery_boundary"}
+            elif is_v2_11_8:
+                fields = fields | {"v2118_recovery_boundary"}
         else:
             raise PilotContractError("unsupported pilot contract schema")
         is_v211_family = (
@@ -8630,6 +8928,7 @@ class PilotContract:
             or is_v2_11_5
             or is_v2_11_6
             or is_v2_11_7
+            or is_v2_11_8
         )
         _strict_keys(value, required=fields, name="pilot contract")
         if value["status"] != "frozen" and not (
@@ -8654,6 +8953,7 @@ class PilotContract:
                 or is_v2_11_5
                 or is_v2_11_6
                 or is_v2_11_7
+                or is_v2_11_8
             )
             and value["status"] == "draft"
         ):
@@ -8796,6 +9096,14 @@ class PilotContract:
             raise PilotContractError(
                 "V2.11.7 cannot be frozen before its canonical hash and CI inventory"
             )
+        if (
+            is_v2_11_8
+            and value["status"] == "frozen"
+            and PILOT_CONTRACT_V2_11_8_CANONICAL_SHA256 is None
+        ):
+            raise PilotContractError(
+                "V2.11.8 cannot be frozen before its canonical hash and CI inventory"
+            )
         if is_v2 and value["contract_id"] not in {
             PILOT_CONTRACT_ID_V2,
             PILOT_CONTRACT_ID_V2_1,
@@ -8818,6 +9126,7 @@ class PilotContract:
             PILOT_CONTRACT_ID_V2_11_5,
             PILOT_CONTRACT_ID_V2_11_6,
             PILOT_CONTRACT_ID_V2_11_7,
+            PILOT_CONTRACT_ID_V2_11_8,
         }:
             raise PilotContractError("unsupported V2 contract_id")
         if (
@@ -8900,6 +9209,18 @@ class PilotContract:
             ):
                 raise PilotContractError(
                     "V2.11.7 science-design fieldset differs from its frozen draft"
+                )
+        if is_v2_11_8:
+            if PILOT_CONTRACT_V2_11_8_SCIENCE_DESIGN_SHA256 is None:
+                raise PilotContractError(
+                    "V2.11.8 science-design hash has not been bootstrapped"
+                )
+            if (
+                science_design_sha256(value)
+                != PILOT_CONTRACT_V2_11_8_SCIENCE_DESIGN_SHA256
+            ):
+                raise PilotContractError(
+                    "V2.11.8 science-design fieldset differs from its frozen draft"
                 )
 
         implementation = _mapping(value["implementation"], "implementation")
@@ -8999,6 +9320,8 @@ class PilotContract:
                     )
                 ))))))))
             )
+            if is_v2_11_8:
+                expected_tag = PILOT_CONTRACT_TAG_V2_11_8
             if implementation["required_git_tag"] != expected_tag:
                 raise PilotContractError(
                     f"{value['contract_id']} must require {expected_tag}"
@@ -9045,6 +9368,7 @@ class PilotContract:
         ] = None
         v2116_continuation_boundary: Optional[Mapping[str, Any]] = None
         v2117_recovery_boundary: Optional[Mapping[str, Any]] = None
+        v2118_recovery_boundary: Optional[Mapping[str, Any]] = None
         if is_v2:
             parameter_dispatch_policy = ParameterDispatchPolicy.from_dict(
                 _mapping(
@@ -9180,6 +9504,8 @@ class PilotContract:
                     )
                 ))))))))
             )
+            if is_v2_11_8:
+                expected_tag = PILOT_CONTRACT_TAG_V2_11_8
             if release_requirements.tag != expected_tag:
                 raise PilotContractError(
                     "release tag differs from implementation contract version"
@@ -9208,6 +9534,16 @@ class PilotContract:
             elif is_v2_11_7:
                 v2117_recovery_boundary = _validate_v2_11_7_recovery_boundary(
                     value["v2117_recovery_boundary"],
+                    status=str(value["status"]),
+                )
+                _validate_v2_1_expected_ci_state(
+                    release_requirements.expected_ci,
+                    status=str(value["status"]),
+                    name="release expected_ci",
+                )
+            elif is_v2_11_8:
+                v2118_recovery_boundary = _validate_v2_11_8_recovery_boundary(
+                    value["v2118_recovery_boundary"],
                     status=str(value["status"]),
                 )
                 _validate_v2_1_expected_ci_state(
@@ -9714,6 +10050,7 @@ class PilotContract:
                 or is_v2_11_5
                 or is_v2_11_6
                 or is_v2_11_7
+                or is_v2_11_8
             ):
                 opus = profiles.get("opus48_no_go")
                 opus_role = model_roles.get("opus48_no_go")
@@ -9999,6 +10336,7 @@ class PilotContract:
                         or is_v2_11_5
                         or is_v2_11_6
                         or is_v2_11_7
+                        or is_v2_11_8
                     )
                     else 25.0
                 ),
@@ -10011,6 +10349,13 @@ class PilotContract:
                 raise PilotContractError("V2 global budget limits drifted")
             caps = _mapping(budgets.get("stage_usd_caps"), "budgets.stage_usd_caps")
             expected_caps = (
+                {
+                    "parent_v2117": 63.1196450625,
+                    "hosted_v2118": 436.8803549375,
+                    "manual_reserve": 0.0,
+                }
+                if is_v2_11_8
+                else
                 {
                     "parent_v2116": 63.1196450625,
                     "hosted_v2117": 436.8803549375,
@@ -10614,6 +10959,9 @@ class PilotContract:
                     )
         elif is_v211_family:
             expected_v211_stages = (
+                _v2_11_8_expected_stages()
+                if is_v2_11_8
+                else
                 _v2_11_7_expected_stages()
                 if is_v2_11_7
                 else
@@ -10637,7 +10985,7 @@ class PilotContract:
                 else _v2_11_expected_stages()
             )
             if [stage.to_dict() for stage in stages] != expected_v211_stages:
-                if is_v2_11_6 or is_v2_11_7:
+                if is_v2_11_6 or is_v2_11_7 or is_v2_11_8:
                     raise PilotContractError(
                         f"{value['contract_id']} stages differ from its exact "
                         "registered matrix"
@@ -10647,6 +10995,9 @@ class PilotContract:
                     "136-cell matrix"
                 )
             expected_v211_roles = (
+                _v2_11_8_expected_model_roles()
+                if is_v2_11_8
+                else
                 _v2_11_7_expected_model_roles()
                 if is_v2_11_7
                 else
@@ -10707,6 +11058,7 @@ class PilotContract:
             or is_v2_11_5
             or is_v2_11_6
             or is_v2_11_7
+            or is_v2_11_8
         ):
             expected_stage_order = (
                 "capability-gate",
@@ -10937,6 +11289,9 @@ class PilotContract:
                     "fresh hosted routes and the zero-provider import route"
                 )
             expected_parent_import_arm = (
+                _v2_11_8_expected_parent_import_arm()
+                if is_v2_11_8
+                else
                 _v2_11_7_expected_parent_import_arm()
                 if is_v2_11_7
                 else
@@ -10957,6 +11312,7 @@ class PilotContract:
                     or is_v2_11_5
                     or is_v2_11_6
                     or is_v2_11_7
+                    or is_v2_11_8
                 )
                 and _mapping(
                     arms.get("capability-probe"),
@@ -10974,6 +11330,7 @@ class PilotContract:
                 or is_v2_11_5
                 or is_v2_11_6
                 or is_v2_11_7
+                or is_v2_11_8
             ) and _json_copy(
                 _mapping(
                     arms.get("closed-loop-preflight"),
@@ -10981,7 +11338,7 @@ class PilotContract:
                 )
             ) != (
                 _v2_11_5_expected_preflight_arm()
-                if (is_v2_11_5 or is_v2_11_6 or is_v2_11_7)
+                if (is_v2_11_5 or is_v2_11_6 or is_v2_11_7 or is_v2_11_8)
                 else _v2_11_4_expected_preflight_arm()
                 if is_v2_11_4
                 else _v2_11_3_expected_preflight_arm()
@@ -10991,6 +11348,9 @@ class PilotContract:
                     "authority imports"
                 )
             expected_non_claims = (
+                _v2_11_8_expected_non_claims()
+                if is_v2_11_8
+                else
                 _v2_11_7_expected_non_claims()
                 if is_v2_11_7
                 else
@@ -11028,7 +11388,7 @@ class PilotContract:
                 if stage.enabled
             )
             expected_registered_cells = (
-                87 if (is_v2_11_6 or is_v2_11_7) else 136
+                87 if (is_v2_11_6 or is_v2_11_7 or is_v2_11_8) else 136
             )
             if registered_cells != expected_registered_cells:
                 raise PilotContractError(
@@ -11051,7 +11411,7 @@ class PilotContract:
                 if stage.enabled and stage.stage_id not in operational_stage_ids
             )
             expected_scientific_cells = (
-                86 if (is_v2_11_6 or is_v2_11_7) else 131
+                86 if (is_v2_11_6 or is_v2_11_7 or is_v2_11_8) else 131
             )
             if scientific_cells != expected_scientific_cells:
                 raise PilotContractError(
@@ -11175,6 +11535,12 @@ class PilotContract:
             and actual != PILOT_CONTRACT_V2_11_7_CANONICAL_SHA256
         ):
             raise PilotContractError("V2.11.7 frozen canonical hash drifted")
+        if (
+            is_v2_11_8
+            and value["status"] == "frozen"
+            and actual != PILOT_CONTRACT_V2_11_8_CANONICAL_SHA256
+        ):
+            raise PilotContractError("V2.11.8 frozen canonical hash drifted")
 
         non_claims = _string_tuple(value["non_claims"], "non_claims")
         return cls(
@@ -11248,6 +11614,7 @@ class PilotContract:
             ),
             v2116_continuation_boundary=v2116_continuation_boundary,
             v2117_recovery_boundary=v2117_recovery_boundary,
+            v2118_recovery_boundary=v2118_recovery_boundary,
             non_claims=non_claims,
             canonicalization=integrity["canonicalization"],
             declared_sha256=declared,
@@ -11401,6 +11768,7 @@ class PilotContract:
             PILOT_CONTRACT_ID_V2_11_5,
             PILOT_CONTRACT_ID_V2_11_6,
             PILOT_CONTRACT_ID_V2_11_7,
+            PILOT_CONTRACT_ID_V2_11_8,
         }:
             if self.release_requirements is None:  # pragma: no cover - parser
                 raise PilotContractError(
@@ -11741,6 +12109,7 @@ class PilotContract:
                         self.v2115_forward_boundary,
                         self.v2115_consumer_authority_normalization_amendment,
                         self.v2117_recovery_boundary,
+                        self.v2118_recovery_boundary,
                         self.operational_amendment,
                         self.evaluator_amendment,
                         self.preflight_bootstrap_amendment,
@@ -11782,6 +12151,7 @@ class PilotContract:
                         self.v2115_forward_boundary,
                         self.v2115_consumer_authority_normalization_amendment,
                         self.v2116_continuation_boundary,
+                        self.v2118_recovery_boundary,
                         self.operational_amendment,
                         self.evaluator_amendment,
                         self.preflight_bootstrap_amendment,
@@ -11802,6 +12172,48 @@ class PilotContract:
                     )
                 result["v2117_recovery_boundary"] = _thaw_json(
                     self.v2117_recovery_boundary
+                )
+            elif self.contract_id == PILOT_CONTRACT_ID_V2_11_8:
+                if self.v2118_recovery_boundary is None:
+                    raise PilotContractError(
+                        "V2.11.8 contract lacks its recovery boundary"
+                    )
+                if any(
+                    item is not None
+                    for item in (
+                        self.v211_forward_boundary,
+                        self.v2111_forward_boundary,
+                        self.v2111_preflight_bootstrap_amendment,
+                        self.v2112_forward_boundary,
+                        self.v2112_recovery_amendment,
+                        self.v2113_forward_boundary,
+                        self.v2113_consumer_adapter_amendment,
+                        self.v2114_forward_boundary,
+                        self.v2114_authority_normalization_amendment,
+                        self.v2115_forward_boundary,
+                        self.v2115_consumer_authority_normalization_amendment,
+                        self.v2116_continuation_boundary,
+                        self.v2117_recovery_boundary,
+                        self.operational_amendment,
+                        self.evaluator_amendment,
+                        self.preflight_bootstrap_amendment,
+                        self.matrix_amendment,
+                        self.parent_import_retry_amendment,
+                        self.p95_authority_retry_amendment,
+                        self.stage0_evaluator_retry_amendment,
+                        self.qref_identity_retry_amendment,
+                        self.qref_summary_equivalence_amendment,
+                        self.p95_runner_binding_retry_amendment,
+                        self.qref_receipt_verifier_retry_amendment,
+                        self.p95_consumer_adapter_retry_amendment,
+                    )
+                ):
+                    raise PilotContractError(
+                        "V2.11.8 is independently canonicalized and cannot "
+                        "carry an earlier amendment or forward boundary"
+                    )
+                result["v2118_recovery_boundary"] = _thaw_json(
+                    self.v2118_recovery_boundary
                 )
             elif self.contract_id == PILOT_CONTRACT_ID_V2_1:
                 if self.operational_amendment is None:
@@ -16437,6 +16849,65 @@ def load_pilot_contract(path: str | Path) -> PilotContract:
             raise PilotContractError(
                 "V2.11.7 source manifest content hash drifted"
             )
+    elif contract.contract_id == PILOT_CONTRACT_ID_V2_11_8:
+        if contract.v2118_recovery_boundary is None:  # pragma: no cover
+            raise PilotContractError(
+                "V2.11.8 contract lacks its recovery boundary"
+            )
+        binding = _mapping(
+            contract.v2118_recovery_boundary.get("source_manifest"),
+            "V2.11.8 source manifest binding",
+        )
+        if contract.status == "draft" and (
+            binding.get("file_sha256") is None
+            or binding.get("content_sha256") is None
+        ):
+            return contract
+        manifest_path = source.parent / "pilot_v2_11_8_source_manifest.json"
+        try:
+            payload = manifest_path.read_bytes()
+        except OSError as exc:
+            raise PilotContractError(
+                "V2.11.8 source manifest is unavailable"
+            ) from exc
+        if hashlib.sha256(payload).hexdigest() != binding["file_sha256"]:
+            raise PilotContractError(
+                "V2.11.8 source manifest file hash drifted"
+            )
+        try:
+            manifest = _mapping(
+                json.loads(
+                    payload.decode("utf-8"),
+                    object_pairs_hook=reject_duplicate_keys,
+                    parse_constant=reject_nonfinite,
+                ),
+                "V2.11.8 source manifest",
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise PilotContractError(
+                "V2.11.8 source manifest is not canonical JSON"
+            ) from exc
+        integrity = _mapping(
+            manifest.get("integrity"),
+            "V2.11.8 source manifest integrity",
+        )
+        if (
+            binding.get("path")
+            != "experiments/pilot_v2_11_8_source_manifest.json"
+            or manifest.get("schema_version") != binding["schema_version"]
+            or integrity.get("canonicalization")
+            != PILOT_CONTRACT_CANONICALIZATION
+            or integrity.get("content_sha256") != binding["content_sha256"]
+        ):
+            raise PilotContractError(
+                "V2.11.8 source manifest identity drifted"
+            )
+        content_payload = _json_copy(manifest)
+        content_payload["integrity"].pop("content_sha256")
+        if canonical_sha256(content_payload) != binding["content_sha256"]:
+            raise PilotContractError(
+                "V2.11.8 source manifest content hash drifted"
+            )
     elif contract.contract_id == PILOT_CONTRACT_ID_V2_4:
         if contract.matrix_amendment is None:  # pragma: no cover - parser guard
             raise PilotContractError("V2.4 contract lacks its matrix amendment")
@@ -16765,6 +17236,7 @@ __all__ = [
     "PILOT_CONTRACT_ID_V2_11_5",
     "PILOT_CONTRACT_ID_V2_11_6",
     "PILOT_CONTRACT_ID_V2_11_7",
+    "PILOT_CONTRACT_ID_V2_11_8",
     "PILOT_CONTRACT_TAG_V2",
     "PILOT_CONTRACT_TAG_V2_1",
     "PILOT_CONTRACT_TAG_V2_2",
@@ -16786,6 +17258,7 @@ __all__ = [
     "PILOT_CONTRACT_TAG_V2_11_5",
     "PILOT_CONTRACT_TAG_V2_11_6",
     "PILOT_CONTRACT_TAG_V2_11_7",
+    "PILOT_CONTRACT_TAG_V2_11_8",
     "PILOT_CONTRACT_V2_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_1_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_2_CANONICAL_SHA256",
@@ -16812,6 +17285,8 @@ __all__ = [
     "PILOT_CONTRACT_V2_11_6_SCIENCE_DESIGN_SHA256",
     "PILOT_CONTRACT_V2_11_7_CANONICAL_SHA256",
     "PILOT_CONTRACT_V2_11_7_SCIENCE_DESIGN_SHA256",
+    "PILOT_CONTRACT_V2_11_8_CANONICAL_SHA256",
+    "PILOT_CONTRACT_V2_11_8_SCIENCE_DESIGN_SHA256",
     "PILOT_V2_11_1_SOURCE_MANIFEST_FILE_SHA256",
     "PILOT_V2_11_1_SOURCE_MANIFEST_CONTENT_SHA256",
     "PILOT_V2_11_2_SOURCE_MANIFEST_FILE_SHA256",
@@ -16826,6 +17301,8 @@ __all__ = [
     "PILOT_V2_11_6_SOURCE_MANIFEST_CONTENT_SHA256",
     "PILOT_V2_11_7_SOURCE_MANIFEST_FILE_SHA256",
     "PILOT_V2_11_7_SOURCE_MANIFEST_CONTENT_SHA256",
+    "PILOT_V2_11_8_SOURCE_MANIFEST_FILE_SHA256",
+    "PILOT_V2_11_8_SOURCE_MANIFEST_CONTENT_SHA256",
     "PILOT_V2_9_SOURCE_MANIFEST_FILE_SHA256",
     "PILOT_V2_9_SOURCE_MANIFEST_CONTENT_SHA256",
     "PILOT_V2_10_SOURCE_MANIFEST_FILE_SHA256",
