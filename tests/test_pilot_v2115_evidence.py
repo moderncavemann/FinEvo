@@ -1025,7 +1025,14 @@ def test_v2115_missing_c_sensitivity_gets_diagnostic_replay_but_stays_no_go(
 
     report = evidence._report(
         contract,
-        denominator={"status_counts": {"complete": 25}},
+        denominator={
+            "expected_count": 136,
+            "observed_ledger_count": 136,
+            "terminal_row_count": 50,
+            "scheduled_row_count": 86,
+            "status_counts": {"complete": 47, "failed": 3, "scheduled": 86},
+            "stage_status_counts": {"experiment-b": {"scheduled": 25}},
+        },
         gates={
             name: _no_go_gate(name)
             for name in (
@@ -1048,6 +1055,13 @@ def test_v2115_missing_c_sensitivity_gets_diagnostic_replay_but_stays_no_go(
     assert '"publication_time_replay_diagnostic_only": true' in report
     assert '"publication_time_replay_stage_authoritative": false' in report
     assert '"diagnostic_only": false' not in report
+    assert (
+        "136/136 registered rows accounted; 50 terminal and 86 scheduled/not run"
+        in report
+    )
+    assert "136/136 terminal" not in report
+    assert "Experiment B was not run: 25/25 registered cells remain scheduled" in report
+    assert "Experiment B is descriptive" not in report
 
     supported = {
         "status": "supported",
