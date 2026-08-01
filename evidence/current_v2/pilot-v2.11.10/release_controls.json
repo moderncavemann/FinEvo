@@ -1,0 +1,3432 @@
+{
+  "current_authority": {
+    "content_sha256": "280655eac9f81d514950c4792cb0c34a34d90944758a382e7534364a9f05a90c",
+    "file_sha256": "86c527dd47a818ffcfbe388fddd8d968422dd2a61267b5528a2524fe62d34ddc",
+    "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-10-science/experiment_results/pilot-v2.11.10/raw/parent-import/current_authority/post_gate_authority.json",
+    "provider_calls": 0,
+    "scientific_evidence": false
+  },
+  "current_budget": {
+    "absent_owner_rows": {
+      "finevo-pilot-v2.11.10--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1099057501": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt56_diagnostic",
+        "stage_id": "cross-model"
+      },
+      "finevo-pilot-v2.11.10--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1421875452": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt56_diagnostic",
+        "stage_id": "cross-model"
+      },
+      "finevo-pilot-v2.11.10--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1769977770": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt56_diagnostic",
+        "stage_id": "cross-model"
+      },
+      "finevo-pilot-v2.11.10--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1099057501": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt56_diagnostic",
+        "stage_id": "cross-model"
+      },
+      "finevo-pilot-v2.11.10--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1421875452": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt56_diagnostic",
+        "stage_id": "cross-model"
+      },
+      "finevo-pilot-v2.11.10--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1769977770": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt56_diagnostic",
+        "stage_id": "cross-model"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1099057501": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1421875452": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1769977770": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s617806385": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s959809858": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--full--none--stage0-selected--s1099057501": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--full--none--stage0-selected--s1421875452": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--full--none--stage0-selected--s1769977770": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--full--none--stage0-selected--s617806385": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--full--none--stage0-selected--s959809858": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1769977770": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s617806385": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s959809858": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1099057501": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1421875452": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1769977770": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s617806385": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s959809858": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1099057501": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1421875452": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1769977770": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s617806385": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      },
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s959809858": {
+        "classification": "absent-unreserved-terminal-no-go",
+        "disposition_counts": {
+          "actor-pre-dispatch-integrity-stop": 1
+        },
+        "linked_itt_count": 1,
+        "model_id": "gpt52_main",
+        "stage_id": "experiment-b"
+      }
+    },
+    "absent_unreserved_owner_count": 30,
+    "budget_owner_universe_count": 37,
+    "caps": {
+      "automatic_reserve_usd": 0.0,
+      "completion_scope": "hosted-api-only",
+      "dispatchable_usd": 500.0,
+      "max_completions": 7500,
+      "max_storage_bytes": 5000000000,
+      "stage_usd_caps": {
+        "hosted_v21110": 436.8803549375,
+        "manual_reserve": 0.0,
+        "parent_v2119": 63.1196450625
+      },
+      "total_usd": 500.0
+    },
+    "committed": {
+      "completions": 4192,
+      "cost_usd": 78.32374131250002,
+      "stage_cost_usd": {
+        "hosted_v21110": 15.204096249999994,
+        "manual_reserve": 0.0,
+        "parent_v2119": 63.1196450625
+      },
+      "storage_bytes": 280945417
+    },
+    "event_chain_head": "9c7016d3854926b376a1d3e94aad13db17d908213bb2b2da8df9c7ecb3152828",
+    "event_count": 17,
+    "event_type_counts": {
+      "acceptance_receipt_bound": 1,
+      "genesis": 1,
+      "parent_debit_imported": 1,
+      "run_finalized": 7,
+      "run_reserved": 7
+    },
+    "experiment_d_group_count": 5,
+    "file_sha256": "331e5f880a76fb7bc12e64dd7e47eb813e670da450cc5bd48099ea7d11f394d3",
+    "ledger_sha256": "e8819ea65b94befedbb4c96a301b8a82eb0b5c597e70748d6267c58bf963216f",
+    "linked_itt_row_count": 87,
+    "observed_budget_unit_count": 7,
+    "owner_mapping_sha256": "7c5c59fc773bc80b906a98e66daa92f08f4c49138816d62784f0c22f7ba7136a",
+    "owner_rows": {
+      "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501": {
+        "actual_sha256": "14f12c11cae563a9617d7f1fcfec9a4cb7f7636e85e0fe265a94acc02edee04b",
+        "failure_sha256": null,
+        "linkage": {
+          "classification": "direct-terminal",
+          "direct_terminal_count": 1,
+          "exact_recovery_count": 0,
+          "linked_status_counts": {
+            "complete": 1
+          },
+          "original_terminal_after_budget_recovery_count": 0,
+          "pre_reservation_original_terminal_count": 0
+        },
+        "linked_itt_count": 1,
+        "linked_itt_run_ids": [
+          "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501"
+        ],
+        "reservation_sha256": "3b91d503fcf45987e781c0a7d829d777f3b06b4d96013af1f5b7e88926f9b8c2",
+        "stage_bucket": "hosted_v21110",
+        "status": "complete"
+      },
+      "finevo-pilot-v2.11.10--experiment-d--gpt52_main--checkpoint-group--s1099057501": {
+        "actual_sha256": "a636528e39e021b29b57b52800208f3818b572c4d33d52dd8e5bcfd801972b68",
+        "failure_sha256": "8610e0de8a82b105744ae82c3b848d9444176aee3bccaba383457ba998c9471a",
+        "linkage": {
+          "classification": "direct-terminal",
+          "direct_terminal_count": 11,
+          "exact_recovery_count": 0,
+          "linked_status_counts": {
+            "failed": 11
+          },
+          "original_terminal_after_budget_recovery_count": 0,
+          "pre_reservation_original_terminal_count": 0
+        },
+        "linked_itt_count": 11,
+        "linked_itt_run_ids": [
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1099057501",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1099057501",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1099057501",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1099057501",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1099057501",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1099057501",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1099057501",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1099057501",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1099057501",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1099057501"
+        ],
+        "reservation_sha256": "bb16f5e49d90a63b84333caa9367e4e81cb0d0628b27332cf3e4469895159d1b",
+        "stage_bucket": "hosted_v21110",
+        "status": "failed"
+      },
+      "finevo-pilot-v2.11.10--experiment-d--gpt52_main--checkpoint-group--s1421875452": {
+        "actual_sha256": "7f8570337019778fee94a389b0e867ae1b00e9376b4ec78bc96f64b957614100",
+        "failure_sha256": "3d3ac420ccd162a4abd5b23b8c1bb8bb0defa2a0e6eb8747c105a03d564b8ac7",
+        "linkage": {
+          "classification": "direct-terminal",
+          "direct_terminal_count": 11,
+          "exact_recovery_count": 0,
+          "linked_status_counts": {
+            "failed": 11
+          },
+          "original_terminal_after_budget_recovery_count": 0,
+          "pre_reservation_original_terminal_count": 0
+        },
+        "linked_itt_count": 11,
+        "linked_itt_run_ids": [
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1421875452",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1421875452",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1421875452",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1421875452",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1421875452",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1421875452",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1421875452",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1421875452",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1421875452",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1421875452"
+        ],
+        "reservation_sha256": "2e1905044f2c8cc3f18910f35e66270bbd9c2d91303198fe4e1f1f20cffb3834",
+        "stage_bucket": "hosted_v21110",
+        "status": "failed"
+      },
+      "finevo-pilot-v2.11.10--experiment-d--gpt52_main--checkpoint-group--s1769977770": {
+        "actual_sha256": "7390690c9c7ee226b61f4d13e5b0954e68883f9e4696e6619c9ab5526a530e0a",
+        "failure_sha256": "437d800095f9649a890af39eb093e35e3550079041a2035bc2c9f9a19dc52169",
+        "linkage": {
+          "classification": "direct-terminal",
+          "direct_terminal_count": 11,
+          "exact_recovery_count": 0,
+          "linked_status_counts": {
+            "failed": 11
+          },
+          "original_terminal_after_budget_recovery_count": 0,
+          "pre_reservation_original_terminal_count": 0
+        },
+        "linked_itt_count": 11,
+        "linked_itt_run_ids": [
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1769977770",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1769977770",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1769977770",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1769977770",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1769977770",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1769977770",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1769977770",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1769977770",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1769977770",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1769977770"
+        ],
+        "reservation_sha256": "9ebde37cccbb946bd89743a5d01a12dd19d32a4b89d4f6d7dd43f7d94704a8f6",
+        "stage_bucket": "hosted_v21110",
+        "status": "failed"
+      },
+      "finevo-pilot-v2.11.10--experiment-d--gpt52_main--checkpoint-group--s617806385": {
+        "actual_sha256": "aa17f072478477042ecd16ccaea4b4aec54db88320d31bd6cb7eb493890a32d4",
+        "failure_sha256": "0b7d542818d8ef4213ce9d8daab33b98e4a13863ef0b9b2af59e3d2dfa856d41",
+        "linkage": {
+          "classification": "direct-terminal",
+          "direct_terminal_count": 11,
+          "exact_recovery_count": 0,
+          "linked_status_counts": {
+            "failed": 11
+          },
+          "original_terminal_after_budget_recovery_count": 0,
+          "pre_reservation_original_terminal_count": 0
+        },
+        "linked_itt_count": 11,
+        "linked_itt_run_ids": [
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-a--none--stage0-selected--s617806385",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-b--none--stage0-selected--s617806385",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--no-memory--none--stage0-selected--s617806385",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s617806385",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s617806385",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-verified--none--stage0-selected--s617806385",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s617806385",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s617806385",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s617806385",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s617806385",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s617806385"
+        ],
+        "reservation_sha256": "ee88c28c580f457e3466ecc3bfaa690b29b03c35454658b6ef31bec0ea37ac5a",
+        "stage_bucket": "hosted_v21110",
+        "status": "failed"
+      },
+      "finevo-pilot-v2.11.10--experiment-d--gpt52_main--checkpoint-group--s959809858": {
+        "actual_sha256": "eb86acce75e54429ed76f222701a1fecc7170525bcaec136dc8d8a9967674980",
+        "failure_sha256": "18baed5234b6bc76e6a67f376a6e9b0fb65c90ac8f527bb9f55806bf611de9a2",
+        "linkage": {
+          "classification": "direct-terminal",
+          "direct_terminal_count": 11,
+          "exact_recovery_count": 0,
+          "linked_status_counts": {
+            "failed": 11
+          },
+          "original_terminal_after_budget_recovery_count": 0,
+          "pre_reservation_original_terminal_count": 0
+        },
+        "linked_itt_count": 11,
+        "linked_itt_run_ids": [
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-a--none--stage0-selected--s959809858",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-b--none--stage0-selected--s959809858",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--no-memory--none--stage0-selected--s959809858",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s959809858",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s959809858",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-verified--none--stage0-selected--s959809858",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s959809858",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s959809858",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s959809858",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s959809858",
+          "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s959809858"
+        ],
+        "reservation_sha256": "2eb6d4c18e95a4d7286c3c504c17883c678cadb9fd43e716b012c289c0323656",
+        "stage_bucket": "hosted_v21110",
+        "status": "failed"
+      },
+      "finevo-pilot-v2.11.10--parent-import--qref_scripted--parent-import--none--provider-preflight-default--s2010922376": {
+        "actual_sha256": "d9688204dc8b72e6f7cde671c3fc6b3f7daf8cae9416d599a096132f02dde076",
+        "failure_sha256": null,
+        "linkage": {
+          "classification": "direct-terminal",
+          "direct_terminal_count": 1,
+          "exact_recovery_count": 0,
+          "linked_status_counts": {
+            "complete": 1
+          },
+          "original_terminal_after_budget_recovery_count": 0,
+          "pre_reservation_original_terminal_count": 0
+        },
+        "linked_itt_count": 1,
+        "linked_itt_run_ids": [
+          "finevo-pilot-v2.11.10--parent-import--qref_scripted--parent-import--none--provider-preflight-default--s2010922376"
+        ],
+        "reservation_sha256": "f65ddfdc3555651e3315ec5b0dc3a341b84f33c7985ed18622ff718ae8eac523",
+        "stage_bucket": "parent_v2119",
+        "status": "complete"
+      }
+    },
+    "parent_debit": {
+      "cost_usd": 63.1196450625,
+      "hosted_completions": 3440,
+      "parent_budget_ledger_sha256": "02adeb470b823664c67d09cd34df8787a68760e6270f46b59cca204701e3465d",
+      "parent_contract_sha256": "ec16563bf906b8f6c1492d2a30f291d2c849cd639c2f314e7a1c8ac619e3fa3f",
+      "parent_run_ledger_sha256": "b2891fb152825cac846955b9c2fe4a041e80eab8cbebef9bc4d861d2313fc923",
+      "record_sha256": "5e0c39817c32c845c2f771a02320c55e85e9a6bfb5f3e705046b822593b4c592",
+      "schema_version": "finevo-parent-budget-debit-v1",
+      "stage_bucket": "parent_v2119",
+      "storage_bytes": 270993662
+    },
+    "pass": true,
+    "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-10-science/experiment_results/pilot-v2.11.10/raw/budget_ledger.json",
+    "raw_root_storage_bytes": 10294249,
+    "schema_version": "finevo-pilot-v2.11.10-budget-audit-v1"
+  },
+  "current_parent_import": {
+    "content_sha256": "20f0072728baca0ef5c13abf09d710a538c348320819aac82b2c22de340ce1a1",
+    "scientific_evidence": false
+  },
+  "current_projections": {
+    "gpt52_main": {
+      "content_sha256": "9e0819231cbe80b26718c359d25eecc7018f8b27bdf5dae6316a7651e499b25c",
+      "file_sha256": "06610a670d9063a4b010265095e602f1bf8101d32f356fa0758667831f3ed980",
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-10-science/experiment_results/pilot-v2.11.10/raw/parent-import/current_authority/gpt52_main/projection_p95.json",
+      "provider_calls": 0,
+      "scientific_evidence": false
+    },
+    "gpt56_diagnostic": {
+      "content_sha256": "efe467e6ffc4aa3178453f0da097757926404f017d8cbdc1e2b97ad69cf8ffab",
+      "file_sha256": "2e74ff2324e931ba032a768de78b4351519fc0c0ab2866b20ec7dd561b0ab9b8",
+      "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-10-science/experiment_results/pilot-v2.11.10/raw/parent-import/current_authority/gpt56_diagnostic/projection_p95.json",
+      "provider_calls": 0,
+      "scientific_evidence": false
+    }
+  },
+  "current_raw_inventory": {
+    "file_count": 78,
+    "inventory_sha256": "74296f8fcba32ea8b5c4080be44df86d26fc5a4319f536cd27ff4bc054e9dc2d",
+    "storage_bytes": 10294249
+  },
+  "current_release": {
+    "attestation_sha256": "6994a3945b21bf274db1e8c713228fd321c52da68b7c8e3b2bc153372130eb7a",
+    "checks": {
+      "ci_measurements_exact": true,
+      "ci_receipt_hash_chain": true,
+      "ci_run_success": true,
+      "ci_selection_exact": true,
+      "commit_and_annotated_tag_bound": true,
+      "contract_and_policy_hashes": true,
+      "exact_linux_macos_ci_jobs": true,
+      "release_requirements_exact": true,
+      "schema_and_hash": true,
+      "sealed_manifest_inventory_hash": true,
+      "static_release_requirements_frozen": true,
+      "workflow_exact": true
+    },
+    "file_sha256": "3ed29aaea28ecda315cf30789173eb0e8d5bb7b7eb35385042dbcfe5fb8975bf",
+    "pass": true,
+    "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-10-science/experiment_results/pilot-v2.11.10/raw/release_attestation.json"
+  },
+  "current_run_ledger": {
+    "event_chain_head": "04252836bd2c268babf53e72aefb252226a9ce6949d0853b79ef7f85f2e0a4a9",
+    "event_count": 90,
+    "event_type_counts": {
+      "acceptance_receipt_bound": 1,
+      "genesis": 1,
+      "run_finalized": 87,
+      "runs_registered": 1
+    },
+    "file_sha256": "3a1a4c431e52e7dda20b4fdd5064130ba2b1cc8dc10ff42596e32ab6aa281a44",
+    "ledger_sha256": "a483012b15644fc831459c1f7b64ffea753c72d697b5ee25e2aad3483cc25282",
+    "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-10-science/experiment_results/pilot-v2.11.10/raw/run_ledger.json",
+    "schema_version": "finevo-pilot-v2.11.10-run-ledger-audit-v1",
+    "terminal_artifact_replay": {
+      "completed_semantic_replays": 1,
+      "provider_calls": 0,
+      "provider_construction": false,
+      "terminal_artifact_bindings": 86
+    }
+  },
+  "current_source": {
+    "annotated_tag": true,
+    "annotated_tag_object_id": "7c3de14ddb604436a1dfee1dabfb781849ea68a7",
+    "git_tag": "pilot-v2.11.10-science",
+    "resolved_git_commit": "aa05e94ee6097916db53c40c0276b044c05a44cc",
+    "source_repo_root": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-10-science",
+    "tracked_worktree_clean": true
+  },
+  "current_source_manifest": {
+    "content_sha256": "5632d997905b755678907841ef89825791ef89824e5bcd4f989d4bf5ba1678f3",
+    "file_sha256": "a64f98052a43aed76dc1c3e1fd5ef3f0383278bf0f867099c7dbfa79484b6928",
+    "path": "experiments/pilot_v2_11_10_source_manifest.json",
+    "provider_calls": 0,
+    "provider_construction": false,
+    "three_root_replay_pass": true
+  },
+  "current_stage_receipts": {
+    "all_terminal": true,
+    "contract_sha256": "76a03b7781b1bea317855010d9a3b34b49fcfba3f27cc344954daf19abcd2b1f",
+    "receipts": {
+      "cross-model": {
+        "complete_cell_count": 0,
+        "content_sha256": "c8da601c4aad65ee4d74f1be4fc565ce23d34f48b9a7b20b9961270e0d58bd72",
+        "execution_progression_go": false,
+        "file_sha256": "09b4a6dc723e9b7529fee5ba3bbe1fe13fe5adcda95384fcaa12ec776c1ca271",
+        "go": false,
+        "go_models": [],
+        "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-10-science/experiment_results/pilot-v2.11.10/raw/cross-model/stage_receipt.json",
+        "registered_run_count": 6,
+        "status": "prerequisite-no-go",
+        "status_counts": {
+          "integrity-stopped": 6
+        }
+      },
+      "experiment-b": {
+        "complete_cell_count": 1,
+        "content_sha256": "e8b07b5ad338bf49bb61af8af47e519e00189dd14e1d6ac2e4dabba94b08375a",
+        "execution_progression_go": false,
+        "file_sha256": "19326b46e0e64ec1a0f6fa765a10c032be9e3296e263323f0b77fd99aac9ac49",
+        "go": false,
+        "go_models": [],
+        "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-10-science/experiment_results/pilot-v2.11.10/raw/experiment-b/stage_receipt.json",
+        "registered_run_count": 25,
+        "status": "complete-with-no-go",
+        "status_counts": {
+          "complete": 1,
+          "integrity-stopped": 24
+        }
+      },
+      "experiment-d": {
+        "complete_cell_count": 0,
+        "content_sha256": "30b771a4c5ad13bb2022b39f722356fe598817fab82831071a21863d4128eb61",
+        "execution_progression_go": true,
+        "file_sha256": "0c29c1eb52210151adcfc2a1a55aa484ee5930c186a879c853bf4a699fbfae77",
+        "go": false,
+        "go_models": [],
+        "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-10-science/experiment_results/pilot-v2.11.10/raw/experiment-d/stage_receipt.json",
+        "registered_run_count": 55,
+        "status": "complete-with-no-go",
+        "status_counts": {
+          "failed": 55
+        }
+      },
+      "parent-import": {
+        "complete_cell_count": 1,
+        "content_sha256": "a010e072d01baa37c564c95da23385fdf0198e0cdd3d7da5059305ac35c9909b",
+        "execution_progression_go": true,
+        "file_sha256": "3bafa959faa553fee19f235ff647a0ec11875e6f6904514462c3f95426343412",
+        "go": true,
+        "go_models": [],
+        "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-10-science/experiment_results/pilot-v2.11.10/raw/parent-import/stage_receipt.json",
+        "registered_run_count": 1,
+        "status": "complete",
+        "status_counts": {
+          "complete": 1
+        }
+      }
+    },
+    "schema_version": "finevo-pilot-v2.11.2-stage-receipts-audit-v1"
+  },
+  "failed_v2119_lineage": {
+    "budget_ledger": {
+      "current_actual": {
+        "cost_usd": 0.0,
+        "hosted_completions": 0,
+        "storage_bytes": 800162
+      },
+      "event_count": 77,
+      "event_head_sha256": "ab37a7c425d7b5e16d96dd6fcb75fa1af95cd93f96a7bb0bb2182857a53eda51",
+      "file_sha256": "f4164290d4a66f56843bb3bb47bee2662de77fec98e911d601c51f9f06374267",
+      "ledger_sha256": "02adeb470b823664c67d09cd34df8787a68760e6270f46b59cca204701e3465d",
+      "owner_rows": 37,
+      "path": "experiment_results/pilot-v2.11.9/raw/budget_ledger.json",
+      "status_counts": {
+        "complete": 1,
+        "failed": 36
+      }
+    },
+    "complete_raw_inventory": {
+      "canonicalization": "json-sort-keys-compact-utf8-v1",
+      "excluded_operational_paths": [],
+      "file_count": 90,
+      "inventory_sha256": "268654caa5404b5e49729e418f4ebe1896f5b06bd52bba4de5a533021dd9e206",
+      "root": "experiment_results/pilot-v2.11.9/raw",
+      "storage_bytes": 1219229
+    },
+    "contract_file_sha256": "160f82b4bd57ba3ccc8ae711542ffc1d41f26503b48b80031b277b1f199c5d47",
+    "contract_id": "finevo-pilot-v2.11.9",
+    "contract_sha256": "ec16563bf906b8f6c1492d2a30f291d2c849cd639c2f314e7a1c8ac619e3fa3f",
+    "failed_effects_imported": 0,
+    "failed_rows_imported_into_logical_denominator": 0,
+    "failed_statuses_preserved": true,
+    "failure_profile": {
+      "failed_scientific_cells": 86,
+      "failure_manifest_count": 36,
+      "gpt52_failure_count": 80,
+      "gpt52_message": "source-backed observed p95 source authority differs for openai/gpt-5.2-2025-12-11::action",
+      "gpt56_failure_count": 6,
+      "gpt56_message": "source-backed observed p95 source authority differs for openai/gpt-5.6-sol::action"
+    },
+    "failure_reclassification_forbidden": true,
+    "hosted_completions": 0,
+    "operational_complete_rows": 1,
+    "provider_calls": 0,
+    "provider_construction": false,
+    "raw_inventory": {
+      "canonicalization": "json-sort-keys-compact-utf8-v1",
+      "excluded_operational_paths": [
+        ".real-stage-execution.lock"
+      ],
+      "file_count": 89,
+      "inventory_sha256": "1f98a77a4262542e050003305600e07f0fef0e2e4e8eef8cc51a56fe9a8111bc",
+      "root": "experiment_results/pilot-v2.11.9/raw",
+      "storage_bytes": 1219091
+    },
+    "registered_rows": 87,
+    "release_attestation": {
+      "attestation_sha256": "1b02503d7a7488b3d4b166413a5b4fd7ee376fe175e58cbff0b080d52ef765e9",
+      "file_sha256": "15a0a4b519466fc84fd08340e4643bd5a4b5fe7c7abdf38baee6601058397b38",
+      "path": "experiment_results/pilot-v2.11.9/raw/release_attestation.json",
+      "status": "pass"
+    },
+    "resume_forbidden": true,
+    "run_ledger": {
+      "event_count": 90,
+      "event_head_sha256": "3b255d0cfd972b5491f01588d3987006e5babc27ffafcff0dddd6c7c2f880bd6",
+      "file_sha256": "ea1dbe11bdb229a89eae21e37c58bbd47283599de17d8402edec952e39482cc1",
+      "ledger_sha256": "b2891fb152825cac846955b9c2fe4a041e80eab8cbebef9bc4d861d2313fc923",
+      "path": "experiment_results/pilot-v2.11.9/raw/run_ledger.json",
+      "registered_rows": 87,
+      "status_counts": {
+        "complete": 1,
+        "failed": 86
+      }
+    },
+    "schema_version": "finevo-pilot-v2.11.10-v2.11.9-failed-lineage-audit-v1",
+    "science_commit": "d850902af6218c72a6b0e71275c62c81c9143fb9",
+    "science_tag": "pilot-v2.11.9-science",
+    "science_tag_object": "f0af244b64a69b3ee4571452df6d3611fd8c6220",
+    "scientific_dispatch_acceptance": {
+      "content_sha256": "2cac2d2b5f9f9e97054473c982e94df8ae0ed823852a03c39f1cc59d9f5a4e06",
+      "file_sha256": "f9d49c118b319e7612c0e84c428e5fdfa1571c33915d160afa6f93036864be94",
+      "go": true,
+      "path": "experiment_results/pilot-v2.11.9/raw/scientific_dispatch_acceptance.json",
+      "scientific_evidence": false,
+      "status": "go"
+    },
+    "scientific_evidence": false,
+    "scientific_failed_rows": 86,
+    "scientific_launch_input": {
+      "file_sha256": "c8d92522fc02ce7f2fb4905cdd28f6e6ce759eeb29cce7f9221b4adbd5369dfa",
+      "launch_input_sha256": "ad4bf87f65582f63ba3a675891b7cb9e2ef29a88ca2efa5e889a40461512c16d",
+      "path": "experiment_results/pilot-v2.11.9/raw/scientific_launch_input.json"
+    },
+    "source_manifest_content_sha256": "36a790fe5edd6269218d6010046ec9293c3c418d8bc58a4dd5d89a6a70a547d6",
+    "source_manifest_file_sha256": "609adf9d12543b4caa7adb0cbddb8c8a9073a10f689adf52a8670608d16e9cb1",
+    "stage_receipts": {
+      "cross-model": {
+        "content_sha256": "98d07a4db01d1e1011544e8b3e814471ec3e65f8121fa574520f07c02eed7e18",
+        "execution_progression_go": false,
+        "file_sha256": "fb25de2c70b619370b2e7a455e14bd17fe07f6a53b8480e716e29988000f928a",
+        "go": false,
+        "path": "experiment_results/pilot-v2.11.9/raw/cross-model/stage_receipt.json",
+        "registered_run_count": 6,
+        "scientific_matrix_complete": false,
+        "status": "complete-with-no-go",
+        "status_counts": {
+          "failed": 6
+        }
+      },
+      "experiment-b": {
+        "content_sha256": "cc710beb91422372cec53e77996ad53572006c294b7b24efbcd5fdd47fca56f1",
+        "execution_progression_go": true,
+        "file_sha256": "1278621c8a8d10f7e4d03bcdd46eb4647bb24eb61f615a978650b711e6cc93c9",
+        "go": false,
+        "path": "experiment_results/pilot-v2.11.9/raw/experiment-b/stage_receipt.json",
+        "registered_run_count": 25,
+        "scientific_matrix_complete": false,
+        "status": "complete-with-no-go",
+        "status_counts": {
+          "failed": 25
+        }
+      },
+      "experiment-d": {
+        "content_sha256": "111d77c6525b5d17cf3ad65da45649221f7dd5a17207fcbdf68c979f01cc01b6",
+        "execution_progression_go": true,
+        "file_sha256": "5a66db97dbea5abb380a6ba43bdb632bf43c65226bb57b86b6fd4632185c2ff0",
+        "go": false,
+        "path": "experiment_results/pilot-v2.11.9/raw/experiment-d/stage_receipt.json",
+        "registered_run_count": 55,
+        "scientific_matrix_complete": false,
+        "status": "complete-with-no-go",
+        "status_counts": {
+          "failed": 55
+        }
+      },
+      "parent-import": {
+        "content_sha256": "2d5e4cbb2e08ef231537646e2ad31a2f432a0349c585b3645d544abdf9126754",
+        "execution_progression_go": true,
+        "file_sha256": "49caccf869b8515baea84f5e016a53bd8bacdbb22aebc85a61324cd9799a3da4",
+        "go": true,
+        "path": "experiment_results/pilot-v2.11.9/raw/parent-import/stage_receipt.json",
+        "registered_run_count": 1,
+        "scientific_matrix_complete": true,
+        "status": "complete",
+        "status_counts": {
+          "complete": 1
+        }
+      }
+    },
+    "terminal_verification_pass": true
+  },
+  "failed_v2119_raw_inventory": {
+    "file_count": 90,
+    "inventory_sha256": "268654caa5404b5e49729e418f4ebe1896f5b06bd52bba4de5a533021dd9e206",
+    "storage_bytes": 1219229
+  },
+  "parent_acceptance": {
+    "budget_event_count_before_marker": 12,
+    "content_sha256": "41bae59ac6ac34182091aeb1720777f5c391b1f6d1e61df9cdb2d92e537894cf",
+    "file_sha256": "10d9c591d7dea12dc0062fd59f091628f474e5be1720fa9840ddc9361fd6d72d",
+    "pass": true,
+    "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/scientific_dispatch_acceptance.json",
+    "provider_calls": 0,
+    "run_event_count_before_marker": 7,
+    "scientific_evidence": false
+  },
+  "parent_budget": {
+    "caps": {
+      "automatic_reserve_usd": 0.0,
+      "completion_scope": "hosted-api-only",
+      "dispatchable_usd": 500.0,
+      "max_completions": 7500,
+      "max_storage_bytes": 5000000000,
+      "stage_usd_caps": {
+        "hosted_v2115": 480.0017794375,
+        "manual_reserve": 0.0,
+        "parent_v2114": 19.998220562500006
+      },
+      "total_usd": 500.0
+    },
+    "committed": {
+      "completions": 3440,
+      "cost_usd": 63.1196450625,
+      "stage_cost_usd": {
+        "hosted_v2115": 43.1214245,
+        "manual_reserve": 0.0,
+        "parent_v2114": 19.998220562500006
+      },
+      "storage_bytes": 270188235
+    },
+    "event_chain_head": "f745a8c4087b310d5d5cfb74645df8ddb0f2f80ef3d269b9642d3715f7de5834",
+    "file_sha256": "49c21f5b2b21b773a8a0814ffe115ccd69cc67d947b67b5b4e3ecdaf2b5a2afb",
+    "finalized_budget_unit_count": 50,
+    "ledger_sha256": "53e70f6c0b9053674408de385e1a5b5bf42ace7e82dc8e0c6f227ea124b7a38f",
+    "parent_debit": {
+      "cost_usd": 19.998220562500006,
+      "hosted_completions": 1004,
+      "parent_budget_ledger_sha256": "d4ce8beebe1e462003039db2d39e6616c76cd33897c5b3e77e45989ced9d8789",
+      "parent_contract_sha256": "e898fe49935dae9ae7f0d7ac577dae943192953c1da581d70c334f8c64924e46",
+      "parent_run_ledger_sha256": "f0064120e279137fbd7dd5f5cec474aa384745b7c405d9371c90ac5c4f448656",
+      "record_sha256": "9595d037a21f429a59fd37febd4abd8283287e080ee9eb506ebf999e3d1e81a5",
+      "schema_version": "finevo-parent-budget-debit-v1",
+      "stage_bucket": "parent_v2114",
+      "storage_bytes": 222048702
+    },
+    "pass": true,
+    "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/budget_ledger.json",
+    "raw_root_storage_bytes": 48820695,
+    "schema_version": "finevo-pilot-v2.11.5-budget-audit-v1"
+  },
+  "parent_capability": {
+    "gpt52_main": {
+      "artifact_validated": true,
+      "capability": {
+        "capability": {
+          "action_sample_count": 24,
+          "actual_usage": {
+            "completion_tokens": 35006,
+            "cost_usd": 0.53580625,
+            "prompt_tokens": 26127,
+            "total_tokens": 61133
+          },
+          "capability_assessment": {
+            "checks": {
+              "rule-application": true,
+              "rule-proposal": true,
+              "utility-ranking": true
+            },
+            "pass": true,
+            "status": "pass"
+          },
+          "capability_pass": true,
+          "category_totals": {
+            "rule-application": {
+              "conditional_accuracy": 1.0,
+              "conditional_correct": 12,
+              "correct": 12,
+              "denominator": 12,
+              "evaluable_count": 12,
+              "interface_failure_count": 0,
+              "registered_correct": 12,
+              "registered_total": 12,
+              "required": 10
+            },
+            "rule-proposal": {
+              "conditional_accuracy": 1.0,
+              "conditional_correct": 6,
+              "correct": 6,
+              "denominator": 6,
+              "evaluable_count": 6,
+              "interface_failure_count": 0,
+              "registered_correct": 6,
+              "registered_total": 6,
+              "required": 5
+            },
+            "utility-ranking": {
+              "conditional_accuracy": 1.0,
+              "conditional_correct": 12,
+              "correct": 12,
+              "denominator": 12,
+              "evaluable_count": 12,
+              "interface_failure_count": 0,
+              "registered_correct": 12,
+              "registered_total": 12,
+              "required": 10
+            }
+          },
+          "checks": {
+            "rule-application": true,
+            "rule-proposal": true,
+            "utility-ranking": true
+          },
+          "historical_source_calls": 30,
+          "interface_gate": {
+            "failure_count": 0,
+            "pass": true
+          },
+          "interface_pass": true,
+          "model_id": "gpt52_main",
+          "parse_failure_count": 0,
+          "prompt_tier_gate": {
+            "ceiling_tokens": 200000,
+            "maximum_upper_bound_tokens": 6292,
+            "passed": true,
+            "upper_bound_method": "utf8-bytes-plus-256-v1"
+          },
+          "provider_failure_count": 0,
+          "recovered_parse_count": 0,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "run_id": "finevo-pilot-v2.11--capability-gate--gpt52_main--capability-probe--none--provider-preflight-default--s2010922376",
+          "runtime_model": "openai/gpt-5.2-2025-12-11",
+          "samples": {
+            "action": [
+              {
+                "clipped": false,
+                "completion_tokens": 877,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 310,
+                "reasoning_tokens": 824,
+                "response_completed": true,
+                "visible_completion_tokens": 53
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 2432,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 2387,
+                "response_completed": true,
+                "visible_completion_tokens": 45
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1826,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 1769,
+                "response_completed": true,
+                "visible_completion_tokens": 57
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1077,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 1026,
+                "response_completed": true,
+                "visible_completion_tokens": 51
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1753,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 1705,
+                "response_completed": true,
+                "visible_completion_tokens": 48
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1479,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 1414,
+                "response_completed": true,
+                "visible_completion_tokens": 65
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1417,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 1359,
+                "response_completed": true,
+                "visible_completion_tokens": 58
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1887,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 1830,
+                "response_completed": true,
+                "visible_completion_tokens": 57
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1832,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 321,
+                "reasoning_tokens": 1779,
+                "response_completed": true,
+                "visible_completion_tokens": 53
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1051,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 997,
+                "response_completed": true,
+                "visible_completion_tokens": 54
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1868,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 1820,
+                "response_completed": true,
+                "visible_completion_tokens": 48
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1041,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 321,
+                "reasoning_tokens": 994,
+                "response_completed": true,
+                "visible_completion_tokens": 47
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1327,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 907,
+                "reasoning_tokens": 1273,
+                "response_completed": true,
+                "visible_completion_tokens": 54
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 496,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 903,
+                "reasoning_tokens": 448,
+                "response_completed": true,
+                "visible_completion_tokens": 48
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1070,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 900,
+                "reasoning_tokens": 1015,
+                "response_completed": true,
+                "visible_completion_tokens": 55
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1074,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 900,
+                "reasoning_tokens": 1018,
+                "response_completed": true,
+                "visible_completion_tokens": 56
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 887,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 899,
+                "reasoning_tokens": 841,
+                "response_completed": true,
+                "visible_completion_tokens": 46
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 2140,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 910,
+                "reasoning_tokens": 2089,
+                "response_completed": true,
+                "visible_completion_tokens": 51
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 473,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 901,
+                "reasoning_tokens": 425,
+                "response_completed": true,
+                "visible_completion_tokens": 48
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 799,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 898,
+                "reasoning_tokens": 742,
+                "response_completed": true,
+                "visible_completion_tokens": 57
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 1498,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 907,
+                "reasoning_tokens": 1448,
+                "response_completed": true,
+                "visible_completion_tokens": 50
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 885,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 904,
+                "reasoning_tokens": 831,
+                "response_completed": true,
+                "visible_completion_tokens": 54
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 966,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 904,
+                "reasoning_tokens": 917,
+                "response_completed": true,
+                "visible_completion_tokens": 49
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 794,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 902,
+                "reasoning_tokens": 736,
+                "response_completed": true,
+                "visible_completion_tokens": 58
+              }
+            ],
+            "semantic": [
+              {
+                "clipped": false,
+                "completion_tokens": 619,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 1905,
+                "reasoning_tokens": 387,
+                "response_completed": true,
+                "visible_completion_tokens": 232
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 561,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 1905,
+                "reasoning_tokens": 326,
+                "response_completed": true,
+                "visible_completion_tokens": 235
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 764,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 1890,
+                "reasoning_tokens": 534,
+                "response_completed": true,
+                "visible_completion_tokens": 230
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 715,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 1920,
+                "reasoning_tokens": 485,
+                "response_completed": true,
+                "visible_completion_tokens": 230
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 547,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 1890,
+                "reasoning_tokens": 330,
+                "response_completed": true,
+                "visible_completion_tokens": 217
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 851,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 1905,
+                "reasoning_tokens": 623,
+                "response_completed": true,
+                "visible_completion_tokens": 228
+              }
+            ]
+          },
+          "semantic_sample_count": 6,
+          "served_model": "gpt-5.2-2025-12-11",
+          "stage_receipt_content_sha256": "eaf00790a95bc497e02e44cd2dc2958301ef43c8d835e4d04f09d0fa3d4cf0cc",
+          "strict_parse_count": 30,
+          "taskset_sha256": "633a57690a1a61e8300ca3c1fb506084959d2f47219bc85b087dfd00732091c5",
+          "truncation_count": 0,
+          "usage_rows": [
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 877,
+                "cost_usd": 0.0128205,
+                "prompt_tokens": 310,
+                "total_tokens": 1187
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 2432,
+                "cost_usd": 0.03461675,
+                "prompt_tokens": 325,
+                "total_tokens": 2757
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1826,
+                "cost_usd": 0.02613275,
+                "prompt_tokens": 325,
+                "total_tokens": 2151
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1077,
+                "cost_usd": 0.01564675,
+                "prompt_tokens": 325,
+                "total_tokens": 1402
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1753,
+                "cost_usd": 0.025110749999999998,
+                "prompt_tokens": 325,
+                "total_tokens": 2078
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1479,
+                "cost_usd": 0.021274750000000002,
+                "prompt_tokens": 325,
+                "total_tokens": 1804
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1417,
+                "cost_usd": 0.02040675,
+                "prompt_tokens": 325,
+                "total_tokens": 1742
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1887,
+                "cost_usd": 0.02698675,
+                "prompt_tokens": 325,
+                "total_tokens": 2212
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1832,
+                "cost_usd": 0.02620975,
+                "prompt_tokens": 321,
+                "total_tokens": 2153
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1051,
+                "cost_usd": 0.01528275,
+                "prompt_tokens": 325,
+                "total_tokens": 1376
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1868,
+                "cost_usd": 0.02672075,
+                "prompt_tokens": 325,
+                "total_tokens": 2193
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1041,
+                "cost_usd": 0.015135749999999998,
+                "prompt_tokens": 321,
+                "total_tokens": 1362
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1327,
+                "cost_usd": 0.020165250000000003,
+                "prompt_tokens": 907,
+                "total_tokens": 2234
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 496,
+                "cost_usd": 0.00852425,
+                "prompt_tokens": 903,
+                "total_tokens": 1399
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1070,
+                "cost_usd": 0.016555,
+                "prompt_tokens": 900,
+                "total_tokens": 1970
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1074,
+                "cost_usd": 0.016611,
+                "prompt_tokens": 900,
+                "total_tokens": 1974
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 887,
+                "cost_usd": 0.01399125,
+                "prompt_tokens": 899,
+                "total_tokens": 1786
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 2140,
+                "cost_usd": 0.031552500000000004,
+                "prompt_tokens": 910,
+                "total_tokens": 3050
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 473,
+                "cost_usd": 0.00819875,
+                "prompt_tokens": 901,
+                "total_tokens": 1374
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 799,
+                "cost_usd": 0.012757500000000001,
+                "prompt_tokens": 898,
+                "total_tokens": 1697
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 1498,
+                "cost_usd": 0.022559250000000003,
+                "prompt_tokens": 907,
+                "total_tokens": 2405
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 885,
+                "cost_usd": 0.013972,
+                "prompt_tokens": 904,
+                "total_tokens": 1789
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 966,
+                "cost_usd": 0.015106,
+                "prompt_tokens": 904,
+                "total_tokens": 1870
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 794,
+                "cost_usd": 0.012694500000000001,
+                "prompt_tokens": 902,
+                "total_tokens": 1696
+              }
+            },
+            {
+              "call_kind": "semantic",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 619,
+                "cost_usd": 0.01199975,
+                "prompt_tokens": 1905,
+                "total_tokens": 2524
+              }
+            },
+            {
+              "call_kind": "semantic",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 561,
+                "cost_usd": 0.011187750000000002,
+                "prompt_tokens": 1905,
+                "total_tokens": 2466
+              }
+            },
+            {
+              "call_kind": "semantic",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 764,
+                "cost_usd": 0.0140035,
+                "prompt_tokens": 1890,
+                "total_tokens": 2654
+              }
+            },
+            {
+              "call_kind": "semantic",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 715,
+                "cost_usd": 0.01337,
+                "prompt_tokens": 1920,
+                "total_tokens": 2635
+              }
+            },
+            {
+              "call_kind": "semantic",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 547,
+                "cost_usd": 0.010965500000000001,
+                "prompt_tokens": 1890,
+                "total_tokens": 2437
+              }
+            },
+            {
+              "call_kind": "semantic",
+              "response_model": "gpt-5.2-2025-12-11",
+              "usage": {
+                "completion_tokens": 851,
+                "cost_usd": 0.01524775,
+                "prompt_tokens": 1905,
+                "total_tokens": 2756
+              }
+            }
+          ]
+        },
+        "child_release": {
+          "contract_id": "finevo-pilot-v2.11.5",
+          "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+          "git_tag": "pilot-v2.11.5-science",
+          "resolved_git_commit": "2351ac2283f9fedb9dce70067174020be56ed9cc"
+        },
+        "claim_boundary": "historical capability and P95 dispatch authority only; zero current V2.11.5 capability/preflight provider calls",
+        "current_attempt_usage": {
+          "completion_tokens": 0,
+          "cost_usd": 0.0,
+          "prompt_tokens": 0,
+          "total_tokens": 0
+        },
+        "evidence_scope": "preregistered_task_capability_gate",
+        "hosted_provider_calls_current_attempt": 0,
+        "imported_effect_cells": 0,
+        "imported_preflight_samples": 0,
+        "integrity": {
+          "canonicalization": "json-sort-keys-utf8-v1",
+          "content_sha256": "be8684bd1208bb5049be744910c10bdaf5f48e69ad6f13ae086ecef9ce42e32f"
+        },
+        "parent_release": {
+          "contract_id": "finevo-pilot-v2.11.2",
+          "contract_sha256": "c04f7d4c5ae0962a4a64b0ac543d890a1475b6f184f516534eeb8ff026505a37",
+          "git_tag": "pilot-v2.11.2-science",
+          "git_tag_object": "1b9d9f163934e946255ec19aeebe2f121fba4cc3",
+          "resolved_git_commit": "78870956b528946d415a9be5f5769b0893d16d74"
+        },
+        "preflight_go": true,
+        "preflight_interface_pass": true,
+        "provider_calls_current_attempt": 0,
+        "provider_construction_current_attempt": false,
+        "schema_version": "finevo-pilot-v2.11.5-imported-capability-wrapper-v1",
+        "scientific_evidence": false,
+        "source_manifest": {
+          "content_sha256": "be84d33f561a5ab8927f13e0753f5109b5f018dc790ae180d5e0e6e0228af559",
+          "file_sha256": "fea5a276fb64fdd5bf0539014687ea39a891e9d305205b1d2046a2c15a892d16",
+          "path": "experiments/pilot_v2_11_5_source_manifest.json"
+        },
+        "source_wrapper": {
+          "content_sha256": "b1a219116f62fe48a5c0ae72b7e93be8a2127fd3b77f4853f0269ff277b554d1",
+          "schema_version": "finevo-pilot-v2.11.2-imported-capability-wrapper-v1"
+        }
+      },
+      "capability_gate": {
+        "artifact_validated": true,
+        "gate_evidence": {
+          "capability_pass": true,
+          "capability_status": "imported-pass",
+          "go": true,
+          "historical_source_calls": 30,
+          "imported_effect_cells": 0,
+          "interface_pass": true,
+          "preflight_run": null,
+          "provider_calls_current_attempt": 0,
+          "provider_construction_current_attempt": false,
+          "reason": null
+        },
+        "ledger_status": "complete",
+        "stage_id": "capability-gate"
+      },
+      "closed_loop_preflight": {
+        "artifact_validated": true,
+        "gate_evidence": {
+          "authority_receipt": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/observed_p95_authority_receipt.json",
+          "capability_pass": true,
+          "contract_id": "finevo-pilot-v2.11.5",
+          "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+          "go": true,
+          "historical_action_samples": 24,
+          "historical_provider_calls": 32,
+          "historical_semantic_samples": 8,
+          "integrity": {
+            "canonicalization": "json-sort-keys-utf8-v1",
+            "content_sha256": "5f040e78af294b7b192ff181c92ef520d6ad0c57e836c7c9ef3795ca46531a54"
+          },
+          "interface_pass": true,
+          "model_id": "gpt52_main",
+          "projection_p95": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/projection_p95.json",
+          "provider_calls_current_attempt": 0,
+          "provider_construction_current_attempt": false,
+          "schema_version": "finevo-pilot-v2.11.5-preflight-authority-import-gate-v1",
+          "scientific_evidence": false
+        },
+        "ledger_status": "complete",
+        "stage_id": "long-context-preflight"
+      },
+      "contract_role": "primary",
+      "dispatch_eligible": true,
+      "ineligibility_reason": null,
+      "ledger_status": "complete",
+      "registered_dispatch_cells": 2
+    },
+    "gpt56_diagnostic": {
+      "artifact_validated": true,
+      "capability": {
+        "capability": {
+          "action_sample_count": 24,
+          "actual_usage": {
+            "completion_tokens": 15172,
+            "cost_usd": 0.585795,
+            "prompt_tokens": 26127,
+            "total_tokens": 41299
+          },
+          "capability_assessment": {
+            "checks": {
+              "rule-application": true,
+              "rule-proposal": true,
+              "utility-ranking": true
+            },
+            "pass": true,
+            "status": "pass"
+          },
+          "capability_pass": true,
+          "category_totals": {
+            "rule-application": {
+              "conditional_accuracy": 1.0,
+              "conditional_correct": 12,
+              "correct": 12,
+              "denominator": 12,
+              "evaluable_count": 12,
+              "interface_failure_count": 0,
+              "registered_correct": 12,
+              "registered_total": 12,
+              "required": 10
+            },
+            "rule-proposal": {
+              "conditional_accuracy": 1.0,
+              "conditional_correct": 6,
+              "correct": 6,
+              "denominator": 6,
+              "evaluable_count": 6,
+              "interface_failure_count": 0,
+              "registered_correct": 6,
+              "registered_total": 6,
+              "required": 5
+            },
+            "utility-ranking": {
+              "conditional_accuracy": 1.0,
+              "conditional_correct": 12,
+              "correct": 12,
+              "denominator": 12,
+              "evaluable_count": 12,
+              "interface_failure_count": 0,
+              "registered_correct": 12,
+              "registered_total": 12,
+              "required": 10
+            }
+          },
+          "checks": {
+            "rule-application": true,
+            "rule-proposal": true,
+            "utility-ranking": true
+          },
+          "historical_source_calls": 30,
+          "interface_gate": {
+            "failure_count": 0,
+            "pass": true
+          },
+          "interface_pass": true,
+          "model_id": "gpt56_diagnostic",
+          "parse_failure_count": 0,
+          "prompt_tier_gate": {
+            "ceiling_tokens": 200000,
+            "maximum_upper_bound_tokens": 6292,
+            "passed": true,
+            "upper_bound_method": "utf8-bytes-plus-256-v1"
+          },
+          "provider_failure_count": 0,
+          "recovered_parse_count": 0,
+          "requested_model": "gpt-5.6-sol",
+          "run_id": "finevo-pilot-v2.11--capability-gate--gpt56_diagnostic--capability-probe--none--provider-preflight-default--s2010922376",
+          "runtime_model": "openai/gpt-5.6-sol",
+          "samples": {
+            "action": [
+              {
+                "clipped": false,
+                "completion_tokens": 924,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 310,
+                "reasoning_tokens": 873,
+                "response_completed": true,
+                "visible_completion_tokens": 51
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 478,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 437,
+                "response_completed": true,
+                "visible_completion_tokens": 41
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 690,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 639,
+                "response_completed": true,
+                "visible_completion_tokens": 51
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 431,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 384,
+                "response_completed": true,
+                "visible_completion_tokens": 47
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 809,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 761,
+                "response_completed": true,
+                "visible_completion_tokens": 48
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 874,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 825,
+                "response_completed": true,
+                "visible_completion_tokens": 49
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 480,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 440,
+                "response_completed": true,
+                "visible_completion_tokens": 40
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 791,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 739,
+                "response_completed": true,
+                "visible_completion_tokens": 52
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 653,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 321,
+                "reasoning_tokens": 601,
+                "response_completed": true,
+                "visible_completion_tokens": 52
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 875,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 825,
+                "response_completed": true,
+                "visible_completion_tokens": 50
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 422,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 325,
+                "reasoning_tokens": 370,
+                "response_completed": true,
+                "visible_completion_tokens": 52
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 938,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 321,
+                "reasoning_tokens": 892,
+                "response_completed": true,
+                "visible_completion_tokens": 46
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 439,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 907,
+                "reasoning_tokens": 397,
+                "response_completed": true,
+                "visible_completion_tokens": 42
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 737,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 903,
+                "reasoning_tokens": 686,
+                "response_completed": true,
+                "visible_completion_tokens": 51
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 280,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 900,
+                "reasoning_tokens": 238,
+                "response_completed": true,
+                "visible_completion_tokens": 42
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 304,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 900,
+                "reasoning_tokens": 255,
+                "response_completed": true,
+                "visible_completion_tokens": 49
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 360,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 899,
+                "reasoning_tokens": 316,
+                "response_completed": true,
+                "visible_completion_tokens": 44
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 436,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 910,
+                "reasoning_tokens": 390,
+                "response_completed": true,
+                "visible_completion_tokens": 46
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 427,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 901,
+                "reasoning_tokens": 384,
+                "response_completed": true,
+                "visible_completion_tokens": 43
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 342,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 898,
+                "reasoning_tokens": 297,
+                "response_completed": true,
+                "visible_completion_tokens": 45
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 296,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 907,
+                "reasoning_tokens": 252,
+                "response_completed": true,
+                "visible_completion_tokens": 44
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 328,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 904,
+                "reasoning_tokens": 287,
+                "response_completed": true,
+                "visible_completion_tokens": 41
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 533,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 904,
+                "reasoning_tokens": 490,
+                "response_completed": true,
+                "visible_completion_tokens": 43
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 478,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 902,
+                "reasoning_tokens": 431,
+                "response_completed": true,
+                "visible_completion_tokens": 47
+              }
+            ],
+            "semantic": [
+              {
+                "clipped": false,
+                "completion_tokens": 302,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 1905,
+                "reasoning_tokens": 86,
+                "response_completed": true,
+                "visible_completion_tokens": 216
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 283,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 1905,
+                "reasoning_tokens": 64,
+                "response_completed": true,
+                "visible_completion_tokens": 219
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 316,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 1890,
+                "reasoning_tokens": 100,
+                "response_completed": true,
+                "visible_completion_tokens": 216
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 322,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 1920,
+                "reasoning_tokens": 104,
+                "response_completed": true,
+                "visible_completion_tokens": 218
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 301,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 1890,
+                "reasoning_tokens": 86,
+                "response_completed": true,
+                "visible_completion_tokens": 215
+              },
+              {
+                "clipped": false,
+                "completion_tokens": 323,
+                "error_type": null,
+                "finish_reason": "stop",
+                "output_disposition": "accepted",
+                "parse_success": true,
+                "prompt_tokens": 1905,
+                "reasoning_tokens": 110,
+                "response_completed": true,
+                "visible_completion_tokens": 213
+              }
+            ]
+          },
+          "semantic_sample_count": 6,
+          "served_model": "gpt-5.6-sol",
+          "stage_receipt_content_sha256": "eaf00790a95bc497e02e44cd2dc2958301ef43c8d835e4d04f09d0fa3d4cf0cc",
+          "strict_parse_count": 30,
+          "taskset_sha256": "633a57690a1a61e8300ca3c1fb506084959d2f47219bc85b087dfd00732091c5",
+          "truncation_count": 0,
+          "usage_rows": [
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 924,
+                "cost_usd": 0.02927,
+                "prompt_tokens": 310,
+                "total_tokens": 1234
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 478,
+                "cost_usd": 0.015965,
+                "prompt_tokens": 325,
+                "total_tokens": 803
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 690,
+                "cost_usd": 0.022324999999999998,
+                "prompt_tokens": 325,
+                "total_tokens": 1015
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 431,
+                "cost_usd": 0.014554999999999998,
+                "prompt_tokens": 325,
+                "total_tokens": 756
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 809,
+                "cost_usd": 0.025895,
+                "prompt_tokens": 325,
+                "total_tokens": 1134
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 874,
+                "cost_usd": 0.027845,
+                "prompt_tokens": 325,
+                "total_tokens": 1199
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 480,
+                "cost_usd": 0.016025,
+                "prompt_tokens": 325,
+                "total_tokens": 805
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 791,
+                "cost_usd": 0.025355000000000003,
+                "prompt_tokens": 325,
+                "total_tokens": 1116
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 653,
+                "cost_usd": 0.021195,
+                "prompt_tokens": 321,
+                "total_tokens": 974
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 875,
+                "cost_usd": 0.027875,
+                "prompt_tokens": 325,
+                "total_tokens": 1200
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 422,
+                "cost_usd": 0.014284999999999999,
+                "prompt_tokens": 325,
+                "total_tokens": 747
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 938,
+                "cost_usd": 0.029744999999999997,
+                "prompt_tokens": 321,
+                "total_tokens": 1259
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 439,
+                "cost_usd": 0.017705,
+                "prompt_tokens": 907,
+                "total_tokens": 1346
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 737,
+                "cost_usd": 0.026624999999999996,
+                "prompt_tokens": 903,
+                "total_tokens": 1640
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 280,
+                "cost_usd": 0.012900000000000002,
+                "prompt_tokens": 900,
+                "total_tokens": 1180
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 304,
+                "cost_usd": 0.01362,
+                "prompt_tokens": 900,
+                "total_tokens": 1204
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 360,
+                "cost_usd": 0.015295,
+                "prompt_tokens": 899,
+                "total_tokens": 1259
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 436,
+                "cost_usd": 0.01763,
+                "prompt_tokens": 910,
+                "total_tokens": 1346
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 427,
+                "cost_usd": 0.017314999999999997,
+                "prompt_tokens": 901,
+                "total_tokens": 1328
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 342,
+                "cost_usd": 0.01475,
+                "prompt_tokens": 898,
+                "total_tokens": 1240
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 296,
+                "cost_usd": 0.013415,
+                "prompt_tokens": 907,
+                "total_tokens": 1203
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 328,
+                "cost_usd": 0.014360000000000001,
+                "prompt_tokens": 904,
+                "total_tokens": 1232
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 533,
+                "cost_usd": 0.02051,
+                "prompt_tokens": 904,
+                "total_tokens": 1437
+              }
+            },
+            {
+              "call_kind": "action",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 478,
+                "cost_usd": 0.01885,
+                "prompt_tokens": 902,
+                "total_tokens": 1380
+              }
+            },
+            {
+              "call_kind": "semantic",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 302,
+                "cost_usd": 0.018584999999999997,
+                "prompt_tokens": 1905,
+                "total_tokens": 2207
+              }
+            },
+            {
+              "call_kind": "semantic",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 283,
+                "cost_usd": 0.018015,
+                "prompt_tokens": 1905,
+                "total_tokens": 2188
+              }
+            },
+            {
+              "call_kind": "semantic",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 316,
+                "cost_usd": 0.018930000000000002,
+                "prompt_tokens": 1890,
+                "total_tokens": 2206
+              }
+            },
+            {
+              "call_kind": "semantic",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 322,
+                "cost_usd": 0.01926,
+                "prompt_tokens": 1920,
+                "total_tokens": 2242
+              }
+            },
+            {
+              "call_kind": "semantic",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 301,
+                "cost_usd": 0.01848,
+                "prompt_tokens": 1890,
+                "total_tokens": 2191
+              }
+            },
+            {
+              "call_kind": "semantic",
+              "response_model": "gpt-5.6-sol",
+              "usage": {
+                "completion_tokens": 323,
+                "cost_usd": 0.019215000000000003,
+                "prompt_tokens": 1905,
+                "total_tokens": 2228
+              }
+            }
+          ]
+        },
+        "child_release": {
+          "contract_id": "finevo-pilot-v2.11.5",
+          "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+          "git_tag": "pilot-v2.11.5-science",
+          "resolved_git_commit": "2351ac2283f9fedb9dce70067174020be56ed9cc"
+        },
+        "claim_boundary": "historical capability and P95 dispatch authority only; zero current V2.11.5 capability/preflight provider calls",
+        "current_attempt_usage": {
+          "completion_tokens": 0,
+          "cost_usd": 0.0,
+          "prompt_tokens": 0,
+          "total_tokens": 0
+        },
+        "evidence_scope": "preregistered_task_capability_gate",
+        "hosted_provider_calls_current_attempt": 0,
+        "imported_effect_cells": 0,
+        "imported_preflight_samples": 0,
+        "integrity": {
+          "canonicalization": "json-sort-keys-utf8-v1",
+          "content_sha256": "f3a3025347327545e33d42149efe1ed0d29c3279429b3f379ecc88c6cdeab863"
+        },
+        "parent_release": {
+          "contract_id": "finevo-pilot-v2.11.2",
+          "contract_sha256": "c04f7d4c5ae0962a4a64b0ac543d890a1475b6f184f516534eeb8ff026505a37",
+          "git_tag": "pilot-v2.11.2-science",
+          "git_tag_object": "1b9d9f163934e946255ec19aeebe2f121fba4cc3",
+          "resolved_git_commit": "78870956b528946d415a9be5f5769b0893d16d74"
+        },
+        "preflight_go": true,
+        "preflight_interface_pass": true,
+        "provider_calls_current_attempt": 0,
+        "provider_construction_current_attempt": false,
+        "schema_version": "finevo-pilot-v2.11.5-imported-capability-wrapper-v1",
+        "scientific_evidence": false,
+        "source_manifest": {
+          "content_sha256": "be84d33f561a5ab8927f13e0753f5109b5f018dc790ae180d5e0e6e0228af559",
+          "file_sha256": "fea5a276fb64fdd5bf0539014687ea39a891e9d305205b1d2046a2c15a892d16",
+          "path": "experiments/pilot_v2_11_5_source_manifest.json"
+        },
+        "source_wrapper": {
+          "content_sha256": "4c02591927046fcdc40cb9ced402dfabaa95dd2f754f25aa5f35ef342e646004",
+          "schema_version": "finevo-pilot-v2.11.2-imported-capability-wrapper-v1"
+        }
+      },
+      "capability_gate": {
+        "artifact_validated": true,
+        "gate_evidence": {
+          "capability_pass": true,
+          "capability_status": "imported-pass",
+          "go": true,
+          "historical_source_calls": 30,
+          "imported_effect_cells": 0,
+          "interface_pass": true,
+          "preflight_run": null,
+          "provider_calls_current_attempt": 0,
+          "provider_construction_current_attempt": false,
+          "reason": null
+        },
+        "ledger_status": "complete",
+        "stage_id": "capability-gate"
+      },
+      "closed_loop_preflight": {
+        "artifact_validated": true,
+        "gate_evidence": {
+          "authority_receipt": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt56_diagnostic/observed_p95_authority_receipt.json",
+          "capability_pass": true,
+          "contract_id": "finevo-pilot-v2.11.5",
+          "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+          "go": true,
+          "historical_action_samples": 24,
+          "historical_provider_calls": 32,
+          "historical_semantic_samples": 8,
+          "integrity": {
+            "canonicalization": "json-sort-keys-utf8-v1",
+            "content_sha256": "f7df84f3814aaec00fa0dcf7451b720a4cb3c9c3cd9d3db49bc3a5b233326942"
+          },
+          "interface_pass": true,
+          "model_id": "gpt56_diagnostic",
+          "projection_p95": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt56_diagnostic/projection_p95.json",
+          "provider_calls_current_attempt": 0,
+          "provider_construction_current_attempt": false,
+          "schema_version": "finevo-pilot-v2.11.5-preflight-authority-import-gate-v1",
+          "scientific_evidence": false
+        },
+        "ledger_status": "complete",
+        "stage_id": "long-context-preflight"
+      },
+      "contract_role": "secondary_diagnostic",
+      "dispatch_eligible": true,
+      "ineligibility_reason": null,
+      "ledger_status": "complete",
+      "registered_dispatch_cells": 2
+    }
+  },
+  "parent_offline_candidate_admission": {
+    "all_registered_cells_accounted": true,
+    "claim_boundary": "publication-time deterministic seal of the fixed zero-provider candidate-admission trace; the five seed-indexed fixture rows are not independent random repetitions and this is not an execution-time full-detail hash",
+    "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+    "execution_time_full_detail_receipt_bound": false,
+    "independent_random_repetitions": false,
+    "pass": true,
+    "provider_calls": 0,
+    "publication_admitted_detail_count": 5,
+    "publication_time_deterministic_revalidation": true,
+    "registered_cell_count": 5,
+    "rows": [
+      {
+        "admitted": true,
+        "candidate_id": "cand-320fb0fa6eb4c5ffbbe4",
+        "check": {
+          "false_rule_ever_active": false,
+          "provider_calls": 0,
+          "same_candidate_content": true,
+          "unsupported_candidate_rejected": true,
+          "unverified_false_rule_ever_active": true
+        },
+        "environment_seed": 1099057501,
+        "published_path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501.json",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501",
+        "source_content_sha256": "88766ca10f42d95db7310619590673b4f9c911c5bd3382667901f4aa4d58d38f",
+        "source_file_sha256": "cbaed1939a2f021ad626ee56350f4570c64ac32e20523839f6eeeaa66482432f",
+        "source_relative_path": "experiment-c/runs/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1099057501/offline_candidate_admission.json",
+        "status": "complete",
+        "unverified_rule_status": "active",
+        "verified_rule_status": "rejected"
+      },
+      {
+        "admitted": true,
+        "candidate_id": "cand-320fb0fa6eb4c5ffbbe4",
+        "check": {
+          "false_rule_ever_active": false,
+          "provider_calls": 0,
+          "same_candidate_content": true,
+          "unsupported_candidate_rejected": true,
+          "unverified_false_rule_ever_active": true
+        },
+        "environment_seed": 1421875452,
+        "published_path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452.json",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452",
+        "source_content_sha256": "db4cb62269bcf0952ed31d9696781746521668db7e9e22685aceb4b9c7585122",
+        "source_file_sha256": "a6a01720a6c5c9bc319fbedb7ad656689e9c1f49b4d08f73826109b3210350eb",
+        "source_relative_path": "experiment-c/runs/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1421875452/offline_candidate_admission.json",
+        "status": "complete",
+        "unverified_rule_status": "active",
+        "verified_rule_status": "rejected"
+      },
+      {
+        "admitted": true,
+        "candidate_id": "cand-320fb0fa6eb4c5ffbbe4",
+        "check": {
+          "false_rule_ever_active": false,
+          "provider_calls": 0,
+          "same_candidate_content": true,
+          "unsupported_candidate_rejected": true,
+          "unverified_false_rule_ever_active": true
+        },
+        "environment_seed": 1769977770,
+        "published_path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770.json",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770",
+        "source_content_sha256": "8760eb4c312afff280e11e938edb3dfddb5a4916e7d1c3d74229645fc4285420",
+        "source_file_sha256": "a662b4dde2a66249c048d5537c359d7b3edaeb5bf77fd7fb0f19c1c58bab3744",
+        "source_relative_path": "experiment-c/runs/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s1769977770/offline_candidate_admission.json",
+        "status": "complete",
+        "unverified_rule_status": "active",
+        "verified_rule_status": "rejected"
+      },
+      {
+        "admitted": true,
+        "candidate_id": "cand-320fb0fa6eb4c5ffbbe4",
+        "check": {
+          "false_rule_ever_active": false,
+          "provider_calls": 0,
+          "same_candidate_content": true,
+          "unsupported_candidate_rejected": true,
+          "unverified_false_rule_ever_active": true
+        },
+        "environment_seed": 959809858,
+        "published_path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858.json",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858",
+        "source_content_sha256": "6cd66901b76c6a20a9520fb1dede7715ac4925c39386c78e223084338784e93b",
+        "source_file_sha256": "2f7991939ab90a26ff6b53cede1423d1ebf7fe95d58bc2fb994b30fb2f3c8550",
+        "source_relative_path": "experiment-c/runs/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s959809858/offline_candidate_admission.json",
+        "status": "complete",
+        "unverified_rule_status": "active",
+        "verified_rule_status": "rejected"
+      },
+      {
+        "admitted": true,
+        "candidate_id": "cand-320fb0fa6eb4c5ffbbe4",
+        "check": {
+          "false_rule_ever_active": false,
+          "provider_calls": 0,
+          "same_candidate_content": true,
+          "unsupported_candidate_rejected": true,
+          "unverified_false_rule_ever_active": true
+        },
+        "environment_seed": 617806385,
+        "published_path": "audit/offline_candidate_admission/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385.json",
+        "run_id": "finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385",
+        "source_content_sha256": "4e800bb43b73100e1a03b46c03d6ce650a7d1ce3fb253d491e38ecbde3f28acc",
+        "source_file_sha256": "baeee57d94bde747ca90541ef92d21552982c9daed89e1b11b733f2d33be0fcf",
+        "source_relative_path": "experiment-c/runs/finevo-pilot-v2.11.5--experiment-c--gpt52_main--verified-error-candidate--none--stage0-selected--s617806385/offline_candidate_admission.json",
+        "status": "complete",
+        "unverified_rule_status": "active",
+        "verified_rule_status": "rejected"
+      }
+    ],
+    "schema_version": "finevo-pilot-v2.11.5-offline-candidate-admission-audit-v1"
+  },
+  "parent_partial_denominator": {
+    "all_completed_artifacts_validated": true,
+    "all_rows_present": true,
+    "all_rows_terminal": false,
+    "expected_count": 136,
+    "frozen_partial_snapshot_valid": true,
+    "itt_failures_retained": 3,
+    "observed_ledger_count": 136,
+    "pass": false,
+    "run_ledger_event_inventory": {
+      "acceptance_event_index": 7,
+      "acceptance_receipt_content_sha256": "41bae59ac6ac34182091aeb1720777f5c391b1f6d1e61df9cdb2d92e537894cf",
+      "acceptance_receipt_path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/scientific_dispatch_acceptance.json",
+      "accepted_budget_event_count": 12,
+      "accepted_run_event_count": 7,
+      "event_chain_head": "61489ef64e71400e603e2fb1110e5e8af3ba772ac083361338a4ccff9641022f",
+      "event_count": 53
+    },
+    "scheduled_cells_excluded_from_effect_evidence": 86,
+    "scheduled_row_count": 86,
+    "stage_status_counts": {
+      "capability-gate": {
+        "complete": 2
+      },
+      "cross-model": {
+        "scheduled": 6
+      },
+      "experiment-a": {
+        "complete": 17,
+        "failed": 3
+      },
+      "experiment-b": {
+        "scheduled": 25
+      },
+      "experiment-c": {
+        "complete": 25
+      },
+      "experiment-d": {
+        "scheduled": 55
+      },
+      "long-context-preflight": {
+        "complete": 2
+      },
+      "parent-import": {
+        "complete": 1
+      }
+    },
+    "status_counts": {
+      "complete": 47,
+      "failed": 3,
+      "scheduled": 86
+    },
+    "terminal_row_count": 50
+  },
+  "parent_post_gate": {
+    "authority_sources": {
+      "gpt52_main": {
+        "per_model_receipt": {
+          "content_sha256": "0ba90095d70922c1705196d7663551b7f7541a18de8d804299ccd91b8267bca6",
+          "file_sha256": "867194aa41299aa06adcce186c09bb1e90902396706d1c514dfee1c8d79f3d26",
+          "path": "experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt52_main/observed_p95_authority_receipt.json"
+        },
+        "source_preflight": {
+          "execution_artifact_sha256": "5578ba3e5029c7df55739be11d968c6846273a3266c8b8fcd9aa0b8fa1c621fc",
+          "model_id": "gpt52_main",
+          "provider_call_journal_sha256": "2af6faa1f8e214fb606a87ed764253535f9895fb7bbbe0680f1f76f020ab68c3",
+          "run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376",
+          "run_spec_sha256": "cfbdb7c7dc27078335cf2857fb0ddcc9a02648a34fe8a185dbe416b12a5f603f",
+          "served_model": "gpt-5.2-2025-12-11"
+        },
+        "v2_11_2_gate": {
+          "commit": "78870956b528946d415a9be5f5769b0893d16d74",
+          "content_sha256": "0d95374c3e2db9fc5bf5c6156fb7bcdf0a9c94e26ed9995f74a2a542a8961aaa",
+          "file_sha256": "52ade890b123cd030b3d7242aa8347d7dc3a7040fe5f56de0b95938daa029312",
+          "tag": "pilot-v2.11.2-science"
+        }
+      },
+      "gpt56_diagnostic": {
+        "per_model_receipt": {
+          "content_sha256": "5e74a260f0df49739cbb5c11c3df0ae800d20845968fe553f2ef1549fc384e02",
+          "file_sha256": "ddda0bcc289c2e9455aaac4fd60ee501cff9ff3cc1b80bddf1459ebc79cb51ba",
+          "path": "experiment_results/pilot-v2.11.5/raw/long-context-preflight/imported_observed_p95/gpt56_diagnostic/observed_p95_authority_receipt.json"
+        },
+        "source_preflight": {
+          "execution_artifact_sha256": "47e69aa79a842c431e6410dfd797bff5271db560660af2daf1427d4d2673c31a",
+          "model_id": "gpt56_diagnostic",
+          "provider_call_journal_sha256": "c7bbc0d9056f8dd22a57bf990cdb62010e2a917db13842ae35b2f69d245f2dba",
+          "run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376",
+          "run_spec_sha256": "542879e77287c54ce469038cca6d36c7873f3d7720e7c7714fa203893cb6d75c",
+          "served_model": "gpt-5.6-sol"
+        },
+        "v2_11_2_gate": {
+          "commit": "78870956b528946d415a9be5f5769b0893d16d74",
+          "content_sha256": "0d95374c3e2db9fc5bf5c6156fb7bcdf0a9c94e26ed9995f74a2a542a8961aaa",
+          "file_sha256": "52ade890b123cd030b3d7242aa8347d7dc3a7040fe5f56de0b95938daa029312",
+          "tag": "pilot-v2.11.2-science"
+        }
+      }
+    },
+    "available": true,
+    "binding": {
+      "git_commit": "2351ac2283f9fedb9dce70067174020be56ed9cc",
+      "receipt_content_sha256": "19e18c1641ecaf55e48340694e126416ff30f0b39307c66f5335c9c9e9a46abc",
+      "receipt_file_sha256": "08b33162c91a07b392bacefc40d6abee9d89633600608a3de798f171e427a35a",
+      "receipt_path": "experiment_results/pilot-v2.11.5/raw/long-context-preflight/post_gate_authority.json",
+      "reservations": {
+        "openai/gpt-5.2-2025-12-11": {
+          "action": {
+            "authority": {
+              "authority_id": "finevo-closed-loop-observed-p95-v1",
+              "pilot_contract_hash": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+              "pilot_tag": "pilot-v2.11.5-science",
+              "source_execution_artifact_sha256": "5578ba3e5029c7df55739be11d968c6846273a3266c8b8fcd9aa0b8fa1c621fc",
+              "source_kind": "sealed-closed-loop-observed-p95",
+              "source_model_id": "gpt52_main",
+              "source_preflight_run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376",
+              "source_preflight_run_spec_sha256": "cfbdb7c7dc27078335cf2857fb0ddcc9a02648a34fe8a185dbe416b12a5f603f",
+              "source_projection_content_sha256": "19e18c1641ecaf55e48340694e126416ff30f0b39307c66f5335c9c9e9a46abc",
+              "source_projection_file_sha256": "08b33162c91a07b392bacefc40d6abee9d89633600608a3de798f171e427a35a",
+              "source_projection_schema_version": "finevo-pilot-projection-p95-v1",
+              "source_provider_call_journal_sha256": "2af6faa1f8e214fb606a87ed764253535f9895fb7bbbe0680f1f76f020ab68c3",
+              "source_served_model": "gpt-5.2-2025-12-11"
+            },
+            "reservation": {
+              "raw_p95": {
+                "completion_tokens": 2601.0,
+                "cost_usd": 0.037905,
+                "prompt_tokens": 892.0,
+                "total_tokens": 3493.0
+              },
+              "reserve_multiplier": 1.25,
+              "reserved_p95": {
+                "completion_tokens": 3252,
+                "cost_usd": 0.04738125,
+                "prompt_tokens": 1115,
+                "total_tokens": 4367
+              },
+              "sample_count": 24
+            }
+          },
+          "semantic": {
+            "authority": {
+              "authority_id": "finevo-closed-loop-observed-p95-v1",
+              "pilot_contract_hash": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+              "pilot_tag": "pilot-v2.11.5-science",
+              "source_execution_artifact_sha256": "5578ba3e5029c7df55739be11d968c6846273a3266c8b8fcd9aa0b8fa1c621fc",
+              "source_kind": "sealed-closed-loop-observed-p95",
+              "source_model_id": "gpt52_main",
+              "source_preflight_run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt52_main--closed-loop-preflight--none--stage0-selected--s2010922376",
+              "source_preflight_run_spec_sha256": "cfbdb7c7dc27078335cf2857fb0ddcc9a02648a34fe8a185dbe416b12a5f603f",
+              "source_projection_content_sha256": "19e18c1641ecaf55e48340694e126416ff30f0b39307c66f5335c9c9e9a46abc",
+              "source_projection_file_sha256": "08b33162c91a07b392bacefc40d6abee9d89633600608a3de798f171e427a35a",
+              "source_projection_schema_version": "finevo-pilot-projection-p95-v1",
+              "source_provider_call_journal_sha256": "2af6faa1f8e214fb606a87ed764253535f9895fb7bbbe0680f1f76f020ab68c3",
+              "source_served_model": "gpt-5.2-2025-12-11"
+            },
+            "reservation": {
+              "raw_p95": {
+                "completion_tokens": 1093.0,
+                "cost_usd": 0.019626249999999998,
+                "prompt_tokens": 2475.0,
+                "total_tokens": 3568.0
+              },
+              "reserve_multiplier": 1.25,
+              "reserved_p95": {
+                "completion_tokens": 1367,
+                "cost_usd": 0.024532812499999997,
+                "prompt_tokens": 3094,
+                "total_tokens": 4461
+              },
+              "sample_count": 8
+            }
+          }
+        },
+        "openai/gpt-5.6-sol": {
+          "action": {
+            "authority": {
+              "authority_id": "finevo-closed-loop-observed-p95-v1",
+              "pilot_contract_hash": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+              "pilot_tag": "pilot-v2.11.5-science",
+              "source_execution_artifact_sha256": "47e69aa79a842c431e6410dfd797bff5271db560660af2daf1427d4d2673c31a",
+              "source_kind": "sealed-closed-loop-observed-p95",
+              "source_model_id": "gpt56_diagnostic",
+              "source_preflight_run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376",
+              "source_preflight_run_spec_sha256": "542879e77287c54ce469038cca6d36c7873f3d7720e7c7714fa203893cb6d75c",
+              "source_projection_content_sha256": "19e18c1641ecaf55e48340694e126416ff30f0b39307c66f5335c9c9e9a46abc",
+              "source_projection_file_sha256": "08b33162c91a07b392bacefc40d6abee9d89633600608a3de798f171e427a35a",
+              "source_projection_schema_version": "finevo-pilot-projection-p95-v1",
+              "source_provider_call_journal_sha256": "c7bbc0d9056f8dd22a57bf990cdb62010e2a917db13842ae35b2f69d245f2dba",
+              "source_served_model": "gpt-5.6-sol"
+            },
+            "reservation": {
+              "raw_p95": {
+                "completion_tokens": 1250.0,
+                "cost_usd": 0.041555,
+                "prompt_tokens": 859.0,
+                "total_tokens": 2109.0
+              },
+              "reserve_multiplier": 1.25,
+              "reserved_p95": {
+                "completion_tokens": 1563,
+                "cost_usd": 0.051943750000000004,
+                "prompt_tokens": 1074,
+                "total_tokens": 2637
+              },
+              "sample_count": 24
+            }
+          },
+          "semantic": {
+            "authority": {
+              "authority_id": "finevo-closed-loop-observed-p95-v1",
+              "pilot_contract_hash": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+              "pilot_tag": "pilot-v2.11.5-science",
+              "source_execution_artifact_sha256": "47e69aa79a842c431e6410dfd797bff5271db560660af2daf1427d4d2673c31a",
+              "source_kind": "sealed-closed-loop-observed-p95",
+              "source_model_id": "gpt56_diagnostic",
+              "source_preflight_run_id": "finevo-pilot-v2.11.2--long-context-preflight--gpt56_diagnostic--closed-loop-preflight--none--stage0-selected--s2010922376",
+              "source_preflight_run_spec_sha256": "542879e77287c54ce469038cca6d36c7873f3d7720e7c7714fa203893cb6d75c",
+              "source_projection_content_sha256": "19e18c1641ecaf55e48340694e126416ff30f0b39307c66f5335c9c9e9a46abc",
+              "source_projection_file_sha256": "08b33162c91a07b392bacefc40d6abee9d89633600608a3de798f171e427a35a",
+              "source_projection_schema_version": "finevo-pilot-projection-p95-v1",
+              "source_provider_call_journal_sha256": "c7bbc0d9056f8dd22a57bf990cdb62010e2a917db13842ae35b2f69d245f2dba",
+              "source_served_model": "gpt-5.6-sol"
+            },
+            "reservation": {
+              "raw_p95": {
+                "completion_tokens": 927.0,
+                "cost_usd": 0.040245,
+                "prompt_tokens": 2487.0,
+                "total_tokens": 3414.0
+              },
+              "reserve_multiplier": 1.25,
+              "reserved_p95": {
+                "completion_tokens": 1159,
+                "cost_usd": 0.050306250000000004,
+                "prompt_tokens": 3109,
+                "total_tokens": 4268
+              },
+              "sample_count": 8
+            }
+          }
+        }
+      }
+    },
+    "content_sha256": "19e18c1641ecaf55e48340694e126416ff30f0b39307c66f5335c9c9e9a46abc",
+    "denominator": {
+      "complete_authority_import_cells": 2,
+      "eligible_model_ids": [
+        "gpt52_main",
+        "gpt56_diagnostic"
+      ],
+      "historical_action_samples_per_model": 24,
+      "historical_semantic_samples_per_model": 8,
+      "registered_authority_import_cells": 2,
+      "registered_model_ids": [
+        "gpt52_main",
+        "gpt56_diagnostic"
+      ]
+    },
+    "file_sha256": "08b33162c91a07b392bacefc40d6abee9d89633600608a3de798f171e427a35a",
+    "go": true,
+    "operational_imports": {
+      "gpt52_main": {
+        "claim_boundary": "imported historical dispatch-budget authority; not a fresh V2.11.5 capability or performance sample",
+        "historical_action_samples": 24,
+        "historical_provider_calls": 32,
+        "historical_semantic_samples": 8,
+        "provider_calls_current_attempt": 0,
+        "provider_construction_current_attempt": false,
+        "scientific_evidence": false
+      },
+      "gpt56_diagnostic": {
+        "claim_boundary": "imported historical dispatch-budget authority; not a fresh V2.11.5 capability or performance sample",
+        "historical_action_samples": 24,
+        "historical_provider_calls": 32,
+        "historical_semantic_samples": 8,
+        "provider_calls_current_attempt": 0,
+        "provider_construction_current_attempt": false,
+        "scientific_evidence": false
+      }
+    },
+    "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/post_gate_authority.json",
+    "provider_boundary": {
+      "hosted_cost_usd_during_authority_import": 0.0,
+      "hosted_provider_calls_during_authority_import": 0,
+      "provider_calls_during_authority_import": 0,
+      "provider_construction_during_authority_import": false
+    },
+    "provider_calls_current_attempt": 0,
+    "reservations": {
+      "openai/gpt-5.2-2025-12-11": {
+        "action": {
+          "raw_p95": {
+            "completion_tokens": 2601.0,
+            "cost_usd": 0.037905,
+            "prompt_tokens": 892.0,
+            "total_tokens": 3493.0
+          },
+          "reserve_multiplier": 1.25,
+          "reserved_p95": {
+            "completion_tokens": 3252,
+            "cost_usd": 0.04738125,
+            "prompt_tokens": 1115,
+            "total_tokens": 4367
+          },
+          "sample_count": 24
+        },
+        "semantic": {
+          "raw_p95": {
+            "completion_tokens": 1093.0,
+            "cost_usd": 0.019626249999999998,
+            "prompt_tokens": 2475.0,
+            "total_tokens": 3568.0
+          },
+          "reserve_multiplier": 1.25,
+          "reserved_p95": {
+            "completion_tokens": 1367,
+            "cost_usd": 0.024532812499999997,
+            "prompt_tokens": 3094,
+            "total_tokens": 4461
+          },
+          "sample_count": 8
+        }
+      },
+      "openai/gpt-5.6-sol": {
+        "action": {
+          "raw_p95": {
+            "completion_tokens": 1250.0,
+            "cost_usd": 0.041555,
+            "prompt_tokens": 859.0,
+            "total_tokens": 2109.0
+          },
+          "reserve_multiplier": 1.25,
+          "reserved_p95": {
+            "completion_tokens": 1563,
+            "cost_usd": 0.051943750000000004,
+            "prompt_tokens": 1074,
+            "total_tokens": 2637
+          },
+          "sample_count": 24
+        },
+        "semantic": {
+          "raw_p95": {
+            "completion_tokens": 927.0,
+            "cost_usd": 0.040245,
+            "prompt_tokens": 2487.0,
+            "total_tokens": 3414.0
+          },
+          "reserve_multiplier": 1.25,
+          "reserved_p95": {
+            "completion_tokens": 1159,
+            "cost_usd": 0.050306250000000004,
+            "prompt_tokens": 3109,
+            "total_tokens": 4268
+          },
+          "sample_count": 8
+        }
+      }
+    },
+    "scientific_evidence": false
+  },
+  "parent_raw_inventory": {
+    "file_count": 692,
+    "inventory_sha256": "ca6e17c4cffc166f1fe03ee004b3dd0ebfac88fe39e2875fd6d59a9321e4112a",
+    "storage_bytes": 48820695
+  },
+  "parent_release": {
+    "attestation_sha256": "73ef3c51ddf73f2f1de545f5d715bfdababf6c1388e749a3cf84749f2359c595",
+    "checks": {
+      "ci_measurements_exact": true,
+      "ci_receipt_hash_chain": true,
+      "ci_run_success": true,
+      "ci_selection_exact": true,
+      "commit_and_annotated_tag_bound": true,
+      "contract_and_policy_hashes": true,
+      "exact_linux_macos_ci_jobs": true,
+      "release_requirements_exact": true,
+      "schema_and_hash": true,
+      "sealed_manifest_inventory_hash": true,
+      "static_release_requirements_frozen": true,
+      "workflow_exact": true
+    },
+    "file_sha256": "712fe418047b83101b6fd5bad799b8ad30a35ddf48baaafa85ed9a4758aa4ad8",
+    "pass": true,
+    "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/release_attestation.json"
+  },
+  "parent_source": {
+    "contract_path": "experiments/pilot_v2_11_5.yaml",
+    "detached_head": true,
+    "git_tag": "pilot-v2.11.5-science",
+    "raw_root": "experiment_results/pilot-v2.11.5/raw",
+    "required_tracked_head_blobs": {
+      "experiments/pilot_v2_11_5.yaml": "7ded3e11804601e14bef0ec54ae35388bca7af61",
+      "experiments/pilot_v2_11_5_source_manifest.json": "515996bcb1fcce8b25f3633f73bc72c3e03ea896",
+      "run_pilot.py": "b1b523f747d27afe935b463862a6125fdf79ef8b",
+      "verified_memory/pilot_contract.py": "1a82fa33f232777a6528003c713bf6014aab348f",
+      "verified_memory/pilot_orchestrator.py": "693b67b27661ad3e9635e30003bf8cde598ebb4d",
+      "verified_memory/pilot_v2115_acceptance.py": "c76901398e3ea0f0d67a322c17c2c71a4dcc40d7",
+      "verified_memory/pilot_v2115_gate.py": "c110c2b9ecdbf33fef29d18ea066830ffe2e5a48"
+    },
+    "resolved_git_commit": "2351ac2283f9fedb9dce70067174020be56ed9cc",
+    "source_manifest_path": "experiments/pilot_v2_11_5_source_manifest.json",
+    "source_repo_root": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science",
+    "tag_object": "bccfb13cee7d592470d1873cfacc3b12bed38be4",
+    "tracked_worktree_clean": true
+  },
+  "parent_stage_receipts": {
+    "all_terminal": false,
+    "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+    "receipts": {
+      "capability-gate": {
+        "complete_cell_count": 2,
+        "content_sha256": "90f5d2e2a5eea9335a1aeb56556b21bd351a1af0aecbdd4b8d006bf7c1873023",
+        "execution_progression_go": true,
+        "file_sha256": "e43212244a98d670447d85de1b807e88e391d0cf44863bc83e6d4aed3826a18a",
+        "go": true,
+        "go_models": [
+          "gpt52_main",
+          "gpt56_diagnostic"
+        ],
+        "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/capability-gate/stage_receipt.json",
+        "registered_run_count": 2,
+        "scientific_matrix_complete": true,
+        "status": "complete",
+        "status_counts": {
+          "complete": 2
+        },
+        "terminal": true
+      },
+      "cross-model": {
+        "complete_cell_count": 0,
+        "content_sha256": null,
+        "execution_progression_go": false,
+        "file_sha256": null,
+        "go": false,
+        "go_models": [],
+        "path": null,
+        "registered_run_count": 6,
+        "scientific_evidence": false,
+        "status": "scheduled-not-run",
+        "status_counts": {
+          "scheduled": 6
+        },
+        "terminal": false
+      },
+      "experiment-a": {
+        "complete_cell_count": 17,
+        "content_sha256": "177dc8ce4d1957eac0734bb1716279676f77931e30b3a1d10dd2c138a43a5457",
+        "execution_progression_go": true,
+        "file_sha256": "8193f3449663f63c9cf0c881ee5e7759d2682f320f214c4941040489c81734f9",
+        "go": false,
+        "go_models": [],
+        "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/experiment-a/stage_receipt.json",
+        "registered_run_count": 20,
+        "scientific_matrix_complete": false,
+        "status": "complete-with-no-go",
+        "status_counts": {
+          "complete": 17,
+          "failed": 3
+        },
+        "terminal": true
+      },
+      "experiment-b": {
+        "complete_cell_count": 0,
+        "content_sha256": null,
+        "execution_progression_go": false,
+        "file_sha256": null,
+        "go": false,
+        "go_models": [],
+        "path": null,
+        "registered_run_count": 25,
+        "scientific_evidence": false,
+        "status": "scheduled-not-run",
+        "status_counts": {
+          "scheduled": 25
+        },
+        "terminal": false
+      },
+      "experiment-c": {
+        "complete_cell_count": 25,
+        "content_sha256": "39a9d35f4961fee4b0bc59ac67f7a9a2da0c3f95fddf77a418b92e518b6e2eba",
+        "execution_progression_go": true,
+        "file_sha256": "958cb161785c144c89861da3e9536e53069e8f1070a64c03f54647cbfe05b322",
+        "go": false,
+        "go_models": [],
+        "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/experiment-c/stage_receipt.json",
+        "registered_run_count": 25,
+        "scientific_matrix_complete": true,
+        "status": "complete-with-no-go",
+        "status_counts": {
+          "complete": 25
+        },
+        "terminal": true
+      },
+      "experiment-d": {
+        "complete_cell_count": 0,
+        "content_sha256": null,
+        "execution_progression_go": false,
+        "file_sha256": null,
+        "go": false,
+        "go_models": [],
+        "path": null,
+        "registered_run_count": 55,
+        "scientific_evidence": false,
+        "status": "scheduled-not-run",
+        "status_counts": {
+          "scheduled": 55
+        },
+        "terminal": false
+      },
+      "long-context-preflight": {
+        "complete_cell_count": 2,
+        "content_sha256": "db44a4a0d532411922cf22266fff0554d45c46a8bc8abae5aedecfedf5dae99c",
+        "execution_progression_go": true,
+        "file_sha256": "b79e6af1c5c56e46b979a3ce817ae51a79a387ab44c9c5e2d5300b601215edb6",
+        "go": true,
+        "go_models": [
+          "gpt52_main",
+          "gpt56_diagnostic"
+        ],
+        "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/long-context-preflight/stage_receipt.json",
+        "registered_run_count": 2,
+        "scientific_matrix_complete": true,
+        "status": "complete",
+        "status_counts": {
+          "complete": 2
+        },
+        "terminal": true
+      },
+      "parent-import": {
+        "complete_cell_count": 1,
+        "content_sha256": "e69c7b79b8ffa0c26bcb14904c9f1dd6051e4919760fcefd3df3983f3db0e703",
+        "execution_progression_go": true,
+        "file_sha256": "2ec91fe97e65f11dcabc3e15d539ae5dbd19ef9d7ca0ccf23cb4fce26749d8ba",
+        "go": true,
+        "go_models": [],
+        "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-5-science/experiment_results/pilot-v2.11.5/raw/parent-import/stage_receipt.json",
+        "registered_run_count": 1,
+        "scientific_matrix_complete": true,
+        "status": "complete",
+        "status_counts": {
+          "complete": 1
+        },
+        "terminal": true
+      }
+    },
+    "scheduled_stage_ids": [
+      "experiment-d",
+      "experiment-b",
+      "cross-model"
+    ],
+    "schema_version": "finevo-pilot-v2.11.5-stage-receipts-audit-v1",
+    "terminal_stage_ids": [
+      "parent-import",
+      "capability-gate",
+      "long-context-preflight",
+      "experiment-c",
+      "experiment-a"
+    ]
+  },
+  "pass": true,
+  "provider_calls": 0,
+  "provider_construction": false,
+  "publisher": {
+    "annotated_tag": "pilot-v2.11.10-evidence-consumer-v1",
+    "annotated_tag_object_id": "59316ead19a82c7e8227508b7b9a2a4f1ff21b9a",
+    "branch": "codex/pilot-v2-11-10-evidence",
+    "git_commit": "e7e4910e6ad268e6b38432f81754e4b8bd4d3037",
+    "provider_calls": 0,
+    "publication_consumer_ci": {
+      "ci_execution_status": "cross-platform-current-head-pass",
+      "consumer_head_sha": "e7e4910e6ad268e6b38432f81754e4b8bd4d3037",
+      "jobs": [
+        {
+          "ci_job_receipt_sha256": "6ee62226220ecdbd9caccc8930fd101576dee6aa04915655c4f57049eebbef76",
+          "compiled_source_count": 327,
+          "compiled_source_inventory_sha256": "dd7fbd83958743d5cb9636d2f728440b7eaaeab29e1359aa21cebd6f289a561b",
+          "head_sha": "e7e4910e6ad268e6b38432f81754e4b8bd4d3037",
+          "job_name": "Python 3.12.7 / ubuntu-24.04",
+          "run_attempt": 1,
+          "run_id": 30704695772,
+          "runner_os": "Linux",
+          "sealed_manifest_count": 6,
+          "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
+          "skipped_test_count": 89,
+          "source_file_sha256": "9f32b5a5a0622a60de21dce2f6e186741086ebd6305a029e4e4d3af2351bc6bc",
+          "test_collection_sha256": "7f9e487ce2fc355b7b83df45a895b8cba509e10f708be1fb964474250a059056",
+          "test_count": 2222,
+          "wrapper_receipt_sha256": "024038a4bd928f9cbeac3a5614e88a015c60879dbf1a6f62706969ad57e84f51"
+        },
+        {
+          "ci_job_receipt_sha256": "ad4d007a78613605d6b73bd8d0aa969f370b2147fc3d822aca68248116b174e8",
+          "compiled_source_count": 327,
+          "compiled_source_inventory_sha256": "dd7fbd83958743d5cb9636d2f728440b7eaaeab29e1359aa21cebd6f289a561b",
+          "head_sha": "e7e4910e6ad268e6b38432f81754e4b8bd4d3037",
+          "job_name": "Python 3.12.7 / macos-14",
+          "run_attempt": 1,
+          "run_id": 30704695772,
+          "runner_os": "macOS",
+          "sealed_manifest_count": 6,
+          "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
+          "skipped_test_count": 89,
+          "source_file_sha256": "1351024f305adab50308fee23c2e2ba6d57fd478689f3c43b9fc1ac10400a21b",
+          "test_collection_sha256": "7f9e487ce2fc355b7b83df45a895b8cba509e10f708be1fb964474250a059056",
+          "test_count": 2222,
+          "wrapper_receipt_sha256": "b63dc5bca02b980626d515c41460a741248a3e6e2ac94b75703cca5cb3a1f448"
+        }
+      ],
+      "provider_calls": 0,
+      "remote_attestation": {
+        "annotated_tag": "pilot-v2.11.10-evidence-consumer-v1",
+        "annotated_tag_object_id": "59316ead19a82c7e8227508b7b9a2a4f1ff21b9a",
+        "authentication_boundary": "live-github-api-and-job-log-replay",
+        "conclusion": "success",
+        "event": "push",
+        "head_branch": "main",
+        "head_sha": "e7e4910e6ad268e6b38432f81754e4b8bd4d3037",
+        "jobs": [
+          {
+            "conclusion": "success",
+            "critical_steps": [
+              "Compile tracked Python sources",
+              "Emit publication consumer CI receipt",
+              "Ensure checks did not mutate tracked files",
+              "Run tests"
+            ],
+            "html_url": "https://github.com/moderncavemann/FinEvo/actions/runs/30704695772/job/91381673735",
+            "job_id": 91381673735,
+            "job_log_sha256": "8360dadde44c6078ccfcf209f0add295406444c963660ba17411456c74cea4ed",
+            "job_name": "Python 3.12.7 / ubuntu-24.04",
+            "logged_wrapper_receipt_sha256": "024038a4bd928f9cbeac3a5614e88a015c60879dbf1a6f62706969ad57e84f51",
+            "required_runner_label": "ubuntu-24.04",
+            "runner_os": "Linux"
+          },
+          {
+            "conclusion": "success",
+            "critical_steps": [
+              "Compile tracked Python sources",
+              "Emit publication consumer CI receipt",
+              "Ensure checks did not mutate tracked files",
+              "Run tests"
+            ],
+            "html_url": "https://github.com/moderncavemann/FinEvo/actions/runs/30704695772/job/91381673727",
+            "job_id": 91381673727,
+            "job_log_sha256": "9cc2004be69f88a9eff36cb074134aea86b00818f1730714fa1ccb72430cf6b6",
+            "job_name": "Python 3.12.7 / macos-14",
+            "logged_wrapper_receipt_sha256": "b63dc5bca02b980626d515c41460a741248a3e6e2ac94b75703cca5cb3a1f448",
+            "required_runner_label": "macos-14",
+            "runner_os": "macOS"
+          }
+        ],
+        "provider_calls": 0,
+        "remote_main_commit": "e7e4910e6ad268e6b38432f81754e4b8bd4d3037",
+        "remote_verified_at": "2026-08-01T15:00:08Z",
+        "repository": "moderncavemann/FinEvo",
+        "run_attempt": 1,
+        "run_html_url": "https://github.com/moderncavemann/FinEvo/actions/runs/30704695772",
+        "run_id": 30704695772,
+        "schema_version": "finevo-pilot-v2.11.10-publication-remote-attestation-v1",
+        "science_dispatch_authority": false,
+        "scientific_evidence": false,
+        "status": "pass"
+      },
+      "run_attempt": 1,
+      "run_id": 30704695772,
+      "schema_version": "finevo-pilot-v2.11.10-publication-ci-bundle-v1",
+      "science_dispatch_authority": false,
+      "scientific_evidence": false,
+      "status": "pass"
+    },
+    "repository_root": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-10-evidence",
+    "required_tracked_head_blobs": {
+      ".github/workflows/verified-memory-ci.yml": "ce04fba5f4882449d96cdde4ad747fa0b399a260",
+      "experiments/pilot_v2_11_5_publication_consumer_ci.json": "474494917ce3690158cdeb7fc41514484bf0d4b8",
+      "run_pilot.py": "29cf1a459ba7da50cec57690e144f578a41475e4",
+      "tests/test_ci_release_receipt.py": "3158828b9b5ec12520449fe17255bd2972ed3b3f",
+      "tests/test_pilot_v21110_continuation.py": "1897461da5c01fd6712c49c90d0b088b56a18e17",
+      "tests/test_pilot_v21110_evidence.py": "20b30b7bd3a86afc58c54bfc99b45df43d1a7e73",
+      "tests/test_pilot_v2119_continuation.py": "22adf0c380e33f4a79d751cad30281d9585ac7a5",
+      "tests/test_run_pilot_v21110_cli.py": "e6ba70c85180c978614dbfee20f42948906d78ee",
+      "verified_memory/ci_release_receipt.py": "05a47c8b9834ff95a5b07c26091972f4596f5ef6",
+      "verified_memory/pilot_evidence.py": "060c08b5d9c2d28b93a346f8e67d0a8bcef2e4a9",
+      "verified_memory/pilot_orchestrator.py": "020dd72f3c5e13791d2b834317c46d4f7928571b",
+      "verified_memory/pilot_v21110_continuation.py": "257fa2e9109edd9d4e6e2b56a38c1efaeb2df17a",
+      "verified_memory/pilot_v21110_evidence.py": "8a521e11fdddd3c60452e8c77c80808fc6f7e7c2"
+    },
+    "science_dispatch_authority": false,
+    "science_source_commit": "aa05e94ee6097916db53c40c0276b044c05a44cc",
+    "scientific_evidence": false,
+    "tracked_worktree_clean": true
+  },
+  "schema_version": "finevo-pilot-v2.11.10-release-controls-v1",
+  "scientific_dispatch_acceptance": {
+    "content_sha256": "2aef70e98e1835e02d8341c8f737cf06d1821d8a05909c98b9175c669688c3a1",
+    "file_sha256": "a5697e5ae9242b3b65803b9867d9d1de4b0ae0922788902b83c35714ed7007e9",
+    "go": true,
+    "path": "/Users/guanghaowu/Develop/financial world/worktrees/finevo-pilot-v2-11-10-science/experiment_results/pilot-v2.11.10/raw/scientific_dispatch_acceptance.json",
+    "provider_boundary": {
+      "credential_environment_names_checked": [
+        "OPENAI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GOOGLE_API_KEY",
+        "GEMINI_API_KEY"
+      ],
+      "credential_values_present": false,
+      "hosted_cost_usd": 0.0,
+      "hosted_provider_calls": 0,
+      "provider_calls": 0,
+      "provider_catalog_calls": 0,
+      "provider_construction": false,
+      "validation_before_provider_construction": true
+    }
+  },
+  "terminal_namespace": {
+    "fresh_pending_cells": 0,
+    "max_storage_bytes": 5000000000,
+    "provider_calls": 0,
+    "provider_construction": false,
+    "raw_storage_bytes": 10294249,
+    "registered_cells": 6,
+    "scope": "collision-and-non-scientific-namespace-preflight",
+    "stage_id": "cross-model",
+    "terminal_cells": 6,
+    "verified_terminal_artifact_bindings": 6
+  }
+}

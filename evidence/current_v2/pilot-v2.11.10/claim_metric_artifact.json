@@ -1,0 +1,95 @@
+{
+  "claims": [
+    {
+      "artifact": "aggregate.json",
+      "boundary": "retain route traceability only",
+      "claim": "M1 retrieval contributes beyond regime prompting",
+      "metric": "full minus prompt-only shock+recovery discounted utility",
+      "status": "no-go"
+    },
+    {
+      "artifact": "aggregate.json",
+      "boundary": "withdraw or narrow the rule-reliability claim",
+      "claim": "Evidence grounding improves erroneous-rule reliability",
+      "metric": "false activation, harmful exposure, and cumulative utility-loss directions",
+      "status": "no-go"
+    },
+    {
+      "artifact": "aggregate.json",
+      "boundary": "do not claim a closed-loop continuation effect",
+      "claim": "A one-decision focal memory pulse changes the matched six-step downstream continuation",
+      "metric": "checkpoint-bound matched-null- and action-bin-qualified pulse continuation deltas",
+      "status": "no-go"
+    },
+    {
+      "artifact": "aggregate.json",
+      "boundary": "no controlled semantic-response claim; never claim real-news understanding",
+      "claim": "Narrative channel shows controlled semantic response",
+      "metric": "aligned/opposite delta and paraphrase action-bin equivalence",
+      "status": "no-go"
+    },
+    {
+      "artifact": "method_differences_scaffold.json",
+      "boundary": "never use backbone-independent wording",
+      "claim": "Backbone-independent improvement",
+      "metric": "not preregistered or supported by this micro-pilot",
+      "status": "prohibited"
+    },
+    {
+      "artifact": "failure_ledger.json",
+      "boundary": "report every failure, stop, nonterminal, and missing cell",
+      "claim": "Complete preregistered ITT matrix",
+      "metric": "one terminal row for every expanded contract cell",
+      "status": "supported"
+    }
+  ],
+  "contract_sha256": "76a03b7781b1bea317855010d9a3b34b49fcfba3f27cc344954daf19abcd2b1f",
+  "logical_denominator": {
+    "all_completed_artifacts_validated": true,
+    "all_rows_terminal": true,
+    "continuation_rows": 86,
+    "current_parent_meta_row_excluded": true,
+    "expected_count": 136,
+    "itt_failures_retained": 88,
+    "mapping_sha256": "d876dbf6ae604a80e9cc6d29f857b944fbdcc58f0a6a279c85e88f5127468d15",
+    "operational_row_count": 5,
+    "parent_terminal_rows": 50,
+    "pass": true,
+    "row_count": 136,
+    "scientific_row_count": 131,
+    "stage_status_counts": {
+      "capability-gate": {
+        "complete": 2
+      },
+      "cross-model": {
+        "integrity-stopped": 6
+      },
+      "experiment-a": {
+        "complete": 17,
+        "failed": 3
+      },
+      "experiment-b": {
+        "complete": 1,
+        "integrity-stopped": 24
+      },
+      "experiment-c": {
+        "complete": 25
+      },
+      "experiment-d": {
+        "failed": 55
+      },
+      "long-context-preflight": {
+        "complete": 2
+      },
+      "parent-import": {
+        "complete": 1
+      }
+    },
+    "status_counts": {
+      "complete": 48,
+      "failed": 58,
+      "integrity-stopped": 30
+    }
+  },
+  "schema_version": "finevo-pilot-v2.11.10-evidence-package-v1"
+}
