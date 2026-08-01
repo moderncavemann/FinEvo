@@ -91,6 +91,16 @@ jobs:
           test "$(git rev-parse 'pilot-v2.11.7-science^{object}')" = "${expected_object}"
           test "$(git rev-parse 'pilot-v2.11.7-science^{commit}')" = "${expected_commit}"
 
+      - name: Verify immutable V2.11.8 terminal no-go tag anchor
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_object=a5564d374762aed5ea2493706888e2950b6e97fa
+          expected_commit=67aa0fcce68fa5ac43b48dd3b81b849112137093
+          test "$(git cat-file -t pilot-v2.11.8-science)" = tag
+          test "$(git rev-parse 'pilot-v2.11.8-science^{object}')" = "${expected_object}"
+          test "$(git rev-parse 'pilot-v2.11.8-science^{commit}')" = "${expected_commit}"
+
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
@@ -182,7 +192,7 @@ jobs:
               )
           PY
 
-      - name: Verify V2.11.3 through V2.11.8 scientific source manifests
+      - name: Verify V2.11.3 through V2.11.9 scientific source manifests
         run: >-
           python -m verified_memory.ci_release_receipt verify-source-manifests
           --output "${RUNNER_TEMP}/finevo-source-manifests.json"
@@ -420,7 +430,7 @@ jobs:
           --collection "${RUNNER_TEMP}/finevo-test-collection.json"
           --sources "${RUNNER_TEMP}/finevo-python-sources.json"
           --junit "${RUNNER_TEMP}/finevo-test-results.xml"
-          --contract experiments/pilot_v2_11_8.yaml
+          --contract experiments/pilot_v2_11_9.yaml
           --output "${RUNNER_TEMP}/finevo-ci-release-receipt.json"
 
       - name: Emit publication consumer CI receipt

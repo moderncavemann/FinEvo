@@ -170,6 +170,10 @@ V211_SCIENTIFIC_STAGES = frozenset(
         "cross-model",
     }
 )
+V211_RECOVERY_NON_SCIENTIFIC_STAGES = frozenset({"parent-import"})
+V211_RECOVERY_SCIENTIFIC_STAGES = frozenset(
+    {"experiment-d", "experiment-b", "cross-model"}
+)
 # Public compatibility aliases.  Internal admission always uses the
 # contract-specific helpers below.
 NON_SCIENTIFIC_STAGES = V1_NON_SCIENTIFIC_STAGES
@@ -254,6 +258,15 @@ def _is_v211_family_contract(contract: PilotContract) -> bool:
         "finevo-pilot-v2.11.4",
         "finevo-pilot-v2.11.5",
     }
+
+
+def _is_v2119_recovery_contract(contract: PilotContract) -> bool:
+    """Return whether the exact reduced V2.11.9 continuation applies."""
+
+    return (
+        _is_v2_contract(contract)
+        and contract.contract_id == "finevo-pilot-v2.11.9"
+    )
 
 
 def _is_v210_prerequisite_family_contract(contract: PilotContract) -> bool:
@@ -342,6 +355,9 @@ def _stage_sets(
     if _is_v211_family_contract(contract):
         non_scientific = V211_NON_SCIENTIFIC_STAGES
         scientific = V211_SCIENTIFIC_STAGES
+    elif _is_v2119_recovery_contract(contract):
+        non_scientific = V211_RECOVERY_NON_SCIENTIFIC_STAGES
+        scientific = V211_RECOVERY_SCIENTIFIC_STAGES
     elif _is_lane_separated_contract(contract):
         non_scientific = V24_NON_SCIENTIFIC_STAGES
         scientific = V24_SCIENTIFIC_STAGES
@@ -4605,14 +4621,22 @@ def _validate_v2_run_ledger_integrity(
         elif event_type == "run_finalized":
             run_id = payload.get("run_id")
             row = runs.get(run_id)
-            if not isinstance(row, Mapping) or payload.get(
-                "terminal_state_sha256"
-            ) != canonical_sha256(
+            terminal_state = (
                 {
                     "status": row.get("status"),
                     "artifact": row.get("artifact"),
                     "failure": row.get("failure"),
                 }
+                if isinstance(row, Mapping)
+                else None
+            )
+            if isinstance(row, Mapping) and "artifact_binding" in row:
+                assert terminal_state is not None
+                terminal_state["artifact_binding"] = row.get("artifact_binding")
+            if (
+                not isinstance(row, Mapping)
+                or payload.get("terminal_state_sha256")
+                != canonical_sha256(terminal_state)
             ):
                 raise PilotEvidenceError(
                     "V2 pilot run ledger finalization differs from rows"
