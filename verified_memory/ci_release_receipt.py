@@ -97,6 +97,18 @@ _CI_JOB_RECEIPT_FIELDS = frozenset(
 # consumed by ``sealed_manifest_inventory`` and its stable receipt schema.
 SCIENTIFIC_SOURCE_MANIFEST_ANCHORS: tuple[Mapping[str, Any], ...] = (
     {
+        "path": "experiments/pilot_v2_11_10_source_manifest.json",
+        "schema_version": "finevo-pilot-v2.11.10-source-manifest-v1",
+        # These two literals are the only CI-module cycle pins normalized by
+        # the V2.11.10 source-manifest renderer.
+        "file_sha256": (
+            "a64f98052a43aed76dc1c3e1fd5ef3f0383278bf0f867099c7dbfa79484b6928"
+        ),
+        "content_sha256": (
+            "5632d997905b755678907841ef89825791ef89824e5bcd4f989d4bf5ba1678f3"
+        ),
+    },
+    {
         "path": "experiments/pilot_v2_11_3_source_manifest.json",
         "schema_version": "finevo-pilot-v2.11.3-source-manifest-v1",
         "file_sha256": (

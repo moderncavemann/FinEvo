@@ -829,6 +829,9 @@ def _normalized_stage_receipts(
             "status_counts": _json_copy(value.get("status_counts", {})),
             "registered_run_count": value.get("registered_run_count"),
             "complete_cell_count": value.get("complete_cell_count"),
+            "scientific_matrix_complete": value.get(
+                "scientific_matrix_complete"
+            ),
         }
     return {
         "schema_version": V2115_STAGE_RECEIPTS_SCHEMA_VERSION,

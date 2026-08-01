@@ -336,6 +336,7 @@ def test_scientific_source_manifest_rejects_symlink_path(tmp_path: Path):
 
 def test_scientific_source_manifest_anchors_match_release_bytes():
     assert [anchor["path"] for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS] == [
+        "experiments/pilot_v2_11_10_source_manifest.json",
         "experiments/pilot_v2_11_3_source_manifest.json",
         "experiments/pilot_v2_11_4_source_manifest.json",
         "experiments/pilot_v2_11_5_source_manifest.json",
@@ -345,8 +346,18 @@ def test_scientific_source_manifest_anchors_match_release_bytes():
         "experiments/pilot_v2_11_9_source_manifest.json",
     ]
     for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS:
-        assert anchor["file_sha256"] is not None
-        assert anchor["content_sha256"] is not None
+        pending = (
+            anchor["file_sha256"] is None
+            or anchor["content_sha256"] is None
+        )
+        if pending:
+            assert anchor == {
+                "path": "experiments/pilot_v2_11_10_source_manifest.json",
+                "schema_version": "finevo-pilot-v2.11.10-source-manifest-v1",
+                "file_sha256": None,
+                "content_sha256": None,
+            }
+            continue
         raw = (ROOT / anchor["path"]).read_bytes()
         assert hashlib.sha256(raw).hexdigest() == anchor["file_sha256"]
         value = json.loads(raw)
@@ -870,16 +881,18 @@ def test_verified_memory_ci_uses_descendant_consumer_authority_not_science_contr
     assert "- macos-14" in workflow
 
 
-def test_verified_memory_ci_emits_v2119_scientific_release_receipt() -> None:
+def test_verified_memory_ci_gates_v21110_scientific_release_receipt() -> None:
     workflow = (ROOT / ".github/workflows/verified-memory-ci.yml").read_text(
         encoding="utf-8"
     )
     emit = workflow.split("- name: Emit scientific release CI receipt", 1)[1]
     emit = emit.split("- name: Emit publication consumer CI receipt", 1)[0]
     assert "python -m verified_memory.ci_release_receipt emit" in emit
-    assert "--contract experiments/pilot_v2_11_9.yaml" in emit
+    assert "--contract experiments/pilot_v2_11_10.yaml" in emit
     assert "--output \"${RUNNER_TEMP}/finevo-ci-release-receipt.json\"" in emit
-    assert "Verify V2.11.3 through V2.11.9 scientific source manifests" in workflow
+    assert "collect-tests" in workflow
+    assert "compile-sources" in workflow
+    assert "Verify V2.11.3 through V2.11.10 scientific source manifests" in workflow
     assert "Verify immutable V2.11.6 pre-dispatch no-go tag anchor" in workflow
     assert "6355d2329d800c95595c89f5e41e032ba6129fb7" in workflow
     assert "0a7eb29a76c5f9c90486052a4c335ad1d2000bf0" in workflow
@@ -889,6 +902,44 @@ def test_verified_memory_ci_emits_v2119_scientific_release_receipt() -> None:
     assert "Verify immutable V2.11.8 terminal no-go tag anchor" in workflow
     assert "a5564d374762aed5ea2493706888e2950b6e97fa" in workflow
     assert "67aa0fcce68fa5ac43b48dd3b81b849112137093" in workflow
+    assert "Verify immutable V2.11.9 zero-completion no-go tag anchor" in workflow
+    assert "f0af244b64a69b3ee4571452df6d3611fd8c6220" in workflow
+    assert "d850902af6218c72a6b0e71275c62c81c9143fb9" in workflow
+
+
+def test_v21110_source_anchor_is_atomic_and_v2119_anchor_is_unchanged() -> None:
+    by_path = {
+        anchor["path"]: anchor for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS
+    }
+    assert by_path["experiments/pilot_v2_11_9_source_manifest.json"] == {
+        "path": "experiments/pilot_v2_11_9_source_manifest.json",
+        "schema_version": "finevo-pilot-v2.11.9-source-manifest-v1",
+        "file_sha256": (
+            "609adf9d12543b4caa7adb0cbddb8c8a9073a10f689adf52a8670608d16e9cb1"
+        ),
+        "content_sha256": (
+            "36a790fe5edd6269218d6010046ec9293c3c418d8bc58a4dd5d89a6a70a547d6"
+        ),
+    }
+    v21110 = by_path["experiments/pilot_v2_11_10_source_manifest.json"]
+    pins = (v21110["file_sha256"], v21110["content_sha256"])
+    assert (pins[0] is None) == (pins[1] is None)
+    if pins[0] is None:
+        with pytest.raises(
+            CIReleaseReceiptError,
+            match="anchor hashes must be sealed before CI",
+        ):
+            build_scientific_source_manifest_inventory(
+                ROOT,
+                anchors=(v21110,),
+            )
+    else:
+        assert all(
+            isinstance(value, str)
+            and len(value) == 64
+            and set(value) <= set("0123456789abcdef")
+            for value in pins
+        )
 
 
 def test_tracked_v2113_frozen_contract_accepts_its_exact_ci_inventory() -> None:

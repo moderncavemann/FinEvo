@@ -345,6 +345,7 @@ def test_v2115_stage_receipt_adapter_separates_terminal_and_scheduled_stages(
             "complete_cell_count": evidence._FROZEN_PARTIAL_STAGE_STATUS_COUNTS[
                 stage_id
             ].get("complete", 0),
+            "scientific_matrix_complete": stage_id == "experiment-c",
             "integrity": {"content_sha256": "a" * 64},
         }
 
@@ -371,6 +372,8 @@ def test_v2115_stage_receipt_adapter_separates_terminal_and_scheduled_stages(
     assert result["scheduled_stage_ids"] == list(evidence._EXPECTED_STAGE_IDS[5:])
     assert tuple(result["receipts"]) == tuple(contract.stage_ids)
     assert result["receipts"]["experiment-d"]["status"] == "scheduled-not-run"
+    assert result["receipts"]["experiment-a"]["scientific_matrix_complete"] is False
+    assert result["receipts"]["experiment-c"]["scientific_matrix_complete"] is True
     assert len(calls) == 5
 
 

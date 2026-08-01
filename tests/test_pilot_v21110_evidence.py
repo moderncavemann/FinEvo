@@ -7,15 +7,24 @@ import subprocess
 
 import pytest
 
-from verified_memory.pilot_budget import PilotBudgetLedger, RunProjection
-from verified_memory.pilot_contract import canonical_sha256, load_pilot_contract
-from verified_memory.pilot_evidence import PilotEvidenceError
-from verified_memory import pilot_orchestrator, pilot_v2119_evidence
-from verified_memory.pilot_v2119_continuation import (
-    PilotV2119ContinuationError,
-    parent_budget_debit_for_v2119,
+from scripts.render_pilot_v21110_contract import (
+    _parse_with_bootstrap_design_pin,
+    build_contract,
 )
-from verified_memory.pilot_v2119_evidence import (
+from verified_memory.pilot_budget import PilotBudgetLedger, RunProjection
+import verified_memory.pilot_contract as pilot_contract_module
+from verified_memory.pilot_contract import (
+    canonical_sha256,
+    load_pilot_contract,
+    science_design_sha256,
+)
+from verified_memory.pilot_evidence import PilotEvidenceError
+from verified_memory import pilot_orchestrator, pilot_v21110_evidence
+from verified_memory.pilot_v21110_continuation import (
+    PilotV21110ContinuationError,
+    parent_budget_debit_for_v21110,
+)
+from verified_memory.pilot_v21110_evidence import (
     CURRENT_LEDGER_DENOMINATOR,
     LOGICAL_REGISTERED_DENOMINATOR,
     LOGICAL_SCIENTIFIC_DENOMINATOR,
@@ -23,6 +32,7 @@ from verified_memory.pilot_v2119_evidence import (
     _absent_owner_stop,
     _budget_owner_mapping,
     _external_parent_gates,
+    _expected_failed_lineage_audit,
     _expected_mapping,
     _failure_artifact_evidence,
     _observed_owner_linkage,
@@ -31,8 +41,8 @@ from verified_memory.pilot_v2119_evidence import (
     _validate_current_git,
     _verify_package_tree,
     _write_package,
-    assemble_v2119_terminal_evidence,
-    build_pilot_v2119_evidence_package,
+    assemble_v21110_terminal_evidence,
+    build_pilot_v21110_evidence_package,
     inherited_capability_by_model,
 )
 
@@ -42,7 +52,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _contracts():
     return (
-        load_pilot_contract(ROOT / "experiments/pilot_v2_11_9.yaml"),
+        _parse_with_bootstrap_design_pin(build_contract(ROOT, status="draft")),
         load_pilot_contract(ROOT / "experiments/pilot_v2_11_5.yaml"),
     )
 
@@ -261,7 +271,7 @@ def _terminal_fixture():
             "support_retrieval_effect": False,
             "claim_action": "retain route traceability only",
             "authority_binding": deepcopy(
-                current.to_dict()["v2119_recovery_boundary"]["parent_stage_receipts"][
+                current.to_dict()["v21110_recovery_boundary"]["parent_stage_receipts"][
                     "experiment-a"
                 ]
             ),
@@ -272,7 +282,7 @@ def _terminal_fixture():
             "support_rule_reliability": False,
             "claim_action": "withdraw or narrow the rule-reliability claim",
             "authority_binding": deepcopy(
-                current.to_dict()["v2119_recovery_boundary"]["parent_stage_receipts"][
+                current.to_dict()["v21110_recovery_boundary"]["parent_stage_receipts"][
                     "experiment-c"
                 ]
             ),
@@ -281,9 +291,9 @@ def _terminal_fixture():
     return current, parent, parent_rows, current_rows, receipt, gates
 
 
-def _assemble(fixture):
+def _assemble(fixture, *, failed_release_audit=None):
     current, parent, parent_rows, current_rows, receipt, gates = fixture
-    return assemble_v2119_terminal_evidence(
+    return assemble_v21110_terminal_evidence(
         contract=current,
         parent_contract=parent,
         parent_terminal_rows=parent_rows,
@@ -293,11 +303,16 @@ def _assemble(fixture):
         parent_preflight_authority=_preflight_fixture(receipt),
         current_authority=_authority_fixture(parent, deepcopy(receipt)),
         external_parent_gates=gates,
+        failed_release_audit=(
+            _expected_failed_lineage_audit(current)
+            if failed_release_audit is None
+            else failed_release_audit
+        ),
     )
 
 
 def _normalized_parent_ac_receipts(current):
-    frozen = current.to_dict()["v2119_recovery_boundary"][
+    frozen = current.to_dict()["v21110_recovery_boundary"][
         "parent_stage_receipts"
     ]
     receipts = {}
@@ -343,13 +358,13 @@ def test_build_rejects_provider_key_before_paths_or_provider(monkeypatch, tmp_pa
 
     monkeypatch.setenv("OPENAI_API_KEY", "fixture-present")
     monkeypatch.setattr(
-        pilot_v2119_evidence,
+        pilot_v21110_evidence,
         "_resolve_current_paths",
         forbidden_path_resolution,
     )
     monkeypatch.setattr(pilot_orchestrator, "_provider_for_profile", forbidden_provider)
-    with pytest.raises(PilotV2119ContinuationError, match="credentials.*present"):
-        build_pilot_v2119_evidence_package(
+    with pytest.raises(PilotV21110ContinuationError, match="credentials.*present"):
+        build_pilot_v21110_evidence_package(
             contract_path=tmp_path / "missing-contract.yaml",
             run_ledger_path=tmp_path / "missing-run-ledger.json",
             raw_root=tmp_path / "missing-raw",
@@ -373,12 +388,12 @@ def test_build_wraps_entire_consumer_in_provider_sentinels(monkeypatch, tmp_path
         return pilot_orchestrator._provider_for_profile(None)
 
     monkeypatch.setattr(
-        pilot_v2119_evidence,
-        "_build_pilot_v2119_evidence_package_guarded",
+        pilot_v21110_evidence,
+        "_build_pilot_v21110_evidence_package_guarded",
         malicious_guarded_builder,
     )
     with pytest.raises(Exception, match="provider/catalog construction is forbidden"):
-        build_pilot_v2119_evidence_package(
+        build_pilot_v21110_evidence_package(
             contract_path=tmp_path / "unused-contract",
             run_ledger_path=tmp_path / "unused-ledger",
             raw_root=tmp_path / "unused-raw",
@@ -396,6 +411,15 @@ def test_complete_87_to_136_terminal_fixture_is_provider_free(monkeypatch):
     denominator = aggregate["denominator"]
     assert denominator["current_release"]["row_count"] == CURRENT_LEDGER_DENOMINATOR
     assert denominator["current_release"]["scientific_row_count"] == 86
+    assert denominator["failed_v2119_lineage"] == {
+        "registered_rows": 87,
+        "operational_complete_rows": 1,
+        "scientific_failed_rows": 86,
+        "logical_rows_imported": 0,
+        "effects_imported": 0,
+        "audit_only": True,
+        "pass": True,
+    }
     assert denominator["logical_v2115_matrix"]["row_count"] == (
         LOGICAL_REGISTERED_DENOMINATOR
     )
@@ -404,6 +428,14 @@ def test_complete_87_to_136_terminal_fixture_is_provider_free(monkeypatch):
     )
     assert denominator["logical_v2115_matrix"]["current_parent_meta_row_excluded"]
     assert denominator["logical_v2115_matrix"]["itt_failures_retained"] == 3
+    assert aggregate["failed_release_lineage"][
+        "failed_rows_imported_into_logical_denominator"
+    ] == 0
+    assert aggregate["failed_release_lineage"]["failed_effects_imported"] == 0
+    assert {row["contract_id"] for row in aggregate["logical_rows"]} == {
+        "finevo-pilot-v2.11.5",
+        "finevo-pilot-v2.11.10",
+    }
     assert aggregate["publication_status"] == {
         "terminal_evidence_complete": True,
         "all_preregistered_claims_supported": False,
@@ -432,6 +464,56 @@ def test_complete_87_to_136_terminal_fixture_is_provider_free(monkeypatch):
         item["provider_calls_current_attempt"] == 0
         for item in aggregate["inherited_capability"].values()
     )
+
+
+def test_failed_v2119_lineage_tamper_fails_before_scientific_aggregation():
+    fixture = _terminal_fixture()
+    current = fixture[0]
+    audit = _expected_failed_lineage_audit(current)
+    audit["scientific_failed_rows"] = 85
+
+    with pytest.raises(PilotEvidenceError, match="terminal no-go lineage audit"):
+        _assemble(fixture, failed_release_audit=audit)
+
+
+def test_public_builder_forwards_all_three_release_roots(monkeypatch, tmp_path):
+    for name in (
+        "OPENAI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GOOGLE_API_KEY",
+        "GEMINI_API_KEY",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    observed = {}
+    sentinel = object()
+
+    def guarded(**kwargs):
+        observed.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        pilot_v21110_evidence,
+        "_build_pilot_v21110_evidence_package_guarded",
+        guarded,
+    )
+    failed_root = tmp_path / "v2119-failed"
+    authority_root = tmp_path / "v2115-authority"
+    current_root = tmp_path / "v21110-current"
+    result = build_pilot_v21110_evidence_package(
+        contract_path=current_root / "experiments/pilot_v2_11_10.yaml",
+        run_ledger_path=current_root / "raw/run_ledger.json",
+        raw_root=current_root / "raw",
+        build_root=tmp_path / "build",
+        source_repo_root=current_root,
+        failed_repo_root=failed_root,
+        authority_repo_root=authority_root,
+    )
+
+    assert result is sentinel
+    assert observed["source_repo_root"] == current_root
+    assert observed["failed_repo_root"] == failed_root
+    assert observed["authority_repo_root"] == authority_root
 
 
 def test_missing_current_cell_fails_closed():
@@ -569,11 +651,11 @@ def _terminal_budget_fixture(tmp_path, current, current_rows):
         contract_hash=current.canonical_hash,
         caps=pilot_orchestrator._budget_caps(current),
         tamper_evident=True,
-        parent_debit=parent_budget_debit_for_v2119(current),
+        parent_debit=parent_budget_debit_for_v21110(current),
     )
     owners = _budget_owner_mapping(current)
     parent_spec = tuple(current.expand(stage="parent-import"))[0]
-    parent_projection = pilot_orchestrator._v2119_parent_import_projection(parent_spec)
+    parent_projection = pilot_orchestrator._v21110_parent_import_projection(parent_spec)
     budget.reserve(parent_projection)
     budget.finalize(
         parent_projection.run_id,
@@ -585,10 +667,10 @@ def _terminal_budget_fixture(tmp_path, current, current_rows):
     prefix = budget.snapshot()
     budget.bind_acceptance_receipt(
         receipt_schema_version=(
-            "finevo-pilot-v2.11.9-scientific-dispatch-acceptance-v1"
+            "finevo-pilot-v2.11.10-scientific-dispatch-acceptance-v1"
         ),
         receipt_path=(
-            "experiment_results/pilot-v2.11.9/raw/"
+            "experiment_results/pilot-v2.11.10/raw/"
             "scientific_dispatch_acceptance.json"
         ),
         receipt_content_sha256="c" * 64,
@@ -603,7 +685,7 @@ def _terminal_budget_fixture(tmp_path, current, current_rows):
             continue
         projection = RunProjection(
             run_id=budget_id,
-            stage_bucket="hosted_v2119",
+            stage_bucket="hosted_v21110",
             cost_usd=0.0,
             completions=0,
             storage_bytes=1,
@@ -811,10 +893,10 @@ def test_early_d_stop_allows_absent_unreserved_future_owners(tmp_path):
         contract_hash=current.canonical_hash,
         caps=pilot_orchestrator._budget_caps(current),
         tamper_evident=True,
-        parent_debit=parent_budget_debit_for_v2119(current),
+        parent_debit=parent_budget_debit_for_v21110(current),
     )
     parent_spec = tuple(current.expand(stage="parent-import"))[0]
-    parent_projection = pilot_orchestrator._v2119_parent_import_projection(parent_spec)
+    parent_projection = pilot_orchestrator._v21110_parent_import_projection(parent_spec)
     budget.reserve(parent_projection)
     budget.finalize(
         parent_spec.run_id,
@@ -826,10 +908,10 @@ def test_early_d_stop_allows_absent_unreserved_future_owners(tmp_path):
     prefix = budget.snapshot()
     budget.bind_acceptance_receipt(
         receipt_schema_version=(
-            "finevo-pilot-v2.11.9-scientific-dispatch-acceptance-v1"
+            "finevo-pilot-v2.11.10-scientific-dispatch-acceptance-v1"
         ),
         receipt_path=(
-            "experiment_results/pilot-v2.11.9/raw/"
+            "experiment_results/pilot-v2.11.10/raw/"
             "scientific_dispatch_acceptance.json"
         ),
         receipt_content_sha256="c" * 64,
@@ -874,10 +956,10 @@ def test_absent_budget_owner_requires_exact_undispatched_failure(tmp_path):
         contract_hash=current.canonical_hash,
         caps=pilot_orchestrator._budget_caps(current),
         tamper_evident=True,
-        parent_debit=parent_budget_debit_for_v2119(current),
+        parent_debit=parent_budget_debit_for_v21110(current),
     )
     parent_spec = tuple(current.expand(stage="parent-import"))[0]
-    projection = pilot_orchestrator._v2119_parent_import_projection(parent_spec)
+    projection = pilot_orchestrator._v21110_parent_import_projection(parent_spec)
     budget.reserve(projection)
     budget.finalize(
         parent_spec.run_id,
@@ -889,10 +971,10 @@ def test_absent_budget_owner_requires_exact_undispatched_failure(tmp_path):
     prefix = budget.snapshot()
     budget.bind_acceptance_receipt(
         receipt_schema_version=(
-            "finevo-pilot-v2.11.9-scientific-dispatch-acceptance-v1"
+            "finevo-pilot-v2.11.10-scientific-dispatch-acceptance-v1"
         ),
         receipt_path=(
-            "experiment_results/pilot-v2.11.9/raw/"
+            "experiment_results/pilot-v2.11.10/raw/"
             "scientific_dispatch_acceptance.json"
         ),
         receipt_content_sha256="c" * 64,
@@ -1188,7 +1270,7 @@ def test_single_owner_after_itt_recovery_keeps_original_terminal():
 def test_current_source_root_symlink_alias_is_rejected(tmp_path):
     real = tmp_path / "real"
     (real / "experiments").mkdir(parents=True)
-    raw = real / "experiment_results/pilot-v2.11.9/raw"
+    raw = real / "experiment_results/pilot-v2.11.10/raw"
     raw.mkdir(parents=True)
     (real / "experiments/pilot_v2_11_9.yaml").write_text("fixture\n")
     (raw / "run_ledger.json").write_text("{}\n")
@@ -1198,16 +1280,16 @@ def test_current_source_root_symlink_alias_is_rejected(tmp_path):
         _resolve_current_paths(
             source_repo_root=alias,
             contract_path=alias / "experiments/pilot_v2_11_9.yaml",
-            raw_root=alias / "experiment_results/pilot-v2.11.9/raw",
+            raw_root=alias / "experiment_results/pilot-v2.11.10/raw",
             run_ledger_path=(
-                alias / "experiment_results/pilot-v2.11.9/raw/run_ledger.json"
+                alias / "experiment_results/pilot-v2.11.10/raw/run_ledger.json"
             ),
         )
 
 
 def test_package_target_rejects_raw_but_allows_current_evidence(tmp_path):
     current_root = tmp_path / "current"
-    current_raw = current_root / "experiment_results/pilot-v2.11.9/raw"
+    current_raw = current_root / "experiment_results/pilot-v2.11.10/raw"
     authority = tmp_path / "authority"
     parent_raw = authority / "experiment_results/pilot-v2.11.5/raw"
     current_raw.mkdir(parents=True)
@@ -1216,7 +1298,7 @@ def test_package_target_rejects_raw_but_allows_current_evidence(tmp_path):
         current_root / "evidence",
         source_roots=(current_raw, authority, parent_raw),
     )
-    assert allowed == current_root / "evidence/current_v2/pilot-v2.11.9"
+    assert allowed == current_root / "evidence/current_v2/pilot-v2.11.10"
     with pytest.raises(PilotEvidenceError, match="immutable source/raw root"):
         _package_target(
             current_raw,
@@ -1230,14 +1312,33 @@ def test_reviewer_deliverable_shape_is_provider_free(tmp_path, monkeypatch):
 
     monkeypatch.setattr(pilot_orchestrator, "_provider_for_profile", forbidden_provider)
     current, parent, _, _, _, _ = _terminal_fixture()
+    failed = load_pilot_contract(ROOT / "experiments/pilot_v2_11_9.yaml")
     aggregate = _assemble(_terminal_fixture())
+    current_contract_source = tmp_path / "source/pilot_v2_11_10.yaml"
+    current_contract_source.parent.mkdir()
+    current_contract_source.write_text(
+        json.dumps(current.to_dict(), sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    current_contract_source.with_name(
+        "pilot_v2_11_10_source_manifest.json"
+    ).write_bytes(
+        (ROOT / "experiments/pilot_v2_11_10_source_manifest.json").read_bytes()
+    )
+    monkeypatch.setattr(
+        pilot_contract_module,
+        "PILOT_CONTRACT_V2_11_10_SCIENCE_DESIGN_SHA256",
+        science_design_sha256(current.to_dict()),
+    )
     target = tmp_path / "package"
     manifest_path, checksums_path = _write_package(
         target,
         aggregate=aggregate,
         controls={"pass": True, "provider_calls": 0},
         contract=current,
-        contract_source=ROOT / "experiments/pilot_v2_11_9.yaml",
+        contract_source=current_contract_source,
+        failed_contract=failed,
+        failed_contract_source=ROOT / "experiments/pilot_v2_11_9.yaml",
         authority_contract=parent,
         authority_contract_source=ROOT / "experiments/pilot_v2_11_5.yaml",
     )
@@ -1245,10 +1346,13 @@ def test_reviewer_deliverable_shape_is_provider_free(tmp_path, monkeypatch):
         "aggregate.csv",
         "aggregate.json",
         "claim_metric_artifact.json",
+        "contract/pilot_v2_11_10.yaml",
         "contract/pilot_v2_11_9.yaml",
         "contract/pilot_v2_11_5.yaml",
         "contract/pilot_v2_11_5_source_manifest.json",
         "contract/pilot_v2_11_9_source_manifest.json",
+        "contract/pilot_v2_11_10_source_manifest.json",
+        "failed_release_lineage.json",
         "failure_ledger.json",
         "method_differences_scaffold.json",
         "model_capability_failures.json",
@@ -1259,7 +1363,17 @@ def test_reviewer_deliverable_shape_is_provider_free(tmp_path, monkeypatch):
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     checksums = json.loads(checksums_path.read_text(encoding="utf-8"))
     assert required == set(manifest["published_files"])
+    assert manifest["failed_lineage_rows"] == 87
+    assert manifest["failed_lineage_rows_imported"] == 0
     assert required <= {row["path"] for row in checksums["files"]}
+    failed_lineage = json.loads(
+        (target / "failed_release_lineage.json").read_text(encoding="utf-8")
+    )
+    assert failed_lineage["run_ledger"]["status_counts"] == {
+        "complete": 1,
+        "failed": 86,
+    }
+    assert failed_lineage["failed_rows_imported_into_logical_denominator"] == 0
     claims = json.loads(
         (target / "claim_metric_artifact.json").read_text(encoding="utf-8")
     )
@@ -1278,6 +1392,7 @@ def test_reviewer_deliverable_shape_is_provider_free(tmp_path, monkeypatch):
     verified = _verify_package_tree(
         target,
         contract=current,
+        failed_contract=failed,
         authority_contract=parent,
     )
     assert verified["file_count"] == len(required) + 2
@@ -1286,6 +1401,7 @@ def test_reviewer_deliverable_shape_is_provider_free(tmp_path, monkeypatch):
         _verify_package_tree(
             target,
             contract=current,
+            failed_contract=failed,
             authority_contract=parent,
         )
 
@@ -1307,12 +1423,12 @@ def test_current_git_rejects_untracked_source(tmp_path):
     (tmp_path / "tracked.txt").write_text("sealed\n", encoding="utf-8")
     git("add", "tracked.txt")
     git("commit", "-qm", "fixture")
-    git("tag", "-a", "pilot-v2.11.9-science", "-m", "fixture tag")
+    git("tag", "-a", "pilot-v2.11.10-science", "-m", "fixture tag")
     commit = git("rev-parse", "HEAD")
     release = {
         "local_tag": {
-            "name": "pilot-v2.11.9-science",
-            "object_id": git("rev-parse", "refs/tags/pilot-v2.11.9-science"),
+            "name": "pilot-v2.11.10-science",
+            "object_id": git("rev-parse", "refs/tags/pilot-v2.11.10-science"),
             "peeled_commit": commit,
             "kind": "annotated",
         }

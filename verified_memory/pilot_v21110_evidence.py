@@ -1,16 +1,19 @@
-"""Provider-free, fail-closed evidence consumer for FinEvo V2.11.9.
+"""Provider-free, fail-closed evidence consumer for FinEvo V2.11.10.
 
-V2.11.9 contains one operational lineage row and 86 continuation rows.  The
+V2.11.10 contains one operational lineage row and 86 continuation rows.  The
 paper denominator, however, is the cross-release logical V2.11.5 matrix: the
-50 terminal V2.11.5 parent rows plus the 86 V2.11.9 continuation rows.  This
-module is deliberately separate from :mod:`pilot_evidence`; treating V2.11.9
+50 terminal V2.11.5 parent rows plus the 86 V2.11.10 continuation rows.  This
+module is deliberately separate from :mod:`pilot_evidence`; treating V2.11.10
 as an ordinary 136-row V2.11 contract either drops its imported A/C evidence
 or invents cells that do not exist in the current ledger.
 
 The consumer never constructs a provider, retries a cell, changes a status, or
-rewrites raw evidence.  It validates both release roots and their ledgers,
-replays the V2.11.9 authority/projection/acceptance/terminal-artifact controls,
-retains every ITT failure, and writes a new reviewer package atomically.
+rewrites raw evidence.  It validates the current V2.11.10, failed V2.11.9,
+and scientific-authority V2.11.5 release roots and their ledgers,
+replays the V2.11.10 authority/projection/acceptance/terminal-artifact controls,
+retains every current ITT failure, and writes a new reviewer package atomically.
+The 87 failed-release rows are lineage-only and never enter or overwrite the
+136-row logical scientific matrix.
 """
 
 from __future__ import annotations
@@ -52,7 +55,7 @@ from .pilot_orchestrator import (
     PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION,
     PilotOrchestrationError,
     PilotRunLedger,
-    _assert_v2119_local_release_guard,
+    _assert_v21110_local_release_guard,
     _budget_caps,
     _load_v2_terminal_summary,
 )
@@ -71,30 +74,43 @@ from .pilot_v2115_evidence import (
     _validate_source_git as _validate_v2115_source_git,
     _validated_acceptance_and_budget as _validated_v2115_acceptance_and_budget,
 )
-from .pilot_v2119_continuation import (
-    V2119_ACCEPTANCE_FILENAME,
+from .pilot_v21110_continuation import (
+    V21110_ACCEPTANCE_FILENAME,
+    V21110_CONTRACT_ID,
+    V21110_RAW_ROOT,
+    V21110_SCIENCE_TAG,
+    V21110_SOURCE_MANIFEST_PATH,
     V2119_CONTRACT_ID,
-    V2119_RAW_ROOT,
-    V2119_SCIENCE_TAG,
-    audit_v2119_scientific_stage_namespace,
+    V2119_CONTRACT_PATH,
+    V2119_CONTRACT_SHA256,
+    V2119_FAILED_RAW_ROOT,
+    V2119_SOURCE_MANIFEST_PATH,
+    _real_root,
+    _require_distinct_roots,
+    audit_v21110_scientific_stage_namespace,
     current_authority_path,
-    parent_budget_debit_for_v2119,
-    require_v2119_provider_keys_absent,
-    verify_v2119_current_authority,
-    verify_v2119_parent_import_receipt,
-    verify_v2119_scientific_dispatch_acceptance,
-    verify_v2119_terminal_scientific_artifacts,
-    verified_v2119_projection,
+    parent_budget_debit_for_v21110,
+    require_v21110_provider_keys_absent,
+    validate_v21110_source_manifest,
+    verify_v2119_terminal_no_go,
+    verify_v21110_current_authority,
+    verify_v21110_parent_import_receipt,
+    verify_v21110_scientific_dispatch_acceptance,
+    verify_v21110_terminal_scientific_artifacts,
+    verified_v21110_projection,
     _verified_parent_import_budget_actual,
     _verify_current_accepted_budget_rows,
 )
 
 
-V2119_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-v2.11.9-evidence-package-v1"
-V2119_DENOMINATOR_SCHEMA_VERSION = "finevo-pilot-v2.11.9-logical-denominator-v1"
-V2119_CONTROLS_SCHEMA_VERSION = "finevo-pilot-v2.11.9-release-controls-v1"
-V2119_RUN_LEDGER_AUDIT_SCHEMA_VERSION = "finevo-pilot-v2.11.9-run-ledger-audit-v1"
-V2119_BUDGET_AUDIT_SCHEMA_VERSION = "finevo-pilot-v2.11.9-budget-audit-v1"
+V21110_EVIDENCE_SCHEMA_VERSION = "finevo-pilot-v2.11.10-evidence-package-v1"
+V21110_DENOMINATOR_SCHEMA_VERSION = "finevo-pilot-v2.11.10-logical-denominator-v1"
+V21110_CONTROLS_SCHEMA_VERSION = "finevo-pilot-v2.11.10-release-controls-v1"
+V21110_RUN_LEDGER_AUDIT_SCHEMA_VERSION = "finevo-pilot-v2.11.10-run-ledger-audit-v1"
+V21110_BUDGET_AUDIT_SCHEMA_VERSION = "finevo-pilot-v2.11.10-budget-audit-v1"
+V21110_FAILED_LINEAGE_AUDIT_SCHEMA_VERSION = (
+    "finevo-pilot-v2.11.10-v2.11.9-failed-lineage-audit-v1"
+)
 
 CURRENT_STAGE_IDS = ("parent-import", "experiment-d", "experiment-b", "cross-model")
 CURRENT_STAGE_COUNTS = {
@@ -146,19 +162,19 @@ def _require_contract_layout(
     *,
     require_frozen: bool,
 ) -> None:
-    if current.contract_id != V2119_CONTRACT_ID:
-        raise PilotEvidenceError("V2.11.9 consumer received a different contract")
+    if current.contract_id != V21110_CONTRACT_ID:
+        raise PilotEvidenceError("V2.11.10 consumer received a different contract")
     if parent.contract_id != V2115_CONTRACT_ID:
-        raise PilotEvidenceError("V2.11.9 consumer requires V2.11.5 authority")
+        raise PilotEvidenceError("V2.11.10 consumer requires V2.11.5 authority")
     if require_frozen and (current.status != "frozen" or parent.status != "frozen"):
         raise PilotEvidenceError("publication requires both contracts to be frozen")
     if tuple(current.stage_ids) != CURRENT_STAGE_IDS:
-        raise PilotEvidenceError("V2.11.9 stage order drifted")
+        raise PilotEvidenceError("V2.11.10 stage order drifted")
     current_counts = {
         stage_id: len(current.expand(stage=stage_id)) for stage_id in current.stage_ids
     }
     if current_counts != CURRENT_STAGE_COUNTS or sum(current_counts.values()) != 87:
-        raise PilotEvidenceError("V2.11.9 current denominator is not 87 cells")
+        raise PilotEvidenceError("V2.11.10 current denominator is not 87 cells")
     parent_counts = {
         stage_id: len(parent.expand(stage=stage_id)) for stage_id in parent.stage_ids
     }
@@ -168,9 +184,38 @@ def _require_contract_layout(
     ):
         raise PilotEvidenceError("V2.11.5 terminal-prefix denominator drifted")
     boundary = _mapping(
-        current.v2119_recovery_boundary,
-        "V2.11.9 recovery boundary",
+        current.v21110_recovery_boundary,
+        "V2.11.10 recovery boundary",
     )
+    failed = _mapping(
+        boundary.get("failed_release_no_go"),
+        "V2.11.9 immutable failed-release boundary",
+    )
+    failed_run = _mapping(failed.get("run_ledger"), "V2.11.9 run-ledger boundary")
+    failed_budget = _mapping(
+        failed.get("budget_ledger"),
+        "V2.11.9 budget-ledger boundary",
+    )
+    failed_actual = _mapping(
+        failed_budget.get("current_actual"),
+        "V2.11.9 current actual boundary",
+    )
+    if (
+        failed.get("contract_id") != V2119_CONTRACT_ID
+        or failed.get("contract_sha256") != V2119_CONTRACT_SHA256
+        or failed_run.get("registered_rows") != 87
+        or failed_run.get("status_counts") != {"complete": 1, "failed": 86}
+        or failed_budget.get("status_counts") != {"complete": 1, "failed": 36}
+        or failed_actual
+        != {"cost_usd": 0.0, "hosted_completions": 0, "storage_bytes": 800_162}
+        or failed.get("provider_construction") is not False
+        or failed.get("provider_calls") != 0
+        or failed.get("hosted_completions") != 0
+        or failed.get("scientific_evidence") is not False
+        or failed.get("resume_forbidden") is not True
+        or failed.get("failure_reclassification_forbidden") is not True
+    ):
+        raise PilotEvidenceError("V2.11.9 immutable no-go boundary drifted")
     matrix = _mapping(boundary.get("continuation_matrix"), "continuation matrix")
     expected = {
         "ledger_cells": CURRENT_LEDGER_DENOMINATOR,
@@ -185,13 +230,13 @@ def _require_contract_layout(
         ),
     }
     if any(matrix.get(key) != value for key, value in expected.items()):
-        raise PilotEvidenceError("V2.11.9 cross-release denominator boundary drifted")
+        raise PilotEvidenceError("V2.11.10 cross-release denominator boundary drifted")
     if (
         matrix.get("imported_a_c_remain_parent_evidence") is not True
-        or matrix.get("a_c_reclassified_as_v2119") is not False
+        or matrix.get("a_c_reclassified_as_v21110") is not False
         or matrix.get("per_row_source_contract_id") != V2115_CONTRACT_ID
     ):
-        raise PilotEvidenceError("V2.11.9 A/C authority boundary drifted")
+        raise PilotEvidenceError("V2.11.10 A/C authority boundary drifted")
 
 
 def _expected_mapping(
@@ -218,11 +263,11 @@ def _expected_mapping(
         if not source_spec.run_id.startswith(prefix):
             raise PilotEvidenceError("V2.11.5 continuation run id is malformed")
         child = _json_copy(source)
-        child["run_id"] = f"{V2119_CONTRACT_ID}--{source_spec.run_id[len(prefix):]}"
-        child["contract_id"] = V2119_CONTRACT_ID
-        child["budget_bucket"] = "hosted_v2119"
+        child["run_id"] = f"{V21110_CONTRACT_ID}--{source_spec.run_id[len(prefix):]}"
+        child["contract_id"] = V21110_CONTRACT_ID
+        child["budget_bucket"] = "hosted_v21110"
         if child_by_id.get(child["run_id"]) != child:
-            raise PilotEvidenceError("V2.11.9 continuation spec mapping drifted")
+            raise PilotEvidenceError("V2.11.10 continuation spec mapping drifted")
         logical = _json_copy(source)
         logical.pop("run_id")
         logical.pop("contract_id")
@@ -238,12 +283,12 @@ def _expected_mapping(
             }
         )
     result = {
-        "schema_version": "finevo-pilot-v2.11.9-canonical-cell-mapping-v1",
+        "schema_version": "finevo-pilot-v2.11.10-canonical-cell-mapping-v1",
         "row_count": len(rows),
         "mapping_sha256": canonical_sha256(rows),
         "rows": rows,
     }
-    declared = current.v2119_recovery_boundary["continuation_matrix"][
+    declared = current.v21110_recovery_boundary["continuation_matrix"][
         "canonical_86_row_mapping_sha256"
     ]
     if result["mapping_sha256"] != declared:
@@ -308,7 +353,7 @@ def inherited_capability_by_model(
 
     summaries = _mapping(
         parent_import_receipt.get("capability_authority"),
-        "V2.11.9 inherited capability authority",
+        "V2.11.10 inherited capability authority",
     )
     if set(summaries) != set(CAPABILITY_MODELS):
         raise PilotEvidenceError("inherited capability model denominator drifted")
@@ -316,7 +361,7 @@ def inherited_capability_by_model(
         raise PilotEvidenceError("independent capability denominator drifted")
     dispatch = _mapping(
         parent_import_receipt.get("dispatch_authority_source"),
-        "V2.11.9 inherited dispatch authority",
+        "V2.11.10 inherited dispatch authority",
     )
     source_gate = _mapping(dispatch.get("source_gate"), "source gate binding")
     stable = _mapping(
@@ -501,18 +546,18 @@ def inherited_capability_by_model(
             "scientific_evidence": False,
             "claim_boundary": (
                 "historical capability and interface authority only; zero "
-                "V2.11.9 capability/preflight provider calls"
+                "V2.11.10 capability/preflight provider calls"
             ),
         }
     return output
 
 
-def _cross_model_summary_v2119(
+def _cross_model_summary_v21110(
     contract: PilotContract,
     rows: Sequence[Mapping[str, Any]],
     capability: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Any]:
-    """Aggregate only the two models actually registered by V2.11.9."""
+    """Aggregate only the two models actually registered by V2.11.10."""
 
     expected_seeds = tuple(int(seed) for seed in contract.seeds["sets"]["cross-model"])
     source_stages = {"gpt52_main": "experiment-b", "gpt56_diagnostic": "cross-model"}
@@ -588,9 +633,9 @@ def _cross_model_summary_v2119(
         replicated = bool(capability_ok and (positive or negative))
         output[model_id] = {
             "source": (
-                "V2.11.9 experiment-b first-three preregistered seeds"
+                "V2.11.10 experiment-b first-three preregistered seeds"
                 if model_id == "gpt52_main"
-                else "V2.11.9 cross-model"
+                else "V2.11.10 cross-model"
             ),
             "registered_pair_count": 3,
             "usable_paired_seeds": usable,
@@ -671,7 +716,74 @@ def _status_audit(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     }
 
 
-def assemble_v2119_terminal_evidence(
+def _expected_failed_lineage_audit(contract: PilotContract) -> dict[str, Any]:
+    """Return the only admissible V2.11.9 lineage-only audit projection."""
+
+    boundary = _mapping(
+        contract.to_dict().get("v21110_recovery_boundary"),
+        "V2.11.10 recovery boundary",
+    )
+    failed = _mapping(
+        boundary.get("failed_release_no_go"),
+        "V2.11.9 immutable failed release",
+    )
+    return {
+        "schema_version": V21110_FAILED_LINEAGE_AUDIT_SCHEMA_VERSION,
+        "contract_id": failed.get("contract_id"),
+        "contract_sha256": failed.get("contract_sha256"),
+        "contract_file_sha256": failed.get("contract_file_sha256"),
+        "science_tag": failed.get("science_tag"),
+        "science_tag_object": failed.get("science_tag_object"),
+        "science_commit": failed.get("science_commit"),
+        "source_manifest_file_sha256": failed.get(
+            "source_manifest_file_sha256"
+        ),
+        "source_manifest_content_sha256": failed.get(
+            "source_manifest_content_sha256"
+        ),
+        "run_ledger": _json_copy(failed.get("run_ledger")),
+        "budget_ledger": _json_copy(failed.get("budget_ledger")),
+        "stage_receipts": _json_copy(failed.get("stage_receipts")),
+        "raw_inventory": _json_copy(failed.get("raw_inventory")),
+        "complete_raw_inventory": _json_copy(
+            failed.get("complete_raw_inventory")
+        ),
+        "scientific_dispatch_acceptance": _json_copy(
+            failed.get("scientific_dispatch_acceptance")
+        ),
+        "release_attestation": _json_copy(failed.get("release_attestation")),
+        "scientific_launch_input": _json_copy(
+            failed.get("scientific_launch_input")
+        ),
+        "failure_profile": _json_copy(failed.get("failure_profile")),
+        "provider_construction": False,
+        "provider_calls": 0,
+        "hosted_completions": 0,
+        "registered_rows": 87,
+        "operational_complete_rows": 1,
+        "scientific_failed_rows": 86,
+        "failed_rows_imported_into_logical_denominator": 0,
+        "failed_effects_imported": 0,
+        "failed_statuses_preserved": True,
+        "resume_forbidden": True,
+        "failure_reclassification_forbidden": True,
+        "terminal_verification_pass": True,
+        "scientific_evidence": False,
+    }
+
+
+def _validate_failed_lineage_audit(
+    value: Mapping[str, Any],
+    *,
+    contract: PilotContract,
+) -> dict[str, Any]:
+    expected = _expected_failed_lineage_audit(contract)
+    if _json_copy(value) != expected:
+        raise PilotEvidenceError("V2.11.9 terminal no-go lineage audit drifted")
+    return expected
+
+
+def assemble_v21110_terminal_evidence(
     *,
     contract: PilotContract,
     parent_contract: PilotContract,
@@ -682,10 +794,15 @@ def assemble_v2119_terminal_evidence(
     parent_preflight_authority: Mapping[str, Any],
     current_authority: Mapping[str, Any],
     external_parent_gates: Mapping[str, Mapping[str, Any]],
+    failed_release_audit: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Pure terminal assembler used by publication and provider-free fixtures."""
 
     _require_contract_layout(contract, parent_contract, require_frozen=False)
+    failed_lineage = _validate_failed_lineage_audit(
+        failed_release_audit,
+        contract=contract,
+    )
     parent_by_id = _validate_rows(
         parent_terminal_rows,
         parent_contract,
@@ -708,8 +825,8 @@ def assemble_v2119_terminal_evidence(
     experiment_c = _json_copy(external_parent_gates["experiment_c"])
     frozen_receipts = _mapping(
         _mapping(
-            contract.to_dict()["v2119_recovery_boundary"],
-            "V2.11.9 frozen recovery boundary",
+            contract.to_dict()["v21110_recovery_boundary"],
+            "V2.11.10 frozen recovery boundary",
         ).get("parent_stage_receipts"),
         "frozen parent stage receipts",
     )
@@ -744,12 +861,32 @@ def assemble_v2119_terminal_evidence(
         raise PilotEvidenceError("logical denominator is not 136 rows")
     if len({row["run_id"] for row in logical_rows}) != len(logical_rows):
         raise PilotEvidenceError("logical denominator contains duplicate run ids")
+    if any(
+        row.get("contract_id") not in {V2115_CONTRACT_ID, V21110_CONTRACT_ID}
+        for row in logical_rows
+    ):
+        raise PilotEvidenceError(
+            "V2.11.9 failure-lineage row leaked into the logical denominator"
+        )
 
     current_audit = _status_audit(list(current_by_id.values()))
     logical_audit = _status_audit(logical_rows)
     parent_audit = _status_audit(list(parent_by_id.values()))
     denominator = {
-        "schema_version": V2119_DENOMINATOR_SCHEMA_VERSION,
+        "schema_version": V21110_DENOMINATOR_SCHEMA_VERSION,
+        "failed_v2119_lineage": {
+            "registered_rows": failed_lineage["registered_rows"],
+            "operational_complete_rows": failed_lineage[
+                "operational_complete_rows"
+            ],
+            "scientific_failed_rows": failed_lineage["scientific_failed_rows"],
+            "logical_rows_imported": failed_lineage[
+                "failed_rows_imported_into_logical_denominator"
+            ],
+            "effects_imported": failed_lineage["failed_effects_imported"],
+            "audit_only": True,
+            "pass": True,
+        },
         "current_release": {
             **current_audit,
             "expected_count": CURRENT_LEDGER_DENOMINATOR,
@@ -795,7 +932,7 @@ def assemble_v2119_terminal_evidence(
     experiment_b = _experiment_b_summary(current_science)
     experiment_d = _experiment_d_gate(contract, current_science)
     narrative = _narrative_gate(contract, current_science)
-    cross_model = _cross_model_summary_v2119(contract, current_science, capability)
+    cross_model = _cross_model_summary_v21110(contract, current_science, capability)
     gates = {
         "experiment_a": experiment_a,
         "experiment_c": experiment_c,
@@ -809,11 +946,12 @@ def assemble_v2119_terminal_evidence(
         and narrative.get("status") == "supported"
     )
     return {
-        "schema_version": V2119_EVIDENCE_SCHEMA_VERSION,
+        "schema_version": V21110_EVIDENCE_SCHEMA_VERSION,
         "contract_id": contract.contract_id,
         "contract_sha256": contract.canonical_hash,
         "authority_contract_id": parent_contract.contract_id,
         "authority_contract_sha256": parent_contract.canonical_hash,
+        "failed_release_lineage": failed_lineage,
         "denominator": denominator,
         "claim_gates": gates,
         "experiment_b": experiment_b,
@@ -821,7 +959,8 @@ def assemble_v2119_terminal_evidence(
         "inherited_capability": capability,
         "publication_status": {
             "terminal_evidence_complete": bool(
-                denominator["current_release"]["pass"]
+                denominator["failed_v2119_lineage"]["pass"]
+                and denominator["current_release"]["pass"]
                 and denominator["parent_terminal_prefix"]["pass"]
                 and denominator["logical_v2115_matrix"]["pass"]
             ),
@@ -859,26 +998,26 @@ def _resolve_current_paths(
     run_ledger_path: str | Path,
 ) -> tuple[Path, Path, Path, Path]:
     if source_repo_root is None:
-        raise PilotEvidenceError("V2.11.9 publication requires --source-repo-root")
+        raise PilotEvidenceError("V2.11.10 publication requires --source-repo-root")
     supplied_source = Path(os.path.abspath(Path(source_repo_root)))
     if supplied_source.is_symlink():
-        raise PilotEvidenceError("V2.11.9 source repository cannot be a symlink")
+        raise PilotEvidenceError("V2.11.10 source repository cannot be a symlink")
     source = supplied_source.resolve(strict=True)
     if supplied_source != source:
         raise PilotEvidenceError(
-            "V2.11.9 source repository cannot cross a symlink component"
+            "V2.11.10 source repository cannot cross a symlink component"
         )
-    expected_contract = source / "experiments/pilot_v2_11_9.yaml"
-    expected_raw = source.joinpath(*V2119_RAW_ROOT.parts)
+    expected_contract = source / "experiments/pilot_v2_11_10.yaml"
+    expected_raw = source.joinpath(*V21110_RAW_ROOT.parts)
     expected_ledger = expected_raw / "run_ledger.json"
     supplied = tuple(
         Path(path).absolute() for path in (contract_path, raw_root, run_ledger_path)
     )
     if supplied != (expected_contract, expected_raw, expected_ledger):
-        raise PilotEvidenceError("V2.11.9 publication paths must be in-place and exact")
+        raise PilotEvidenceError("V2.11.10 publication paths must be in-place and exact")
     for path in (expected_contract, expected_raw, expected_ledger):
         if path.is_symlink() or not path.exists() or path.resolve() != path.absolute():
-            raise PilotEvidenceError("V2.11.9 publication path is missing or unsafe")
+            raise PilotEvidenceError("V2.11.10 publication path is missing or unsafe")
     return source, expected_contract, expected_raw, expected_ledger
 
 
@@ -895,7 +1034,7 @@ def _validate_current_git(
     local_tag = release_attestation.get("local_tag")
     if (
         Path(_git(source, "rev-parse", "--show-toplevel")).resolve() != source
-        or tag != V2119_SCIENCE_TAG
+        or tag != V21110_SCIENCE_TAG
         or _git(source, "rev-parse", "HEAD") != commit
         or _git(source, "cat-file", "-t", tag_ref) != "tag"
         or _git(source, "rev-parse", f"{tag_ref}^{{commit}}") != commit
@@ -908,7 +1047,7 @@ def _validate_current_git(
         or local_tag.get("kind") != "annotated"
     ):
         raise PilotEvidenceError(
-            "V2.11.9 source is not its tracked-clean annotated tag"
+            "V2.11.10 source is not its tracked-clean annotated tag"
         )
     return {
         "source_repo_root": str(source),
@@ -967,7 +1106,7 @@ def _expected_parent_payload(
                 model_id: projections[model_id]["integrity"]["content_sha256"]
                 for model_id in CAPABILITY_MODELS
             },
-            "failed_v2118_terminal_rows_bound": 87,
+            "failed_v2119_terminal_rows_bound": 87,
             "mapped_v2115_scheduled_rows": 86,
         },
         "provider_construction": False,
@@ -990,7 +1129,7 @@ def _normalize_current_ledger(
     authority: Mapping[str, Any],
     projections: Mapping[str, Mapping[str, Any]],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    terminal_replay = verify_v2119_terminal_scientific_artifacts(
+    terminal_replay = verify_v21110_terminal_scientific_artifacts(
         contract,
         repo_root=source_repo_root,
         raw_root=raw_root,
@@ -998,10 +1137,10 @@ def _normalize_current_ledger(
         paid=paid,
     )
     snapshot = ledger.snapshot()
-    observed = _mapping(snapshot.get("runs"), "V2.11.9 run-ledger rows")
+    observed = _mapping(snapshot.get("runs"), "V2.11.10 run-ledger rows")
     expected = {spec.run_id: spec for spec in contract.expand()}
     if set(observed) != set(expected):
-        raise PilotEvidenceError("V2.11.9 run ledger is not the exact 87-cell matrix")
+        raise PilotEvidenceError("V2.11.10 run ledger is not the exact 87-cell matrix")
     rows: list[dict[str, Any]] = []
     for run_id, spec in expected.items():
         source = _mapping(observed[run_id], f"run row {run_id}")
@@ -1009,7 +1148,7 @@ def _normalize_current_ledger(
             source.get("spec") != spec.to_dict()
             or source.get("status") not in TERMINAL_STATUSES
         ):
-            raise PilotEvidenceError(f"V2.11.9 ledger spec/status drifted: {run_id}")
+            raise PilotEvidenceError(f"V2.11.10 ledger spec/status drifted: {run_id}")
         row: dict[str, Any] = {
             **spec.to_dict(),
             "status": source["status"],
@@ -1055,7 +1194,7 @@ def _normalize_current_ledger(
                 or terminal.get("payload")
                 != _expected_parent_payload(parent, authority, projections)
             ):
-                raise PilotEvidenceError("V2.11.9 parent terminal payload drifted")
+                raise PilotEvidenceError("V2.11.10 parent terminal payload drifted")
             row.update(
                 {
                     "artifact_kind": "terminal-summary",
@@ -1071,9 +1210,9 @@ def _normalize_current_ledger(
     )
     events = snapshot.get("events")
     if not isinstance(events, list) or not events:
-        raise PilotEvidenceError("V2.11.9 run-ledger events are absent")
+        raise PilotEvidenceError("V2.11.10 run-ledger events are absent")
     audit = {
-        "schema_version": V2119_RUN_LEDGER_AUDIT_SCHEMA_VERSION,
+        "schema_version": V21110_RUN_LEDGER_AUDIT_SCHEMA_VERSION,
         "path": str(raw_root / "run_ledger.json"),
         "file_sha256": _sha256_file(raw_root / "run_ledger.json"),
         "ledger_sha256": snapshot.get("ledger_sha256"),
@@ -1092,7 +1231,7 @@ def _budget_owner_mapping(contract: PilotContract) -> dict[str, tuple[str, ...]]
 
     parent = tuple(contract.expand(stage="parent-import"))
     if len(parent) != 1:
-        raise PilotEvidenceError("V2.11.9 parent budget owner drifted")
+        raise PilotEvidenceError("V2.11.10 parent budget owner drifted")
     owners: dict[str, tuple[str, ...]] = {parent[0].run_id: (parent[0].run_id,)}
     for stage_id in ("experiment-b", "cross-model"):
         for spec in contract.expand(stage=stage_id):
@@ -1121,7 +1260,7 @@ def _budget_owner_mapping(contract: PilotContract) -> dict[str, tuple[str, ...]]
         or len(set(linked_ids)) != 87
         or set(linked_ids) != expected_ids
     ):
-        raise PilotEvidenceError("V2.11.9 budget-to-ITT ownership drifted")
+        raise PilotEvidenceError("V2.11.10 budget-to-ITT ownership drifted")
     return owners
 
 
@@ -1649,9 +1788,9 @@ def _audit_current_budget(
     run_ledger: Any,
 ) -> dict[str, Any]:
     snapshot = budget.snapshot()
-    rows = _mapping(snapshot.get("runs"), "V2.11.9 budget rows")
+    rows = _mapping(snapshot.get("runs"), "V2.11.10 budget rows")
     run_snapshot = run_ledger.snapshot()
-    run_rows = _mapping(run_snapshot.get("runs"), "V2.11.9 ITT rows")
+    run_rows = _mapping(run_snapshot.get("runs"), "V2.11.10 ITT rows")
     current_by_id = {str(row["run_id"]): row for row in current_rows}
     if set(current_by_id) != set(run_rows) or any(
         current_by_id[run_id].get("status") != row.get("status")
@@ -1662,7 +1801,7 @@ def _audit_current_budget(
     owners = _budget_owner_mapping(contract)
     parent_id = tuple(contract.expand(stage="parent-import"))[0].run_id
     if parent_id not in rows or not set(rows).issubset(owners):
-        raise PilotEvidenceError("V2.11.9 budget rows are outside the 37-unit universe")
+        raise PilotEvidenceError("V2.11.10 budget rows are outside the 37-unit universe")
     accepted = _mapping(
         _mapping(
             acceptance.get("budget_projection"), "acceptance budget projection"
@@ -1682,7 +1821,7 @@ def _audit_current_budget(
             run_snapshot,
         )
     except Exception as exc:
-        raise PilotEvidenceError(f"V2.11.9 budget/ITT replay failed: {exc}") from exc
+        raise PilotEvidenceError(f"V2.11.10 budget/ITT replay failed: {exc}") from exc
 
     try:
         _verified_parent_import_budget_actual(contract, rows[parent_id])
@@ -1692,13 +1831,13 @@ def _audit_current_budget(
     finalization_events: dict[str, list[Mapping[str, Any]]] = {}
     events = snapshot.get("events")
     if not isinstance(events, list) or not events:
-        raise PilotEvidenceError("V2.11.9 budget events are absent")
+        raise PilotEvidenceError("V2.11.10 budget events are absent")
     for event in events:
         if not isinstance(event, Mapping):
-            raise PilotEvidenceError("V2.11.9 budget event is malformed")
+            raise PilotEvidenceError("V2.11.10 budget event is malformed")
         payload = event.get("payload")
         if not isinstance(payload, Mapping):
-            raise PilotEvidenceError("V2.11.9 budget event payload is malformed")
+            raise PilotEvidenceError("V2.11.10 budget event payload is malformed")
         if event.get("event_type") == "run_reserved":
             reservation_events.setdefault(str(payload.get("run_id")), []).append(
                 payload
@@ -1718,7 +1857,7 @@ def _audit_current_budget(
         }
     )
     if event_type_counts != expected_event_type_counts:
-        raise PilotEvidenceError("V2.11.9 budget event type/count inventory drifted")
+        raise PilotEvidenceError("V2.11.10 budget event type/count inventory drifted")
     if set(reservation_events) != set(rows) or set(finalization_events) != set(rows):
         raise PilotEvidenceError("budget events differ from observed budget units")
 
@@ -1781,9 +1920,9 @@ def _audit_current_budget(
         or int(committed["completions"]) > int(caps["max_completions"])
         or int(committed["storage_bytes"]) > int(caps["max_storage_bytes"])
     ):
-        raise PilotEvidenceError("V2.11.9 committed budget exceeds frozen caps")
+        raise PilotEvidenceError("V2.11.10 committed budget exceeds frozen caps")
     return {
-        "schema_version": V2119_BUDGET_AUDIT_SCHEMA_VERSION,
+        "schema_version": V21110_BUDGET_AUDIT_SCHEMA_VERSION,
         "path": str(raw_root / "budget_ledger.json"),
         "file_sha256": _sha256_file(raw_root / "budget_ledger.json"),
         "ledger_sha256": snapshot.get("ledger_sha256"),
@@ -1823,8 +1962,8 @@ def _external_parent_gates(
     c_receipt = _mapping(receipts.get("experiment-c"), "Experiment C receipt")
     expected_receipts = _mapping(
         _mapping(
-            contract.to_dict()["v2119_recovery_boundary"],
-            "V2.11.9 frozen recovery boundary",
+            contract.to_dict()["v21110_recovery_boundary"],
+            "V2.11.10 frozen recovery boundary",
         ).get("parent_stage_receipts"),
         "frozen parent stage receipt bindings",
     )
@@ -1841,7 +1980,7 @@ def _external_parent_gates(
             if key != "path"
         ):
             raise PilotEvidenceError(
-                f"V2.11.5 {stage_id} receipt differs from frozen V2.11.9 binding"
+                f"V2.11.5 {stage_id} receipt differs from frozen V2.11.10 binding"
             )
     if (
         a_receipt.get("status") != "complete-with-no-go"
@@ -1898,6 +2037,8 @@ def _write_package(
     controls: Mapping[str, Any],
     contract: PilotContract,
     contract_source: Path,
+    failed_contract: PilotContract,
+    failed_contract_source: Path,
     authority_contract: PilotContract,
     authority_contract_source: Path,
 ) -> tuple[Path, Path]:
@@ -1916,12 +2057,25 @@ def _write_package(
     _write_json(target / "aggregate.json", aggregate_payload)
     (target / "aggregate.csv").write_bytes(_aggregate_csv(rows))
     _write_json(target / "release_controls.json", controls)
+    _write_json(
+        target / "failed_release_lineage.json",
+        _mapping(
+            aggregate.get("failed_release_lineage"),
+            "failed-release lineage audit",
+        ),
+    )
     contract_dir = target / "contract"
     contract_dir.mkdir()
     contract_copy = contract_dir / contract_source.name
     contract_copy.write_bytes(contract_source.read_bytes())
     if _sha256_file(contract_copy) != _sha256_file(contract_source):
         raise PilotEvidenceError("contract changed while copying into package")
+    failed_contract_copy = contract_dir / failed_contract_source.name
+    failed_contract_copy.write_bytes(failed_contract_source.read_bytes())
+    if _sha256_file(failed_contract_copy) != _sha256_file(failed_contract_source):
+        raise PilotEvidenceError(
+            "failed-lineage contract changed while copying into package"
+        )
     authority_contract_copy = contract_dir / authority_contract_source.name
     authority_contract_copy.write_bytes(authority_contract_source.read_bytes())
     if _sha256_file(authority_contract_copy) != _sha256_file(authority_contract_source):
@@ -1929,7 +2083,8 @@ def _write_package(
             "authority contract changed while copying into package"
         )
     source_manifests = (
-        contract_source.with_name("pilot_v2_11_9_source_manifest.json"),
+        contract_source.with_name("pilot_v2_11_10_source_manifest.json"),
+        failed_contract_source.with_name("pilot_v2_11_9_source_manifest.json"),
         authority_contract_source.with_name("pilot_v2_11_5_source_manifest.json"),
     )
     for source_manifest in source_manifests:
@@ -1939,6 +2094,8 @@ def _write_package(
             raise PilotEvidenceError("source manifest changed while copying")
     if (
         load_pilot_contract(contract_copy).canonical_hash != contract.canonical_hash
+        or load_pilot_contract(failed_contract_copy).canonical_hash
+        != failed_contract.canonical_hash
         or load_pilot_contract(authority_contract_copy).canonical_hash
         != authority_contract.canonical_hash
     ):
@@ -1969,7 +2126,7 @@ def _write_package(
     _write_json(
         target / "claim_metric_artifact.json",
         {
-            "schema_version": V2119_EVIDENCE_SCHEMA_VERSION,
+            "schema_version": V21110_EVIDENCE_SCHEMA_VERSION,
             "contract_sha256": contract.canonical_hash,
             "logical_denominator": _json_copy(logical_denominator),
             "claims": claims,
@@ -1982,7 +2139,7 @@ def _write_package(
     _write_json(
         target / "model_capability_failures.json",
         {
-            "schema_version": V2119_EVIDENCE_SCHEMA_VERSION,
+            "schema_version": V21110_EVIDENCE_SCHEMA_VERSION,
             "contract_sha256": contract.canonical_hash,
             "capability": _json_copy(aggregate["inherited_capability"]),
             "cross_model": _json_copy(aggregate["cross_model"]),
@@ -1998,7 +2155,7 @@ def _write_package(
     _write_json(
         target / "narrative_results.json",
         {
-            "schema_version": V2119_EVIDENCE_SCHEMA_VERSION,
+            "schema_version": V21110_EVIDENCE_SCHEMA_VERSION,
             "contract_sha256": contract.canonical_hash,
             "gate": _json_copy(aggregate["claim_gates"]["narrative"]),
             "claim_boundary": (
@@ -2007,14 +2164,15 @@ def _write_package(
         },
     )
     report = (
-        "# FinEvo V2.11.9 terminal mechanism pilot\n\n"
+        "# FinEvo V2.11.10 terminal mechanism pilot\n\n"
         f"- Current release denominator: {CURRENT_LEDGER_DENOMINATOR}\n"
         f"- Cross-release logical denominator: {LOGICAL_REGISTERED_DENOMINATOR}\n"
         f"- Logical scientific denominator: {LOGICAL_SCIENTIFIC_DENOMINATOR}\n"
         f"- Classification: {aggregate['publication_status']['classification']}\n"
         "- Experiment A and C remain external V2.11.5 no-go evidence.\n"
-        "- B, D, narrative, and cross-model summaries use only sealed V2.11.9 continuations.\n"
-        "- Capability is inherited dispatch authority, not a fresh V2.11.9 sample.\n"
+        "- All 87 V2.11.9 rows are immutable failure-lineage audit only; zero are imported as effects.\n"
+        "- B, D, narrative, and cross-model summaries use only sealed V2.11.10 continuations.\n"
+        "- Capability is inherited dispatch authority, not a fresh V2.11.10 sample.\n"
     )
     (target / "reviewer_report.md").write_text(report, encoding="utf-8")
     published_files = sorted(
@@ -2023,9 +2181,12 @@ def _write_package(
             "aggregate.json",
             "claim_metric_artifact.json",
             f"contract/{contract_source.name}",
+            f"contract/{failed_contract_source.name}",
             f"contract/{authority_contract_source.name}",
             "contract/pilot_v2_11_5_source_manifest.json",
             "contract/pilot_v2_11_9_source_manifest.json",
+            "contract/pilot_v2_11_10_source_manifest.json",
+            "failed_release_lineage.json",
             "failure_ledger.json",
             "method_differences_scaffold.json",
             "model_capability_failures.json",
@@ -2035,7 +2196,7 @@ def _write_package(
         }
     )
     manifest = {
-        "schema_version": V2119_EVIDENCE_SCHEMA_VERSION,
+        "schema_version": V21110_EVIDENCE_SCHEMA_VERSION,
         "contract_id": contract.contract_id,
         "contract_sha256": contract.canonical_hash,
         "terminal_evidence_complete": aggregate["publication_status"][
@@ -2045,6 +2206,8 @@ def _write_package(
             "all_preregistered_claims_supported"
         ],
         "logical_denominator": LOGICAL_REGISTERED_DENOMINATOR,
+        "failed_lineage_rows": 87,
+        "failed_lineage_rows_imported": 0,
         "raw_provider_calls_during_publication": 0,
         "published_files": published_files,
     }
@@ -2075,7 +2238,7 @@ def _package_target(
     resolved_build = supplied_build.resolve()
     if supplied_build != resolved_build:
         raise PilotEvidenceError("evidence build root cannot cross a symlink alias")
-    target = resolved_build / "current_v2" / "pilot-v2.11.9"
+    target = resolved_build / "current_v2" / "pilot-v2.11.10"
     for source_root in source_roots:
         root = source_root.resolve(strict=True)
         if target == root or target.is_relative_to(root):
@@ -2091,6 +2254,7 @@ def _verify_package_tree(
     target: Path,
     *,
     contract: PilotContract,
+    failed_contract: PilotContract,
     authority_contract: PilotContract,
 ) -> dict[str, Any]:
     files: dict[str, Path] = {}
@@ -2131,14 +2295,20 @@ def _verify_package_tree(
     )
     payload_paths = set(files) - {"checksums.json", "package_manifest.json"}
     if (
-        manifest.get("schema_version") != V2119_EVIDENCE_SCHEMA_VERSION
+        manifest.get("schema_version") != V21110_EVIDENCE_SCHEMA_VERSION
         or manifest.get("contract_id") != contract.contract_id
         or manifest.get("contract_sha256") != contract.canonical_hash
+        or manifest.get("failed_lineage_rows") != 87
+        or manifest.get("failed_lineage_rows_imported") != 0
         or set(manifest.get("published_files", [])) != payload_paths
+        or load_pilot_contract(
+            target / "contract" / "pilot_v2_11_10.yaml"
+        ).canonical_hash
+        != contract.canonical_hash
         or load_pilot_contract(
             target / "contract" / "pilot_v2_11_9.yaml"
         ).canonical_hash
-        != contract.canonical_hash
+        != failed_contract.canonical_hash
         or load_pilot_contract(
             target / "contract" / "pilot_v2_11_5.yaml"
         ).canonical_hash
@@ -2184,16 +2354,17 @@ def _raw_tree_inventory(root: Path) -> dict[str, Any]:
     }
 
 
-def _build_pilot_v2119_evidence_package_guarded(
+def _build_pilot_v21110_evidence_package_guarded(
     *,
     contract_path: str | Path,
     run_ledger_path: str | Path,
     raw_root: str | Path,
     build_root: str | Path,
     source_repo_root: str | Path | None = None,
+    failed_repo_root: str | Path | None = None,
     authority_repo_root: str | Path | None = None,
 ) -> PilotEvidencePackage:
-    """Build a zero-provider package from both immutable release roots."""
+    """Build a zero-provider package from three independent release roots."""
 
     source, current_contract_path, current_raw, current_ledger_path = (
         _resolve_current_paths(
@@ -2205,7 +2376,7 @@ def _build_pilot_v2119_evidence_package_guarded(
     )
     current_contract = load_pilot_contract(current_contract_path)
     if authority_repo_root is None:
-        raise PilotEvidenceError("V2.11.9 publication requires --authority-repo-root")
+        raise PilotEvidenceError("V2.11.10 publication requires --authority-repo-root")
     supplied_authority_root = Path(authority_repo_root)
     parent_contract_path = supplied_authority_root / V2115_CONTRACT_RELATIVE
     parent_raw = supplied_authority_root / V2115_RAW_RELATIVE
@@ -2220,11 +2391,35 @@ def _build_pilot_v2119_evidence_package_guarded(
     )
     parent_contract = load_pilot_contract(parent_contract_path)
     _require_contract_layout(current_contract, parent_contract, require_frozen=True)
+    if failed_repo_root is None:
+        raise PilotEvidenceError("V2.11.10 publication requires --failed-repo-root")
+    try:
+        failed_root = _real_root(
+            failed_repo_root,
+            name="V2.11.9 failed repository",
+        )
+        _require_distinct_roots(
+            current=source,
+            failed=failed_root,
+            authority=authority_root,
+        )
+        failed_state = verify_v2119_terminal_no_go(
+            failed_repo_root=failed_root,
+            authority_repo_root=authority_root,
+        )
+    except Exception as exc:
+        raise PilotEvidenceError(
+            f"V2.11.9 immutable terminal no-go validation failed: {exc}"
+        ) from exc
+    failed_contract = failed_state["failed_contract"]
+    failed_contract_path = failed_root.joinpath(*V2119_CONTRACT_PATH.parts)
+    failed_raw = failed_root.joinpath(*V2119_FAILED_RAW_ROOT.parts)
+    failed_lineage_audit = _expected_failed_lineage_audit(current_contract)
 
     current_release, current_commit, paid = _validate_release(
         current_contract, raw_root=current_raw
     )
-    _assert_v2119_local_release_guard(
+    _assert_v21110_local_release_guard(
         current_contract,
         repo_root=source,
         paid=paid,
@@ -2235,6 +2430,17 @@ def _build_pilot_v2119_evidence_package_guarded(
         current_commit,
         release_attestation=paid.release_attestation,
     )
+    try:
+        current_source_manifest = validate_v21110_source_manifest(
+            contract=current_contract,
+            repo_root=source,
+            failed_repo_root=failed_root,
+            authority_repo_root=authority_root,
+        )
+    except Exception as exc:
+        raise PilotEvidenceError(
+            f"V2.11.10 three-root source manifest validation failed: {exc}"
+        ) from exc
     current_ledger = PilotRunLedger(
         current_ledger_path,
         contract_hash=current_contract.canonical_hash,
@@ -2246,16 +2452,16 @@ def _build_pilot_v2119_evidence_package_guarded(
         contract_hash=current_contract.canonical_hash,
         caps=_budget_caps(current_contract),
         tamper_evident=True,
-        parent_debit=parent_budget_debit_for_v2119(current_contract),
+        parent_debit=parent_budget_debit_for_v21110(current_contract),
     )
-    parent_import = verify_v2119_parent_import_receipt(
+    parent_import = verify_v21110_parent_import_receipt(
         current_raw / "parent-import/parent_import_receipt.json",
         contract=current_contract,
         repo_root=source,
         raw_root=current_raw,
         paid=paid,
     )
-    authority = verify_v2119_current_authority(
+    authority = verify_v21110_current_authority(
         contract=current_contract,
         repo_root=source,
         raw_root=current_raw,
@@ -2264,7 +2470,7 @@ def _build_pilot_v2119_evidence_package_guarded(
     projections: dict[str, Mapping[str, Any]] = {}
     projection_controls: dict[str, Any] = {}
     for model_id in CAPABILITY_MODELS:
-        projection, path = verified_v2119_projection(
+        projection, path = verified_v21110_projection(
             current_contract,
             model_id,
             repo_root=source,
@@ -2279,8 +2485,8 @@ def _build_pilot_v2119_evidence_package_guarded(
             "provider_calls": 0,
             "scientific_evidence": False,
         }
-    acceptance = verify_v2119_scientific_dispatch_acceptance(
-        current_raw / V2119_ACCEPTANCE_FILENAME,
+    acceptance = verify_v21110_scientific_dispatch_acceptance(
+        current_raw / V21110_ACCEPTANCE_FILENAME,
         contract=current_contract,
         repo_root=source,
         raw_root=current_raw,
@@ -2305,13 +2511,14 @@ def _build_pilot_v2119_evidence_package_guarded(
         paid=paid,
         authority_repo_root=source,
     )
-    terminal_namespace = audit_v2119_scientific_stage_namespace(
+    terminal_namespace = audit_v21110_scientific_stage_namespace(
         current_contract,
         raw_root=current_raw,
         stage_id="cross-model",
         run_ledger=current_ledger,
     )
     current_raw_inventory = _raw_tree_inventory(current_raw)
+    failed_raw_inventory = _raw_tree_inventory(failed_raw)
     budget_audit = _audit_current_budget(
         current_contract,
         raw_root=current_raw,
@@ -2382,7 +2589,7 @@ def _build_pilot_v2119_evidence_package_guarded(
         parent_rows,
         parent_stage_receipts,
     )
-    aggregate = assemble_v2119_terminal_evidence(
+    aggregate = assemble_v21110_terminal_evidence(
         contract=current_contract,
         parent_contract=parent_contract,
         parent_terminal_rows=parent_rows,
@@ -2392,14 +2599,29 @@ def _build_pilot_v2119_evidence_package_guarded(
         parent_preflight_authority=parent_post_gate,
         current_authority=authority,
         external_parent_gates=external_gates,
+        failed_release_audit=failed_lineage_audit,
     )
     controls = {
-        "schema_version": V2119_CONTROLS_SCHEMA_VERSION,
+        "schema_version": V21110_CONTROLS_SCHEMA_VERSION,
         "pass": True,
         "provider_construction": False,
         "provider_calls": 0,
         "current_release": current_release,
         "current_source": current_source,
+        "current_source_manifest": {
+            "path": V21110_SOURCE_MANIFEST_PATH.as_posix(),
+            "file_sha256": _sha256_file(
+                source.joinpath(*V21110_SOURCE_MANIFEST_PATH.parts)
+            ),
+            "content_sha256": current_source_manifest["integrity"][
+                "content_sha256"
+            ],
+            "three_root_replay_pass": True,
+            "provider_construction": False,
+            "provider_calls": 0,
+        },
+        "failed_v2119_lineage": failed_lineage_audit,
+        "failed_v2119_raw_inventory": failed_raw_inventory,
         "current_parent_import": {
             "content_sha256": parent_import["integrity"]["content_sha256"],
             "scientific_evidence": False,
@@ -2413,8 +2635,8 @@ def _build_pilot_v2119_evidence_package_guarded(
         },
         "current_projections": projection_controls,
         "scientific_dispatch_acceptance": {
-            "path": str(current_raw / V2119_ACCEPTANCE_FILENAME),
-            "file_sha256": _sha256_file(current_raw / V2119_ACCEPTANCE_FILENAME),
+            "path": str(current_raw / V21110_ACCEPTANCE_FILENAME),
+            "file_sha256": _sha256_file(current_raw / V21110_ACCEPTANCE_FILENAME),
             "content_sha256": acceptance["integrity"]["content_sha256"],
             "go": acceptance["go"],
             "provider_boundary": _json_copy(acceptance["provider_boundary"]),
@@ -2438,10 +2660,16 @@ def _build_pilot_v2119_evidence_package_guarded(
 
     target = _package_target(
         build_root,
-        source_roots=(current_raw, authority_root, parent_raw),
+        source_roots=(
+            current_raw,
+            failed_root,
+            failed_raw,
+            authority_root,
+            parent_raw,
+        ),
     )
     temporary = Path(
-        tempfile.mkdtemp(prefix=".pilot-v2.11.9-build-", dir=source.parent)
+        tempfile.mkdtemp(prefix=".pilot-v2.11.10-build-", dir=source.parent)
     )
     try:
         manifest, checksums = _write_package(
@@ -2450,12 +2678,15 @@ def _build_pilot_v2119_evidence_package_guarded(
             controls=controls,
             contract=current_contract,
             contract_source=current_contract_path,
+            failed_contract=failed_contract,
+            failed_contract_source=failed_contract_path,
             authority_contract=parent_contract,
             authority_contract_source=parent_contract_path,
         )
         package_inventory = _verify_package_tree(
             temporary,
             contract=current_contract,
+            failed_contract=failed_contract,
             authority_contract=parent_contract,
         )
         total_bytes = sum(
@@ -2464,8 +2695,8 @@ def _build_pilot_v2119_evidence_package_guarded(
         if total_bytes + budget_audit["raw_root_storage_bytes"] > int(
             current_contract.budgets["max_storage_bytes"]
         ):
-            raise PilotEvidenceError("raw plus V2.11.9 package exceeds storage cap")
-        _assert_v2119_local_release_guard(
+            raise PilotEvidenceError("raw plus V2.11.10 package exceeds storage cap")
+        _assert_v21110_local_release_guard(
             current_contract,
             repo_root=source,
             paid=paid,
@@ -2481,7 +2712,22 @@ def _build_pilot_v2119_evidence_package_guarded(
             parent_contract,
             expected_commit=parent_commit,
         )
-        final_namespace = audit_v2119_scientific_stage_namespace(
+        try:
+            final_failed_state = verify_v2119_terminal_no_go(
+                failed_repo_root=failed_root,
+                authority_repo_root=authority_root,
+            )
+            final_source_manifest = validate_v21110_source_manifest(
+                contract=current_contract,
+                repo_root=source,
+                failed_repo_root=failed_root,
+                authority_repo_root=authority_root,
+            )
+        except Exception as exc:
+            raise PilotEvidenceError(
+                f"three-root lineage drifted before installation: {exc}"
+            ) from exc
+        final_namespace = audit_v21110_scientific_stage_namespace(
             current_contract,
             raw_root=current_raw,
             stage_id="cross-model",
@@ -2490,7 +2736,11 @@ def _build_pilot_v2119_evidence_package_guarded(
         if (
             final_namespace != terminal_namespace
             or _raw_tree_inventory(current_raw) != current_raw_inventory
+            or _raw_tree_inventory(failed_raw) != failed_raw_inventory
             or _raw_tree_inventory(parent_raw) != parent_raw_inventory
+            or final_failed_state["failed_contract"].canonical_hash
+            != failed_contract.canonical_hash
+            or final_source_manifest != current_source_manifest
             or _sha256_file(current_contract_path)
             != _sha256_file(temporary / "contract" / current_contract_path.name)
             or _sha256_file(parent_contract_path)
@@ -2506,6 +2756,7 @@ def _build_pilot_v2119_evidence_package_guarded(
             _verify_package_tree(
                 temporary,
                 contract=current_contract,
+                failed_contract=failed_contract,
                 authority_contract=parent_contract,
             )
             != package_inventory
@@ -2528,25 +2779,27 @@ def _build_pilot_v2119_evidence_package_guarded(
     )
 
 
-def build_pilot_v2119_evidence_package(
+def build_pilot_v21110_evidence_package(
     *,
     contract_path: str | Path,
     run_ledger_path: str | Path,
     raw_root: str | Path,
     build_root: str | Path,
     source_repo_root: str | Path | None = None,
+    failed_repo_root: str | Path | None = None,
     authority_repo_root: str | Path | None = None,
 ) -> PilotEvidencePackage:
     """Build evidence under an explicit zero-credential/provider sentinel."""
 
-    require_v2119_provider_keys_absent()
+    require_v21110_provider_keys_absent()
     with v2117._acceptance_provider_sentinels():
-        return _build_pilot_v2119_evidence_package_guarded(
+        return _build_pilot_v21110_evidence_package_guarded(
             contract_path=contract_path,
             run_ledger_path=run_ledger_path,
             raw_root=raw_root,
             build_root=build_root,
             source_repo_root=source_repo_root,
+            failed_repo_root=failed_repo_root,
             authority_repo_root=authority_repo_root,
         )
 
@@ -2555,8 +2808,9 @@ __all__ = [
     "CURRENT_LEDGER_DENOMINATOR",
     "LOGICAL_REGISTERED_DENOMINATOR",
     "LOGICAL_SCIENTIFIC_DENOMINATOR",
-    "V2119_EVIDENCE_SCHEMA_VERSION",
-    "assemble_v2119_terminal_evidence",
-    "build_pilot_v2119_evidence_package",
+    "V21110_EVIDENCE_SCHEMA_VERSION",
+    "V21110_FAILED_LINEAGE_AUDIT_SCHEMA_VERSION",
+    "assemble_v21110_terminal_evidence",
+    "build_pilot_v21110_evidence_package",
     "inherited_capability_by_model",
 ]

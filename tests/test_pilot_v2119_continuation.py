@@ -2464,18 +2464,17 @@ def test_contract_module_binding_covers_imports_assignments_and_only_cycle_pins(
 
 
 def test_source_manifest_binds_all_transitive_release_dependencies() -> None:
-    manifest = json.loads(
-        (ROOT / "experiments/pilot_v2_11_9_source_manifest.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    audit = continuation.verify_v2119_frozen_release_source_manifest(ROOT)
+    manifest = audit["manifest"]
     runtime = manifest["current_runtime_sources"]
     paths = {row["path"] for row in runtime["full_file_bindings"]}
     release_paths = set(runtime["release_python_source_paths"])
-    assert tuple(runtime["release_python_source_paths"]) == (
-        continuation._v2119_release_python_source_paths(ROOT)
+    assert tuple(runtime["release_python_source_paths"]) == tuple(
+        audit["release_python_source_paths"]
     )
     assert release_paths == paths | continuation._V2119_NORMALIZED_AST_SOURCE_PATHS
+    assert "verified_memory/pilot_v21110_continuation.py" not in release_paths
+    assert "verified_memory/pilot_v21110_evidence.py" not in release_paths
     assert "verified_memory/__init__.py" in paths
     assert {
         "verified_memory/pilot_evidence.py",
@@ -2484,28 +2483,60 @@ def test_source_manifest_binds_all_transitive_release_dependencies() -> None:
         "verified_memory/pilot_v2117_continuation.py",
         "verified_memory/pilot_v2118_continuation.py",
     } <= paths
+    entries = continuation._v2119_frozen_tree_entries(ROOT)
     for row in runtime["full_file_bindings"]:
-        assert row == continuation._source_file_binding(ROOT, row["path"])
+        assert row == continuation._v2119_frozen_source_binding(
+            ROOT,
+            row["path"],
+            entries=entries,
+        )
     child = runtime["pilot_contract_complete_module_ast_bindings"]["child"]
     assert child["replaced_cycle_pins"] == sorted(
         continuation._CYCLIC_V2119_CONTRACT_PIN_NAMES
     )
     assert runtime["ci_release_receipt_complete_module_ast_binding"] == (
-        continuation._normalized_ci_release_module_ast_binding(
-            ROOT / "verified_memory/ci_release_receipt.py"
+        continuation._normalized_ci_release_module_ast_source_binding(
+            continuation._v2119_frozen_blob(
+                ROOT,
+                "verified_memory/ci_release_receipt.py",
+                entries=entries,
+            ).decode("utf-8"),
+            filename=(
+                f"{continuation.V2119_SCIENCE_COMMIT}:"
+                "verified_memory/ci_release_receipt.py"
+            ),
         )
     )
     assert runtime["bound_data_files"] == [
-        continuation._source_file_binding(ROOT, relative)
+        continuation._v2119_frozen_source_binding(
+            ROOT,
+            relative,
+            entries=entries,
+        )
         for relative in continuation._V2119_BOUND_DATA_PATHS
     ]
     equivalence = manifest["remaining_science_implementation_equivalence"]
     environment_paths = {
         row["path"] for row in equivalence["environment_byte_identical_files"]
     }
-    assert environment_paths == set(
-        continuation._v2119_foundation_source_paths(ROOT)
-    ) | {continuation.V2119_PROFILE_PATH.as_posix()}
+    frozen_foundation_paths = {
+        relative
+        for relative in entries
+        if relative.startswith("ai_economist/foundation/")
+        and relative.endswith(".py")
+    }
+    assert environment_paths == frozen_foundation_paths | {
+        continuation.V2119_PROFILE_PATH.as_posix()
+    }
+
+    # The successor legitimately repairs this shared module.  Historical
+    # release evidence must still come from the V2.11.9 tag blob, not from the
+    # current checkout or from a resealed manifest.
+    authority_path = "verified_memory/observed_p95_authority.py"
+    historical = next(
+        row for row in runtime["full_file_bindings"] if row["path"] == authority_path
+    )
+    assert historical != continuation._source_file_binding(ROOT, authority_path)
 
 
 def test_release_source_inventory_rejects_nested_directory_symlink(
@@ -2526,16 +2557,11 @@ def test_release_source_inventory_rejects_nested_directory_symlink(
 
 
 def test_run_pilot_local_import_closure_is_inside_release_inventory() -> None:
-    release_paths = set(continuation._v2119_release_python_source_paths(ROOT))
+    audit = continuation.verify_v2119_frozen_release_source_manifest(ROOT)
+    release_paths = set(audit["release_python_source_paths"])
+    entries = continuation._v2119_frozen_tree_entries(ROOT)
     candidate_paths = {
-        path.relative_to(ROOT).as_posix()
-        for path in (
-            list(ROOT.glob("*.py"))
-            + list((ROOT / "verified_memory").rglob("*.py"))
-            + list((ROOT / "ai_economist").rglob("*.py"))
-            + list((ROOT / "scripts").rglob("*.py"))
-        )
-        if path.is_file()
+        relative for relative in entries if relative.endswith(".py")
     }
 
     def module_name(relative: str) -> str:
@@ -2565,7 +2591,13 @@ def test_run_pilot_local_import_closure_is_inside_release_inventory() -> None:
             else current.rpartition(".")[0]
         )
         found: set[str] = set()
-        tree = ast.parse((ROOT / relative).read_text(encoding="utf-8"))
+        tree = ast.parse(
+            continuation._v2119_frozen_blob(
+                ROOT,
+                relative,
+                entries=entries,
+            ).decode("utf-8")
+        )
         for node in ast.walk(tree):
             names: list[str] = []
             if isinstance(node, ast.Import):
