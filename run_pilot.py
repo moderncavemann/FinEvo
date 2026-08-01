@@ -48,6 +48,9 @@ Examples:
         --stage parent-import \
         --parent-repo-root ../finevo-pilot-v2-11-4-science \
         --authority-repo-root ../finevo-pilot-v2-11-2-science --resume
+    python run_pilot.py --contract experiments/pilot_v2_11_6.yaml \
+        --stage parent-import \
+        --parent-repo-root ../finevo-pilot-v2-11-5-science --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
         --stage capability-gate --resume
     python run_pilot.py --contract experiments/pilot_v2_3.yaml \
@@ -110,6 +113,9 @@ Pilot-v2.11.5 freezes V2.11.4's pre-dispatch acceptance no-go, preserves its
 complete failure/budget denominator, and compares independently verified
 source/current authority generations through a closed field allowlist before
 any fresh scientific provider dispatch.
+Pilot-v2.11.6 preserves V2.11.5's immutable 50-cell terminal prefix, imports
+only its non-effect authority with zero provider calls, and registers a fresh
+87-cell continuation containing one import plus the untouched D/B/cross rows.
 """
 
 from __future__ import annotations
@@ -126,6 +132,7 @@ from verified_memory.pilot_contract import (
     PILOT_CONTRACT_ID_V2_11_3,
     PILOT_CONTRACT_ID_V2_11_4,
     PILOT_CONTRACT_ID_V2_11_5,
+    PILOT_CONTRACT_ID_V2_11_6,
     load_pilot_contract,
 )
 from verified_memory.pilot_evidence import build_pilot_evidence_package
@@ -156,6 +163,9 @@ from verified_memory.pilot_v2114_acceptance import (
 from verified_memory.pilot_v2115_acceptance import (
     accept_v2115_scientific_dispatch,
 )
+from verified_memory.pilot_v2116_continuation import (
+    accept_v2116_scientific_dispatch,
+)
 from verified_memory.pilot_orchestrator import (
     PilotOrchestrationError,
     execute_stage,
@@ -179,7 +189,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--accept-scientific-dispatch",
         action="store_true",
         help=(
-            "run the V2.11.3/V2.11.4/V2.11.5 zero-provider 131-cell dispatch "
+            "run the V2.11.3/V2.11.4/V2.11.5/V2.11.6 zero-provider dispatch "
             "acceptance gate "
             "before loading provider credentials"
         ),
@@ -219,7 +229,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "read-only parent source/raw checkout required only by the "
             "V2.4/V2.5/V2.6/V2.7/V2.8/V2.9/V2.10/V2.10.1/V2.10.2/V2.11 "
-            "V2.11.1, V2.11.2, V2.11.3, V2.11.4, or V2.11.5 zero-provider "
+            "V2.11.1, V2.11.2, V2.11.3, V2.11.4, V2.11.5, or V2.11.6 zero-provider "
             "parent-import stage; "
             "for V2.11 this "
             "is the immutable V2.10.2 science checkout, and for V2.11.1 "
@@ -228,7 +238,8 @@ def build_parser() -> argparse.ArgumentParser:
             "the immutable V2.11.1 science checkout; for V2.11.3 this is "
             "the immutable V2.11.2 science checkout; for V2.11.4 this is "
             "the immutable V2.11.3 terminal no-go checkout; for V2.11.5 this "
-            "is the immutable V2.11.4 pre-dispatch acceptance no-go checkout"
+            "is the immutable V2.11.4 pre-dispatch acceptance no-go checkout; "
+            "for V2.11.6 this is the immutable V2.11.5 science checkout"
         ),
     )
     parser.add_argument(
@@ -256,7 +267,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help=(
-            "immutable V2.11.3/V2.11.4/V2.11.5 scientific-dispatch acceptance "
+            "immutable V2.11.3/V2.11.4/V2.11.5/V2.11.6 scientific-dispatch acceptance "
             "receipt; "
             "accepted only with --accept-scientific-dispatch"
         ),
@@ -313,6 +324,7 @@ def execute(args: argparse.Namespace) -> dict:
                 PILOT_CONTRACT_ID_V2_11_3,
                 PILOT_CONTRACT_ID_V2_11_4,
                 PILOT_CONTRACT_ID_V2_11_5,
+                PILOT_CONTRACT_ID_V2_11_6,
             }
             and parent_repo_root is None
         ):
@@ -323,6 +335,7 @@ def execute(args: argparse.Namespace) -> dict:
                 PILOT_CONTRACT_ID_V2_11_3: "V2.11.3",
                 PILOT_CONTRACT_ID_V2_11_4: "V2.11.4",
                 PILOT_CONTRACT_ID_V2_11_5: "V2.11.5",
+                PILOT_CONTRACT_ID_V2_11_6: "V2.11.6",
             }[selected_contract.contract_id]
             raise PilotOrchestrationError(
                 f"{contract_label} parent-import requires "
@@ -372,6 +385,7 @@ def execute(args: argparse.Namespace) -> dict:
                 PILOT_CONTRACT_ID_V2_11_3,
                 PILOT_CONTRACT_ID_V2_11_4,
                 PILOT_CONTRACT_ID_V2_11_5,
+                PILOT_CONTRACT_ID_V2_11_6,
             }
             and selected_contract.status != "frozen"
         ):
@@ -380,6 +394,7 @@ def execute(args: argparse.Namespace) -> dict:
                 PILOT_CONTRACT_ID_V2_11_3: "V2.11.3",
                 PILOT_CONTRACT_ID_V2_11_4: "V2.11.4",
                 PILOT_CONTRACT_ID_V2_11_5: "V2.11.5",
+                PILOT_CONTRACT_ID_V2_11_6: "V2.11.6",
             }[selected_contract.contract_id]
             raise PilotOrchestrationError(
                 f"{contract_label} real stages require a frozen contract; the draft "
@@ -415,15 +430,17 @@ def execute(args: argparse.Namespace) -> dict:
             PILOT_CONTRACT_ID_V2_11_3,
             PILOT_CONTRACT_ID_V2_11_4,
             PILOT_CONTRACT_ID_V2_11_5,
+            PILOT_CONTRACT_ID_V2_11_6,
         } or selected_contract.status != "frozen":
             raise PilotOrchestrationError(
                 "--accept-scientific-dispatch requires the frozen production "
-                "V2.11.3, V2.11.4, or V2.11.5 contract"
+                "V2.11.3, V2.11.4, V2.11.5, or V2.11.6 contract"
             )
         acceptance_dispatch = {
             PILOT_CONTRACT_ID_V2_11_3: accept_v2113_scientific_dispatch,
             PILOT_CONTRACT_ID_V2_11_4: accept_v2114_scientific_dispatch,
             PILOT_CONTRACT_ID_V2_11_5: accept_v2115_scientific_dispatch,
+            PILOT_CONTRACT_ID_V2_11_6: accept_v2116_scientific_dispatch,
         }[selected_contract.contract_id]
         return acceptance_dispatch(
             contract_path=args.contract,

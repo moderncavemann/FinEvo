@@ -339,6 +339,7 @@ def test_scientific_source_manifest_anchors_match_release_bytes():
         "experiments/pilot_v2_11_3_source_manifest.json",
         "experiments/pilot_v2_11_4_source_manifest.json",
         "experiments/pilot_v2_11_5_source_manifest.json",
+        "experiments/pilot_v2_11_6_source_manifest.json",
     ]
     for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS:
         raw = (ROOT / anchor["path"]).read_bytes()
@@ -834,6 +835,17 @@ def test_verified_memory_ci_uses_descendant_consumer_authority_not_science_contr
     assert "--contract experiments/pilot_v2_11_5.yaml" not in emit
     assert "- ubuntu-24.04" in workflow
     assert "- macos-14" in workflow
+
+
+def test_verified_memory_ci_emits_v2116_scientific_release_receipt() -> None:
+    workflow = (ROOT / ".github/workflows/verified-memory-ci.yml").read_text(
+        encoding="utf-8"
+    )
+    emit = workflow.split("- name: Emit scientific release CI receipt", 1)[1]
+    emit = emit.split("- name: Emit publication consumer CI receipt", 1)[0]
+    assert "python -m verified_memory.ci_release_receipt emit" in emit
+    assert "--contract experiments/pilot_v2_11_6.yaml" in emit
+    assert "--output \"${RUNNER_TEMP}/finevo-ci-release-receipt.json\"" in emit
 
 
 def test_tracked_v2113_frozen_contract_accepts_its_exact_ci_inventory() -> None:

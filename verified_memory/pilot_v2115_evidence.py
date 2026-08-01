@@ -16,6 +16,7 @@ stage receipt binds their terminal summaries but not their full detail files.
 
 from __future__ import annotations
 
+from collections import Counter
 import json
 import os
 from pathlib import Path
@@ -32,11 +33,13 @@ from .ci_release_receipt import (
 )
 from .m2_episodic import EvidenceLinkedEpisodicTrack
 from .m3_semantic import VerifiedSemanticRuleTrack
+from .pilot_budget import PilotBudgetLedger
 from .pilot_contract import PilotContract, canonical_sha256, load_pilot_contract
 from .pilot_evidence import (
     HISTORICAL_SCOPE,
     PILOT_CHECKSUM_SCHEMA_VERSION,
     PILOT_FAILURE_LEDGER_SCHEMA_VERSION,
+    TERMINAL_STATUSES,
     PilotEvidenceError,
     PilotEvidencePackage,
     V211_SCIENTIFIC_STAGES,
@@ -50,6 +53,7 @@ from .pilot_evidence import (
     _experiment_c_gate,
     _experiment_d_gate,
     _json_copy,
+    _load_completed_artifact,
     _method_scaffold,
     _narrative_gate,
     _pretty_bytes,
@@ -62,15 +66,27 @@ from .pilot_orchestrator import (
     PILOT_EXPERIMENT_C_SENSITIVITY_SCHEMA_VERSION,
     PILOT_OFFLINE_ADMISSION_SCHEMA_VERSION,
     PilotRunLedger,
+    PilotOrchestrationError,
+    _budget_caps,
     _build_experiment_c_sensitivity,
     _fixed_error_candidate,
+    _parent_budget_debit,
+    _verify_v2_stage_receipt,
 )
 from .pilot_v2112_evidence import (
-    _normalize_v2112_ledger,
+    _allowed_budget_ids,
     _run_ledger_receipt,
-    _validate_budget,
     _validate_release,
-    _validate_stage_receipts,
+    _terminal_summary_header,
+)
+from .pilot_v2115_acceptance import (
+    PilotV2115AcceptanceError,
+    V2115_ACCEPTANCE_LEDGER_EVENT_TYPE,
+    V2115_EXPECTED_ACCEPTED_BUDGET_EVENTS,
+    V2115_EXPECTED_ACCEPTED_RUN_EVENTS,
+    V2115_SCIENTIFIC_DISPATCH_ACCEPTANCE_FILENAME,
+    V2115_SCIENTIFIC_DISPATCH_ACCEPTANCE_SCHEMA_VERSION,
+    verify_v2115_scientific_dispatch_acceptance,
 )
 from .pilot_v2115_gate import (
     PilotV2115GateError,
@@ -78,6 +94,7 @@ from .pilot_v2115_gate import (
     verified_v2115_gate_authority_binding,
     verify_v2115_gate_receipt,
 )
+from .runner import observed_p95_authority_repo_context
 
 
 V2115_CONTRACT_ID = "finevo-pilot-v2.11.5"
@@ -184,6 +201,26 @@ _EXPECTED_STAGE_COUNTS = {
     "cross-model": 6,
 }
 _OFFLINE_ADMISSION_ARM = "verified-error-candidate"
+_FROZEN_PARTIAL_STAGE_STATUS_COUNTS = {
+    "parent-import": {"complete": 1},
+    "capability-gate": {"complete": 2},
+    "long-context-preflight": {"complete": 2},
+    "experiment-c": {"complete": 25},
+    "experiment-a": {"complete": 17, "failed": 3},
+    "experiment-d": {"scheduled": 55},
+    "experiment-b": {"scheduled": 25},
+    "cross-model": {"scheduled": 6},
+}
+_FROZEN_COMPLETED_STAGE_IDS = frozenset(
+    {
+        "parent-import",
+        "capability-gate",
+        "long-context-preflight",
+        "experiment-c",
+        "experiment-a",
+    }
+)
+_FROZEN_SCHEDULED_STAGE_IDS = frozenset({"experiment-d", "experiment-b", "cross-model"})
 
 
 def _mapping(value: Any, name: str) -> Mapping[str, Any]:
@@ -428,6 +465,286 @@ def _publisher_provenance(code_root: Path) -> dict[str, Any]:
     }
 
 
+def _validate_frozen_partial_event_inventory(
+    contract: PilotContract,
+    ledger: Mapping[str, Any],
+    *,
+    raw_root: Path,
+) -> dict[str, Any]:
+    """Validate the sole acceptance marker and the immutable 53-event prefix."""
+
+    events = ledger.get("events")
+    runs = ledger.get("runs")
+    if not isinstance(events, list) or not isinstance(runs, Mapping):
+        raise PilotEvidenceError("V2.11.5 run-ledger event inventory is malformed")
+    markers = [
+        event
+        for event in events
+        if isinstance(event, Mapping)
+        and event.get("event_type") == V2115_ACCEPTANCE_LEDGER_EVENT_TYPE
+    ]
+    if len(markers) != 1:
+        raise PilotEvidenceError(
+            "V2.11.5 run ledger must contain exactly one acceptance receipt marker"
+        )
+    marker = markers[0]
+    payload = marker.get("payload")
+    receipt_path = raw_root / V2115_SCIENTIFIC_DISPATCH_ACCEPTANCE_FILENAME
+    receipt = _strict_json_load(receipt_path)
+    prefixes = receipt.get("ledger_prefixes")
+    integrity = receipt.get("integrity")
+    run_prefix = prefixes.get("run_ledger") if isinstance(prefixes, Mapping) else None
+    budget_prefix = (
+        prefixes.get("budget_ledger") if isinstance(prefixes, Mapping) else None
+    )
+    expected_path = (
+        V2115_RAW_RELATIVE / V2115_SCIENTIFIC_DISPATCH_ACCEPTANCE_FILENAME
+    ).as_posix()
+    expected_payload = {
+        "receipt_schema_version": V2115_SCIENTIFIC_DISPATCH_ACCEPTANCE_SCHEMA_VERSION,
+        "receipt_path": expected_path,
+        "receipt_content_sha256": (
+            integrity.get("content_sha256")
+            if isinstance(integrity, Mapping)
+            else None
+        ),
+        "accepted_run_event_count": (
+            run_prefix.get("event_count")
+            if isinstance(run_prefix, Mapping)
+            else None
+        ),
+        "accepted_run_event_chain_head": (
+            run_prefix.get("event_chain_head")
+            if isinstance(run_prefix, Mapping)
+            else None
+        ),
+        "accepted_budget_event_count": (
+            budget_prefix.get("event_count")
+            if isinstance(budget_prefix, Mapping)
+            else None
+        ),
+        "accepted_budget_event_chain_head": (
+            budget_prefix.get("event_chain_head")
+            if isinstance(budget_prefix, Mapping)
+            else None
+        ),
+        "runs_sha256": None,
+    }
+    marker_index = marker.get("event_index")
+    prior_payload = (
+        events[marker_index - 1].get("payload")
+        if isinstance(marker_index, int)
+        and not isinstance(marker_index, bool)
+        and 0 < marker_index < len(events)
+        and isinstance(events[marker_index - 1], Mapping)
+        else None
+    )
+    if isinstance(prior_payload, Mapping):
+        expected_payload["runs_sha256"] = prior_payload.get("runs_sha256")
+    if (
+        marker_index != V2115_EXPECTED_ACCEPTED_RUN_EVENTS
+        or marker.get("previous_event_sha256")
+        != expected_payload["accepted_run_event_chain_head"]
+        or not isinstance(payload, Mapping)
+        or dict(payload) != expected_payload
+        or expected_payload["accepted_run_event_count"]
+        != V2115_EXPECTED_ACCEPTED_RUN_EVENTS
+        or expected_payload["accepted_budget_event_count"]
+        != V2115_EXPECTED_ACCEPTED_BUDGET_EVENTS
+    ):
+        raise PilotEvidenceError(
+            "V2.11.5 run-ledger acceptance marker differs from the sealed receipt"
+        )
+
+    expected_terminal_ids = {
+        spec.run_id
+        for stage_id in _FROZEN_COMPLETED_STAGE_IDS
+        for spec in contract.expand(stage=stage_id)
+    }
+    finalized = [
+        event.get("payload", {}).get("run_id")
+        for event in events
+        if isinstance(event, Mapping) and event.get("event_type") == "run_finalized"
+    ]
+    event_types = Counter(
+        str(event.get("event_type"))
+        for event in events
+        if isinstance(event, Mapping)
+    )
+    if (
+        len(events) != 53
+        or event_types
+        != Counter(
+            {
+                "genesis": 1,
+                "runs_registered": 1,
+                V2115_ACCEPTANCE_LEDGER_EVENT_TYPE: 1,
+                "run_finalized": 50,
+            }
+        )
+        or len(finalized) != len(set(finalized))
+        or set(finalized) != expected_terminal_ids
+    ):
+        raise PilotEvidenceError(
+            "V2.11.5 run-ledger events do not match the frozen A/C partial prefix"
+        )
+    return {
+        "event_count": len(events),
+        "event_chain_head": events[-1]["event_sha256"],
+        "acceptance_event_index": marker_index,
+        "acceptance_receipt_path": str(receipt_path),
+        "acceptance_receipt_content_sha256": expected_payload[
+            "receipt_content_sha256"
+        ],
+        "accepted_run_event_count": V2115_EXPECTED_ACCEPTED_RUN_EVENTS,
+        "accepted_budget_event_count": V2115_EXPECTED_ACCEPTED_BUDGET_EVENTS,
+    }
+
+
+def _normalize_v2115_partial_ledger(
+    contract: PilotContract,
+    ledger: Mapping[str, Any],
+    *,
+    raw_root: Path,
+    expected_commit: str,
+    source_repo_root: Path,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Publish terminal A/C rows without promoting 86 continuation cells."""
+
+    if ledger.get("schema_version") != "finevo-pilot-run-ledger-v2":
+        raise PilotEvidenceError("V2.11.5 run ledger schema drifted")
+    if ledger.get("contract_hash") != contract.canonical_hash:
+        raise PilotEvidenceError("V2.11.5 run ledger contract hash drifted")
+    PilotRunLedger(
+        raw_root / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+        tamper_evident=True,
+    )
+    event_inventory = _validate_frozen_partial_event_inventory(
+        contract, ledger, raw_root=raw_root
+    )
+    observed = ledger.get("runs")
+    if not isinstance(observed, Mapping):
+        raise PilotEvidenceError("V2.11.5 run ledger rows are malformed")
+    expected_specs = {spec.run_id: spec.to_dict() for spec in contract.expand()}
+    if set(observed) != set(expected_specs):
+        raise PilotEvidenceError(
+            "V2.11.5 publication requires all 136 registered ledger rows"
+        )
+
+    rows: list[dict[str, Any]] = []
+    for run_id, spec in expected_specs.items():
+        source = observed[run_id]
+        if not isinstance(source, Mapping) or source.get("spec") != spec:
+            raise PilotEvidenceError(f"ledger spec drifted for {run_id}")
+        status = source.get("status")
+        stage_id = str(spec["stage_id"])
+        if stage_id in _FROZEN_SCHEDULED_STAGE_IDS:
+            if (
+                status != "scheduled"
+                or source.get("artifact") is not None
+                or source.get("failure") is not None
+            ):
+                raise PilotEvidenceError(
+                    f"frozen continuation cell is not untouched scheduled: {run_id}"
+                )
+        elif status not in TERMINAL_STATUSES:
+            raise PilotEvidenceError(
+                f"frozen A/C prefix contains a nonterminal row: {run_id}"
+            )
+        row: dict[str, Any] = {
+            **spec,
+            "status": status,
+            "failure": _json_copy(source.get("failure")),
+            "artifact_kind": None,
+            "artifact_sha256": None,
+            "scientific_eligible": False,
+            "metrics": {},
+            "gate_evidence": {},
+            "capability": {},
+            "narrative": {},
+        }
+        artifact = source.get("artifact")
+        if status == "complete":
+            if stage_id in V211_SCIENTIFIC_STAGES:
+                loaded = _load_completed_artifact(
+                    contract,
+                    spec,
+                    raw_root=raw_root,
+                    artifact=artifact,
+                    source_repo_root=source_repo_root,
+                )
+                if loaded.get("scientific_eligible") is not True:
+                    raise PilotEvidenceError(
+                        f"completed scientific cell is ineligible: {run_id}"
+                    )
+            else:
+                path = _resolve_artifact(raw_root, artifact)
+                terminal = _terminal_summary_header(
+                    contract,
+                    spec,
+                    path,
+                    expected_commit=expected_commit,
+                )
+                payload = terminal["payload"]
+                loaded = {
+                    "artifact_kind": "terminal-summary",
+                    "artifact_sha256": _sha256_file(path),
+                    "scientific_eligible": False,
+                    "metrics": _json_copy(payload.get("metrics", {})),
+                    "gate_evidence": _json_copy(payload.get("gate_evidence", {})),
+                    "capability": _json_copy(payload.get("capability", {})),
+                    "narrative": _json_copy(payload.get("narrative", {})),
+                }
+            row.update(loaded)
+        elif status in TERMINAL_STATUSES and artifact is not None:
+            path = _resolve_artifact(raw_root, artifact)
+            row["artifact_kind"] = "failure-audit-artifact"
+            row["artifact_sha256"] = _sha256_file(path)
+        rows.append(row)
+
+    counts = Counter(str(row["status"]) for row in rows)
+    stage_counts = {
+        stage_id: dict(
+            sorted(
+                Counter(
+                    str(row["status"])
+                    for row in rows
+                    if row["stage_id"] == stage_id
+                ).items()
+            )
+        )
+        for stage_id in contract.stage_ids
+    }
+    if stage_counts != _FROZEN_PARTIAL_STAGE_STATUS_COUNTS:
+        raise PilotEvidenceError(
+            "V2.11.5 ledger differs from the frozen 5 operational + A/C + "
+            "86 scheduled partition"
+        )
+    completed_valid = all(
+        row["artifact_kind"] is not None
+        for row in rows
+        if row["status"] == "complete"
+    )
+    denominator = {
+        "expected_count": 136,
+        "observed_ledger_count": len(observed),
+        "all_rows_present": True,
+        "all_rows_terminal": False,
+        "terminal_row_count": 50,
+        "scheduled_row_count": 86,
+        "status_counts": dict(sorted(counts.items())),
+        "stage_status_counts": stage_counts,
+        "all_completed_artifacts_validated": completed_valid,
+        "itt_failures_retained": counts.get("failed", 0),
+        "scheduled_cells_excluded_from_effect_evidence": 86,
+        "frozen_partial_snapshot_valid": bool(completed_valid),
+        "run_ledger_event_inventory": event_inventory,
+        "pass": False,
+    }
+    return rows, denominator
+
+
 def _normalized_stage_receipts(
     contract: PilotContract,
     *,
@@ -436,15 +753,306 @@ def _normalized_stage_receipts(
     paid: Any,
     source_repo_root: Path,
 ) -> dict[str, Any]:
-    value = _validate_stage_receipts(
-        contract,
-        raw_root=raw_root,
-        ledger=ledger,
-        paid=paid,
-        authority_repo_root=source_repo_root,
+    receipts: dict[str, Any] = {}
+    snapshot = ledger.snapshot()
+    ledger_rows = _mapping(snapshot.get("runs"), "V2.11.5 run-ledger rows")
+    for stage_id in contract.stage_ids:
+        path = raw_root / stage_id / "stage_receipt.json"
+        specs = contract.expand(stage=stage_id)
+        stage_rows = [ledger_rows[spec.run_id] for spec in specs]
+        counts = dict(
+            sorted(Counter(str(row.get("status")) for row in stage_rows).items())
+        )
+        if stage_id in _FROZEN_SCHEDULED_STAGE_IDS:
+            residual_files = (
+                sorted(
+                    item
+                    for item in (raw_root / stage_id).rglob("*")
+                    if item.is_file()
+                )
+                if (raw_root / stage_id).exists()
+                else []
+            )
+            if path.exists() or counts != {"scheduled": len(specs)} or residual_files:
+                raise PilotEvidenceError(
+                    f"V2.11.5 {stage_id} is not an untouched scheduled stage"
+                )
+            receipts[stage_id] = {
+                "path": None,
+                "file_sha256": None,
+                "content_sha256": None,
+                "status": "scheduled-not-run",
+                "terminal": False,
+                "go": False,
+                "execution_progression_go": False,
+                "go_models": [],
+                "status_counts": counts,
+                "registered_run_count": len(specs),
+                "complete_cell_count": 0,
+                "scientific_evidence": False,
+            }
+            continue
+        if not path.is_file() or path.is_symlink():
+            raise PilotEvidenceError(
+                f"V2.11.5 completed stage {stage_id} lacks a regular receipt"
+            )
+        try:
+            value = _verify_v2_stage_receipt(
+                contract,
+                stage_id,
+                _strict_json_load(path),
+                raw_root=raw_root,
+                ledger=ledger,
+                paid=paid,
+                authority_repo_root=source_repo_root,
+            )
+        except (PilotOrchestrationError, PilotEvidenceError) as exc:
+            raise PilotEvidenceError(
+                f"V2.11.5 {stage_id} receipt failed replay: {exc}"
+            ) from exc
+        if (
+            value.get("terminal") is not True
+            or counts != _FROZEN_PARTIAL_STAGE_STATUS_COUNTS[stage_id]
+        ):
+            raise PilotEvidenceError(
+                f"V2.11.5 {stage_id} receipt is not the frozen terminal prefix"
+            )
+        receipts[stage_id] = {
+            "path": str(path),
+            "file_sha256": _sha256_file(path),
+            "content_sha256": value["integrity"]["content_sha256"],
+            "status": value.get("status"),
+            "terminal": True,
+            "go": value.get("go"),
+            "execution_progression_go": value.get("execution_progression_go"),
+            "go_models": _json_copy(value.get("go_models", [])),
+            "status_counts": _json_copy(value.get("status_counts", {})),
+            "registered_run_count": value.get("registered_run_count"),
+            "complete_cell_count": value.get("complete_cell_count"),
+        }
+    return {
+        "schema_version": V2115_STAGE_RECEIPTS_SCHEMA_VERSION,
+        "contract_sha256": contract.canonical_hash,
+        "all_terminal": False,
+        "terminal_stage_ids": list(_EXPECTED_STAGE_IDS[:5]),
+        "scheduled_stage_ids": list(_EXPECTED_STAGE_IDS[5:]),
+        "receipts": receipts,
+    }
+
+
+def _replay_scientific_dispatch_acceptance(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    source_repo_root: Path,
+    paid: Any,
+    run_ledger: PilotRunLedger,
+    budget_ledger: PilotBudgetLedger,
+) -> dict[str, Any]:
+    """Keep source-backed P95 verification pinned through D-group replay."""
+
+    # The acceptance builder's config loop enters this source context, but its
+    # subsequent D-group reconstruction also instantiates configs after the
+    # inner context exits.  This outer context prevents fallback to publisher
+    # HEAD when the immutable science checkout is the declared authority.
+    with observed_p95_authority_repo_context(source_repo_root):
+        return verify_v2115_scientific_dispatch_acceptance(
+            raw_root / V2115_SCIENTIFIC_DISPATCH_ACCEPTANCE_FILENAME,
+            contract=contract,
+            repo_root=source_repo_root,
+            raw_root=raw_root,
+            paid=paid,
+            run_ledger=run_ledger,
+            budget_ledger=budget_ledger,
+        )
+
+
+def _validated_acceptance_and_budget(
+    contract: PilotContract,
+    *,
+    raw_root: Path,
+    source_repo_root: Path,
+    paid: Any,
+    run_ledger: PilotRunLedger,
+    rows: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Replay the dual-ledger acceptance marker, then audit finalized spend."""
+
+    budget_path = raw_root / "budget_ledger.json"
+    try:
+        parent_debit = _parent_budget_debit(contract, repo_root=source_repo_root)
+        budget_ledger = PilotBudgetLedger(
+            budget_path,
+            contract_hash=contract.canonical_hash,
+            caps=_budget_caps(contract),
+            tamper_evident=True,
+            parent_debit=parent_debit,
+        )
+        acceptance = _replay_scientific_dispatch_acceptance(
+            contract,
+            raw_root=raw_root,
+            source_repo_root=source_repo_root,
+            paid=paid,
+            run_ledger=run_ledger,
+            budget_ledger=budget_ledger,
+        )
+        snapshot = budget_ledger.snapshot()
+    except (PilotV2115AcceptanceError, OSError, TypeError, ValueError) as exc:
+        raise PilotEvidenceError(
+            f"V2.11.5 scientific-dispatch acceptance failed replay: {exc}"
+        ) from exc
+
+    budget_rows = _mapping(snapshot.get("runs"), "V2.11.5 budget rows")
+    if not set(budget_rows).issubset(_allowed_budget_ids(contract)):
+        raise PilotEvidenceError("V2.11.5 budget ledger has foreign run IDs")
+    reserve_events: dict[str, int] = {}
+    finalize_events: dict[str, int] = {}
+    marker_count = 0
+    for event in snapshot["events"]:
+        event_type = event.get("event_type")
+        if event_type in {"genesis", "parent_debit_imported"}:
+            continue
+        if event_type == V2115_ACCEPTANCE_LEDGER_EVENT_TYPE:
+            marker_count += 1
+            if event.get("event_index") != V2115_EXPECTED_ACCEPTED_BUDGET_EVENTS:
+                raise PilotEvidenceError(
+                    "V2.11.5 budget acceptance marker is at the wrong prefix"
+                )
+            continue
+        payload = event.get("payload")
+        if not isinstance(payload, Mapping):
+            raise PilotEvidenceError("V2.11.5 budget event payload is malformed")
+        run_id = payload.get("run_id")
+        row = budget_rows.get(run_id)
+        if not isinstance(run_id, str) or not isinstance(row, Mapping):
+            raise PilotEvidenceError("V2.11.5 budget event references a foreign run")
+        if event_type == "run_reserved":
+            if run_id in reserve_events or payload.get(
+                "projection_sha256"
+            ) != canonical_sha256(row.get("reservation")):
+                raise PilotEvidenceError(
+                    f"V2.11.5 budget reservation event drifted: {run_id}"
+                )
+            reserve_events[run_id] = int(event["event_index"])
+        elif event_type == "run_finalized":
+            failure = row.get("failure")
+            if (
+                run_id in finalize_events
+                or payload.get("status") != row.get("status")
+                or payload.get("actual_sha256")
+                != canonical_sha256(row.get("actual"))
+                or payload.get("failure_sha256")
+                != (None if failure is None else canonical_sha256(failure))
+            ):
+                raise PilotEvidenceError(
+                    f"V2.11.5 budget finalization event drifted: {run_id}"
+                )
+            finalize_events[run_id] = int(event["event_index"])
+        else:
+            raise PilotEvidenceError(
+                f"V2.11.5 budget event type is unsupported: {event_type!r}"
+            )
+    if (
+        marker_count != 1
+        or set(reserve_events) != set(budget_rows)
+        or set(finalize_events) != set(budget_rows)
+        or any(
+            reserve_events[run_id] >= finalize_events[run_id]
+            for run_id in budget_rows
+        )
+    ):
+        raise PilotEvidenceError(
+            "V2.11.5 budget rows lack one ordered reserve/finalize pair"
+        )
+    for run_id, row in budget_rows.items():
+        reservation = row.get("reservation")
+        actual = row.get("actual")
+        status = row.get("status")
+        if (
+            not isinstance(reservation, Mapping)
+            or not isinstance(actual, Mapping)
+            or reservation.get("run_id") != run_id
+            or reservation.get("stage_bucket") != row.get("stage_bucket")
+            or status
+            not in {"complete", "failed", "budget-stopped", "integrity-stopped"}
+        ):
+            raise PilotEvidenceError(
+                f"V2.11.5 budget row is malformed or nonterminal: {run_id}"
+            )
+        for field in ("cost_usd", "completions", "storage_bytes"):
+            observed = actual.get(field)
+            reserved = reservation.get(field)
+            if (
+                isinstance(observed, bool)
+                or not isinstance(observed, (int, float))
+                or float(observed) < 0
+                or isinstance(reserved, bool)
+                or not isinstance(reserved, (int, float))
+                or float(reserved) < 0
+                or (
+                    float(observed) > float(reserved) + 1e-12
+                    and (
+                        status != "integrity-stopped"
+                        or not isinstance(row.get("failure"), Mapping)
+                    )
+                )
+            ):
+                raise PilotEvidenceError(
+                    f"V2.11.5 budget row has invalid {field}: {run_id}"
+                )
+
+    required_ids = {
+        str(row["run_id"])
+        for row in rows
+        if row.get("artifact_kind") is not None
+    }
+    if set(budget_rows) != required_ids:
+        raise PilotEvidenceError(
+            "V2.11.5 finalized budget units differ from artifact-backed A/C prefix"
+        )
+    totals = snapshot["committed"]
+    caps = snapshot["caps"]
+    if (
+        float(totals["cost_usd"]) > float(caps["dispatchable_usd"]) + 1e-12
+        or int(totals["completions"]) > int(caps["max_completions"])
+        or int(totals["storage_bytes"]) > int(caps["max_storage_bytes"])
+        or any(
+            float(cost) > float(caps["stage_usd_caps"][stage_id]) + 1e-12
+            for stage_id, cost in totals["stage_cost_usd"].items()
+        )
+    ):
+        raise PilotEvidenceError("V2.11.5 committed budget exceeds frozen caps")
+    raw_storage = sum(
+        path.stat().st_size for path in raw_root.rglob("*") if path.is_file()
     )
-    value["schema_version"] = V2115_STAGE_RECEIPTS_SCHEMA_VERSION
-    return value
+    if raw_storage > int(caps["max_storage_bytes"]):
+        raise PilotEvidenceError("V2.11.5 raw tree exceeds the frozen storage cap")
+    acceptance_control = {
+        "pass": True,
+        "path": str(raw_root / V2115_SCIENTIFIC_DISPATCH_ACCEPTANCE_FILENAME),
+        "file_sha256": _sha256_file(
+            raw_root / V2115_SCIENTIFIC_DISPATCH_ACCEPTANCE_FILENAME
+        ),
+        "content_sha256": acceptance["integrity"]["content_sha256"],
+        "run_event_count_before_marker": V2115_EXPECTED_ACCEPTED_RUN_EVENTS,
+        "budget_event_count_before_marker": V2115_EXPECTED_ACCEPTED_BUDGET_EVENTS,
+        "provider_calls": 0,
+        "scientific_evidence": False,
+    }
+    budget_control = {
+        "schema_version": V2115_BUDGET_RECEIPT_SCHEMA_VERSION,
+        "pass": True,
+        "path": str(budget_path),
+        "file_sha256": _sha256_file(budget_path),
+        "ledger_sha256": snapshot["ledger_sha256"],
+        "event_chain_head": snapshot["event_chain_head"],
+        "parent_debit": _json_copy(snapshot["parent_debit"]),
+        "committed": _json_copy(totals),
+        "caps": _json_copy(caps),
+        "raw_root_storage_bytes": raw_storage,
+        "finalized_budget_unit_count": len(budget_rows),
+    }
+    return acceptance_control, budget_control
 
 
 def _authoritative_c_sensitivity_no_go(
@@ -1671,7 +2279,7 @@ def build_pilot_v2115_evidence_package(
     publisher_provenance = _publisher_provenance(code_root)
 
     ledger = _strict_json_load(ledger_path)
-    rows, denominator = _normalize_v2112_ledger(
+    rows, denominator = _normalize_v2115_partial_ledger(
         contract,
         ledger,
         raw_root=raw,
@@ -1682,6 +2290,14 @@ def build_pilot_v2115_evidence_package(
         ledger_path,
         contract_hash=contract.canonical_hash,
         tamper_evident=True,
+    )
+    acceptance, budget = _validated_acceptance_and_budget(
+        contract,
+        raw_root=raw,
+        source_repo_root=source,
+        paid=paid,
+        run_ledger=ledger_object,
+        rows=rows,
     )
     stage_receipts = _normalized_stage_receipts(
         contract,
@@ -1697,13 +2313,6 @@ def build_pilot_v2115_evidence_package(
         commit=commit,
         rows=rows,
     )
-    budget = _validate_budget(
-        contract,
-        raw_root=raw,
-        repo_root=source,
-        rows=rows,
-    )
-    budget["schema_version"] = V2115_BUDGET_RECEIPT_SCHEMA_VERSION
     run_receipt = _run_ledger_receipt(
         contract,
         ledger,
@@ -1748,6 +2357,7 @@ def build_pilot_v2115_evidence_package(
         "publisher": publisher_provenance,
         "release": release_control,
         "run_ledger": run_receipt,
+        "scientific_dispatch_acceptance": acceptance,
         "stage_receipts": stage_receipts,
         "post_gate": post_gate,
         "budget": budget,
