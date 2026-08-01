@@ -113,7 +113,8 @@ def test_v21110_parent_debit_is_exact_terminal_v2119_debit() -> None:
                         "payload": dict(disposition_payload),
                     },
                 ]
-            }
+            },
+            accepted_action_parse_modes=("exact_json",),
         )
 
     sealed = [{**completion, "action_parse_mode": "exact_json"}]
@@ -130,16 +131,17 @@ def test_v21110_parent_debit_is_exact_terminal_v2119_debit() -> None:
     ):
         project(completion, {**disposition, "raw_output_hash": "c" * 64})
 
-    parse_mode_drift = project(
-        completion,
-        {**disposition, "parse_mode": "fenced_recovery"},
-    )
+    with pytest.raises(
+        continuation.PilotV21110ContinuationError,
+        match="action parse disposition",
+    ):
+        project(
+            completion,
+            {**disposition, "parse_mode": "fenced_recovery"},
+        )
     provider_field_drift = project(
         {**completion, "completion_tokens": 18},
         disposition,
-    )
-    assert pilot_contract.canonical_sha256(parse_mode_drift) != (
-        pilot_contract.canonical_sha256(sealed)
     )
     assert pilot_contract.canonical_sha256(provider_field_drift) != (
         pilot_contract.canonical_sha256(sealed)

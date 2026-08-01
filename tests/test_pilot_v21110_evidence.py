@@ -39,6 +39,7 @@ from verified_memory.pilot_v21110_evidence import (
     _package_target,
     _publisher_provenance,
     _resolve_current_paths,
+    _validated_publication_ci_receipts,
     _validate_current_git,
     _verify_package_tree,
     _write_package,
@@ -501,6 +502,7 @@ def test_public_builder_forwards_all_three_release_roots(monkeypatch, tmp_path):
     failed_root = tmp_path / "v2119-failed"
     authority_root = tmp_path / "v2115-authority"
     current_root = tmp_path / "v21110-current"
+    ci_receipts = (tmp_path / "linux.json", tmp_path / "macos.json")
     result = build_pilot_v21110_evidence_package(
         contract_path=current_root / "experiments/pilot_v2_11_10.yaml",
         run_ledger_path=current_root / "raw/run_ledger.json",
@@ -509,12 +511,14 @@ def test_public_builder_forwards_all_three_release_roots(monkeypatch, tmp_path):
         source_repo_root=current_root,
         failed_repo_root=failed_root,
         authority_repo_root=authority_root,
+        publication_ci_receipt_paths=ci_receipts,
     )
 
     assert result is sentinel
     assert observed["source_repo_root"] == current_root
     assert observed["failed_repo_root"] == failed_root
     assert observed["authority_repo_root"] == authority_root
+    assert observed["publication_ci_receipt_paths"] == ci_receipts
 
 
 def test_missing_current_cell_fails_closed():
@@ -1457,6 +1461,71 @@ def test_current_git_rejects_untracked_source(tmp_path, monkeypatch):
     tracked.write_text("consumer\n", encoding="utf-8")
     git("commit", "-qam", "consumer")
     consumer_commit = git("rev-parse", "HEAD")
+    git(
+        "tag",
+        "-a",
+        pilot_v21110_evidence.V21110_EVIDENCE_CONSUMER_TAG,
+        "-m",
+        "fixture consumer tag",
+    )
+
+    receipt_root = tmp_path.parent / f"{tmp_path.name}-ci-receipts"
+    receipt_root.mkdir()
+    receipt_paths = (receipt_root / "linux.json", receipt_root / "macos.json")
+    wrappers_by_os = {}
+
+    def verified(runner_os):
+        return {
+            "consumer_head_sha": consumer_commit,
+            "ci_execution_status": "current-job-pass",
+            "verified_job": {
+                "run_id": 123,
+                "run_attempt": 1,
+                "job_name": (
+                    "Python 3.12.7 / ubuntu-24.04"
+                    if runner_os == "Linux"
+                    else "Python 3.12.7 / macos-14"
+                ),
+                "runner_os": runner_os,
+                "head_sha": consumer_commit,
+                "receipt_sha256": ("a" if runner_os == "Linux" else "b") * 64,
+            },
+        }
+
+    def write_wrapper(path, runner_os, *, skipped_test_count=0):
+        payload = {
+            "schema_version": (
+                pilot_v21110_evidence.PUBLICATION_CONSUMER_CI_RECEIPT_SCHEMA_VERSION
+            ),
+            "status": "pass",
+            "scientific_evidence": False,
+            "provider_calls": 0,
+            "science_dispatch_authority": False,
+            "authority": verified(runner_os),
+            "ci_job_receipt": {
+                "runner_os": runner_os,
+                "workflow_ref": (
+                    f"{pilot_v21110_evidence.V21110_GITHUB_REPOSITORY}/"
+                    ".github/workflows/verified-memory-ci.yml@refs/heads/main"
+                ),
+                "test_count": 2222,
+                "test_collection_sha256": "c" * 64,
+                "skipped_test_count": skipped_test_count,
+                "compiled_source_count": 327,
+                "compiled_source_inventory_sha256": "d" * 64,
+                "sealed_manifest_count": 6,
+                "sealed_manifest_inventory_sha256": "e" * 64,
+            },
+        }
+        wrapper = {**payload, "receipt_sha256": canonical_sha256(payload)}
+        wrappers_by_os[runner_os] = wrapper
+        path.write_text(
+            json.dumps(wrapper, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+    write_wrapper(receipt_paths[0], "Linux")
+    write_wrapper(receipt_paths[1], "Linux")
 
     monkeypatch.setattr(
         pilot_v21110_evidence,
@@ -1465,18 +1534,166 @@ def test_current_git_rejects_untracked_source(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(
         pilot_v21110_evidence,
-        "load_publication_consumer_ci_authority",
-        lambda _root: {"consumer_head_sha": consumer_commit},
+        "verify_publication_consumer_ci_receipt",
+        lambda _root, _authority, job: verified(job["runner_os"]),
     )
+    with pytest.raises(PilotEvidenceError, match="matched Linux/macOS CI pair"):
+        _validated_publication_ci_receipts(tmp_path, receipt_paths)
+    write_wrapper(receipt_paths[1], "macOS", skipped_test_count=1)
+    with pytest.raises(PilotEvidenceError, match="CI measurements disagree"):
+        _validated_publication_ci_receipts(tmp_path, receipt_paths)
+    write_wrapper(receipt_paths[1], "macOS")
+
+    tag_object = git(
+        "rev-parse", f"refs/tags/{pilot_v21110_evidence.V21110_EVIDENCE_CONSUMER_TAG}"
+    )
+    remote_run = {
+        "id": 123,
+        "run_attempt": 1,
+        "head_sha": consumer_commit,
+        "head_branch": "main",
+        "event": "push",
+        "status": "completed",
+        "conclusion": "success",
+        "name": "Verified memory CI",
+        "path": ".github/workflows/verified-memory-ci.yml",
+        "repository": {"full_name": pilot_v21110_evidence.V21110_GITHUB_REPOSITORY},
+        "head_repository": {
+            "full_name": pilot_v21110_evidence.V21110_GITHUB_REPOSITORY
+        },
+        "html_url": "https://example.invalid/actions/runs/123",
+        "updated_at": "2026-08-01T00:00:00Z",
+    }
+    critical_steps = [
+        {"name": name, "conclusion": "success"}
+        for name in (
+            "Run tests",
+            "Compile tracked Python sources",
+            "Ensure checks did not mutate tracked files",
+            "Emit publication consumer CI receipt",
+        )
+    ]
+    remote_jobs = {
+        "jobs": [
+            {
+                "id": 1001,
+                "run_id": 123,
+                "run_attempt": 1,
+                "head_sha": consumer_commit,
+                "workflow_name": "Verified memory CI",
+                "name": "Python 3.12.7 / ubuntu-24.04",
+                "status": "completed",
+                "conclusion": "success",
+                "labels": ["ubuntu-24.04"],
+                "steps": critical_steps,
+                "html_url": "https://example.invalid/jobs/1001",
+            },
+            {
+                "id": 1002,
+                "run_id": 123,
+                "run_attempt": 1,
+                "head_sha": consumer_commit,
+                "workflow_name": "Verified memory CI",
+                "name": "Python 3.12.7 / macos-14",
+                "status": "completed",
+                "conclusion": "success",
+                "labels": ["macos-14"],
+                "steps": critical_steps,
+                "html_url": "https://example.invalid/jobs/1002",
+            },
+        ]
+    }
+    remote_tag_ref = {"object": {"type": "tag", "sha": tag_object}}
+    remote_tag = {
+        "tag": pilot_v21110_evidence.V21110_EVIDENCE_CONSUMER_TAG,
+        "object": {"type": "commit", "sha": consumer_commit},
+    }
+    remote_main_ref = {"object": {"type": "commit", "sha": consumer_commit}}
+    logged_wrappers_by_os = deepcopy(wrappers_by_os)
+
+    def fake_gh_json(endpoint):
+        values = {
+            f"/repos/{pilot_v21110_evidence.V21110_GITHUB_REPOSITORY}/actions/runs/123/attempts/1": remote_run,
+            f"/repos/{pilot_v21110_evidence.V21110_GITHUB_REPOSITORY}/actions/runs/123/attempts/1/jobs?per_page=100": remote_jobs,
+            f"/repos/{pilot_v21110_evidence.V21110_GITHUB_REPOSITORY}/git/ref/tags/{pilot_v21110_evidence.V21110_EVIDENCE_CONSUMER_TAG}": remote_tag_ref,
+            f"/repos/{pilot_v21110_evidence.V21110_GITHUB_REPOSITORY}/git/tags/{tag_object}": remote_tag,
+            f"/repos/{pilot_v21110_evidence.V21110_GITHUB_REPOSITORY}/git/ref/heads/main": remote_main_ref,
+        }
+        return values[endpoint]
+
+    def fake_gh_job_log(run_id, run_attempt, job_id):
+        assert run_id == 123
+        assert run_attempt == 1
+        runner_os = "Linux" if job_id == 1001 else "macOS"
+        return (
+            pilot_v21110_evidence.PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX
+            + json.dumps(logged_wrappers_by_os[runner_os], sort_keys=True)
+            + "\n"
+        )
+
+    monkeypatch.setattr(pilot_v21110_evidence, "_gh_json", fake_gh_json)
+    monkeypatch.setattr(pilot_v21110_evidence, "_gh_job_log", fake_gh_job_log)
     provenance = _publisher_provenance(
         tmp_path,
         science_commit=commit,
+        publication_ci_receipt_paths=receipt_paths,
     )
     assert provenance["git_commit"] == consumer_commit
     assert provenance["science_source_commit"] == commit
     assert provenance["provider_calls"] == 0
     assert provenance["science_dispatch_authority"] is False
+    assert provenance["publication_consumer_ci"]["ci_execution_status"] == (
+        "cross-platform-current-head-pass"
+    )
+    assert provenance["publication_consumer_ci"]["remote_attestation"]["status"] == (
+        "pass"
+    )
+
+    remote_run["conclusion"] = "failure"
+    with pytest.raises(PilotEvidenceError, match="run identity or conclusion"):
+        _publisher_provenance(
+            tmp_path,
+            science_commit=commit,
+            publication_ci_receipt_paths=receipt_paths,
+        )
+    remote_run["conclusion"] = "success"
+    remote_jobs["jobs"][0]["steps"][0]["conclusion"] = "failure"
+    with pytest.raises(PilotEvidenceError, match="job or critical step"):
+        _publisher_provenance(
+            tmp_path,
+            science_commit=commit,
+            publication_ci_receipt_paths=receipt_paths,
+        )
+    remote_jobs["jobs"][0]["steps"][0]["conclusion"] = "success"
+    logged_wrappers_by_os["macOS"]["status"] = "failure"
+    with pytest.raises(PilotEvidenceError, match="differs from supplied receipt"):
+        _publisher_provenance(
+            tmp_path,
+            science_commit=commit,
+            publication_ci_receipt_paths=receipt_paths,
+        )
+    logged_wrappers_by_os["macOS"]["status"] = "pass"
+    remote_tag_ref["object"]["sha"] = "0" * 40
+    with pytest.raises(PilotEvidenceError, match="remote evidence consumer tag"):
+        _publisher_provenance(
+            tmp_path,
+            science_commit=commit,
+            publication_ci_receipt_paths=receipt_paths,
+        )
+    remote_tag_ref["object"]["sha"] = tag_object
+    remote_main_ref["object"]["sha"] = "0" * 40
+    with pytest.raises(PilotEvidenceError, match="remote main differs"):
+        _publisher_provenance(
+            tmp_path,
+            science_commit=commit,
+            publication_ci_receipt_paths=receipt_paths,
+        )
+    remote_main_ref["object"]["sha"] = consumer_commit
 
     tracked.write_text("DRIFTED = True\n", encoding="utf-8")
     with pytest.raises(PilotEvidenceError, match="exact clean repository root"):
-        _publisher_provenance(tmp_path, science_commit=commit)
+        _publisher_provenance(
+            tmp_path,
+            science_commit=commit,
+            publication_ci_receipt_paths=receipt_paths,
+        )

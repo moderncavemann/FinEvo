@@ -1563,9 +1563,24 @@ def audit_v21110_scientific_stage_namespace(
 
 def _v21110_journal_api_usage_projection(
     journal: Mapping[str, Any],
+    *,
+    accepted_action_parse_modes: Any,
 ) -> list[dict[str, Any]]:
     """Bind post-completion action parsing back into sealed usage rows."""
 
+    if (
+        not isinstance(accepted_action_parse_modes, (list, tuple))
+        or not accepted_action_parse_modes
+        or any(
+            not isinstance(mode, str) or not mode
+            for mode in accepted_action_parse_modes
+        )
+        or len(set(accepted_action_parse_modes)) != len(accepted_action_parse_modes)
+    ):
+        raise PilotV21110ContinuationError(
+            "V2.11.10 accepted action parse modes are malformed"
+        )
+    accepted_modes = frozenset(accepted_action_parse_modes)
     events = journal.get("events")
     if not isinstance(events, list):
         raise PilotV21110ContinuationError(
@@ -1626,7 +1641,7 @@ def _v21110_journal_api_usage_projection(
                 or disposition.get("parse_status") != "success"
                 or disposition.get("accepted") is not True
                 or not isinstance(disposition.get("parse_mode"), str)
-                or not disposition.get("parse_mode")
+                or disposition.get("parse_mode") not in accepted_modes
             ):
                 raise PilotV21110ContinuationError(
                     "V2.11.10 action parse disposition differs from sealed usage"
@@ -1707,7 +1722,12 @@ def _verify_v21110_actor_journal(
         "event_count": len(journal["events"]),
         "terminal_dispositions_verified": True,
     }
-    completions = _v21110_journal_api_usage_projection(journal)
+    completions = _v21110_journal_api_usage_projection(
+        journal,
+        accepted_action_parse_modes=result.config.get(
+            "accepted_action_parse_modes"
+        ),
+    )
     if canonical_sha256(journal_binding) != canonical_sha256(
         recomputed
     ) or canonical_sha256(completions) != canonical_sha256(
