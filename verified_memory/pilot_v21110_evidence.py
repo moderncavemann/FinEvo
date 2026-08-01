@@ -19,6 +19,7 @@ The 87 failed-release rows are lineage-only and never enter or overwrite the
 from __future__ import annotations
 
 from collections import Counter
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -28,6 +29,13 @@ import tempfile
 from typing import Any, Mapping, Sequence
 
 from . import pilot_v2117_continuation as v2117
+from .ci_release_receipt import (
+    PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
+    PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX,
+    PUBLICATION_CONSUMER_CI_RECEIPT_SCHEMA_VERSION,
+    CIReleaseReceiptError,
+    verify_publication_consumer_ci_receipt,
+)
 from .pilot_analysis import paired_delta_summary
 from .pilot_budget import PilotBudgetLedger
 from .pilot_contract import PilotContract, canonical_sha256, load_pilot_contract
@@ -77,6 +85,7 @@ from .pilot_v2115_evidence import (
 from .pilot_v21110_continuation import (
     V21110_ACCEPTANCE_FILENAME,
     V21110_CONTRACT_ID,
+    V21110_PARENT_TERMINAL_EVIDENCE_SCOPE,
     V21110_RAW_ROOT,
     V21110_SCIENCE_TAG,
     V21110_SOURCE_MANIFEST_PATH,
@@ -140,6 +149,29 @@ LOGICAL_REGISTERED_DENOMINATOR = 136
 LOGICAL_SCIENTIFIC_DENOMINATOR = 131
 CAPABILITY_MODELS = ("gpt52_main", "gpt56_diagnostic")
 SCIENCE_STAGES = frozenset({"experiment-d", "experiment-b", "cross-model"})
+V21110_EVIDENCE_CONSUMER_TAG = "pilot-v2.11.10-evidence-consumer-v1"
+V21110_PUBLICATION_CI_BUNDLE_SCHEMA_VERSION = (
+    "finevo-pilot-v2.11.10-publication-ci-bundle-v1"
+)
+V21110_PUBLICATION_REMOTE_ATTESTATION_SCHEMA_VERSION = (
+    "finevo-pilot-v2.11.10-publication-remote-attestation-v1"
+)
+V21110_GITHUB_REPOSITORY = "moderncavemann/FinEvo"
+_PUBLISHER_REQUIRED_TRACKED_FILES = (
+    ".github/workflows/verified-memory-ci.yml",
+    PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
+    "run_pilot.py",
+    "verified_memory/ci_release_receipt.py",
+    "verified_memory/pilot_evidence.py",
+    "verified_memory/pilot_orchestrator.py",
+    "verified_memory/pilot_v21110_continuation.py",
+    "verified_memory/pilot_v21110_evidence.py",
+    "tests/test_ci_release_receipt.py",
+    "tests/test_pilot_v21110_continuation.py",
+    "tests/test_pilot_v2119_continuation.py",
+    "tests/test_pilot_v21110_evidence.py",
+    "tests/test_run_pilot_v21110_cli.py",
+)
 
 
 def _mapping(value: Any, name: str) -> Mapping[str, Any]:
@@ -990,6 +1022,496 @@ def _git(repo_root: Path, *args: str) -> str:
         ) from exc
 
 
+def _tracked_head_blobs(
+    repo_root: Path,
+    relative_paths: Sequence[str],
+) -> dict[str, str]:
+    blobs: dict[str, str] = {}
+    for relative in relative_paths:
+        if (
+            _git(repo_root, "ls-files", "--error-unmatch", "--", relative)
+            != relative
+        ):
+            raise PilotEvidenceError(
+                f"required publisher file is not tracked exactly: {relative}"
+            )
+        _git(repo_root, "diff", "--quiet", "HEAD", "--", relative)
+        blobs[relative] = _git(repo_root, "rev-parse", f"HEAD:{relative}")
+    return blobs
+
+
+def _validated_publication_ci_receipts(
+    code_root: Path,
+    receipt_paths: Sequence[str | Path] | None,
+) -> dict[str, Any]:
+    """Verify the exact Linux/macOS CI receipts for the consumer HEAD."""
+
+    if (
+        not isinstance(receipt_paths, (list, tuple))
+        or len(receipt_paths) != 2
+    ):
+        raise PilotEvidenceError(
+            "V2.11.10 publication requires exactly two consumer CI receipts"
+        )
+    normalized: list[dict[str, Any]] = []
+    resolved_paths: set[Path] = set()
+    wrapper_keys = {
+        "schema_version",
+        "status",
+        "scientific_evidence",
+        "provider_calls",
+        "science_dispatch_authority",
+        "authority",
+        "ci_job_receipt",
+        "receipt_sha256",
+    }
+    for supplied in receipt_paths:
+        path = Path(os.path.abspath(Path(supplied)))
+        if (
+            path in resolved_paths
+            or path.is_symlink()
+            or not path.is_file()
+            or path.resolve() != path
+        ):
+            raise PilotEvidenceError(
+                "V2.11.10 publication CI receipt path is missing, aliased, or repeated"
+            )
+        resolved_paths.add(path)
+        wrapper = _strict_json_load(path)
+        if set(wrapper) != wrapper_keys:
+            raise PilotEvidenceError(
+                "V2.11.10 publication CI receipt keys mismatch"
+            )
+        claimed = wrapper.get("receipt_sha256")
+        payload = _json_copy(wrapper)
+        payload.pop("receipt_sha256")
+        if (
+            wrapper.get("schema_version")
+            != PUBLICATION_CONSUMER_CI_RECEIPT_SCHEMA_VERSION
+            or wrapper.get("status") != "pass"
+            or wrapper.get("scientific_evidence") is not False
+            or wrapper.get("provider_calls") != 0
+            or wrapper.get("science_dispatch_authority") is not False
+            or not isinstance(claimed, str)
+            or canonical_sha256(payload) != claimed
+        ):
+            raise PilotEvidenceError(
+                "V2.11.10 publication CI receipt identity or seal drifted"
+            )
+        job = wrapper.get("ci_job_receipt")
+        if not isinstance(job, Mapping):
+            raise PilotEvidenceError(
+                "V2.11.10 publication CI job receipt is malformed"
+            )
+        try:
+            verified = verify_publication_consumer_ci_receipt(
+                code_root,
+                PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
+                job,
+            )
+        except CIReleaseReceiptError as exc:
+            raise PilotEvidenceError(
+                "V2.11.10 publication consumer CI job failed validation"
+            ) from exc
+        if wrapper.get("authority") != verified:
+            raise PilotEvidenceError(
+                "V2.11.10 publication CI wrapper differs from its verified job"
+            )
+        verified_job = verified.get("verified_job")
+        if not isinstance(verified_job, Mapping):
+            raise PilotEvidenceError(
+                "V2.11.10 publication CI verified-job summary is missing"
+            )
+        normalized.append(
+            {
+                "runner_os": verified_job.get("runner_os"),
+                "job_name": verified_job.get("job_name"),
+                "run_id": verified_job.get("run_id"),
+                "run_attempt": verified_job.get("run_attempt"),
+                "head_sha": verified_job.get("head_sha"),
+                "test_count": job.get("test_count"),
+                "test_collection_sha256": job.get(
+                    "test_collection_sha256"
+                ),
+                "skipped_test_count": job.get("skipped_test_count"),
+                "compiled_source_count": job.get("compiled_source_count"),
+                "compiled_source_inventory_sha256": job.get(
+                    "compiled_source_inventory_sha256"
+                ),
+                "sealed_manifest_count": job.get("sealed_manifest_count"),
+                "sealed_manifest_inventory_sha256": job.get(
+                    "sealed_manifest_inventory_sha256"
+                ),
+                "ci_job_receipt_sha256": verified_job.get("receipt_sha256"),
+                "wrapper_receipt_sha256": claimed,
+                "source_file_sha256": _sha256_file(path),
+            }
+        )
+    by_os = {str(item["runner_os"]): item for item in normalized}
+    if (
+        set(by_os) != {"Linux", "macOS"}
+        or len(by_os) != len(normalized)
+        or len({item["run_id"] for item in normalized}) != 1
+        or len({item["run_attempt"] for item in normalized}) != 1
+        or len({item["head_sha"] for item in normalized}) != 1
+    ):
+        raise PilotEvidenceError(
+            "V2.11.10 publication requires one matched Linux/macOS CI pair"
+        )
+    measurement_fields = (
+        "test_count",
+        "test_collection_sha256",
+        "skipped_test_count",
+        "compiled_source_count",
+        "compiled_source_inventory_sha256",
+        "sealed_manifest_count",
+        "sealed_manifest_inventory_sha256",
+    )
+    if any(
+        normalized[0].get(field) != normalized[1].get(field)
+        for field in measurement_fields
+    ):
+        raise PilotEvidenceError(
+            "V2.11.10 Linux/macOS CI measurements disagree"
+        )
+    jobs = [by_os[name] for name in ("Linux", "macOS")]
+    return {
+        "schema_version": V21110_PUBLICATION_CI_BUNDLE_SCHEMA_VERSION,
+        "status": "pass",
+        "ci_execution_status": "cross-platform-current-head-pass",
+        "consumer_head_sha": jobs[0]["head_sha"],
+        "run_id": jobs[0]["run_id"],
+        "run_attempt": jobs[0]["run_attempt"],
+        "jobs": jobs,
+        "scientific_evidence": False,
+        "provider_calls": 0,
+        "science_dispatch_authority": False,
+    }
+
+
+def _gh_json(endpoint: str) -> Mapping[str, Any]:
+    try:
+        completed = subprocess.run(
+            [
+                "gh",
+                "api",
+                "--hostname",
+                "github.com",
+                "--method",
+                "GET",
+                endpoint,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        value = json.loads(completed.stdout)
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError) as exc:
+        raise PilotEvidenceError("GitHub publication attestation query failed") from exc
+    if not isinstance(value, Mapping):
+        raise PilotEvidenceError("GitHub publication attestation response is malformed")
+    return value
+
+
+def _gh_job_log(run_id: int, run_attempt: int, job_id: int) -> str:
+    try:
+        return subprocess.run(
+            [
+                "gh",
+                "run",
+                "view",
+                str(run_id),
+                "--repo",
+                f"github.com/{V21110_GITHUB_REPOSITORY}",
+                "--attempt",
+                str(run_attempt),
+                "--job",
+                str(job_id),
+                "--log",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise PilotEvidenceError("GitHub publication CI job log query failed") from exc
+
+
+def _remote_publication_ci_attestation(
+    *,
+    bundle: Mapping[str, Any],
+    receipt_paths: Sequence[str | Path],
+    consumer_head: str,
+    local_tag_object: str,
+) -> dict[str, Any]:
+    """Authenticate the selected CI pair against GitHub API and job logs."""
+
+    run_id = bundle.get("run_id")
+    run_attempt = bundle.get("run_attempt")
+    if (
+        isinstance(run_id, bool)
+        or not isinstance(run_id, int)
+        or run_id <= 0
+        or isinstance(run_attempt, bool)
+        or not isinstance(run_attempt, int)
+        or run_attempt <= 0
+    ):
+        raise PilotEvidenceError("publication CI bundle run identity is malformed")
+    run = _gh_json(
+        f"/repos/{V21110_GITHUB_REPOSITORY}/actions/runs/{run_id}/attempts/"
+        f"{run_attempt}"
+    )
+    if (
+        run.get("id") != run_id
+        or run.get("run_attempt") != run_attempt
+        or run.get("head_sha") != consumer_head
+        or run.get("head_branch") != "main"
+        or run.get("event") != "push"
+        or run.get("status") != "completed"
+        or run.get("conclusion") != "success"
+        or run.get("name") != "Verified memory CI"
+        or run.get("path") != ".github/workflows/verified-memory-ci.yml"
+        or not isinstance(run.get("repository"), Mapping)
+        or run["repository"].get("full_name") != V21110_GITHUB_REPOSITORY
+        or not isinstance(run.get("head_repository"), Mapping)
+        or run["head_repository"].get("full_name") != V21110_GITHUB_REPOSITORY
+    ):
+        raise PilotEvidenceError(
+            "GitHub publication CI run identity or conclusion drifted"
+        )
+
+    wrappers: dict[str, Mapping[str, Any]] = {}
+    for path_value in receipt_paths:
+        wrapper = _strict_json_load(Path(path_value))
+        job = wrapper.get("ci_job_receipt")
+        if not isinstance(job, Mapping) or job.get("runner_os") not in {
+            "Linux",
+            "macOS",
+        }:
+            raise PilotEvidenceError("publication CI receipt runner is malformed")
+        if job.get("workflow_ref") != (
+            f"{V21110_GITHUB_REPOSITORY}/"
+            ".github/workflows/verified-memory-ci.yml@refs/heads/main"
+        ):
+            raise PilotEvidenceError(
+                "publication CI receipt is not from the main branch workflow"
+            )
+        wrappers[str(job["runner_os"])] = wrapper
+    if set(wrappers) != {"Linux", "macOS"}:
+        raise PilotEvidenceError("publication CI receipt runners are incomplete")
+
+    jobs_response = _gh_json(
+        f"/repos/{V21110_GITHUB_REPOSITORY}/actions/runs/{run_id}/attempts/"
+        f"{run_attempt}/jobs?per_page=100"
+    )
+    jobs = jobs_response.get("jobs")
+    if not isinstance(jobs, list):
+        raise PilotEvidenceError("GitHub publication CI job list is malformed")
+    critical_steps = {
+        "Run tests",
+        "Compile tracked Python sources",
+        "Ensure checks did not mutate tracked files",
+        "Emit publication consumer CI receipt",
+    }
+    remote_jobs: list[dict[str, Any]] = []
+    for runner_os, expected_label in (
+        ("Linux", "ubuntu-24.04"),
+        ("macOS", "macos-14"),
+    ):
+        expected_job = next(
+            item for item in bundle["jobs"] if item.get("runner_os") == runner_os
+        )
+        matching = [
+            item
+            for item in jobs
+            if isinstance(item, Mapping)
+            and item.get("name") == expected_job.get("job_name")
+        ]
+        if len(matching) != 1:
+            raise PilotEvidenceError(
+                "GitHub publication CI job identity is missing or ambiguous"
+            )
+        job = matching[0]
+        labels = job.get("labels")
+        steps = job.get("steps")
+        step_status = {
+            str(step.get("name")): step.get("conclusion")
+            for step in steps
+            if isinstance(step, Mapping)
+        } if isinstance(steps, list) else {}
+        job_id = job.get("id")
+        if (
+            isinstance(job_id, bool)
+            or not isinstance(job_id, int)
+            or job_id <= 0
+            or job.get("run_id") != run_id
+            or job.get("run_attempt") != run_attempt
+            or job.get("head_sha") != consumer_head
+            or job.get("workflow_name") != "Verified memory CI"
+            or job.get("status") != "completed"
+            or job.get("conclusion") != "success"
+            or not isinstance(labels, list)
+            or expected_label not in labels
+            or any(step_status.get(name) != "success" for name in critical_steps)
+        ):
+            raise PilotEvidenceError(
+                "GitHub publication CI job or critical step did not pass"
+            )
+        log = _gh_job_log(run_id, run_attempt, job_id)
+        receipt_lines = [
+            line.split(PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX, 1)[1].strip()
+            for line in log.splitlines()
+            if PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX in line
+        ]
+        if len(receipt_lines) != 1:
+            raise PilotEvidenceError(
+                "GitHub publication CI job log lacks one exact receipt"
+            )
+        try:
+            logged_wrapper = json.loads(receipt_lines[0])
+        except json.JSONDecodeError as exc:
+            raise PilotEvidenceError(
+                "GitHub publication CI logged receipt is malformed"
+            ) from exc
+        if logged_wrapper != wrappers[runner_os]:
+            raise PilotEvidenceError(
+                "GitHub publication CI logged receipt differs from supplied receipt"
+            )
+        remote_jobs.append(
+            {
+                "runner_os": runner_os,
+                "job_id": job_id,
+                "job_name": job.get("name"),
+                "html_url": job.get("html_url"),
+                "conclusion": "success",
+                "required_runner_label": expected_label,
+                "critical_steps": sorted(critical_steps),
+                "job_log_sha256": hashlib.sha256(log.encode("utf-8")).hexdigest(),
+                "logged_wrapper_receipt_sha256": wrappers[runner_os][
+                    "receipt_sha256"
+                ],
+            }
+        )
+
+    tag_ref = _gh_json(
+        f"/repos/{V21110_GITHUB_REPOSITORY}/git/ref/tags/"
+        f"{V21110_EVIDENCE_CONSUMER_TAG}"
+    )
+    tag_target = tag_ref.get("object")
+    if (
+        not isinstance(tag_target, Mapping)
+        or tag_target.get("type") != "tag"
+        or tag_target.get("sha") != local_tag_object
+    ):
+        raise PilotEvidenceError("remote evidence consumer tag object drifted")
+    tag = _gh_json(
+        f"/repos/{V21110_GITHUB_REPOSITORY}/git/tags/{local_tag_object}"
+    )
+    peeled = tag.get("object")
+    if (
+        tag.get("tag") != V21110_EVIDENCE_CONSUMER_TAG
+        or not isinstance(peeled, Mapping)
+        or peeled.get("type") != "commit"
+        or peeled.get("sha") != consumer_head
+    ):
+        raise PilotEvidenceError("remote evidence consumer tag target drifted")
+    main_ref = _gh_json(
+        f"/repos/{V21110_GITHUB_REPOSITORY}/git/ref/heads/main"
+    )
+    main_target = main_ref.get("object")
+    if (
+        not isinstance(main_target, Mapping)
+        or main_target.get("type") != "commit"
+        or main_target.get("sha") != consumer_head
+    ):
+        raise PilotEvidenceError("remote main differs from the evidence consumer")
+    return {
+        "schema_version": V21110_PUBLICATION_REMOTE_ATTESTATION_SCHEMA_VERSION,
+        "status": "pass",
+        "authentication_boundary": "live-github-api-and-job-log-replay",
+        "repository": V21110_GITHUB_REPOSITORY,
+        "run_id": run_id,
+        "run_attempt": run_attempt,
+        "run_html_url": run.get("html_url"),
+        "head_sha": consumer_head,
+        "head_branch": "main",
+        "event": "push",
+        "conclusion": "success",
+        "jobs": remote_jobs,
+        "annotated_tag": V21110_EVIDENCE_CONSUMER_TAG,
+        "annotated_tag_object_id": local_tag_object,
+        "remote_main_commit": consumer_head,
+        "remote_verified_at": run.get("updated_at"),
+        "scientific_evidence": False,
+        "provider_calls": 0,
+        "science_dispatch_authority": False,
+    }
+
+
+def _publisher_provenance(
+    code_root: Path,
+    *,
+    science_commit: str,
+    publication_ci_receipt_paths: Sequence[str | Path] | None,
+) -> dict[str, Any]:
+    """Bind a clean, CI-authorized descendant evidence consumer."""
+
+    root = code_root.resolve()
+    top_level = Path(_git(root, "rev-parse", "--show-toplevel")).resolve()
+    head = _git(root, "rev-parse", "HEAD")
+    status = _git(root, "status", "--porcelain", "--untracked-files=all")
+    if top_level != root or status:
+        raise PilotEvidenceError(
+            "V2.11.10 evidence publisher must be the exact clean repository root"
+        )
+    if head == science_commit:
+        raise PilotEvidenceError(
+            "V2.11.10 evidence publisher must be a newer committed consumer"
+        )
+    _git(root, "merge-base", "--is-ancestor", science_commit, head)
+    tag_ref = f"refs/tags/{V21110_EVIDENCE_CONSUMER_TAG}"
+    if (
+        _git(root, "cat-file", "-t", tag_ref) != "tag"
+        or _git(root, "rev-parse", f"{tag_ref}^{{commit}}") != head
+    ):
+        raise PilotEvidenceError(
+            "V2.11.10 evidence consumer tag is absent or targets another commit"
+        )
+    tag_object = _git(root, "rev-parse", tag_ref)
+    tracked_blobs = _tracked_head_blobs(root, _PUBLISHER_REQUIRED_TRACKED_FILES)
+    consumer_ci = _validated_publication_ci_receipts(
+        root,
+        publication_ci_receipt_paths,
+    )
+    if consumer_ci.get("consumer_head_sha") != head:
+        raise PilotEvidenceError(
+            "V2.11.10 publisher commit differs from its consumer CI authority"
+        )
+    remote_ci = _remote_publication_ci_attestation(
+        bundle=consumer_ci,
+        receipt_paths=tuple(publication_ci_receipt_paths or ()),
+        consumer_head=head,
+        local_tag_object=tag_object,
+    )
+    return {
+        "repository_root": str(root),
+        "git_commit": head,
+        "annotated_tag": V21110_EVIDENCE_CONSUMER_TAG,
+        "annotated_tag_object_id": tag_object,
+        "science_source_commit": science_commit,
+        "branch": _git(root, "rev-parse", "--abbrev-ref", "HEAD"),
+        "tracked_worktree_clean": True,
+        "required_tracked_head_blobs": tracked_blobs,
+        "publication_consumer_ci": {
+            **consumer_ci,
+            "remote_attestation": remote_ci,
+        },
+        "scientific_evidence": False,
+        "science_dispatch_authority": False,
+        "provider_calls": 0,
+    }
+
+
 def _resolve_current_paths(
     *,
     source_repo_root: str | Path | None,
@@ -1188,7 +1710,7 @@ def _normalize_current_ledger(
             if (
                 terminal.get("schema_version") != PILOT_TERMINAL_SUMMARY_SCHEMA_VERSION
                 or terminal.get("evidence_scope")
-                != "preregistered_dual_root_authority_import"
+                != V21110_PARENT_TERMINAL_EVIDENCE_SCOPE
                 or terminal.get("scientific_evidence") is not False
                 or terminal.get("diagnostic_only") is not False
                 or terminal.get("payload")
@@ -2363,6 +2885,7 @@ def _build_pilot_v21110_evidence_package_guarded(
     source_repo_root: str | Path | None = None,
     failed_repo_root: str | Path | None = None,
     authority_repo_root: str | Path | None = None,
+    publication_ci_receipt_paths: Sequence[str | Path] | None = None,
 ) -> PilotEvidencePackage:
     """Build a zero-provider package from three independent release roots."""
 
@@ -2429,6 +2952,12 @@ def _build_pilot_v21110_evidence_package_guarded(
         current_contract,
         current_commit,
         release_attestation=paid.release_attestation,
+    )
+    code_root = Path(__file__).resolve().parents[1]
+    publisher = _publisher_provenance(
+        code_root,
+        science_commit=current_commit,
+        publication_ci_receipt_paths=publication_ci_receipt_paths,
     )
     try:
         current_source_manifest = validate_v21110_source_manifest(
@@ -2608,6 +3137,7 @@ def _build_pilot_v21110_evidence_package_guarded(
         "provider_calls": 0,
         "current_release": current_release,
         "current_source": current_source,
+        "publisher": publisher,
         "current_source_manifest": {
             "path": V21110_SOURCE_MANIFEST_PATH.as_posix(),
             "file_sha256": _sha256_file(
@@ -2712,6 +3242,17 @@ def _build_pilot_v21110_evidence_package_guarded(
             parent_contract,
             expected_commit=parent_commit,
         )
+        if (
+            _publisher_provenance(
+                code_root,
+                science_commit=current_commit,
+                publication_ci_receipt_paths=publication_ci_receipt_paths,
+            )
+            != publisher
+        ):
+            raise PilotEvidenceError(
+                "evidence publisher provenance drifted before installation"
+            )
         try:
             final_failed_state = verify_v2119_terminal_no_go(
                 failed_repo_root=failed_root,
@@ -2788,6 +3329,7 @@ def build_pilot_v21110_evidence_package(
     source_repo_root: str | Path | None = None,
     failed_repo_root: str | Path | None = None,
     authority_repo_root: str | Path | None = None,
+    publication_ci_receipt_paths: Sequence[str | Path] | None = None,
 ) -> PilotEvidencePackage:
     """Build evidence under an explicit zero-credential/provider sentinel."""
 
@@ -2801,6 +3343,7 @@ def build_pilot_v21110_evidence_package(
             source_repo_root=source_repo_root,
             failed_repo_root=failed_repo_root,
             authority_repo_root=authority_repo_root,
+            publication_ci_receipt_paths=publication_ci_receipt_paths,
         )
 
 

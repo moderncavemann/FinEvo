@@ -291,6 +291,20 @@ def test_v21110_publish_evidence_requires_all_three_release_roots(
 
     with pytest.raises(orchestrator.PilotOrchestrationError, match=message):
         run_pilot.execute(_args("--stage", "publish-evidence", *provided))
+    if "--failed-repo-root" in provided:
+        with pytest.raises(
+            orchestrator.PilotOrchestrationError,
+            match=r"requires exactly two --publication-ci-receipt",
+        ):
+            run_pilot.execute(
+                _args(
+                    "--stage",
+                    "publish-evidence",
+                    *provided,
+                    "--authority-repo-root",
+                    "authority-v2115",
+                )
+            )
 
 
 def test_v21110_publish_evidence_routes_only_to_dedicated_consumer(
@@ -302,6 +316,7 @@ def test_v21110_publish_evidence_routes_only_to_dedicated_consumer(
     failed_root = tmp_path / "failed-v2119"
     authority_root = tmp_path / "authority-v2115"
     evidence_root = tmp_path / "evidence"
+    ci_receipts = (tmp_path / "linux.json", tmp_path / "macos.json")
     calls: list[dict[str, Any]] = []
     monkeypatch.setattr(run_pilot, "load_pilot_contract", lambda _path: _contract())
     for name in (
@@ -341,6 +356,10 @@ def test_v21110_publish_evidence_routes_only_to_dedicated_consumer(
             str(authority_root),
             "--evidence-root",
             str(evidence_root),
+            "--publication-ci-receipt",
+            str(ci_receipts[0]),
+            "--publication-ci-receipt",
+            str(ci_receipts[1]),
         )
     )
 
@@ -353,6 +372,7 @@ def test_v21110_publish_evidence_routes_only_to_dedicated_consumer(
             "source_repo_root": source_root,
             "failed_repo_root": failed_root,
             "authority_repo_root": authority_root,
+            "publication_ci_receipt_paths": ci_receipts,
         }
     ]
     assert result == {
@@ -372,4 +392,5 @@ def test_v21110_publish_evidence_help_names_three_roots() -> None:
     assert "--source-repo-root" in help_text
     assert "--failed-repo-root" in help_text
     assert "--authority-repo-root" in help_text
+    assert "--publication-ci-receipt" in help_text
     assert "V2.11.10 publish-evidence" in help_text

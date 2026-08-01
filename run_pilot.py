@@ -276,6 +276,16 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--publication-ci-receipt",
+        action="append",
+        type=Path,
+        default=[],
+        help=(
+            "one current-consumer CI receipt; V2.11.10 publish-evidence "
+            "requires exactly two, one each from the matched Linux/macOS jobs"
+        ),
+    )
+    parser.add_argument(
         "--parent-repo-root",
         type=Path,
         default=None,
@@ -377,6 +387,13 @@ def execute(args: argparse.Namespace) -> dict:
     parent_repo_root = getattr(args, "parent_repo_root", None)
     failed_repo_root = getattr(args, "failed_repo_root", None)
     authority_repo_root = getattr(args, "authority_repo_root", None)
+    publication_ci_receipts = tuple(
+        getattr(args, "publication_ci_receipt", ()) or ()
+    )
+    if publication_ci_receipts and stage != "publish-evidence":
+        raise PilotOrchestrationError(
+            "--publication-ci-receipt is accepted only for publish-evidence"
+        )
     if parent_repo_root is not None and stage != "parent-import":
         raise PilotOrchestrationError(
             "--parent-repo-root is accepted only for a parent-import stage"
@@ -655,6 +672,11 @@ def execute(args: argparse.Namespace) -> dict:
                 raise PilotOrchestrationError(
                     "V2.11.10 publish-evidence requires --authority-repo-root"
                 )
+            if len(publication_ci_receipts) != 2:
+                raise PilotOrchestrationError(
+                    "V2.11.10 publish-evidence requires exactly two "
+                    "--publication-ci-receipt values"
+                )
         elif contract.contract_id == PILOT_CONTRACT_ID_V2_11_9:
             if source_repo_root is None:
                 raise PilotOrchestrationError(
@@ -668,6 +690,14 @@ def execute(args: argparse.Namespace) -> dict:
             raise PilotOrchestrationError(
                 "--authority-repo-root is accepted by publish-evidence only "
                 "for V2.11.9 or V2.11.10"
+            )
+        if (
+            publication_ci_receipts
+            and contract.contract_id != PILOT_CONTRACT_ID_V2_11_10
+        ):
+            raise PilotOrchestrationError(
+                "--publication-ci-receipt is accepted by publish-evidence "
+                "only for V2.11.10"
             )
         if (
             failed_repo_root is not None
@@ -720,6 +750,9 @@ def execute(args: argparse.Namespace) -> dict:
         if contract.contract_id == PILOT_CONTRACT_ID_V2_11_10:
             build_kwargs["failed_repo_root"] = failed_repo_root
             build_kwargs["authority_repo_root"] = authority_repo_root
+            build_kwargs["publication_ci_receipt_paths"] = (
+                publication_ci_receipts
+            )
         elif contract.contract_id == PILOT_CONTRACT_ID_V2_11_9:
             build_kwargs["authority_repo_root"] = authority_repo_root
         package = builder(**build_kwargs)

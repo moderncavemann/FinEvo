@@ -269,6 +269,15 @@ def _is_v2119_recovery_contract(contract: PilotContract) -> bool:
     )
 
 
+def _is_v21110_recovery_contract(contract: PilotContract) -> bool:
+    """Return whether the exact reduced V2.11.10 continuation applies."""
+
+    return (
+        _is_v2_contract(contract)
+        and contract.contract_id == "finevo-pilot-v2.11.10"
+    )
+
+
 def _is_v210_prerequisite_family_contract(contract: PilotContract) -> bool:
     """Return whether V2.10's imported-prerequisite wire schema applies."""
 
@@ -355,7 +364,10 @@ def _stage_sets(
     if _is_v211_family_contract(contract):
         non_scientific = V211_NON_SCIENTIFIC_STAGES
         scientific = V211_SCIENTIFIC_STAGES
-    elif _is_v2119_recovery_contract(contract):
+    elif (
+        _is_v2119_recovery_contract(contract)
+        or _is_v21110_recovery_contract(contract)
+    ):
         non_scientific = V211_RECOVERY_NON_SCIENTIFIC_STAGES
         scientific = V211_RECOVERY_SCIENTIFIC_STAGES
     elif _is_lane_separated_contract(contract):

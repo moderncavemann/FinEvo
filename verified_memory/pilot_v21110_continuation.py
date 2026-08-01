@@ -45,6 +45,9 @@ V21110_ACCEPTANCE_SCHEMA_VERSION = (
     "finevo-pilot-v2.11.10-scientific-dispatch-acceptance-v1"
 )
 V21110_ACCEPTANCE_FILENAME = "scientific_dispatch_acceptance.json"
+V21110_PARENT_TERMINAL_EVIDENCE_SCOPE = (
+    "preregistered_terminal_lineage_authority_import"
+)
 V21110_PROFILE_PATH = PurePosixPath("data/profiles.json")
 V21110_PROFILE_FILE_SHA256 = (
     "1bc90a92ef8e32f3da6e474f787207b79b1c82cc0b7b13c5ea3bd6cd1439b223"
@@ -1558,6 +1561,96 @@ def audit_v21110_scientific_stage_namespace(
     }
 
 
+def _v21110_journal_api_usage_projection(
+    journal: Mapping[str, Any],
+    *,
+    accepted_action_parse_modes: Any,
+) -> list[dict[str, Any]]:
+    """Bind post-completion action parsing back into sealed usage rows."""
+
+    if (
+        not isinstance(accepted_action_parse_modes, (list, tuple))
+        or not accepted_action_parse_modes
+        or any(
+            not isinstance(mode, str) or not mode
+            for mode in accepted_action_parse_modes
+        )
+        or len(set(accepted_action_parse_modes)) != len(accepted_action_parse_modes)
+    ):
+        raise PilotV21110ContinuationError(
+            "V2.11.10 accepted action parse modes are malformed"
+        )
+    accepted_modes = frozenset(accepted_action_parse_modes)
+    events = journal.get("events")
+    if not isinstance(events, list):
+        raise PilotV21110ContinuationError(
+            "V2.11.10 actor journal events are malformed"
+        )
+    key_fields = (
+        "call_kind",
+        "decision_t",
+        "agent_id",
+        "prompt_hash",
+        "raw_output_hash",
+    )
+    dispositions: dict[tuple[Any, ...], Mapping[str, Any]] = {}
+    for event in events:
+        if not isinstance(event, Mapping) or event.get("event_type") != (
+            "parse_disposition"
+        ):
+            continue
+        payload = event.get("payload")
+        if not isinstance(payload, Mapping):
+            raise PilotV21110ContinuationError(
+                "V2.11.10 actor parse disposition is malformed"
+            )
+        key = tuple(payload.get(field) for field in key_fields)
+        if key in dispositions:
+            raise PilotV21110ContinuationError(
+                "V2.11.10 actor journal has duplicate parse dispositions"
+            )
+        dispositions[key] = payload
+
+    projected: list[dict[str, Any]] = []
+    exact_action_keys = set(key_fields) | {
+        "parse_status",
+        "parse_mode",
+        "accepted",
+    }
+    for event in events:
+        if not isinstance(event, Mapping) or event.get("event_type") != (
+            "completion_received"
+        ):
+            continue
+        payload = event.get("payload")
+        if not isinstance(payload, Mapping):
+            raise PilotV21110ContinuationError(
+                "V2.11.10 actor completion payload is malformed"
+            )
+        row = dict(payload)
+        if row.get("call_kind") == "action":
+            if "action_parse_mode" in row:
+                raise PilotV21110ContinuationError(
+                    "V2.11.10 action completion improperly contains parse state"
+                )
+            key = tuple(row.get(field) for field in key_fields)
+            disposition = dispositions.get(key)
+            if (
+                not isinstance(disposition, Mapping)
+                or set(disposition) != exact_action_keys
+                or disposition.get("parse_status") != "success"
+                or disposition.get("accepted") is not True
+                or not isinstance(disposition.get("parse_mode"), str)
+                or disposition.get("parse_mode") not in accepted_modes
+            ):
+                raise PilotV21110ContinuationError(
+                    "V2.11.10 action parse disposition differs from sealed usage"
+                )
+            row["action_parse_mode"] = disposition["parse_mode"]
+        projected.append(row)
+    return projected
+
+
 def _verify_v21110_actor_journal(
     contract: PilotContract,
     spec: Any,
@@ -1629,11 +1722,12 @@ def _verify_v21110_actor_journal(
         "event_count": len(journal["events"]),
         "terminal_dispositions_verified": True,
     }
-    completions = [
-        event["payload"]
-        for event in journal["events"]
-        if event.get("event_type") == "completion_received"
-    ]
+    completions = _v21110_journal_api_usage_projection(
+        journal,
+        accepted_action_parse_modes=result.config.get(
+            "accepted_action_parse_modes"
+        ),
+    )
     if canonical_sha256(journal_binding) != canonical_sha256(
         recomputed
     ) or canonical_sha256(completions) != canonical_sha256(
