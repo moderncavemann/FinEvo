@@ -772,19 +772,30 @@ def _recompute_rule_classification(
     target = guidance.get("target")
     direction = guidance.get("direction")
     actual_action = executed_action.get(target)
+    try:
+        guidance_threshold = float(guidance.get("threshold"))
+        guidance_tolerance = float(guidance.get("tolerance"))
+    except (TypeError, ValueError) as exc:
+        raise ReviewerTraceError("selected rule guidance threshold is malformed") from exc
     if direction == "at_least":
         guidance_operator = ">="
+        effective_threshold = guidance_threshold - guidance_tolerance
+        comparison_tolerance = 0.0
     elif direction == "at_most":
         guidance_operator = "<="
+        effective_threshold = guidance_threshold + guidance_tolerance
+        comparison_tolerance = 0.0
     elif direction == "approximately":
         guidance_operator = "=="
+        effective_threshold = guidance_threshold
+        comparison_tolerance = guidance_tolerance
     else:
         raise ReviewerTraceError("selected rule guidance direction is unsupported")
     guidance_compliant = _numeric_predicate_matches(
         actual_action,
         operator=guidance_operator,
-        expected=guidance.get("threshold"),
-        tolerance=guidance.get("tolerance"),
+        expected=effective_threshold,
+        tolerance=comparison_tolerance,
     )
     metric = criterion.get("metric")
     observed_outcome = (

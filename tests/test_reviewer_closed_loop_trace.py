@@ -22,6 +22,8 @@ from verified_memory.reviewer_closed_loop_trace import (
     TRACE_SCHEMA_VERSION,
     V2115_CONTRACT_CANONICAL_SHA256,
     V2115_CONTRACT_FILE_SHA256,
+    V2115_EXPERIMENT_A_RECEIPT_FILE_SHA256,
+    V2115_SELECTED_RUN_MANIFEST_SHA256,
     V2115_SOURCE_COMMIT,
     V2115_SOURCE_TAG,
     V2115_SOURCE_TAG_OBJECT,
@@ -48,6 +50,9 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = ROOT / "experiments" / "pilot_v2_11_5.yaml"
 SCHEMA_PATH = ROOT / "schemas" / "reviewer_closed_loop_trace_v1.schema.json"
 MODULE_PATH = ROOT / "verified_memory" / "reviewer_closed_loop_trace.py"
+PUBLISHED_PACKAGE = (
+    ROOT / "evidence/current_v2/pilot-v2.11.5-reviewer-trace-v1"
+)
 
 
 def _publisher_provenance() -> dict[str, Any]:
@@ -458,6 +463,169 @@ def test_real_sealed_trace_closes_all_links_and_rebuilds_byte_identically(
         ).read_bytes()
 
 
+def test_published_reviewer_trace_package_is_self_consistent() -> None:
+    expected_names = {
+        "checksums.json",
+        "reviewer_closed_loop_trace.json",
+        "reviewer_closed_loop_trace_v1.schema.json",
+    }
+    paths = tuple(PUBLISHED_PACKAGE.iterdir())
+    assert {path.name for path in paths} == expected_names
+    assert all(path.is_file() and not path.is_symlink() for path in paths)
+    for path in paths:
+        _scan_publication_bytes(path.read_bytes(), name=path.name)
+
+    trace_bytes = (PUBLISHED_PACKAGE / "reviewer_closed_loop_trace.json").read_bytes()
+    schema_bytes = (
+        PUBLISHED_PACKAGE / "reviewer_closed_loop_trace_v1.schema.json"
+    ).read_bytes()
+    checksums_bytes = (PUBLISHED_PACKAGE / "checksums.json").read_bytes()
+    trace = json.loads(trace_bytes)
+    schema = json.loads(schema_bytes)
+    checksums = json.loads(checksums_bytes)
+
+    Draft202012Validator.check_schema(schema)
+    Draft202012Validator(schema).validate(trace)
+    validate_trace_artifact(trace)
+    assert schema_bytes == SCHEMA_PATH.read_bytes()
+    assert checksums["schema_version"] == (
+        "finevo-reviewer-closed-loop-trace-checksums-v1"
+    )
+    assert checksums["publication_provider_calls"] == 0
+    expected_checksum_files = {
+        "reviewer_closed_loop_trace.json": trace_bytes,
+        "reviewer_closed_loop_trace_v1.schema.json": schema_bytes,
+    }
+    assert {row["path"] for row in checksums["files"]} == set(
+        expected_checksum_files
+    )
+    for row in checksums["files"]:
+        data = expected_checksum_files[row["path"]]
+        assert row["sha256"] == hashlib.sha256(data).hexdigest()
+        assert row["byte_size"] == len(data)
+
+    assert trace["status"] == "complete"
+    assert trace["publication_provider_calls"] == 0
+    assert trace["evidence_scope"] == {
+        "diagnostic_only": True,
+        "descriptive_only": True,
+        "effectiveness_evidence": False,
+        "frozen_source_provider_call_scope": (
+            "historical-observations-read-from-sealed-logs"
+        ),
+        "publication_provider_calls": 0,
+        "stage_authoritative": False,
+    }
+    assert trace["selection_policy"]["selection_timing"] == (
+        "publication-time-post-seal"
+    )
+    assert trace["selection_policy"]["preregistered"] is False
+    assert trace["selection_policy"]["outcome_fields_used_by_selector"] is False
+    assert trace["selection_policy"]["fallback_policy"] == (
+        "none-emit-unavailable"
+    )
+    assert trace["selection_policy"]["selected_coordinates"] == {
+        "stage_id": "experiment-a",
+        "model_id": "gpt52_main",
+        "arm_id": "full",
+        "narrative_id": "none",
+        "utility_variant_id": "stage0-selected",
+        "environment_seed": 1099057501,
+        "agent_id": 0,
+        "decision_t": 8,
+        "outcome_t": 9,
+        "run_id": (
+            "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--"
+            "stage0-selected--s1099057501"
+        ),
+    }
+
+    provenance = trace["provenance"]
+    assert provenance["stage_status"] == "complete-with-no-go"
+    assert provenance["stage_go"] is False
+    assert provenance["stage_scientific_matrix_complete"] is False
+    assert provenance["stage_denominator_terminal"] is True
+    assert provenance["stage_registered_runs"] == 20
+    assert provenance["stage_complete_runs"] == 17
+    assert provenance["stage_failed_runs"] == 3
+    assert len(trace["source_files"]) == 17
+    assert len(trace["source_records"]) == 23
+    assert len(trace["link_checks"]["checks"]) == 17
+    assert trace["link_checks"]["all_pass"] is True
+    assert all(trace["link_checks"]["checks"].values())
+
+    source_files = {row["source_id"]: row for row in trace["source_files"]}
+    assert source_files["contract"]["file_sha256"] == V2115_CONTRACT_FILE_SHA256
+    assert source_files["experiment_a_stage_receipt"]["file_sha256"] == (
+        V2115_EXPERIMENT_A_RECEIPT_FILE_SHA256
+    )
+    assert source_files["selected_run_manifest"]["file_sha256"] == (
+        V2115_SELECTED_RUN_MANIFEST_SHA256
+    )
+    source_record_lines = {
+        (row["source_id"], row["line_number"])
+        for row in trace["source_records"]
+    }
+    assert {
+        ("semantic_proposals", 1),
+        ("api_usage", 13),
+        ("semantic_rule_events", 10),
+        ("semantic_rule_events", 19),
+        ("episodes", 13),
+        ("semantic_rule_events", 68),
+        ("semantic_rule_events", 69),
+        ("semantic_rule_events", 70),
+        ("semantic_rules", 1),
+        ("macro_steps", 8),
+        ("macro_steps", 9),
+        ("shock_events", 9),
+        ("context_trace", 33),
+        ("context_trace", 37),
+        ("decision_snapshots", 33),
+        ("decision_snapshots", 37),
+        ("actions", 33),
+        ("actions", 37),
+        ("api_usage", 41),
+        ("api_usage", 49),
+        ("episodes", 33),
+        ("episodes", 37),
+        ("utility_ledger", 33),
+    } == source_record_lines
+    assert all(len(row["raw_line_sha256"]) == 64 for row in trace["source_records"])
+
+    selected_rule = trace["trace"]["retrieval"]["selected_rules"][0]
+    assert selected_rule["candidate_id"] == "cand-134878c05dd7d100237e"
+    assert selected_rule["activation_t"] == 4
+    assert selected_rule["activation_from_status"] == "provisional"
+    assert selected_rule["activation_to_status"] == "active"
+    assert selected_rule["retirement_t"] == 9
+    assert selected_rule["retirement_from_status"] == "active"
+    assert selected_rule["retirement_to_status"] == "retired"
+    assert selected_rule["final_status"] == "retired"
+    assert trace["trace"]["memory_update"]["verifier_recomputation"][
+        "classification"
+    ] == "harmful_compliance"
+    assert trace["trace"]["next_decision"]["selected_rule_ids"] == []
+
+    publisher = provenance["publisher"]
+    publisher_commit = publisher["git_commit"]
+    assert len(publisher_commit) == 40
+    int(publisher_commit, 16)
+    trace_module._git(
+        ROOT,
+        "merge-base",
+        "--is-ancestor",
+        publisher_commit,
+        "HEAD",
+    )
+    for relative, expected_blob in publisher[
+        "required_tracked_head_blobs"
+    ].items():
+        assert trace_module._git(
+            ROOT, "rev-parse", f"{publisher_commit}:{relative}"
+        ) == expected_blob
+
+
 def test_real_sealed_trace_rejects_pre_post_loader_receipt_drift(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -597,6 +765,13 @@ def test_harmful_compliance_is_recomputed_not_trusted_from_event_label() -> None
     assert _recompute_rule_classification(rule, tampered)["classification"] == (
         "alternative_failure"
     )
+    tolerant_rule = copy.deepcopy(rule)
+    tolerant_rule["action_guidance"]["tolerance"] = 0.1
+    within_tolerance = copy.deepcopy(episode)
+    within_tolerance["executed_action"]["consumption_fraction"] = 0.71
+    assert _recompute_rule_classification(
+        tolerant_rule, within_tolerance
+    )["classification"] == "harmful_compliance"
 
 
 def test_module_contains_no_duplicate_literal_dict_keys() -> None:
