@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from verified_memory.pilot_contract import load_pilot_contract
+from verified_memory.pilot_contract import canonical_sha256, load_pilot_contract
 from verified_memory.pilot_evidence import PilotEvidenceError, _stage_sets
 from verified_memory import pilot_orchestrator
 from verified_memory.pilot_orchestrator import PilotRunLedger
@@ -59,7 +59,7 @@ def test_v2115_frozen_contract_requires_exact_stage_order_and_denominator() -> N
     } == evidence._EXPECTED_STAGE_COUNTS
 
 
-def test_v2115_nonterminal_136_cell_ledger_is_not_publishable(
+def test_v2115_unstarted_136_cell_ledger_is_not_the_frozen_partial_snapshot(
     tmp_path: Path,
 ) -> None:
     contract = _contract()
@@ -72,54 +72,306 @@ def test_v2115_nonterminal_136_cell_ledger_is_not_publishable(
     )
     ledger.register(contract.expand())
     value = json.loads(ledger_path.read_text(encoding="utf-8"))
-    with pytest.raises(PilotEvidenceError, match="all-terminal ITT denominator"):
-        evidence._normalize_v2112_ledger(
+    with pytest.raises(PilotEvidenceError, match="exactly one acceptance"):
+        evidence._normalize_v2115_partial_ledger(
             contract,
             value,
             raw_root=raw,
             expected_commit=evidence.V2115_SOURCE_COMMIT,
+            source_repo_root=tmp_path,
         )
 
 
-def test_v2115_stage_receipt_adapter_replays_all_eight_stages(
+@pytest.fixture
+def v2115_real_partial_ledger_shape(
+    tmp_path: Path,
+) -> tuple[Any, Path, PilotRunLedger]:
+    """Build the real 53-event/136-row A+C terminal prefix in a temp tree."""
+
+    contract = _contract()
+    raw = tmp_path / "raw"
+    ledger = PilotRunLedger(
+        raw / "run_ledger.json",
+        contract_hash=contract.canonical_hash,
+        tamper_evident=True,
+    )
+    ledger.register(contract.expand())
+    operational = [
+        spec
+        for stage_id in evidence._EXPECTED_STAGE_IDS[:3]
+        for spec in contract.expand(stage=stage_id)
+    ]
+    for spec in operational:
+        ledger.finalize(spec.run_id, status="complete", artifact=f"{spec.run_id}.json")
+    prefix = ledger.snapshot()
+    run_head = prefix["events"][-1]["event_sha256"]
+    receipt_content = "a" * 64
+    budget_head = "b" * 64
+    receipt = {
+        "ledger_prefixes": {
+            "run_ledger": {
+                "event_count": evidence.V2115_EXPECTED_ACCEPTED_RUN_EVENTS,
+                "event_chain_head": run_head,
+            },
+            "budget_ledger": {
+                "event_count": evidence.V2115_EXPECTED_ACCEPTED_BUDGET_EVENTS,
+                "event_chain_head": budget_head,
+            },
+        },
+        "integrity": {"content_sha256": receipt_content},
+    }
+    (raw / evidence.V2115_SCIENTIFIC_DISPATCH_ACCEPTANCE_FILENAME).write_text(
+        json.dumps(receipt), encoding="utf-8"
+    )
+    ledger.bind_acceptance_receipt(
+        receipt_schema_version=(
+            evidence.V2115_SCIENTIFIC_DISPATCH_ACCEPTANCE_SCHEMA_VERSION
+        ),
+        receipt_path=(
+            evidence.V2115_RAW_RELATIVE
+            / evidence.V2115_SCIENTIFIC_DISPATCH_ACCEPTANCE_FILENAME
+        ).as_posix(),
+        receipt_content_sha256=receipt_content,
+        accepted_run_event_count=evidence.V2115_EXPECTED_ACCEPTED_RUN_EVENTS,
+        accepted_run_event_chain_head=run_head,
+        accepted_budget_event_count=evidence.V2115_EXPECTED_ACCEPTED_BUDGET_EVENTS,
+        accepted_budget_event_chain_head=budget_head,
+    )
+    for spec in contract.expand(stage="experiment-c"):
+        ledger.finalize(spec.run_id, status="complete", artifact=f"{spec.run_id}.json")
+    for index, spec in enumerate(contract.expand(stage="experiment-a")):
+        if index < 17:
+            ledger.finalize(
+                spec.run_id, status="complete", artifact=f"{spec.run_id}.json"
+            )
+        else:
+            ledger.finalize(
+                spec.run_id,
+                status="failed",
+                artifact=f"{spec.run_id}.failure.json",
+                failure={
+                    "error_type": "IncompleteCompletionError",
+                    "message": "length",
+                },
+            )
+    return contract, raw, ledger
+
+
+def test_v2115_real_partial_shape_retains_itt_and_excludes_scheduled_evidence(
+    v2115_real_partial_ledger_shape: tuple[Any, Path, PilotRunLedger],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract, raw, ledger = v2115_real_partial_ledger_shape
+    monkeypatch.setattr(
+        evidence,
+        "_load_completed_artifact",
+        lambda *_args, **_kwargs: {
+            "artifact_kind": "verified-run-manifest",
+            "artifact_sha256": "c" * 64,
+            "scientific_eligible": True,
+            "metrics": {},
+            "gate_evidence": {},
+            "capability": {},
+            "narrative": {},
+        },
+    )
+    monkeypatch.setattr(
+        evidence,
+        "_terminal_summary_header",
+        lambda *_args, **_kwargs: {"payload": {}},
+    )
+    monkeypatch.setattr(evidence, "_resolve_artifact", lambda _root, path: Path(path))
+    monkeypatch.setattr(evidence, "_sha256_file", lambda _path: "d" * 64)
+
+    rows, denominator = evidence._normalize_v2115_partial_ledger(
+        contract,
+        ledger.snapshot(),
+        raw_root=raw,
+        expected_commit=evidence.V2115_SOURCE_COMMIT,
+        source_repo_root=raw.parent,
+    )
+
+    assert len(rows) == 136
+    assert denominator["status_counts"] == {
+        "complete": 47,
+        "failed": 3,
+        "scheduled": 86,
+    }
+    assert denominator["itt_failures_retained"] == 3
+    assert denominator["scheduled_cells_excluded_from_effect_evidence"] == 86
+    assert denominator["all_rows_terminal"] is False
+    assert denominator["pass"] is False
+    scheduled = [row for row in rows if row["status"] == "scheduled"]
+    assert len(scheduled) == 86
+    assert all(
+        row["scientific_eligible"] is False
+        and row["artifact_kind"] is None
+        and row["metrics"] == {}
+        for row in scheduled
+    )
+
+
+def test_v2115_consumer_rejects_resealed_acceptance_marker_tamper(
+    v2115_real_partial_ledger_shape: tuple[Any, Path, PilotRunLedger],
+) -> None:
+    contract, raw, ledger = v2115_real_partial_ledger_shape
+    value = ledger.snapshot()
+    marker = value["events"][evidence.V2115_EXPECTED_ACCEPTED_RUN_EVENTS]
+    marker["payload"]["receipt_content_sha256"] = "e" * 64
+    previous = marker["previous_event_sha256"]
+    for index in range(
+        evidence.V2115_EXPECTED_ACCEPTED_RUN_EVENTS, len(value["events"])
+    ):
+        event = value["events"][index]
+        event["previous_event_sha256"] = previous
+        unsigned = dict(event)
+        unsigned.pop("event_sha256", None)
+        event["event_sha256"] = canonical_sha256(unsigned)
+        previous = event["event_sha256"]
+    unsigned_ledger = dict(value)
+    unsigned_ledger.pop("ledger_sha256", None)
+    value["ledger_sha256"] = canonical_sha256(unsigned_ledger)
+
+    with pytest.raises(PilotEvidenceError, match="differs from the sealed receipt"):
+        evidence._validate_frozen_partial_event_inventory(
+            contract, value, raw_root=raw
+        )
+
+
+def test_v2115_consumer_rejects_unknown_resealed_run_ledger_event(
+    v2115_real_partial_ledger_shape: tuple[Any, Path, PilotRunLedger],
+) -> None:
+    contract, raw, ledger = v2115_real_partial_ledger_shape
+    ledger._append_event(  # pylint: disable=protected-access
+        "invented_publication_event",
+        {"runs_sha256": canonical_sha256(ledger.snapshot()["runs"])},
+    )
+    ledger._write()  # pylint: disable=protected-access
+    value = json.loads((raw / "run_ledger.json").read_text(encoding="utf-8"))
+
+    with pytest.raises(
+        pilot_orchestrator.PilotOrchestrationError,
+        match="unknown pilot run ledger event type",
+    ):
+        evidence._normalize_v2115_partial_ledger(
+            contract,
+            value,
+            raw_root=raw,
+            expected_commit=evidence.V2115_SOURCE_COMMIT,
+            source_repo_root=raw.parent,
+        )
+
+
+def test_v2115_acceptance_replay_keeps_science_repo_context_through_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entered: list[Path] = []
+
+    class SourceContext:
+        def __enter__(self) -> None:
+            entered.append(tmp_path)
+
+        def __exit__(self, *_args: Any) -> None:
+            entered.pop()
+
+    monkeypatch.setattr(
+        evidence,
+        "observed_p95_authority_repo_context",
+        lambda root: SourceContext() if root == tmp_path else None,
+    )
+
+    def verify(*_args: Any, **kwargs: Any) -> dict[str, Any]:
+        assert entered == [tmp_path]
+        assert kwargs["repo_root"] == tmp_path
+        return {"status": "go"}
+
+    monkeypatch.setattr(
+        evidence, "verify_v2115_scientific_dispatch_acceptance", verify
+    )
+    result = evidence._replay_scientific_dispatch_acceptance(
+        _contract(),
+        raw_root=tmp_path / "raw",
+        source_repo_root=tmp_path,
+        paid=object(),
+        run_ledger=object(),
+        budget_ledger=object(),
+    )
+
+    assert result == {"status": "go"}
+    assert entered == []
+
+
+def test_v2115_stage_receipt_adapter_separates_terminal_and_scheduled_stages(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     contract = _contract()
     calls: list[dict[str, Any]] = []
+    raw = tmp_path / "raw"
+    rows: dict[str, dict[str, Any]] = {}
+    for spec in contract.expand():
+        stage_counts = evidence._FROZEN_PARTIAL_STAGE_STATUS_COUNTS[spec.stage_id]
+        status = next(iter(stage_counts))
+        if spec.stage_id == "experiment-a":
+            index = sum(
+                1
+                for prior in rows.values()
+                if prior["spec"]["stage_id"] == "experiment-a"
+            )
+            status = "complete" if index < 17 else "failed"
+        rows[spec.run_id] = {"spec": spec.to_dict(), "status": status}
+    for stage_id in evidence._FROZEN_COMPLETED_STAGE_IDS:
+        path = raw / stage_id / "stage_receipt.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}", encoding="utf-8")
 
-    def replay(*_args: Any, **kwargs: Any) -> dict[str, Any]:
+    def replay(
+        _contract: Any, stage_id: str, *_args: Any, **kwargs: Any
+    ) -> dict[str, Any]:
         calls.append(kwargs)
         return {
-            "schema_version": "old",
-            "contract_sha256": contract.canonical_hash,
-            "all_terminal": True,
-            "receipts": {
-                stage_id: {"status": "complete"} for stage_id in contract.stage_ids
-            },
+            "terminal": True,
+            "status": (
+                "complete-with-no-go"
+                if stage_id.startswith("experiment-")
+                else "complete"
+            ),
+            "go": not stage_id.startswith("experiment-"),
+            "execution_progression_go": True,
+            "go_models": [],
+            "status_counts": evidence._FROZEN_PARTIAL_STAGE_STATUS_COUNTS[stage_id],
+            "registered_run_count": evidence._EXPECTED_STAGE_COUNTS[stage_id],
+            "complete_cell_count": evidence._FROZEN_PARTIAL_STAGE_STATUS_COUNTS[
+                stage_id
+            ].get("complete", 0),
+            "integrity": {"content_sha256": "a" * 64},
         }
 
-    monkeypatch.setattr(evidence, "_validate_stage_receipts", replay)
-    ledger = object()
+    monkeypatch.setattr(evidence, "_verify_v2_stage_receipt", replay)
+    monkeypatch.setattr(evidence, "_sha256_file", lambda _path: "b" * 64)
+
+    class Ledger:
+        def snapshot(self) -> dict[str, Any]:
+            return {"runs": rows}
+
+    ledger = Ledger()
     paid = object()
     result = evidence._normalized_stage_receipts(
         contract,
-        raw_root=tmp_path / "raw",
+        raw_root=raw,
         ledger=ledger,
         paid=paid,
         source_repo_root=tmp_path / "science",
     )
 
     assert result["schema_version"] == evidence.V2115_STAGE_RECEIPTS_SCHEMA_VERSION
+    assert result["all_terminal"] is False
+    assert result["terminal_stage_ids"] == list(evidence._EXPECTED_STAGE_IDS[:5])
+    assert result["scheduled_stage_ids"] == list(evidence._EXPECTED_STAGE_IDS[5:])
     assert tuple(result["receipts"]) == tuple(contract.stage_ids)
-    assert calls == [
-        {
-            "raw_root": tmp_path / "raw",
-            "ledger": ledger,
-            "paid": paid,
-            "authority_repo_root": tmp_path / "science",
-        }
-    ]
+    assert result["receipts"]["experiment-d"]["status"] == "scheduled-not-run"
+    assert len(calls) == 5
 
 
 def _source_tree(tmp_path: Path) -> tuple[Path, Path, Path, Path]:

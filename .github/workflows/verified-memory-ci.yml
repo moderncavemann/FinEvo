@@ -162,7 +162,7 @@ jobs:
               )
           PY
 
-      - name: Verify V2.11.3 through V2.11.5 scientific source manifests
+      - name: Verify V2.11.3 through V2.11.6 scientific source manifests
         run: >-
           python -m verified_memory.ci_release_receipt verify-source-manifests
           --output "${RUNNER_TEMP}/finevo-source-manifests.json"
@@ -393,6 +393,15 @@ jobs:
             printf '%s\n' "checks left the checkout dirty:" "${status}"
             exit 1
           fi
+
+      - name: Emit scientific release CI receipt
+        run: >-
+          python -m verified_memory.ci_release_receipt emit
+          --collection "${RUNNER_TEMP}/finevo-test-collection.json"
+          --sources "${RUNNER_TEMP}/finevo-python-sources.json"
+          --junit "${RUNNER_TEMP}/finevo-test-results.xml"
+          --contract experiments/pilot_v2_11_6.yaml
+          --output "${RUNNER_TEMP}/finevo-ci-release-receipt.json"
 
       - name: Emit publication consumer CI receipt
         run: >-
