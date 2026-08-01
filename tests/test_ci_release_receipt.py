@@ -885,7 +885,45 @@ def test_verified_memory_ci_gates_v21110_scientific_release_receipt() -> None:
     workflow = (ROOT / ".github/workflows/verified-memory-ci.yml").read_text(
         encoding="utf-8"
     )
-    emit = workflow.split("- name: Emit scientific release CI receipt", 1)[1]
+    assert "- name: Emit scientific release CI receipt" not in workflow
+    assert "--contract experiments/pilot_v2_11_10.yaml" not in workflow
+    assert (
+        "Verify immutable V2.11.10 scientific release tag and receipt source"
+        in workflow
+    )
+    assert "7c3de14ddb604436a1dfee1dabfb781849ea68a7" in workflow
+    assert "aa05e94ee6097916db53c40c0276b044c05a44cc" in workflow
+    assert "ce04fba5f4882449d96cdde4ad747fa0b399a260" in workflow
+    assert "aefdf4fa39280b21ef696fb1b64da3acbb8d47f9" in workflow
+
+    assert subprocess.check_output(
+        ("git", "cat-file", "-t", "pilot-v2.11.10-science"),
+        cwd=ROOT,
+        text=True,
+    ).strip() == "tag"
+    assert subprocess.check_output(
+        ("git", "rev-parse", "pilot-v2.11.10-science^{object}"),
+        cwd=ROOT,
+        text=True,
+    ).strip() == "7c3de14ddb604436a1dfee1dabfb781849ea68a7"
+    assert subprocess.check_output(
+        ("git", "rev-parse", "pilot-v2.11.10-science^{commit}"),
+        cwd=ROOT,
+        text=True,
+    ).strip() == "aa05e94ee6097916db53c40c0276b044c05a44cc"
+
+    tagged_workflow = subprocess.check_output(
+        (
+            "git",
+            "show",
+            "pilot-v2.11.10-science:.github/workflows/verified-memory-ci.yml",
+        ),
+        cwd=ROOT,
+        text=True,
+    )
+    emit = tagged_workflow.split(
+        "- name: Emit scientific release CI receipt", 1
+    )[1]
     emit = emit.split("- name: Emit publication consumer CI receipt", 1)[0]
     assert "python -m verified_memory.ci_release_receipt emit" in emit
     assert "--contract experiments/pilot_v2_11_10.yaml" in emit
