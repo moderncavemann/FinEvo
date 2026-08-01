@@ -1,15 +1,15 @@
 {
   "authority_id": "finevo-pilot-v2.11.5-evidence-consumer-ci",
   "expected_ci": {
-    "compiled_source_count": 333,
-    "compiled_source_inventory_sha256": "4f68cb35df432585723bde19098ed74e18e537bab71d0d41e8b8368310b60206",
+    "compiled_source_count": 346,
+    "compiled_source_inventory_sha256": "3a0ef569d14d8463e8c7736b7083727f05ddec2f71b3bb07558ac81a0b379356",
     "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
-    "test_collection_sha256": "1e5e9df0edf45c044c2aa98d8bfb36cfeed66080cb50312a605ad1c2ac987348",
-    "test_count": 2259
+    "test_collection_sha256": "db6b5a6118c5966423e4cab18b76e7cc4c5ed1e84597b191a9b622b57c89709b",
+    "test_count": 2355
   },
   "integrity": {
     "canonicalization": "json-sort-keys-utf8-v1",
-    "content_sha256": "f2f1955d50d52e277c897c68039571d9b81bf83015655088c728b645cf698897"
+    "content_sha256": "894f5d14bd3c30962ace0d57bf1c1b75b204191b0aedcb640da6c3a6f0370675"
   },
   "schema_version": "finevo-publication-consumer-ci-authority-v1",
   "science_anchor": {

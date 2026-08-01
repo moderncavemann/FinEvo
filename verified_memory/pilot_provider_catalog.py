@@ -229,10 +229,17 @@ def _openrouter_row(
     }
 
 
-def _price_markers(profile: ProviderRequestProfile) -> tuple[str, str]:
+def _price_markers(
+    profile: ProviderRequestProfile,
+) -> tuple[str, str, str | None]:
     input_price = float(profile.price_snapshot.dispatch_input)
     output_price = float(profile.price_snapshot.dispatch_output)
-    return (f"${input_price:g}", f"${output_price:g}")
+    cached = profile.price_snapshot.dispatch_cached_input
+    return (
+        f"${input_price:g}",
+        f"${output_price:g}",
+        None if cached is None else f"${float(cached):g}",
+    )
 
 
 def _openai_row(
@@ -246,16 +253,24 @@ def _openai_row(
         raise ProviderCatalogError(
             f"{profile.profile_id} lacks an exact direct served snapshot"
         )
-    url = profile.price_snapshot.source
-    raw = fetch_bytes(url)
-    text = raw.decode("utf-8", "replace")
-    input_marker, output_marker = _price_markers(profile)
+    price_url = profile.price_snapshot.source
+    model_url = profile.price_snapshot.model_reference or price_url
+    price_raw = fetch_bytes(price_url)
+    model_raw = price_raw if model_url == price_url else fetch_bytes(model_url)
+    price_text = price_raw.decode("utf-8", "replace")
+    model_text = model_raw.decode("utf-8", "replace")
+    input_marker, output_marker, cached_marker = _price_markers(profile)
     checks = {
-        "model_id_present": profile.requested_model in text,
-        "snapshot_present": snapshot in text,
-        "input_price_present": input_marker in text,
-        "output_price_present": output_marker in text,
-        "chat_completions_present": "Chat Completions" in text,
+        "model_id_present": profile.requested_model in model_text,
+        "snapshot_present": snapshot in model_text,
+        "input_price_present": input_marker in price_text,
+        "output_price_present": output_marker in price_text,
+        "cached_input_price_present": (
+            profile.price_snapshot.model_reference is None
+            or cached_marker is None
+            or cached_marker in price_text
+        ),
+        "chat_completions_present": "Chat Completions" in model_text,
     }
     if not all(checks.values()):
         failed = sorted(key for key, passed in checks.items() if not passed)
@@ -266,16 +281,16 @@ def _openai_row(
         "profile_id": profile.profile_id,
         "transport": profile.transport,
         "status": "pass",
-        "catalog_url": url,
-        "catalog_sha256": _sha256_bytes(raw),
+        "catalog_url": price_url,
+        "catalog_sha256": _sha256_bytes(price_raw),
+        "price_source_url": price_url,
+        "price_source_sha256": _sha256_bytes(price_raw),
+        "model_reference_url": model_url,
+        "model_reference_sha256": _sha256_bytes(model_raw),
         "provider_name": "OpenAI-direct",
         "served_snapshot": snapshot,
-        "live_input_per_million_usd": float(
-            profile.price_snapshot.dispatch_input
-        ),
-        "live_output_per_million_usd": float(
-            profile.price_snapshot.dispatch_output
-        ),
+        "live_input_per_million_usd": float(profile.price_snapshot.dispatch_input),
+        "live_output_per_million_usd": float(profile.price_snapshot.dispatch_output),
         "document_checks": checks,
         "parameter_dispatch_policy": _decoding_catalog_policy(profile),
     }
@@ -286,9 +301,9 @@ def _ollama_manifest_path(profile: ProviderRequestProfile, model_root: Path) -> 
     if not separator:
         tag = "latest"
     parts = namespace.split("/")
-    return model_root / "manifests" / "registry.ollama.ai" / "library" / Path(
-        *parts
-    ) / tag
+    return (
+        model_root / "manifests" / "registry.ollama.ai" / "library" / Path(*parts) / tag
+    )
 
 
 def _ollama_row(
@@ -388,9 +403,7 @@ def validate_live_provider_catalog(
     if not isinstance(contract, PilotContract):
         raise TypeError("contract must be a PilotContract")
     root = (
-        Path.home() / ".ollama" / "models"
-        if model_root is None
-        else Path(model_root)
+        Path.home() / ".ollama" / "models" if model_root is None else Path(model_root)
     )
     selected = (
         tuple(contract.provider_profiles)
@@ -480,9 +493,7 @@ def verify_provider_catalog_receipt(
     rows = value.get("rows")
     if not isinstance(rows, list):
         raise ProviderCatalogError("provider catalog receipt rows must be an array")
-    result = json.loads(
-        json.dumps(value, sort_keys=True, allow_nan=False)
-    )
+    result = json.loads(json.dumps(value, sort_keys=True, allow_nan=False))
     return result
 
 
