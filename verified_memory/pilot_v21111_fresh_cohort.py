@@ -1056,12 +1056,28 @@ def write_parent_import_receipt(
         contract_path=Path(repo_root) / "experiments" / "pilot_v2_11_11.yaml",
         raw_root=raw_root,
     )
-    receipt = verify_parent_sources(
+    # Import lazily because the release module calls ``verify_parent_sources``
+    # while rebuilding the manifest.  The replay must finish before the first
+    # receipt write and cannot construct or call a provider.
+    from .pilot_v21111_release import replay_v21111_source_manifest
+
+    source_replay = replay_v21111_source_manifest(
+        contract=contract,
+        repo_root=repo_root,
+        v21110_repo_root=v21110_repo_root,
+        v2115_repo_root=v2115_repo_root,
+    )
+    parent = verify_parent_sources(
         contract,
         repo_root=repo_root,
         v21110_repo_root=v21110_repo_root,
         v2115_repo_root=v2115_repo_root,
     )
+    receipt = _json_copy(parent)
+    receipt.pop("integrity", None)
+    receipt["source_manifest"] = _json_copy(source_replay["source_manifest"])
+    receipt["source_manifest_replay"] = source_replay
+    receipt = _seal(receipt)
     path = raw / "parent-import" / V21111_PARENT_RECEIPT_FILENAME
     _atomic_new_json(path, receipt)
     return {**receipt, "receipt_path": str(path)}
@@ -1246,6 +1262,8 @@ def verify_parent_import_receipt(
         "preflight_authority_wrappers",
         "authority_wrapper_denominator",
         "v21110_terminal",
+        "source_manifest",
+        "source_manifest_replay",
         "parent_budget_debit",
         "evidence_partition",
         "provider_boundary",
@@ -1292,6 +1310,100 @@ def verify_parent_import_receipt(
     v2115 = boundary.get("v2115_scientific_authority")
     v21110 = boundary.get("v21110_terminal_release")
     source_receipt = receipt.get("v2115_parent_receipt")
+    source_manifest = receipt.get("source_manifest")
+    source_replay = receipt.get("source_manifest_replay")
+    declared_source = (
+        boundary.get("source_manifest") if isinstance(boundary, Mapping) else None
+    )
+    if isinstance(source_replay, Mapping):
+        replay_integrity = source_replay.get("integrity")
+        replay_unsigned = _json_copy(source_replay)
+        unsigned_integrity = replay_unsigned.get("integrity")
+        if isinstance(unsigned_integrity, dict):
+            unsigned_integrity.pop("content_sha256", None)
+        if (
+            not isinstance(replay_integrity, Mapping)
+            or replay_integrity.get("canonicalization") != "json-sort-keys-utf8-v1"
+            or replay_integrity.get("content_sha256")
+            != canonical_sha256(replay_unsigned)
+        ):
+            raise PilotV21111FreshCohortError(
+                "V2.11.11 source-manifest replay integrity drifted"
+            )
+    expected_replay_fields = {
+        "schema_version",
+        "contract_id",
+        "performed",
+        "recomputed_equal",
+        "source_root_roles_pairwise_distinct",
+        "source_manifest",
+        "runtime_source_path_set_sha256",
+        "release_lineage_sha256",
+        "provider_construction",
+        "provider_calls",
+        "scientific_evidence",
+        "integrity",
+    }
+    if isinstance(source_manifest, Mapping) and isinstance(source_replay, Mapping):
+        expected_suffix = (
+            "experiment_results",
+            "pilot-v2.11.11",
+            "raw",
+            "parent-import",
+            V21111_PARENT_RECEIPT_FILENAME,
+        )
+        if tuple(receipt_path.parts[-len(expected_suffix) :]) != expected_suffix:
+            raise PilotV21111FreshCohortError(
+                "V2.11.11 parent import receipt is outside the exact raw namespace"
+            )
+        repository = receipt_path.parents[4]
+        from .pilot_v21111_release import (
+            V21111_SOURCE_MANIFEST_PATH,
+            V21111_SOURCE_MANIFEST_SCHEMA_VERSION,
+            PilotV21111ReleaseError,
+            _safe_relative_file,
+            _strict_json as _strict_release_json,
+            _verify_seal as _verify_release_seal,
+        )
+
+        try:
+            manifest_path = _safe_relative_file(
+                repository,
+                V21111_SOURCE_MANIFEST_PATH.as_posix(),
+                name="tracked V2.11.11 source manifest",
+            )
+            manifest = _strict_release_json(
+                manifest_path,
+                name="tracked V2.11.11 source manifest",
+            )
+            _verify_release_seal(
+                manifest,
+                name="tracked V2.11.11 source manifest",
+            )
+        except PilotV21111ReleaseError as exc:
+            raise PilotV21111FreshCohortError(str(exc)) from exc
+        runtime_sources = manifest.get("current_runtime_sources")
+        release_lineage = manifest.get("release_lineage")
+        expected_manifest_binding = {
+            "path": V21111_SOURCE_MANIFEST_PATH.as_posix(),
+            "schema_version": V21111_SOURCE_MANIFEST_SCHEMA_VERSION,
+            "file_sha256": _file_sha256(manifest_path),
+            "content_sha256": manifest.get("integrity", {}).get("content_sha256"),
+        }
+        if (
+            manifest.get("schema_version") != V21111_SOURCE_MANIFEST_SCHEMA_VERSION
+            or manifest.get("contract_id") != contract.contract_id
+            or _json_copy(source_manifest) != expected_manifest_binding
+            or not isinstance(runtime_sources, Mapping)
+            or not isinstance(release_lineage, Mapping)
+            or source_replay.get("runtime_source_path_set_sha256")
+            != runtime_sources.get("release_python_source_path_set_sha256")
+            or source_replay.get("release_lineage_sha256")
+            != canonical_sha256(release_lineage)
+        ):
+            raise PilotV21111FreshCohortError(
+                "V2.11.11 source-manifest replay semantic binding drifted"
+            )
     expected_v2115_release = {
         "tag": v2115.get("science_tag") if isinstance(v2115, Mapping) else None,
         "tag_object": (
@@ -1318,6 +1430,22 @@ def verify_parent_import_receipt(
         or receipt.get("contract_sha256") != contract.canonical_hash
         or receipt.get("v2115_authority") != expected_v2115_release
         or receipt.get("v21110_terminal") != expected_v21110_release
+        or not isinstance(source_manifest, Mapping)
+        or _json_copy(source_manifest) != _json_copy(declared_source)
+        or not isinstance(source_replay, Mapping)
+        or set(source_replay) != expected_replay_fields
+        or source_replay.get("schema_version")
+        != "finevo-pilot-v2.11.11-source-manifest-replay-v1"
+        or source_replay.get("contract_id") != contract.contract_id
+        or source_replay.get("performed") is not True
+        or source_replay.get("recomputed_equal") is not True
+        or source_replay.get("source_root_roles_pairwise_distinct") is not True
+        or source_replay.get("source_manifest") != source_manifest
+        or not _is_sha256(source_replay.get("runtime_source_path_set_sha256"))
+        or not _is_sha256(source_replay.get("release_lineage_sha256"))
+        or source_replay.get("provider_construction") is not False
+        or source_replay.get("provider_calls") != 0
+        or source_replay.get("scientific_evidence") is not False
         or not isinstance(source_receipt, Mapping)
         or set(source_receipt) != {"path", "file_sha256", "content_sha256"}
         or source_receipt.get("path") != V21111_V2115_PARENT_RECEIPT_PATH

@@ -39,9 +39,7 @@ PUBLICATION_CONSUMER_CI_AUTHORITY_SCHEMA_VERSION = (
 PUBLICATION_CONSUMER_CI_RECEIPT_SCHEMA_VERSION = (
     "finevo-publication-consumer-ci-job-receipt-v1"
 )
-PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX = (
-    "FINEVO_PUBLICATION_CONSUMER_CI_RECEIPT="
-)
+PUBLICATION_CONSUMER_CI_RECEIPT_LOG_PREFIX = "FINEVO_PUBLICATION_CONSUMER_CI_RECEIPT="
 PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE = (
     "experiments/pilot_v2_11_5_publication_consumer_ci.json"
 )
@@ -106,6 +104,18 @@ SCIENTIFIC_SOURCE_MANIFEST_ANCHORS: tuple[Mapping[str, Any], ...] = (
         ),
         "content_sha256": (
             "5632d997905b755678907841ef89825791ef89824e5bcd4f989d4bf5ba1678f3"
+        ),
+    },
+    {
+        "path": "experiments/pilot_v2_11_11_source_manifest.json",
+        "schema_version": "finevo-pilot-v2.11.11-source-manifest-v1",
+        # These are the only V2.11.11 CI-module cycle pins normalized by the
+        # source-manifest renderer.
+        "file_sha256": (
+            "1d5a2c02962e2fbccfb11a8fdf6aa02d4404c6c30ac91a6095c4b7c21379a146"
+        ),
+        "content_sha256": (
+            "e91fb31f221e18edbaa3cd6967bcc3b9f08cbb31dd4c919af0ac98504a9aa09f"
         ),
     },
     {
@@ -578,15 +588,11 @@ def load_publication_consumer_ci_authority(
         "expected_ci",
         "integrity",
     }:
-        raise CIReleaseReceiptError(
-            "publication consumer CI authority keys mismatch"
-        )
+        raise CIReleaseReceiptError("publication consumer CI authority keys mismatch")
     if (
-        value.get("schema_version")
-        != PUBLICATION_CONSUMER_CI_AUTHORITY_SCHEMA_VERSION
+        value.get("schema_version") != PUBLICATION_CONSUMER_CI_AUTHORITY_SCHEMA_VERSION
         or value.get("status") != "frozen"
-        or value.get("authority_id")
-        != "finevo-pilot-v2.11.5-evidence-consumer-ci"
+        or value.get("authority_id") != "finevo-pilot-v2.11.5-evidence-consumer-ci"
     ):
         raise CIReleaseReceiptError(
             "publication consumer CI authority identity drifted"
@@ -602,9 +608,7 @@ def load_publication_consumer_ci_authority(
         "git_commit": _V2115_SCIENCE_COMMIT,
     }
     if not isinstance(science, Mapping) or dict(science) != expected_science:
-        raise CIReleaseReceiptError(
-            "publication consumer CI science anchor drifted"
-        )
+        raise CIReleaseReceiptError("publication consumer CI science anchor drifted")
     scope = value.get("scope")
     expected_scope = {
         "purpose": "publication-consumer-ci",
@@ -740,9 +744,7 @@ def _validate_complete_ci_job_receipt(
     receipt: Mapping[str, Any],
 ) -> dict[str, Any]:
     if not isinstance(receipt, Mapping) or set(receipt) != _CI_JOB_RECEIPT_FIELDS:
-        raise CIReleaseReceiptError(
-            "publication consumer CI job receipt keys mismatch"
-        )
+        raise CIReleaseReceiptError("publication consumer CI job receipt keys mismatch")
     try:
         normalized = json.loads(json.dumps(receipt, sort_keys=True, allow_nan=False))
     except (TypeError, ValueError) as exc:
@@ -815,17 +817,13 @@ def _validate_complete_ci_job_receipt(
         or normalized["workflow_source_sha"] != normalized["head_sha"]
         or normalized["job_key"] != "verify"
     ):
-        raise CIReleaseReceiptError(
-            "publication consumer CI workflow identity drifted"
-        )
+        raise CIReleaseReceiptError("publication consumer CI workflow identity drifted")
     workflow_ref_prefix = f"{_V2115_REPOSITORY}/{_WORKFLOW_FILE}@refs/"
     if (
         not normalized["workflow_ref"].startswith(workflow_ref_prefix)
         or normalized["workflow_ref"] == workflow_ref_prefix
     ):
-        raise CIReleaseReceiptError(
-            "publication consumer CI workflow ref drifted"
-        )
+        raise CIReleaseReceiptError("publication consumer CI workflow ref drifted")
     expected_job_by_os = {
         "Linux": "Python 3.12.7 / ubuntu-24.04",
         "macOS": "Python 3.12.7 / macos-14",
@@ -839,9 +837,10 @@ def _validate_complete_ci_job_receipt(
         raise CIReleaseReceiptError(
             "publication consumer CI workflow is missing or not regular"
         )
-    if hashlib.sha256(workflow.read_bytes()).hexdigest() != normalized[
-        "workflow_file_sha256"
-    ]:
+    if (
+        hashlib.sha256(workflow.read_bytes()).hexdigest()
+        != normalized["workflow_file_sha256"]
+    ):
         raise CIReleaseReceiptError(
             "publication consumer CI workflow file hash drifted"
         )
@@ -850,9 +849,7 @@ def _validate_complete_ci_job_receipt(
         ("git", "rev-parse", "--verify", f"HEAD:{_WORKFLOW_FILE}"),
     )
     if workflow_blob != normalized["workflow_blob_oid"]:
-        raise CIReleaseReceiptError(
-            "publication consumer CI workflow blob drifted"
-        )
+        raise CIReleaseReceiptError("publication consumer CI workflow blob drifted")
     return {**normalized, "receipt_sha256": claimed}
 
 

@@ -278,7 +278,7 @@
   },
   "integrity": {
     "canonicalization": "json-sort-keys-utf8-v1",
-    "declared_sha256": "e08846f714bece7a68f810d4c4ebebcd91f285fc2c80f3c0a142d32a6a16b058"
+    "declared_sha256": "67f35bc6f912706c3287c7f841c2da96da40a57fb09026dc5691631e018143ca"
   },
   "model_roles": {
     "gpt52_main": {
@@ -595,11 +595,11 @@
   "release_requirements": {
     "branch": "main",
     "expected_ci": {
-      "compiled_source_count": null,
-      "compiled_source_inventory_sha256": null,
-      "sealed_manifest_inventory_sha256": null,
-      "test_collection_sha256": null,
-      "test_count": null
+      "compiled_source_count": 346,
+      "compiled_source_inventory_sha256": "3a0ef569d14d8463e8c7736b7083727f05ddec2f71b3bb07558ac81a0b379356",
+      "sealed_manifest_inventory_sha256": "b5c5a817d09d10752c1f5f00ba556b417d16e06c64b5fcbb15671e49a1d81952",
+      "test_collection_sha256": "db6b5a6118c5966423e4cab18b76e7cc4c5ed1e84597b191a9b622b57c89709b",
+      "test_count": 2355
     },
     "remote": "origin",
     "required_job_names": [
@@ -949,7 +949,7 @@
       ]
     }
   ],
-  "status": "draft",
+  "status": "frozen",
   "stop_go": {
     "calibration": {
       "ceiling_labor_rate_max": 0.5,
@@ -1857,8 +1857,8 @@
     },
     "schema_version": "finevo-pilot-v2.11.11-fresh-cohort-boundary-v1",
     "source_manifest": {
-      "content_sha256": null,
-      "file_sha256": null,
+      "content_sha256": "e91fb31f221e18edbaa3cd6967bcc3b9f08cbb31dd4c919af0ac98504a9aa09f",
+      "file_sha256": "1d5a2c02962e2fbccfb11a8fdf6aa02d4404c6c30ac91a6095c4b7c21379a146",
       "path": "experiments/pilot_v2_11_11_source_manifest.json",
       "schema_version": "finevo-pilot-v2.11.11-source-manifest-v1"
     },

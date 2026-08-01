@@ -42,13 +42,15 @@ def _contract():
     return load_pilot_contract(CONTRACT_PATH)
 
 
-def test_v21111_draft_registers_exactly_87_cells_and_86_science_cells() -> None:
+def test_v21111_frozen_contract_registers_exactly_87_cells_and_86_science_cells() -> (
+    None
+):
     contract = _contract()
     specs = tuple(contract.expand())
     counts = Counter(spec.stage_id for spec in specs)
 
     assert contract.contract_id == "finevo-pilot-v2.11.11"
-    assert contract.status == "draft"
+    assert contract.status == "frozen"
     assert len(specs) == 87
     assert counts == {
         "parent-import": 1,

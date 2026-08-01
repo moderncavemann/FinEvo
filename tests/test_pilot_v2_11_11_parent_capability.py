@@ -12,6 +12,7 @@ import pytest
 from verified_memory.pilot_contract import canonical_sha256, load_pilot_contract
 from verified_memory import pilot_orchestrator as orchestrator
 import verified_memory.pilot_v21111_fresh_cohort as cohort
+import verified_memory.pilot_v21111_release as release
 from verified_memory.pilot_v2115_parent_import import (
     V2115_CALIBRATION_WRAPPER_SCHEMA_VERSION,
     V2115_CAPABILITY_WRAPPER_SCHEMA_VERSION,
@@ -22,6 +23,8 @@ from verified_memory.pilot_v2115_parent_import import (
 
 REPO = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = REPO / "experiments" / "pilot_v2_11_11.yaml"
+TEST_RUNTIME_PATH_SET_SHA256 = "6" * 64
+TEST_RELEASE_LINEAGE = {"fixture": "sealed historical release lineage"}
 
 
 def _lineage(contract):
@@ -181,6 +184,22 @@ def _parent_receipt(contract):
         capabilities=capabilities,
         preflights=preflights,
     )
+    source_manifest = cohort._json_copy(boundary["source_manifest"])
+    source_replay = release._seal(
+        {
+            "schema_version": release.V21111_SOURCE_REPLAY_SCHEMA_VERSION,
+            "contract_id": contract.contract_id,
+            "performed": True,
+            "recomputed_equal": True,
+            "source_root_roles_pairwise_distinct": True,
+            "source_manifest": source_manifest,
+            "runtime_source_path_set_sha256": TEST_RUNTIME_PATH_SET_SHA256,
+            "release_lineage_sha256": canonical_sha256(TEST_RELEASE_LINEAGE),
+            "provider_construction": False,
+            "provider_calls": 0,
+            "scientific_evidence": False,
+        }
+    )
     return cohort._seal(
         {
             "schema_version": cohort.V21111_PARENT_IMPORT_SCHEMA,
@@ -209,6 +228,8 @@ def _parent_receipt(contract):
                 "commit": v21110["science_commit"],
                 "clean": True,
             },
+            "source_manifest": source_manifest,
+            "source_manifest_replay": source_replay,
             "parent_budget_debit": cohort.parent_budget_debit_for_v21111(
                 contract
             ).to_dict(),
@@ -234,10 +255,48 @@ def _write_receipt(raw: Path, receipt) -> Path:
     return path
 
 
+def _source_bound_contract(repo: Path):
+    contract = load_pilot_contract(CONTRACT_PATH)
+    manifest = release._seal(
+        {
+            "schema_version": release.V21111_SOURCE_MANIFEST_SCHEMA_VERSION,
+            "contract_id": contract.contract_id,
+            "current_runtime_sources": {
+                "release_python_source_path_set_sha256": (TEST_RUNTIME_PATH_SET_SHA256)
+            },
+            "release_lineage": TEST_RELEASE_LINEAGE,
+        }
+    )
+    manifest_path = repo.joinpath(*release.V21111_SOURCE_MANIFEST_PATH.parts)
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    boundary = cohort._json_copy(contract.v21111_fresh_cohort_boundary)
+    boundary["source_manifest"] = {
+        "path": release.V21111_SOURCE_MANIFEST_PATH.as_posix(),
+        "schema_version": release.V21111_SOURCE_MANIFEST_SCHEMA_VERSION,
+        "file_sha256": cohort._file_sha256(manifest_path),
+        "content_sha256": manifest["integrity"]["content_sha256"],
+    }
+    return (
+        replace(contract, v21111_fresh_cohort_boundary=boundary),
+        repo / "experiment_results/pilot-v2.11.11/raw",
+    )
+
+
 def _reseal_parent(receipt):
     value = deepcopy(receipt)
     value.pop("integrity", None)
     return cohort._seal(value)
+
+
+def _reseal_replay_field(receipt, field: str, value) -> None:
+    replay = deepcopy(receipt["source_manifest_replay"])
+    replay.pop("integrity", None)
+    replay[field] = value
+    receipt["source_manifest_replay"] = release._seal(replay)
 
 
 def _copy_contract(repo: Path) -> Path:
@@ -278,9 +337,9 @@ def _parent_complete_ledgers(contract, raw: Path) -> None:
 def test_child_parent_receipt_exposes_exact_two_model_capability_authority(
     tmp_path: Path,
 ) -> None:
-    contract = load_pilot_contract(CONTRACT_PATH)
+    contract, raw = _source_bound_contract(tmp_path / "repo")
     receipt = _parent_receipt(contract)
-    path = _write_receipt(tmp_path / "raw", receipt)
+    path = _write_receipt(raw, receipt)
 
     verified = cohort.verify_parent_import_receipt(path, contract=contract)
     assert verified["authority_wrapper_denominator"] == {
@@ -306,7 +365,7 @@ def test_child_parent_receipt_exposes_exact_two_model_capability_authority(
     wrapper = cohort.verified_capability_wrapper_for_v21111(
         contract,
         "gpt56_diagnostic",
-        raw_root=tmp_path / "raw",
+        raw_root=raw,
     )
     assert wrapper["capability"]["model_id"] == "gpt56_diagnostic"
     assert wrapper["capability"]["capability_pass"] is True
@@ -331,6 +390,26 @@ def test_child_parent_receipt_exposes_exact_two_model_capability_authority(
             ),
             "receipt drifted",
         ),
+        (
+            lambda value: value["source_manifest_replay"].update({"provider_calls": 1}),
+            "replay integrity drifted",
+        ),
+        (
+            lambda value: _reseal_replay_field(
+                value,
+                "runtime_source_path_set_sha256",
+                "8" * 64,
+            ),
+            "semantic binding drifted",
+        ),
+        (
+            lambda value: _reseal_replay_field(
+                value,
+                "release_lineage_sha256",
+                "9" * 64,
+            ),
+            "semantic binding drifted",
+        ),
     ],
 )
 def test_child_parent_receipt_rejects_resealed_shape_path_and_denominator_tamper(
@@ -338,10 +417,10 @@ def test_child_parent_receipt_rejects_resealed_shape_path_and_denominator_tamper
     tamper,
     message: str,
 ) -> None:
-    contract = load_pilot_contract(CONTRACT_PATH)
+    contract, raw = _source_bound_contract(tmp_path / "repo")
     receipt = _parent_receipt(contract)
     tamper(receipt)
-    path = _write_receipt(tmp_path / "raw", _reseal_parent(receipt))
+    path = _write_receipt(raw, _reseal_parent(receipt))
     with pytest.raises(cohort.PilotV21111FreshCohortError, match=message):
         cohort.verify_parent_import_receipt(path, contract=contract)
 
@@ -349,7 +428,7 @@ def test_child_parent_receipt_rejects_resealed_shape_path_and_denominator_tamper
 def test_child_parent_receipt_rejects_resealed_capability_model_swap(
     tmp_path: Path,
 ) -> None:
-    contract = load_pilot_contract(CONTRACT_PATH)
+    contract, raw = _source_bound_contract(tmp_path / "repo")
     receipt = _parent_receipt(contract)
     capabilities = receipt["capability_wrappers"]
     capabilities["gpt52_main"], capabilities["gpt56_diagnostic"] = (
@@ -360,7 +439,7 @@ def test_child_parent_receipt_rejects_resealed_capability_model_swap(
         model_id: capabilities[model_id]["integrity"]["content_sha256"]
         for model_id in cohort.V21111_AUTHORITY_MODELS
     }
-    path = _write_receipt(tmp_path / "raw", _reseal_parent(receipt))
+    path = _write_receipt(raw, _reseal_parent(receipt))
     with pytest.raises(
         cohort.PilotV21111FreshCohortError,
         match="capability authority drifted",
@@ -371,13 +450,13 @@ def test_child_parent_receipt_rejects_resealed_capability_model_swap(
 def test_child_parent_receipt_rejects_symlink_path(
     tmp_path: Path,
 ) -> None:
-    contract = load_pilot_contract(CONTRACT_PATH)
-    target = tmp_path / "source.json"
+    contract, raw = _source_bound_contract(tmp_path / "repo")
+    target = tmp_path / "repo" / "source.json"
     target.write_text(
         json.dumps(_parent_receipt(contract), sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    path = tmp_path / "raw" / "parent-import" / cohort.V21111_PARENT_RECEIPT_FILENAME
+    path = raw / "parent-import" / cohort.V21111_PARENT_RECEIPT_FILENAME
     path.parent.mkdir(parents=True)
     path.symlink_to(target)
     with pytest.raises(cohort.PilotV21111FreshCohortError, match="path is not exact"):

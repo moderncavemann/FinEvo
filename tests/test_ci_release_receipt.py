@@ -10,6 +10,7 @@ import pytest
 
 import verified_memory.ci_release_receipt as ci_receipts
 import verified_memory.scientific_release_attestation as science_attestation
+from verified_memory.pilot_contract import load_pilot_contract
 from verified_memory.ci_release_receipt import (
     CIReleaseReceiptError,
     PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
@@ -50,6 +51,47 @@ EXPECTED_CI = {
 }
 V2115_SCIENCE_COMMIT = "2351ac2283f9fedb9dce70067174020be56ed9cc"
 V2115_CONSUMER_HEAD = "7" * 40
+
+
+def test_tracked_publication_authority_matches_current_release_inventory() -> None:
+    authority = load_publication_consumer_ci_authority(
+        ROOT,
+        ROOT / PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
+    )
+    contract = load_pilot_contract(ROOT / "experiments/pilot_v2_11_11.yaml")
+    assert contract.status == "frozen"
+    assert contract.release_requirements is not None
+    expected_ci = contract.release_requirements.expected_ci
+    assert expected_ci is not None
+    assert authority["expected_ci"] == dict(expected_ci)
+
+    source_inventory = build_source_inventory(
+        ci_receipts.discover_tracked_files(ROOT, ("*.py",))
+    )
+    assert (
+        authority["expected_ci"]["compiled_source_count"]
+        == source_inventory["compiled_source_count"]
+    )
+    assert (
+        authority["expected_ci"]["compiled_source_inventory_sha256"]
+        == source_inventory["compiled_source_inventory_sha256"]
+    )
+
+    manifests = ci_receipts.discover_tracked_files(
+        ROOT,
+        (
+            "artifacts/verified_replays/*/manifest.json",
+            "artifacts/verified_runs/*/manifest.json",
+        ),
+    )
+    _, manifest_inventory_sha256 = science_attestation.sealed_manifest_inventory(
+        ROOT,
+        manifests,
+    )
+    assert (
+        authority["expected_ci"]["sealed_manifest_inventory_sha256"]
+        == manifest_inventory_sha256
+    )
 
 
 def _publication_authority(
@@ -337,6 +379,7 @@ def test_scientific_source_manifest_rejects_symlink_path(tmp_path: Path):
 def test_scientific_source_manifest_anchors_match_release_bytes():
     assert [anchor["path"] for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS] == [
         "experiments/pilot_v2_11_10_source_manifest.json",
+        "experiments/pilot_v2_11_11_source_manifest.json",
         "experiments/pilot_v2_11_3_source_manifest.json",
         "experiments/pilot_v2_11_4_source_manifest.json",
         "experiments/pilot_v2_11_5_source_manifest.json",
@@ -346,14 +389,11 @@ def test_scientific_source_manifest_anchors_match_release_bytes():
         "experiments/pilot_v2_11_9_source_manifest.json",
     ]
     for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS:
-        pending = (
-            anchor["file_sha256"] is None
-            or anchor["content_sha256"] is None
-        )
+        pending = anchor["file_sha256"] is None or anchor["content_sha256"] is None
         if pending:
             assert anchor == {
-                "path": "experiments/pilot_v2_11_10_source_manifest.json",
-                "schema_version": "finevo-pilot-v2.11.10-source-manifest-v1",
+                "path": "experiments/pilot_v2_11_11_source_manifest.json",
+                "schema_version": "finevo-pilot-v2.11.11-source-manifest-v1",
                 "file_sha256": None,
                 "content_sha256": None,
             }
@@ -428,9 +468,7 @@ def test_verify_source_manifests_cli_smoke(tmp_path: Path):
         assert inventory["source_manifest_count"] == len(
             SCIENTIFIC_SOURCE_MANIFEST_ANCHORS
         )
-        assert inventory["source_manifests"] == list(
-            SCIENTIFIC_SOURCE_MANIFEST_ANCHORS
-        )
+        assert inventory["source_manifests"] == list(SCIENTIFIC_SOURCE_MANIFEST_ANCHORS)
 
 
 def test_junit_summary_counts_cases_and_rejects_failures(tmp_path: Path):
@@ -825,7 +863,11 @@ def test_publication_consumer_rejects_ci_job_identity_and_seal_tampering(
     ("field", "replacement", "error"),
     (
         ("repository", "attacker/fork", "workflow identity drifted"),
-        ("workflow_ref", "attacker/fork/workflow.yml@refs/heads/main", "workflow ref drifted"),
+        (
+            "workflow_ref",
+            "attacker/fork/workflow.yml@refs/heads/main",
+            "workflow ref drifted",
+        ),
         ("workflow_blob_oid", "9" * 40, "workflow blob drifted"),
     ),
 )
@@ -866,26 +908,36 @@ def test_publication_consumer_receipt_rejects_wrong_consumer_head(
         )
 
 
-def test_verified_memory_ci_uses_descendant_consumer_authority_not_science_contract() -> None:
+def test_verified_memory_ci_uses_descendant_consumer_authority_not_science_contract() -> (
+    None
+):
     workflow = (ROOT / ".github/workflows/verified-memory-ci.yml").read_text(
         encoding="utf-8"
     )
     emit = workflow.split("- name: Emit publication consumer CI receipt", 1)[1]
     assert "emit-publication-consumer" in emit
-    assert (
-        "--authority experiments/pilot_v2_11_5_publication_consumer_ci.json"
-        in emit
-    )
+    assert "--authority experiments/pilot_v2_11_5_publication_consumer_ci.json" in emit
     assert "--contract experiments/pilot_v2_11_5.yaml" not in emit
     assert "- ubuntu-24.04" in workflow
     assert "- macos-14" in workflow
 
 
-def test_verified_memory_ci_gates_v21110_scientific_release_receipt() -> None:
+def test_verified_memory_ci_preserves_v21110_release_and_emits_only_v21111() -> None:
     workflow = (ROOT / ".github/workflows/verified-memory-ci.yml").read_text(
         encoding="utf-8"
     )
-    assert "- name: Emit scientific release CI receipt" not in workflow
+    current_emit_command = "python -m verified_memory.ci_release_receipt emit\n"
+    assert workflow.count(current_emit_command) == 1
+    current_emit = workflow.split(
+        "- name: Emit V2.11.11 scientific release CI receipt", 1
+    )[1]
+    current_emit = current_emit.split(
+        "- name: Emit publication consumer CI receipt", 1
+    )[0]
+    assert current_emit_command in current_emit
+    assert "--contract experiments/pilot_v2_11_11.yaml" in current_emit
+    assert "--contract experiments/pilot_v2_11_10.yaml" not in current_emit
+    assert "pilot-v2.11.11-science" not in workflow
     assert "--contract experiments/pilot_v2_11_10.yaml" not in workflow
     assert (
         "Verify immutable V2.11.10 scientific release tag and receipt source"
@@ -896,21 +948,30 @@ def test_verified_memory_ci_gates_v21110_scientific_release_receipt() -> None:
     assert "ce04fba5f4882449d96cdde4ad747fa0b399a260" in workflow
     assert "aefdf4fa39280b21ef696fb1b64da3acbb8d47f9" in workflow
 
-    assert subprocess.check_output(
-        ("git", "cat-file", "-t", "pilot-v2.11.10-science"),
-        cwd=ROOT,
-        text=True,
-    ).strip() == "tag"
-    assert subprocess.check_output(
-        ("git", "rev-parse", "pilot-v2.11.10-science^{object}"),
-        cwd=ROOT,
-        text=True,
-    ).strip() == "7c3de14ddb604436a1dfee1dabfb781849ea68a7"
-    assert subprocess.check_output(
-        ("git", "rev-parse", "pilot-v2.11.10-science^{commit}"),
-        cwd=ROOT,
-        text=True,
-    ).strip() == "aa05e94ee6097916db53c40c0276b044c05a44cc"
+    assert (
+        subprocess.check_output(
+            ("git", "cat-file", "-t", "pilot-v2.11.10-science"),
+            cwd=ROOT,
+            text=True,
+        ).strip()
+        == "tag"
+    )
+    assert (
+        subprocess.check_output(
+            ("git", "rev-parse", "pilot-v2.11.10-science^{object}"),
+            cwd=ROOT,
+            text=True,
+        ).strip()
+        == "7c3de14ddb604436a1dfee1dabfb781849ea68a7"
+    )
+    assert (
+        subprocess.check_output(
+            ("git", "rev-parse", "pilot-v2.11.10-science^{commit}"),
+            cwd=ROOT,
+            text=True,
+        ).strip()
+        == "aa05e94ee6097916db53c40c0276b044c05a44cc"
+    )
 
     tagged_workflow = subprocess.check_output(
         (
@@ -921,16 +982,14 @@ def test_verified_memory_ci_gates_v21110_scientific_release_receipt() -> None:
         cwd=ROOT,
         text=True,
     )
-    emit = tagged_workflow.split(
-        "- name: Emit scientific release CI receipt", 1
-    )[1]
+    emit = tagged_workflow.split("- name: Emit scientific release CI receipt", 1)[1]
     emit = emit.split("- name: Emit publication consumer CI receipt", 1)[0]
     assert "python -m verified_memory.ci_release_receipt emit" in emit
     assert "--contract experiments/pilot_v2_11_10.yaml" in emit
-    assert "--output \"${RUNNER_TEMP}/finevo-ci-release-receipt.json\"" in emit
+    assert '--output "${RUNNER_TEMP}/finevo-ci-release-receipt.json"' in emit
     assert "collect-tests" in workflow
     assert "compile-sources" in workflow
-    assert "Verify V2.11.3 through V2.11.10 scientific source manifests" in workflow
+    assert "Verify V2.11.3 through V2.11.11 scientific source manifests" in workflow
     assert "Verify immutable V2.11.6 pre-dispatch no-go tag anchor" in workflow
     assert "6355d2329d800c95595c89f5e41e032ba6129fb7" in workflow
     assert "0a7eb29a76c5f9c90486052a4c335ad1d2000bf0" in workflow
@@ -945,10 +1004,8 @@ def test_verified_memory_ci_gates_v21110_scientific_release_receipt() -> None:
     assert "d850902af6218c72a6b0e71275c62c81c9143fb9" in workflow
 
 
-def test_v21110_source_anchor_is_atomic_and_v2119_anchor_is_unchanged() -> None:
-    by_path = {
-        anchor["path"]: anchor for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS
-    }
+def test_v21111_source_anchor_is_atomic_and_historical_anchors_are_unchanged() -> None:
+    by_path = {anchor["path"]: anchor for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS}
     assert by_path["experiments/pilot_v2_11_9_source_manifest.json"] == {
         "path": "experiments/pilot_v2_11_9_source_manifest.json",
         "schema_version": "finevo-pilot-v2.11.9-source-manifest-v1",
@@ -959,8 +1016,18 @@ def test_v21110_source_anchor_is_atomic_and_v2119_anchor_is_unchanged() -> None:
             "36a790fe5edd6269218d6010046ec9293c3c418d8bc58a4dd5d89a6a70a547d6"
         ),
     }
-    v21110 = by_path["experiments/pilot_v2_11_10_source_manifest.json"]
-    pins = (v21110["file_sha256"], v21110["content_sha256"])
+    assert by_path["experiments/pilot_v2_11_10_source_manifest.json"] == {
+        "path": "experiments/pilot_v2_11_10_source_manifest.json",
+        "schema_version": "finevo-pilot-v2.11.10-source-manifest-v1",
+        "file_sha256": (
+            "a64f98052a43aed76dc1c3e1fd5ef3f0383278bf0f867099c7dbfa79484b6928"
+        ),
+        "content_sha256": (
+            "5632d997905b755678907841ef89825791ef89824e5bcd4f989d4bf5ba1678f3"
+        ),
+    }
+    v21111 = by_path["experiments/pilot_v2_11_11_source_manifest.json"]
+    pins = (v21111["file_sha256"], v21111["content_sha256"])
     assert (pins[0] is None) == (pins[1] is None)
     if pins[0] is None:
         with pytest.raises(
@@ -969,7 +1036,7 @@ def test_v21110_source_anchor_is_atomic_and_v2119_anchor_is_unchanged() -> None:
         ):
             build_scientific_source_manifest_inventory(
                 ROOT,
-                anchors=(v21110,),
+                anchors=(v21111,),
             )
     else:
         assert all(

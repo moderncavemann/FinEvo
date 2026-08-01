@@ -573,6 +573,10 @@ from .pilot_v21111_dispatch_refresh import (
     verify_dispatch_refresh_go as verify_v21111_dispatch_refresh_go,
     verify_dispatch_refresh_terminal as verify_v21111_dispatch_refresh_terminal,
 )
+from .pilot_v21111_release import (
+    PilotV21111ReleaseError,
+    replay_v21111_source_manifest,
+)
 from .runner import (
     OBSERVED_P95_AUTHORITY_ID,
     OBSERVED_P95_PROJECTION_SCHEMA_VERSION,
@@ -29610,6 +29614,23 @@ def _execute_stage_locked(
         if repo_root is not None
         else Path(__file__).resolve().parents[1]
     )
+    if contract.contract_id == V21111_CONTRACT_ID and stage_id == "parent-import":
+        if parent_repo_root is None or authority_repo_root is None:
+            raise PilotOrchestrationError(
+                "V2.11.11 source-manifest replay requires both immutable source roots"
+            )
+        try:
+            replay_v21111_source_manifest(
+                contract=contract,
+                repo_root=repository,
+                v21110_repo_root=parent_repo_root,
+                v2115_repo_root=authority_repo_root,
+            )
+        except PilotV21111ReleaseError as exc:
+            raise PilotOrchestrationError(
+                "V2.11.11 source-manifest replay failed before release-attestation, "
+                f"ledger, budget, provider, or receipt writes: {exc}"
+            ) from exc
     if contract.contract_id == V21110_CONTRACT_ID and stage_id == "parent-import":
         if parent_repo_root is None or authority_repo_root is None:
             raise PilotOrchestrationError(
@@ -31607,6 +31628,16 @@ def execute_stage(
                 # This complete source replay occurs before the lock creates
                 # the raw directory or either ledger. Resume validates the
                 # same immutable roots but does not demand an empty raw tree.
+                replay_v21111_source_manifest(
+                    contract=contract,
+                    repo_root=(
+                        repo_root
+                        if repo_root is not None
+                        else Path(__file__).resolve().parents[1]
+                    ),
+                    v21110_repo_root=parent_repo_root,
+                    v2115_repo_root=authority_repo_root,
+                )
                 verify_v21111_parent_sources(
                     contract,
                     repo_root=(
@@ -31617,7 +31648,7 @@ def execute_stage(
                     v21110_repo_root=parent_repo_root,
                     v2115_repo_root=authority_repo_root,
                 )
-        except PilotV21111FreshCohortError as exc:
+        except (PilotV21111FreshCohortError, PilotV21111ReleaseError) as exc:
             raise PilotOrchestrationError(str(exc)) from exc
 
     with _exclusive_real_stage_lock(raw_root, stage_id=stage_id):

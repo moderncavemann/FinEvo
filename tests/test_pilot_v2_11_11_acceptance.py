@@ -195,6 +195,11 @@ def test_v21111_parent_import_prewrite_blocks_before_source_or_stage_execution(
     )
     monkeypatch.setattr(
         orchestrator,
+        "replay_v21111_source_manifest",
+        lambda **_kwargs: calls.append("manifest"),
+    )
+    monkeypatch.setattr(
+        orchestrator,
         "_execute_stage_locked",
         lambda **_kwargs: calls.append("stage"),
     )
@@ -461,6 +466,11 @@ def test_v21111_parent_resume_revalidates_sources_before_entering_stage_lock(
         "verify_v21111_parent_sources",
         lambda *_args, **_kwargs: calls.append("source"),
     )
+    monkeypatch.setattr(
+        orchestrator,
+        "replay_v21111_source_manifest",
+        lambda **_kwargs: calls.append("manifest"),
+    )
 
     def lock(*_args, **_kwargs):
         calls.append("lock")
@@ -483,7 +493,7 @@ def test_v21111_parent_resume_revalidates_sources_before_entering_stage_lock(
         authority_repo_root=tmp_path / "v2115",
     )
     assert result == {"status": "complete"}
-    assert calls == ["source", "lock", "stage"]
+    assert calls == ["manifest", "source", "lock", "stage"]
 
 
 def test_v21111_completed_parent_import_resume_is_idempotent_and_never_rewrites(

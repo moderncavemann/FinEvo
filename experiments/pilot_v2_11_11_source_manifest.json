@@ -1,0 +1,994 @@
+{
+  "contract_design": {
+    "contract_id": "finevo-pilot-v2.11.11",
+    "design_identity_algorithm": "pilot-contract-science-design-sha256-v1",
+    "path": "experiments/pilot_v2_11_11.yaml",
+    "required_git_tag": "pilot-v2.11.11-science",
+    "science_design_sha256": "9d79bc14863f4f29ab55ca4a753d71ec18807029c1f214dc8010c4dd7dc2448b",
+    "source_manifest_path": "experiments/pilot_v2_11_11_source_manifest.json",
+    "source_manifest_schema_version": "finevo-pilot-v2.11.11-source-manifest-v1"
+  },
+  "contract_id": "finevo-pilot-v2.11.11",
+  "current_runtime_sources": {
+    "bound_data_file_set_sha256": "c6a1782a2395d10cbb8ab9e9d1fbad9ea491ef46866916cacd59b2e777e69b50",
+    "bound_data_files": [
+      {
+        "byte_size": 2889,
+        "file_sha256": "b721e8662b7ae68e6b6df192213c4dc959b7f1b43d7bd5e364a8149585a22f0e",
+        "path": "config.yaml"
+      },
+      {
+        "byte_size": 7429,
+        "file_sha256": "1bc90a92ef8e32f3da6e474f787207b79b1c82cc0b7b13c5ea3bd6cd1439b223",
+        "path": "data/profiles.json"
+      }
+    ],
+    "ci_release_receipt_complete_module_ast_binding": {
+      "normalization_schema_version": "finevo-pilot-v2.11.11-complete-ci-module-ast-cycle-normalization-v1",
+      "normalized_ast_sha256": "fa6947e83c58250fb9d2ce08f2c7d65c6e615b0e52b88d4990da574a35e03e15",
+      "replaced_cycle_pins": [
+        "content_sha256",
+        "file_sha256"
+      ],
+      "top_level_node_count": 67
+    },
+    "ci_release_receipt_path": "verified_memory/ci_release_receipt.py",
+    "complete_inventory_partitions": {
+      "foundation_python_path_set_sha256": "70ef2ba90fe816a804c0ad7c50029a4a4f3e9481218920aa8a36d2372ff5204a",
+      "foundation_python_paths": [
+        "ai_economist/foundation/__init__.py",
+        "ai_economist/foundation/agents/__init__.py",
+        "ai_economist/foundation/agents/mobiles.py",
+        "ai_economist/foundation/agents/planners.py",
+        "ai_economist/foundation/base/__init__.py",
+        "ai_economist/foundation/base/base_agent.py",
+        "ai_economist/foundation/base/base_component.py",
+        "ai_economist/foundation/base/base_env.py",
+        "ai_economist/foundation/base/registrar.py",
+        "ai_economist/foundation/base/world.py",
+        "ai_economist/foundation/components/__init__.py",
+        "ai_economist/foundation/components/build.py",
+        "ai_economist/foundation/components/continuous_double_auction.py",
+        "ai_economist/foundation/components/move.py",
+        "ai_economist/foundation/components/redistribution.py",
+        "ai_economist/foundation/components/simple_consumption.py",
+        "ai_economist/foundation/components/simple_labor.py",
+        "ai_economist/foundation/components/simple_saving.py",
+        "ai_economist/foundation/components/utils.py",
+        "ai_economist/foundation/entities/__init__.py",
+        "ai_economist/foundation/entities/endogenous.py",
+        "ai_economist/foundation/entities/landmarks.py",
+        "ai_economist/foundation/entities/resources.py",
+        "ai_economist/foundation/scenarios/__init__.py",
+        "ai_economist/foundation/scenarios/one_step_economy/__init__.py",
+        "ai_economist/foundation/scenarios/one_step_economy/one_step_economy.py",
+        "ai_economist/foundation/scenarios/simple_wood_and_stone/__init__.py",
+        "ai_economist/foundation/scenarios/simple_wood_and_stone/dynamic_layout.py",
+        "ai_economist/foundation/scenarios/simple_wood_and_stone/layout_from_file.py",
+        "ai_economist/foundation/scenarios/utils/__init__.py",
+        "ai_economist/foundation/scenarios/utils/rewards.py",
+        "ai_economist/foundation/scenarios/utils/social_metrics.py",
+        "ai_economist/foundation/utils.py"
+      ],
+      "release_entry_path_set_sha256": "c3459eaff2522cd8bf859c34febb8da2f66ede0da0dc8c3d754019aee409018c",
+      "release_entry_paths": [
+        "llm_providers.py",
+        "run_pilot.py",
+        "scripts/render_pilot_v21111_contract.py",
+        "scripts/render_pilot_v21111_source_manifest.py"
+      ],
+      "verified_memory_python_path_set_sha256": "13bfb0b8c35620b1dce17e350502feb3ebc482cca49e70c49763f906c819300c",
+      "verified_memory_python_paths": [
+        "verified_memory/__init__.py",
+        "verified_memory/actions.py",
+        "verified_memory/artifacts.py",
+        "verified_memory/budget.py",
+        "verified_memory/ci_release_receipt.py",
+        "verified_memory/failure_artifacts.py",
+        "verified_memory/foundation_adapter.py",
+        "verified_memory/m0_utility.py",
+        "verified_memory/m1_context.py",
+        "verified_memory/m2_episodic.py",
+        "verified_memory/m3_semantic.py",
+        "verified_memory/observed_p95_authority.py",
+        "verified_memory/pilot_amendment.py",
+        "verified_memory/pilot_analysis.py",
+        "verified_memory/pilot_budget.py",
+        "verified_memory/pilot_calibration.py",
+        "verified_memory/pilot_capability.py",
+        "verified_memory/pilot_checkpoint.py",
+        "verified_memory/pilot_continuation.py",
+        "verified_memory/pilot_contract.py",
+        "verified_memory/pilot_evaluation_amendment.py",
+        "verified_memory/pilot_evidence.py",
+        "verified_memory/pilot_interface_gate.py",
+        "verified_memory/pilot_orchestrator.py",
+        "verified_memory/pilot_preflight_amendment.py",
+        "verified_memory/pilot_provider_catalog.py",
+        "verified_memory/pilot_release_attestation.py",
+        "verified_memory/pilot_sensitivity.py",
+        "verified_memory/pilot_v2101_parent_import.py",
+        "verified_memory/pilot_v2102_parent_import.py",
+        "verified_memory/pilot_v210_parent_import.py",
+        "verified_memory/pilot_v21110_continuation.py",
+        "verified_memory/pilot_v21110_evidence.py",
+        "verified_memory/pilot_v21111_dispatch_refresh.py",
+        "verified_memory/pilot_v21111_fresh_cohort.py",
+        "verified_memory/pilot_v21111_release.py",
+        "verified_memory/pilot_v2111_bootstrap.py",
+        "verified_memory/pilot_v2111_gate.py",
+        "verified_memory/pilot_v2111_parent_import.py",
+        "verified_memory/pilot_v2112_bootstrap.py",
+        "verified_memory/pilot_v2112_evidence.py",
+        "verified_memory/pilot_v2112_gate.py",
+        "verified_memory/pilot_v2112_parent_import.py",
+        "verified_memory/pilot_v2113_acceptance.py",
+        "verified_memory/pilot_v2113_gate.py",
+        "verified_memory/pilot_v2113_parent_import.py",
+        "verified_memory/pilot_v2114_acceptance.py",
+        "verified_memory/pilot_v2114_gate.py",
+        "verified_memory/pilot_v2114_parent_import.py",
+        "verified_memory/pilot_v2115_acceptance.py",
+        "verified_memory/pilot_v2115_evidence.py",
+        "verified_memory/pilot_v2115_gate.py",
+        "verified_memory/pilot_v2115_parent_import.py",
+        "verified_memory/pilot_v2116_continuation.py",
+        "verified_memory/pilot_v2117_continuation.py",
+        "verified_memory/pilot_v2118_continuation.py",
+        "verified_memory/pilot_v2119_continuation.py",
+        "verified_memory/pilot_v2119_evidence.py",
+        "verified_memory/pilot_v211_gate.py",
+        "verified_memory/pilot_v211_parent_import.py",
+        "verified_memory/pilot_v211_projection.py",
+        "verified_memory/pilot_v24_evidence.py",
+        "verified_memory/pilot_v24_parent_import.py",
+        "verified_memory/pilot_v25_parent_import.py",
+        "verified_memory/pilot_v26_parent_import.py",
+        "verified_memory/pilot_v27_stage0_import.py",
+        "verified_memory/pilot_v28_stage0_import.py",
+        "verified_memory/pilot_v29_qref_projection.py",
+        "verified_memory/pilot_v29_stage0_import.py",
+        "verified_memory/prompts.py",
+        "verified_memory/provider_diagnostics.py",
+        "verified_memory/replay.py",
+        "verified_memory/replay_experiment.py",
+        "verified_memory/reviewer_closed_loop_trace.py",
+        "verified_memory/runner.py",
+        "verified_memory/runner_artifacts.py",
+        "verified_memory/scientific_release_attestation.py",
+        "verified_memory/scripted_provider.py",
+        "verified_memory/system.py",
+        "verified_memory/v2115_labor_threshold_sensitivity.py"
+      ]
+    },
+    "cycle_avoidance": "The complete pilot_contract.py and ci_release_receipt.py ASTs are bound; only the three V2.11.11 contract pins and two values in the unique V2.11.11 CI anchor are replaced. Historical pins are not normalized.",
+    "full_file_binding_set_sha256": "339964e0c8d7714fe2296011a4bde2bfa8748ab7e149ecd503541c5dfbcac2fa",
+    "full_file_bindings": [
+      {
+        "byte_size": 854,
+        "file_sha256": "da82d8df870c5609ce40ce907d167aec24ce1fe1411a75dd058a62dd80f6adbb",
+        "path": "ai_economist/foundation/__init__.py"
+      },
+      {
+        "byte_size": 437,
+        "file_sha256": "81a32cde3cbfa835d7067ef3379d8a120add2c890050b1516eaf5be5f1d1ae7a",
+        "path": "ai_economist/foundation/agents/__init__.py"
+      },
+      {
+        "byte_size": 573,
+        "file_sha256": "beb617e247e9fa0180a09028c06afb7f0089de2e018edd27c2d8026565aada7c",
+        "path": "ai_economist/foundation/agents/mobiles.py"
+      },
+      {
+        "byte_size": 1446,
+        "file_sha256": "34171d4ca31cdedf7d89c0056996717a7ac02d092666507a33e9c88d32db7408",
+        "path": "ai_economist/foundation/agents/planners.py"
+      },
+      {
+        "byte_size": 219,
+        "file_sha256": "9f9dc5a638f94cafe4ed0884f4b126686ed767f27b5e9ceec158325bbf0f095b",
+        "path": "ai_economist/foundation/base/__init__.py"
+      },
+      {
+        "byte_size": 20638,
+        "file_sha256": "7d96e2ec75c28571eeb85411bc450895f0684bdc2a06316cfc909a3eea03f9c9",
+        "path": "ai_economist/foundation/base/base_agent.py"
+      },
+      {
+        "byte_size": 17296,
+        "file_sha256": "67a3b6d4dd03cfc986aaab4bb02f1bbcd6f60636b2c8e23bc1df5164afa04eb0",
+        "path": "ai_economist/foundation/base/base_component.py"
+      },
+      {
+        "byte_size": 50100,
+        "file_sha256": "a2461ad1fca77055c2ac07bad1f5075b0f4644087aa3b9d91e34dbff3d2e4031",
+        "path": "ai_economist/foundation/base/base_env.py"
+      },
+      {
+        "byte_size": 3104,
+        "file_sha256": "73f78c1c3a345f38288b2bcdeab826528f310e986b7b0dbd7e2dd44dac90b68d",
+        "path": "ai_economist/foundation/base/registrar.py"
+      },
+      {
+        "byte_size": 18926,
+        "file_sha256": "ad217d3d62a29b93370cf3c7d3d4473aee0bca4912e44b24aa394a0f1c1d9f27",
+        "path": "ai_economist/foundation/base/world.py"
+      },
+      {
+        "byte_size": 605,
+        "file_sha256": "aa624906d95a3939240726e17909d4d61593b85f6a1edd961ad1e4848199c3c4",
+        "path": "ai_economist/foundation/components/__init__.py"
+      },
+      {
+        "byte_size": 8803,
+        "file_sha256": "b499fb10e26a5236ccc560ca8e27161b94f7127a143d30cdca81b92b109087a1",
+        "path": "ai_economist/foundation/components/build.py"
+      },
+      {
+        "byte_size": 25995,
+        "file_sha256": "3092d46f94f213127da3dd45b25eb0e821e6549d89dcef4c8439392488fe71f9",
+        "path": "ai_economist/foundation/components/continuous_double_auction.py"
+      },
+      {
+        "byte_size": 7772,
+        "file_sha256": "e892f99c653ee3d9202ae690a7eeed88adfa9efb74769b1826def713f5d77156",
+        "path": "ai_economist/foundation/components/move.py"
+      },
+      {
+        "byte_size": 49921,
+        "file_sha256": "48d111b707796c2f72ebee0868fc86921d15664d3f388adfb033887287cad20d",
+        "path": "ai_economist/foundation/components/redistribution.py"
+      },
+      {
+        "byte_size": 5353,
+        "file_sha256": "09b7d425164d8de65f20fde180755e120670a962e3fc1c7e2f0e881754a0b093",
+        "path": "ai_economist/foundation/components/simple_consumption.py"
+      },
+      {
+        "byte_size": 8083,
+        "file_sha256": "6993391c0c244d2baf5ff5ba60f5bf8093933a19e34530db27593eeb996fa0dd",
+        "path": "ai_economist/foundation/components/simple_labor.py"
+      },
+      {
+        "byte_size": 3203,
+        "file_sha256": "8fa2e69eb175d277a8b289e79612b818f179bd557c51a6b8a6bd5694525f7082",
+        "path": "ai_economist/foundation/components/simple_saving.py"
+      },
+      {
+        "byte_size": 4581,
+        "file_sha256": "9da9f74df8cc9d6f27b283126b90db17ba251b20b4e6e7d7e32d51333ce17e25",
+        "path": "ai_economist/foundation/components/utils.py"
+      },
+      {
+        "byte_size": 346,
+        "file_sha256": "8bbdd9a1d72c50e21491281b35f945671b0b78c49f22a7d324c279c5a191357b",
+        "path": "ai_economist/foundation/entities/__init__.py"
+      },
+      {
+        "byte_size": 1153,
+        "file_sha256": "f3bb80e10aa2740893490812c5d3d4740c393e2e3b166b61a2a917fb9a40a33f",
+        "path": "ai_economist/foundation/entities/endogenous.py"
+      },
+      {
+        "byte_size": 2964,
+        "file_sha256": "6a40975ff4c1af417c41bca34d8282d21b86fbc43d5338f1916e4dd12ce6408e",
+        "path": "ai_economist/foundation/entities/landmarks.py"
+      },
+      {
+        "byte_size": 2125,
+        "file_sha256": "35fa2e392d94f331d2c19ab11c4a73e7a1273976d8a10871fac297cd32e0212f",
+        "path": "ai_economist/foundation/entities/resources.py"
+      },
+      {
+        "byte_size": 570,
+        "file_sha256": "31cdb213028c2300227947156be1af0ab86dcdc17558a88226edc95c9da983f2",
+        "path": "ai_economist/foundation/scenarios/__init__.py"
+      },
+      {
+        "byte_size": 219,
+        "file_sha256": "9f9dc5a638f94cafe4ed0884f4b126686ed767f27b5e9ceec158325bbf0f095b",
+        "path": "ai_economist/foundation/scenarios/one_step_economy/__init__.py"
+      },
+      {
+        "byte_size": 20094,
+        "file_sha256": "7fcb0b5891a0b0d6c95ce20ef2a4b0094723fc8082c97d04987e45c43ff219ba",
+        "path": "ai_economist/foundation/scenarios/one_step_economy/one_step_economy.py"
+      },
+      {
+        "byte_size": 219,
+        "file_sha256": "9f9dc5a638f94cafe4ed0884f4b126686ed767f27b5e9ceec158325bbf0f095b",
+        "path": "ai_economist/foundation/scenarios/simple_wood_and_stone/__init__.py"
+      },
+      {
+        "byte_size": 44129,
+        "file_sha256": "8417b20544006fbbe05b0ae41aa7f1e8cb824917c30369cd2e03c5e37e267a84",
+        "path": "ai_economist/foundation/scenarios/simple_wood_and_stone/dynamic_layout.py"
+      },
+      {
+        "byte_size": 35391,
+        "file_sha256": "90a3945f0495d4da366a2796f4e97ca74d7afca1276bedbf50d6400cdbf5ca99",
+        "path": "ai_economist/foundation/scenarios/simple_wood_and_stone/layout_from_file.py"
+      },
+      {
+        "byte_size": 219,
+        "file_sha256": "9f9dc5a638f94cafe4ed0884f4b126686ed767f27b5e9ceec158325bbf0f095b",
+        "path": "ai_economist/foundation/scenarios/utils/__init__.py"
+      },
+      {
+        "byte_size": 5248,
+        "file_sha256": "43438f961289502f260c71ab1d6185c6d72dcbb0ef6e7dac5fb488246c09cece",
+        "path": "ai_economist/foundation/scenarios/utils/rewards.py"
+      },
+      {
+        "byte_size": 2604,
+        "file_sha256": "962a466ba2ddf6b0f21044aaf646255aa9db47c2e784bac8d3cff5ec77434291",
+        "path": "ai_economist/foundation/scenarios/utils/social_metrics.py"
+      },
+      {
+        "byte_size": 4644,
+        "file_sha256": "61985199cdf521989e40f2271bd325e2c3ac6ffc5417fd8df6f8587c75e2334b",
+        "path": "ai_economist/foundation/utils.py"
+      },
+      {
+        "byte_size": 117499,
+        "file_sha256": "073430e86943d0100333f405e6b5e11e78e4750fe753fd83c506ce28166651a4",
+        "path": "llm_providers.py"
+      },
+      {
+        "byte_size": 39998,
+        "file_sha256": "4734de32cc5c855ef406ab5c6a0687ed01f1f74c679fb5bc21ce1b6a0fb42fdd",
+        "path": "run_pilot.py"
+      },
+      {
+        "byte_size": 13141,
+        "file_sha256": "f1028ce8c5f033af0289d1dc87e662434052c6f4ebe739b88993aa3223f19996",
+        "path": "scripts/render_pilot_v21111_contract.py"
+      },
+      {
+        "byte_size": 4906,
+        "file_sha256": "ef7e48efaae79a89776cc7c9a00feafd65693c116dec977ebe35b966ae76b603",
+        "path": "scripts/render_pilot_v21111_source_manifest.py"
+      },
+      {
+        "byte_size": 506,
+        "file_sha256": "05f7eb1119f66556405948ff58348fee660bdcbb76f7f8863e7673a499ba8fb9",
+        "path": "verified_memory/__init__.py"
+      },
+      {
+        "byte_size": 6797,
+        "file_sha256": "c4aee21df195d85ddeefb716584e1e0a354210c038e0c7ab115b3c2a2003ab82",
+        "path": "verified_memory/actions.py"
+      },
+      {
+        "byte_size": 28207,
+        "file_sha256": "80ee9829984c05e0b3746a6ca60686583b7d58f842dde5efe38251cdf70dbe3b",
+        "path": "verified_memory/artifacts.py"
+      },
+      {
+        "byte_size": 20151,
+        "file_sha256": "d1d4859697d844875182eeee333b029a40420bd4703df5497394ecbf84778171",
+        "path": "verified_memory/budget.py"
+      },
+      {
+        "byte_size": 5369,
+        "file_sha256": "0fd82ca5cd24286fbc3a49b90690565e61d5c6a0fbd4b2b6470015b106aca937",
+        "path": "verified_memory/failure_artifacts.py"
+      },
+      {
+        "byte_size": 29124,
+        "file_sha256": "b8398e7d3be380f272e450fa648e15f328e1bb7b8fdbc4bb2a58af63df0db5eb",
+        "path": "verified_memory/foundation_adapter.py"
+      },
+      {
+        "byte_size": 26229,
+        "file_sha256": "8c727d466c9e194da671771aa12b3c189a8cf6b9cc1f125b5fff53b3ef4366e0",
+        "path": "verified_memory/m0_utility.py"
+      },
+      {
+        "byte_size": 39784,
+        "file_sha256": "3a449f0cc0461af75863467ecc01b02d2b9bc1c2a8480ae10597d983e9f227d7",
+        "path": "verified_memory/m1_context.py"
+      },
+      {
+        "byte_size": 36812,
+        "file_sha256": "8408b32a9bfe6c532a414cf3c4a14d89ee79dbe1b95cd9825baf874eeafe4d00",
+        "path": "verified_memory/m2_episodic.py"
+      },
+      {
+        "byte_size": 131618,
+        "file_sha256": "d199fa9a17f7eb256094f638e35276cd2bb936c03be2952997b2ce34806d5a18",
+        "path": "verified_memory/m3_semantic.py"
+      },
+      {
+        "byte_size": 125167,
+        "file_sha256": "b7595d4eec73c17a62ae6f196f68e939731a9c3ed6b0e81f080cff3719c6a34a",
+        "path": "verified_memory/observed_p95_authority.py"
+      },
+      {
+        "byte_size": 20728,
+        "file_sha256": "0db7b3ba6bd334abb109560cc071c3bd8c5e976dabd3b531d5e6ff2c030dd270",
+        "path": "verified_memory/pilot_amendment.py"
+      },
+      {
+        "byte_size": 49159,
+        "file_sha256": "e135566f8f250564e7024dec9084862854dbe8ee8e55cb7f7441220ec2a9a163",
+        "path": "verified_memory/pilot_analysis.py"
+      },
+      {
+        "byte_size": 34726,
+        "file_sha256": "3321e6b322f490416e5101b4f92be9db5a9d6a53e8bca20d313e98f0540b0196",
+        "path": "verified_memory/pilot_budget.py"
+      },
+      {
+        "byte_size": 22450,
+        "file_sha256": "479c589aef03efa9afe4eb20be27491cd49355809fc96b5b09d50cbec1128f84",
+        "path": "verified_memory/pilot_calibration.py"
+      },
+      {
+        "byte_size": 40567,
+        "file_sha256": "ac2df3d574991abb88aed31fb9bd311d96b58aeaa44bbcf25b996d8ac9b547f1",
+        "path": "verified_memory/pilot_capability.py"
+      },
+      {
+        "byte_size": 184919,
+        "file_sha256": "840f16de941c360133b17f622411236a125593d2de73c33cb14c7863c88b05e3",
+        "path": "verified_memory/pilot_checkpoint.py"
+      },
+      {
+        "byte_size": 74662,
+        "file_sha256": "0a25479e5e6dd5509c5d96e2d799b04ce613f8f7eb2fd9a85d693c62d2420ad0",
+        "path": "verified_memory/pilot_continuation.py"
+      },
+      {
+        "byte_size": 43056,
+        "file_sha256": "bee75185522b1d0d42d4bcadf794dd8a3d6b86e292166971dee8dde69ecaa390",
+        "path": "verified_memory/pilot_evaluation_amendment.py"
+      },
+      {
+        "byte_size": 454525,
+        "file_sha256": "21890c27bf9996504728466431daffbbe7858389ebbc72b13949835b154eb016",
+        "path": "verified_memory/pilot_evidence.py"
+      },
+      {
+        "byte_size": 13762,
+        "file_sha256": "d774c7e51952dc738427bfd0b8b2005724b7d8dfdd6eeba3b2545dad34aa6b75",
+        "path": "verified_memory/pilot_interface_gate.py"
+      },
+      {
+        "byte_size": 1375950,
+        "file_sha256": "9b96259ef1c16b113e32d8ad6d2d340c0fab8010a4f1729f8c9b1dabcfa1d547",
+        "path": "verified_memory/pilot_orchestrator.py"
+      },
+      {
+        "byte_size": 26598,
+        "file_sha256": "2478b883fbd78db2c8a3f93b7ea480d37fa40aa51b570ea0563c1efb4dc2f4e2",
+        "path": "verified_memory/pilot_preflight_amendment.py"
+      },
+      {
+        "byte_size": 20232,
+        "file_sha256": "efc203c0654a52e0365536873811faa8e415e46ad93e690ab329ed08b5b844b4",
+        "path": "verified_memory/pilot_provider_catalog.py"
+      },
+      {
+        "byte_size": 26052,
+        "file_sha256": "43573cd0b584b3801d1370bb4301c91d02ae2396939abbf9f843e9a1d6476a63",
+        "path": "verified_memory/pilot_release_attestation.py"
+      },
+      {
+        "byte_size": 11896,
+        "file_sha256": "072648d8ed27ef65073d4f18d5aa837846c62e9a7ce1a3b797ef74a83466a355",
+        "path": "verified_memory/pilot_sensitivity.py"
+      },
+      {
+        "byte_size": 95861,
+        "file_sha256": "1bac84b5bde9a9c37d4c4b79534121cab5447f81b2ca2abdc1c45cf779347c24",
+        "path": "verified_memory/pilot_v2101_parent_import.py"
+      },
+      {
+        "byte_size": 107405,
+        "file_sha256": "de8ef67017a14f67cf5abfe76cb244ea11cae1c76812f7b7355705880b472099",
+        "path": "verified_memory/pilot_v2102_parent_import.py"
+      },
+      {
+        "byte_size": 93793,
+        "file_sha256": "dafb13f1323f896ea6424b14403b4879e1a9f41f66ccfbbb57024bd674609ea5",
+        "path": "verified_memory/pilot_v210_parent_import.py"
+      },
+      {
+        "byte_size": 206000,
+        "file_sha256": "9720abd850a210b48cce6e9f3254f5b83cb5f581c9447193b7e3a9e0cd95b238",
+        "path": "verified_memory/pilot_v21110_continuation.py"
+      },
+      {
+        "byte_size": 132327,
+        "file_sha256": "2d0e210856096e49777fac37c92693df790401b318c7db0e63493625c46019cb",
+        "path": "verified_memory/pilot_v21110_evidence.py"
+      },
+      {
+        "byte_size": 71685,
+        "file_sha256": "30f2f32e27546b894eaccd5553260a3b063f97d8beda3019d6e080bd59f1e469",
+        "path": "verified_memory/pilot_v21111_dispatch_refresh.py"
+      },
+      {
+        "byte_size": 92079,
+        "file_sha256": "be740fbb53c7f654411b1b0e7ffb26f7293f96d48f3b1ea47d7861807e8dfdfe",
+        "path": "verified_memory/pilot_v21111_fresh_cohort.py"
+      },
+      {
+        "byte_size": 29951,
+        "file_sha256": "928339d4b99c8f7b3827afa3010e6bb22e19b0a497fa01e359c3f6c77c4cddd7",
+        "path": "verified_memory/pilot_v21111_release.py"
+      },
+      {
+        "byte_size": 27479,
+        "file_sha256": "99124749475c65e7d3160f75731f6e20a0acde08629aeb51f83773ce7d35aaf0",
+        "path": "verified_memory/pilot_v2111_bootstrap.py"
+      },
+      {
+        "byte_size": 66688,
+        "file_sha256": "94cc7ee4f12f882574d67bf1e8d5041a5278f424ac23fa1a2c6f5d8f148b171f",
+        "path": "verified_memory/pilot_v2111_gate.py"
+      },
+      {
+        "byte_size": 81673,
+        "file_sha256": "323c2f6240177641c15b9e38cdfa27d475615e2b2309afb5273274e3ccf7e48c",
+        "path": "verified_memory/pilot_v2111_parent_import.py"
+      },
+      {
+        "byte_size": 37993,
+        "file_sha256": "63ff19fa9984c59976234252fca9a7d4de09346a7041c788677d356885049b62",
+        "path": "verified_memory/pilot_v2112_bootstrap.py"
+      },
+      {
+        "byte_size": 49273,
+        "file_sha256": "fbe1328d19742cc9df1d9ebed63cb6820b9082df1bf25cad051729463dcbb172",
+        "path": "verified_memory/pilot_v2112_evidence.py"
+      },
+      {
+        "byte_size": 90576,
+        "file_sha256": "b57e7d25bcbcd44110789afc51f2503351009af1b925fb45b4064fc03a73289b",
+        "path": "verified_memory/pilot_v2112_gate.py"
+      },
+      {
+        "byte_size": 94816,
+        "file_sha256": "4d2c1e1fcc94285af618c9e41f41072f02b3dd4f43968788ac17ea2bacbc59f7",
+        "path": "verified_memory/pilot_v2112_parent_import.py"
+      },
+      {
+        "byte_size": 73254,
+        "file_sha256": "344d98b8e319df73c74066ceb4467f742d29e1d0b358d7c3411baacd1bb839c8",
+        "path": "verified_memory/pilot_v2113_acceptance.py"
+      },
+      {
+        "byte_size": 49340,
+        "file_sha256": "3f322d08fab556214b74047e032b4c15f80fcac3f73bd3f290504cb402135318",
+        "path": "verified_memory/pilot_v2113_gate.py"
+      },
+      {
+        "byte_size": 81287,
+        "file_sha256": "dd6ae120e630ac9bbd9ea6fa2cbb0557b8d0e2b4a3b74d877312ecd818152d42",
+        "path": "verified_memory/pilot_v2113_parent_import.py"
+      },
+      {
+        "byte_size": 75584,
+        "file_sha256": "4483eb70bc33d0ce6591deebc3601ba32bd277ac876d5cf11ff7a48592d4ae85",
+        "path": "verified_memory/pilot_v2114_acceptance.py"
+      },
+      {
+        "byte_size": 49340,
+        "file_sha256": "fb215bd7b4a11bda235fee4e8a9c991b4ef04e0a450443d5704b7d978c1b2fd0",
+        "path": "verified_memory/pilot_v2114_gate.py"
+      },
+      {
+        "byte_size": 107891,
+        "file_sha256": "0af47e46f10ed9a316e02917f9712e3590397355d418ae373b735ae7691cafd2",
+        "path": "verified_memory/pilot_v2114_parent_import.py"
+      },
+      {
+        "byte_size": 76161,
+        "file_sha256": "4a61555487a96f5a289f41000181c7db484cc44039625bb3366407e3b63cbb88",
+        "path": "verified_memory/pilot_v2115_acceptance.py"
+      },
+      {
+        "byte_size": 97006,
+        "file_sha256": "c71b414614f9248788d86acaa12aafc69be4c59367b4842f8c811dcb103f4a5f",
+        "path": "verified_memory/pilot_v2115_evidence.py"
+      },
+      {
+        "byte_size": 49340,
+        "file_sha256": "db1908b3ac1e4220f3962772cd31c09bd91e0bf5a0b28305edcf45cf316dbc4f",
+        "path": "verified_memory/pilot_v2115_gate.py"
+      },
+      {
+        "byte_size": 115239,
+        "file_sha256": "8ff4398dc162214e8e5b81c1830f2921fae2e156b3fc08cb1e259a6fbe168d67",
+        "path": "verified_memory/pilot_v2115_parent_import.py"
+      },
+      {
+        "byte_size": 115553,
+        "file_sha256": "2694069dbe907a8b978084bc3e34ce59d9f174123e84a544b90578c409486c46",
+        "path": "verified_memory/pilot_v2116_continuation.py"
+      },
+      {
+        "byte_size": 150421,
+        "file_sha256": "3e17d5bb990e1e368068c832e8caf9090bb990870cd78963e155aebb4e643c9e",
+        "path": "verified_memory/pilot_v2117_continuation.py"
+      },
+      {
+        "byte_size": 107534,
+        "file_sha256": "506b63ecb4e8f1ce9091f07b50c5518e21cb6ded274b96438a85d72bbaef175a",
+        "path": "verified_memory/pilot_v2118_continuation.py"
+      },
+      {
+        "byte_size": 202581,
+        "file_sha256": "cab75a2cda055babb666dcb05d9a44fa52fe134498c7fbd66f9b416fcfb4e57d",
+        "path": "verified_memory/pilot_v2119_continuation.py"
+      },
+      {
+        "byte_size": 101241,
+        "file_sha256": "b7cd4972b2ba58118a034db36c85209461c19a576ce349b59cdb7e40db41e045",
+        "path": "verified_memory/pilot_v2119_evidence.py"
+      },
+      {
+        "byte_size": 91176,
+        "file_sha256": "89a227634fce5bed07d8b30445775280db029ff9aa244ae8847f9d7549b468b0",
+        "path": "verified_memory/pilot_v211_gate.py"
+      },
+      {
+        "byte_size": 41464,
+        "file_sha256": "b0b6ed14179e0e907b6902e4d35c3887277652cfbe493ca34b1a0def3aa2a65a",
+        "path": "verified_memory/pilot_v211_parent_import.py"
+      },
+      {
+        "byte_size": 22713,
+        "file_sha256": "5b9f89a70a7059091c0199ffa7551cde1599453c3843ff7354633b119b019884",
+        "path": "verified_memory/pilot_v211_projection.py"
+      },
+      {
+        "byte_size": 327871,
+        "file_sha256": "7dda601e3da650d22c929d8f1efff4f7b7a4ca1b080e7795262c9add4e8dc178",
+        "path": "verified_memory/pilot_v24_evidence.py"
+      },
+      {
+        "byte_size": 51210,
+        "file_sha256": "451582b9335d28bfb636fb9ec98f75e0355137f54d6eee84f95e5b91fe01650d",
+        "path": "verified_memory/pilot_v24_parent_import.py"
+      },
+      {
+        "byte_size": 64286,
+        "file_sha256": "e93a6f6fe93c607cf4ea60e0c4d259645c2700a98f713aace9fab1924c112a23",
+        "path": "verified_memory/pilot_v25_parent_import.py"
+      },
+      {
+        "byte_size": 62799,
+        "file_sha256": "ac654e2dde00d1d966192efe0d38b02842cc4610ab2b09da0042868da7017f83",
+        "path": "verified_memory/pilot_v26_parent_import.py"
+      },
+      {
+        "byte_size": 79909,
+        "file_sha256": "6461e82031494f7f0f85c63f63e20c7ad9024917e5abdb86932e5c57b4d7ccc2",
+        "path": "verified_memory/pilot_v27_stage0_import.py"
+      },
+      {
+        "byte_size": 120144,
+        "file_sha256": "aee036a087d12b6fa409cc72c29d5f515b98250f8e4e9bdea42f910632a6d7ac",
+        "path": "verified_memory/pilot_v28_stage0_import.py"
+      },
+      {
+        "byte_size": 24846,
+        "file_sha256": "f8dd5d72f52d49485de1702829f85ce7848b556e0aa59b5a5c617aa399faf021",
+        "path": "verified_memory/pilot_v29_qref_projection.py"
+      },
+      {
+        "byte_size": 97260,
+        "file_sha256": "e15eca803b3a978591d2df6895548d6527e29d5035361063eabff2410cd6622c",
+        "path": "verified_memory/pilot_v29_stage0_import.py"
+      },
+      {
+        "byte_size": 7876,
+        "file_sha256": "c80ee87c5425c5d3797cd824c9de07d10c974a95f875847cac40bffefc9de8c6",
+        "path": "verified_memory/prompts.py"
+      },
+      {
+        "byte_size": 52246,
+        "file_sha256": "3d4ef353705b7a0168de79bd73e0f60e7951fd211e1f337904594f19c6972408",
+        "path": "verified_memory/provider_diagnostics.py"
+      },
+      {
+        "byte_size": 44211,
+        "file_sha256": "7140f160955e27e1262708a361e9954902e60452a9dd4cd0268a9b364bc4bfcd",
+        "path": "verified_memory/replay.py"
+      },
+      {
+        "byte_size": 22675,
+        "file_sha256": "5e065e023a342c19de6c726982722e6098350a2777e17b2802d1936440d2d6f5",
+        "path": "verified_memory/replay_experiment.py"
+      },
+      {
+        "byte_size": 89500,
+        "file_sha256": "439e5bedba9f8ea35744c10c966a0a3d8cd2e5617f199d57176bd0334b5bf377",
+        "path": "verified_memory/reviewer_closed_loop_trace.py"
+      },
+      {
+        "byte_size": 186270,
+        "file_sha256": "306cf08fdf9599f14261822ab9557342e9c4bc36a70b36d1a6aa01e12a84f366",
+        "path": "verified_memory/runner.py"
+      },
+      {
+        "byte_size": 136843,
+        "file_sha256": "e5db8728fca99b21165c18a590d201f50fb3c1781a2aff08097fec0fd5d98530",
+        "path": "verified_memory/runner_artifacts.py"
+      },
+      {
+        "byte_size": 85216,
+        "file_sha256": "c25c177d8d816a3ffc20c0aaaaf450e0bfa55f8140b7d064e84bc7b822054c65",
+        "path": "verified_memory/scientific_release_attestation.py"
+      },
+      {
+        "byte_size": 4862,
+        "file_sha256": "7d99ed935d42e05dbab16a00510f1f3a9ce7f99422cabe8a60f48ee0870e0b0b",
+        "path": "verified_memory/scripted_provider.py"
+      },
+      {
+        "byte_size": 44721,
+        "file_sha256": "33f49d378ce70e6249d09566a760549ea516e7a3ec136a97caf417da2453d1ec",
+        "path": "verified_memory/system.py"
+      },
+      {
+        "byte_size": 80468,
+        "file_sha256": "9bc3c2b6057d3e4ac502952634f599fe39a8c259c758accb0206eb051205b692",
+        "path": "verified_memory/v2115_labor_threshold_sensitivity.py"
+      }
+    ],
+    "pilot_contract_complete_module_ast_binding": {
+      "normalization_schema_version": "finevo-pilot-v2.11.11-complete-module-ast-cycle-normalization-v1",
+      "normalized_ast_sha256": "4f50305a4a4bc906b42922bfa954152cb39a6fa826484f581c0ce3e6225953f1",
+      "replaced_cycle_pins": [
+        "PILOT_CONTRACT_V2_11_11_CANONICAL_SHA256",
+        "PILOT_V2_11_11_SOURCE_MANIFEST_CONTENT_SHA256",
+        "PILOT_V2_11_11_SOURCE_MANIFEST_FILE_SHA256"
+      ],
+      "top_level_node_count": 414
+    },
+    "pilot_contract_path": "verified_memory/pilot_contract.py",
+    "release_python_source_path_set_sha256": "fea2959d6aba53ba2ad9d62c6b7ecfaeb9e74fe9a24eb22326df3b9664b7e769",
+    "release_python_source_paths": [
+      "ai_economist/foundation/__init__.py",
+      "ai_economist/foundation/agents/__init__.py",
+      "ai_economist/foundation/agents/mobiles.py",
+      "ai_economist/foundation/agents/planners.py",
+      "ai_economist/foundation/base/__init__.py",
+      "ai_economist/foundation/base/base_agent.py",
+      "ai_economist/foundation/base/base_component.py",
+      "ai_economist/foundation/base/base_env.py",
+      "ai_economist/foundation/base/registrar.py",
+      "ai_economist/foundation/base/world.py",
+      "ai_economist/foundation/components/__init__.py",
+      "ai_economist/foundation/components/build.py",
+      "ai_economist/foundation/components/continuous_double_auction.py",
+      "ai_economist/foundation/components/move.py",
+      "ai_economist/foundation/components/redistribution.py",
+      "ai_economist/foundation/components/simple_consumption.py",
+      "ai_economist/foundation/components/simple_labor.py",
+      "ai_economist/foundation/components/simple_saving.py",
+      "ai_economist/foundation/components/utils.py",
+      "ai_economist/foundation/entities/__init__.py",
+      "ai_economist/foundation/entities/endogenous.py",
+      "ai_economist/foundation/entities/landmarks.py",
+      "ai_economist/foundation/entities/resources.py",
+      "ai_economist/foundation/scenarios/__init__.py",
+      "ai_economist/foundation/scenarios/one_step_economy/__init__.py",
+      "ai_economist/foundation/scenarios/one_step_economy/one_step_economy.py",
+      "ai_economist/foundation/scenarios/simple_wood_and_stone/__init__.py",
+      "ai_economist/foundation/scenarios/simple_wood_and_stone/dynamic_layout.py",
+      "ai_economist/foundation/scenarios/simple_wood_and_stone/layout_from_file.py",
+      "ai_economist/foundation/scenarios/utils/__init__.py",
+      "ai_economist/foundation/scenarios/utils/rewards.py",
+      "ai_economist/foundation/scenarios/utils/social_metrics.py",
+      "ai_economist/foundation/utils.py",
+      "llm_providers.py",
+      "run_pilot.py",
+      "scripts/render_pilot_v21111_contract.py",
+      "scripts/render_pilot_v21111_source_manifest.py",
+      "verified_memory/__init__.py",
+      "verified_memory/actions.py",
+      "verified_memory/artifacts.py",
+      "verified_memory/budget.py",
+      "verified_memory/ci_release_receipt.py",
+      "verified_memory/failure_artifacts.py",
+      "verified_memory/foundation_adapter.py",
+      "verified_memory/m0_utility.py",
+      "verified_memory/m1_context.py",
+      "verified_memory/m2_episodic.py",
+      "verified_memory/m3_semantic.py",
+      "verified_memory/observed_p95_authority.py",
+      "verified_memory/pilot_amendment.py",
+      "verified_memory/pilot_analysis.py",
+      "verified_memory/pilot_budget.py",
+      "verified_memory/pilot_calibration.py",
+      "verified_memory/pilot_capability.py",
+      "verified_memory/pilot_checkpoint.py",
+      "verified_memory/pilot_continuation.py",
+      "verified_memory/pilot_contract.py",
+      "verified_memory/pilot_evaluation_amendment.py",
+      "verified_memory/pilot_evidence.py",
+      "verified_memory/pilot_interface_gate.py",
+      "verified_memory/pilot_orchestrator.py",
+      "verified_memory/pilot_preflight_amendment.py",
+      "verified_memory/pilot_provider_catalog.py",
+      "verified_memory/pilot_release_attestation.py",
+      "verified_memory/pilot_sensitivity.py",
+      "verified_memory/pilot_v2101_parent_import.py",
+      "verified_memory/pilot_v2102_parent_import.py",
+      "verified_memory/pilot_v210_parent_import.py",
+      "verified_memory/pilot_v21110_continuation.py",
+      "verified_memory/pilot_v21110_evidence.py",
+      "verified_memory/pilot_v21111_dispatch_refresh.py",
+      "verified_memory/pilot_v21111_fresh_cohort.py",
+      "verified_memory/pilot_v21111_release.py",
+      "verified_memory/pilot_v2111_bootstrap.py",
+      "verified_memory/pilot_v2111_gate.py",
+      "verified_memory/pilot_v2111_parent_import.py",
+      "verified_memory/pilot_v2112_bootstrap.py",
+      "verified_memory/pilot_v2112_evidence.py",
+      "verified_memory/pilot_v2112_gate.py",
+      "verified_memory/pilot_v2112_parent_import.py",
+      "verified_memory/pilot_v2113_acceptance.py",
+      "verified_memory/pilot_v2113_gate.py",
+      "verified_memory/pilot_v2113_parent_import.py",
+      "verified_memory/pilot_v2114_acceptance.py",
+      "verified_memory/pilot_v2114_gate.py",
+      "verified_memory/pilot_v2114_parent_import.py",
+      "verified_memory/pilot_v2115_acceptance.py",
+      "verified_memory/pilot_v2115_evidence.py",
+      "verified_memory/pilot_v2115_gate.py",
+      "verified_memory/pilot_v2115_parent_import.py",
+      "verified_memory/pilot_v2116_continuation.py",
+      "verified_memory/pilot_v2117_continuation.py",
+      "verified_memory/pilot_v2118_continuation.py",
+      "verified_memory/pilot_v2119_continuation.py",
+      "verified_memory/pilot_v2119_evidence.py",
+      "verified_memory/pilot_v211_gate.py",
+      "verified_memory/pilot_v211_parent_import.py",
+      "verified_memory/pilot_v211_projection.py",
+      "verified_memory/pilot_v24_evidence.py",
+      "verified_memory/pilot_v24_parent_import.py",
+      "verified_memory/pilot_v25_parent_import.py",
+      "verified_memory/pilot_v26_parent_import.py",
+      "verified_memory/pilot_v27_stage0_import.py",
+      "verified_memory/pilot_v28_stage0_import.py",
+      "verified_memory/pilot_v29_qref_projection.py",
+      "verified_memory/pilot_v29_stage0_import.py",
+      "verified_memory/prompts.py",
+      "verified_memory/provider_diagnostics.py",
+      "verified_memory/replay.py",
+      "verified_memory/replay_experiment.py",
+      "verified_memory/reviewer_closed_loop_trace.py",
+      "verified_memory/runner.py",
+      "verified_memory/runner_artifacts.py",
+      "verified_memory/scientific_release_attestation.py",
+      "verified_memory/scripted_provider.py",
+      "verified_memory/system.py",
+      "verified_memory/v2115_labor_threshold_sensitivity.py"
+    ]
+  },
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "content_sha256": "e91fb31f221e18edbaa3cd6967bcc3b9f08cbb31dd4c919af0ac98504a9aa09f"
+  },
+  "observation_boundary": {
+    "decoded_completion_reuse": false,
+    "mechanism_fresh_cohort_only": true,
+    "provider_calls": 0,
+    "provider_construction": false,
+    "scientific_evidence": false,
+    "v21110_terminal_outcomes_reused": false,
+    "v2115_outcomes_remain_external_frozen_evidence": true
+  },
+  "release_lineage": {
+    "v21110_terminal": {
+      "contract_path": "experiments/pilot_v2_11_10.yaml",
+      "frozen_boundary": {
+        "budget_ledger": {
+          "current_actual": {
+            "cost_usd": 15.20409625,
+            "hosted_completions": 752,
+            "storage_bytes": 9951755
+          },
+          "file_sha256": "331e5f880a76fb7bc12e64dd7e47eb813e670da450cc5bd48099ea7d11f394d3",
+          "ledger_sha256": "e8819ea65b94befedbb4c96a301b8a82eb0b5c597e70748d6267c58bf963216f"
+        },
+        "contract_file_sha256": "13ef71917db5d73b6793e359d519c1e066de81c5bd3f3699650d426c2068f6fd",
+        "contract_id": "finevo-pilot-v2.11.10",
+        "contract_sha256": "76a03b7781b1bea317855010d9a3b34b49fcfba3f27cc344954daf19abcd2b1f",
+        "effect_import_forbidden": true,
+        "failure_reclassification_forbidden": true,
+        "publication_checksums_file_sha256": "5ef502757af0a0c07c3ba13ecd93bd0cf6d1fd24dc937cd04e7105ae18879dfb",
+        "publication_package_manifest_file_sha256": "db8a54dd08b09fc8edc7866dfc7c1495fff2853feb1bae6903fc874608e28907",
+        "raw_inventory": {
+          "excluded_operational_paths": [
+            ".real-stage-execution.lock"
+          ],
+          "file_count": 77,
+          "inventory_sha256": "bf033f4e37e5ed721d1ff832d97a0af3ba13b9d90e9e7c27dec8c0d09288ecad",
+          "storage_bytes": 10294111
+        },
+        "read_only": true,
+        "resume_forbidden": true,
+        "run_ledger": {
+          "file_sha256": "3a1a4c431e52e7dda20b4fdd5064130ba2b1cc8dc10ff42596e32ab6aa281a44",
+          "ledger_sha256": "a483012b15644fc831459c1f7b64ffea753c72d697b5ee25e2aad3483cc25282",
+          "registered_rows": 87,
+          "status_counts": {
+            "complete": 2,
+            "failed": 55,
+            "integrity-stopped": 30
+          }
+        },
+        "science_commit": "aa05e94ee6097916db53c40c0276b044c05a44cc",
+        "science_tag": "pilot-v2.11.10-science",
+        "science_tag_object": "7c3de14ddb604436a1dfee1dabfb781849ea68a7"
+      },
+      "source_manifest": {
+        "content_sha256": "5632d997905b755678907841ef89825791ef89824e5bcd4f989d4bf5ba1678f3",
+        "file_sha256": "a64f98052a43aed76dc1c3e1fd5ef3f0383278bf0f867099c7dbfa79484b6928",
+        "path": "experiments/pilot_v2_11_10_source_manifest.json",
+        "schema_version": "finevo-pilot-v2.11.10-source-manifest-v1"
+      },
+      "verified_release": {
+        "clean": true,
+        "commit": "aa05e94ee6097916db53c40c0276b044c05a44cc",
+        "tag": "pilot-v2.11.10-science",
+        "tag_object": "7c3de14ddb604436a1dfee1dabfb781849ea68a7"
+      }
+    },
+    "v2115_authority": {
+      "contract_path": "experiments/pilot_v2_11_5.yaml",
+      "frozen_boundary": {
+        "contract_file_sha256": "b96438430231f0c46fd6c5f15ba749713534feb15f964c496aa02606cf11103b",
+        "contract_id": "finevo-pilot-v2.11.5",
+        "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+        "publication_checksums_file_sha256": "1c57592cc14689eee3ed9832996cacb3a4edde764647e1d704f5765fe2920576",
+        "publication_package_manifest_file_sha256": "99d4db05cc4dbfd2b9339f9034748396d36f49d6db46f91c2b73970388d3b333",
+        "raw_inventory": {
+          "file_count": 691,
+          "inventory_sha256": "f2fdb1ccedcb70e6793d3b8f3c87425f0d602552f0a3e0e7f35db9c5777c6746",
+          "storage_bytes": 48820556
+        },
+        "read_only": true,
+        "science_commit": "2351ac2283f9fedb9dce70067174020be56ed9cc",
+        "science_tag": "pilot-v2.11.5-science",
+        "science_tag_object": "bccfb13cee7d592470d1873cfacc3b12bed38be4"
+      },
+      "parent_import_receipt": {
+        "content_sha256": "3eb37262ca7a3df78436e964bc202768e7b5ca4417d947c7a61f419eec24a658",
+        "file_sha256": "104966506803b93e009730fb3e2f742a1eded17e6f5c210faacff1f5ffc5ace8",
+        "path": "experiment_results/pilot-v2.11.5/raw/parent-import/parent_import_receipt.json"
+      },
+      "source_manifest": {
+        "content_sha256": "be84d33f561a5ab8927f13e0753f5109b5f018dc790ae180d5e0e6e0228af559",
+        "file_sha256": "fea5a276fb64fdd5bf0539014687ea39a891e9d305205b1d2046a2c15a892d16",
+        "path": "experiments/pilot_v2_11_5_source_manifest.json",
+        "schema_version": "finevo-pilot-v2.11.5-source-manifest-v1"
+      },
+      "verified_release": {
+        "clean": true,
+        "commit": "2351ac2283f9fedb9dce70067174020be56ed9cc",
+        "tag": "pilot-v2.11.5-science",
+        "tag_object": "bccfb13cee7d592470d1873cfacc3b12bed38be4"
+      }
+    },
+    "verification_boundary": {
+      "historical_effect_rows_imported": 0,
+      "provider_calls": 0,
+      "provider_construction": false,
+      "terminal_and_authority_contracts_verified": true,
+      "terminal_and_authority_git_tags_verified": true,
+      "terminal_and_authority_raw_inventories_verified": true,
+      "terminal_and_authority_source_manifests_verified": true,
+      "three_release_roots_pairwise_distinct": true
+    }
+  },
+  "release_tag": "pilot-v2.11.11-science",
+  "schema_version": "finevo-pilot-v2.11.11-source-manifest-v1"
+}

@@ -357,16 +357,20 @@ PILOT_V2_11_10_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = (
 PILOT_V2_11_10_SOURCE_MANIFEST_CONTENT_SHA256: Optional[str] = (
     "5632d997905b755678907841ef89825791ef89824e5bcd4f989d4bf5ba1678f3"
 )
-# V2.11.11 is a fresh-seed cohort after V2.11.10 terminated.  These pins are
-# intentionally unset while the implementation is under review.  A frozen
-# contract cannot parse until source, design, canonical, and CI identities are
-# sealed in that order.
-PILOT_CONTRACT_V2_11_11_CANONICAL_SHA256: Optional[str] = None
+# V2.11.11 is a fresh-seed cohort after V2.11.10 terminated.  Its source and
+# design identities are sealed before the canonical contract identity.
+PILOT_CONTRACT_V2_11_11_CANONICAL_SHA256: Optional[str] = (
+    "67f35bc6f912706c3287c7f841c2da96da40a57fb09026dc5691631e018143ca"
+)
 PILOT_CONTRACT_V2_11_11_SCIENCE_DESIGN_SHA256: Optional[str] = (
     "9d79bc14863f4f29ab55ca4a753d71ec18807029c1f214dc8010c4dd7dc2448b"
 )
-PILOT_V2_11_11_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = None
-PILOT_V2_11_11_SOURCE_MANIFEST_CONTENT_SHA256: Optional[str] = None
+PILOT_V2_11_11_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = (
+    "1d5a2c02962e2fbccfb11a8fdf6aa02d4404c6c30ac91a6095c4b7c21379a146"
+)
+PILOT_V2_11_11_SOURCE_MANIFEST_CONTENT_SHA256: Optional[str] = (
+    "e91fb31f221e18edbaa3cd6967bcc3b9f08cbb31dd4c919af0ac98504a9aa09f"
+)
 PILOT_V2_10_2_SOURCE_MANIFEST_FILE_SHA256: Optional[str] = (
     "f1d953f5b39ab1032ffeb37b73db7c80d54296fba046eddf7e2485e4dc1cc2bd"
 )
