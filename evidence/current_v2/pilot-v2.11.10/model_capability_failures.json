@@ -1,0 +1,1894 @@
+{
+  "capability": {
+    "gpt52_main": {
+      "artifact_validated": true,
+      "capability": {
+        "capability": {
+          "capability_pass": true,
+          "category_totals": {
+            "rule-application": {
+              "conditional_accuracy": 1.0,
+              "conditional_correct": 12,
+              "correct": 12,
+              "denominator": 12,
+              "evaluable_count": 12,
+              "interface_failure_count": 0,
+              "registered_correct": 12,
+              "registered_total": 12,
+              "required": 10
+            },
+            "rule-proposal": {
+              "conditional_accuracy": 1.0,
+              "conditional_correct": 6,
+              "correct": 6,
+              "denominator": 6,
+              "evaluable_count": 6,
+              "interface_failure_count": 0,
+              "registered_correct": 6,
+              "registered_total": 6,
+              "required": 5
+            },
+            "utility-ranking": {
+              "conditional_accuracy": 1.0,
+              "conditional_correct": 12,
+              "correct": 12,
+              "denominator": 12,
+              "evaluable_count": 12,
+              "interface_failure_count": 0,
+              "registered_correct": 12,
+              "registered_total": 12,
+              "required": 10
+            }
+          },
+          "interface_pass": true,
+          "model_id": "gpt52_main",
+          "parse_failure_count": 0,
+          "provider_failure_count": 0,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "runtime_model": "openai/gpt-5.2-2025-12-11",
+          "source_wrapper_content_sha256": "be8684bd1208bb5049be744910c10bdaf5f48e69ad6f13ae086ecef9ce42e32f"
+        },
+        "preflight_go": true,
+        "preflight_interface_pass": true,
+        "provider_calls_current_attempt": 0,
+        "provider_construction_current_attempt": false,
+        "scientific_evidence": false
+      },
+      "capability_and_preflight_pass": true,
+      "claim_boundary": "historical capability and interface authority only; zero V2.11.10 capability/preflight provider calls",
+      "closed_loop_preflight_authority_matched": true,
+      "ledger_status": "complete-imported-authority",
+      "provider_calls_current_attempt": 0,
+      "provider_construction_current_attempt": false,
+      "scientific_evidence": false,
+      "source": "inherited V2.11.5 capability plus independently sealed closed-loop preflight authority"
+    },
+    "gpt56_diagnostic": {
+      "artifact_validated": true,
+      "capability": {
+        "capability": {
+          "capability_pass": true,
+          "category_totals": {
+            "rule-application": {
+              "conditional_accuracy": 1.0,
+              "conditional_correct": 12,
+              "correct": 12,
+              "denominator": 12,
+              "evaluable_count": 12,
+              "interface_failure_count": 0,
+              "registered_correct": 12,
+              "registered_total": 12,
+              "required": 10
+            },
+            "rule-proposal": {
+              "conditional_accuracy": 1.0,
+              "conditional_correct": 6,
+              "correct": 6,
+              "denominator": 6,
+              "evaluable_count": 6,
+              "interface_failure_count": 0,
+              "registered_correct": 6,
+              "registered_total": 6,
+              "required": 5
+            },
+            "utility-ranking": {
+              "conditional_accuracy": 1.0,
+              "conditional_correct": 12,
+              "correct": 12,
+              "denominator": 12,
+              "evaluable_count": 12,
+              "interface_failure_count": 0,
+              "registered_correct": 12,
+              "registered_total": 12,
+              "required": 10
+            }
+          },
+          "interface_pass": true,
+          "model_id": "gpt56_diagnostic",
+          "parse_failure_count": 0,
+          "provider_failure_count": 0,
+          "requested_model": "gpt-5.6-sol",
+          "runtime_model": "openai/gpt-5.6-sol",
+          "source_wrapper_content_sha256": "f3a3025347327545e33d42149efe1ed0d29c3279429b3f379ecc88c6cdeab863"
+        },
+        "preflight_go": true,
+        "preflight_interface_pass": true,
+        "provider_calls_current_attempt": 0,
+        "provider_construction_current_attempt": false,
+        "scientific_evidence": false
+      },
+      "capability_and_preflight_pass": true,
+      "claim_boundary": "historical capability and interface authority only; zero V2.11.10 capability/preflight provider calls",
+      "closed_loop_preflight_authority_matched": true,
+      "ledger_status": "complete-imported-authority",
+      "provider_calls_current_attempt": 0,
+      "provider_construction_current_attempt": false,
+      "scientific_evidence": false,
+      "source": "inherited V2.11.5 capability plus independently sealed closed-loop preflight authority"
+    }
+  },
+  "claim_boundary": "capability, interface, parsing, provider, and ITT failures are reported separately; proposer failures are not relabeled as actor reasoning failures",
+  "contract_sha256": "76a03b7781b1bea317855010d9a3b34b49fcfba3f27cc344954daf19abcd2b1f",
+  "cross_model": {
+    "gpt52_main": {
+      "capability_and_preflight_pass": true,
+      "capability_parse_failure_count": 0,
+      "capability_provider_failure_count": 0,
+      "claim_boundary": "no cross-model effectiveness claim",
+      "direction": "mixed-or-incomplete",
+      "directional_micro_pilot_replication": false,
+      "matched_a_a_null_registered": false,
+      "matched_null_resolution": "directional-only-no-model-specific-repeatability-null",
+      "paired_delta": null,
+      "proposal_competence": {
+        "conditional_accuracy": 1.0,
+        "conditional_correct": 6,
+        "correct": 6,
+        "denominator": 6,
+        "evaluable_count": 6,
+        "interface_failure_count": 0,
+        "registered_correct": 6,
+        "registered_total": 6,
+        "required": 5
+      },
+      "registered_pair_count": 3,
+      "registered_seed_status_and_failures": {
+        "full:1099057501": {
+          "failure": {
+            "cause_type": "PilotV21110ContinuationError",
+            "error_type": "PreDispatchIntegrityStop",
+            "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+            "provider_dispatch_started": false,
+            "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+            "stop_origin": "actor-pre-provider-revalidation"
+          },
+          "provider_failure_count": null,
+          "status": "integrity-stopped"
+        },
+        "full:1421875452": {
+          "failure": {
+            "cause_type": "PilotV21110ContinuationError",
+            "error_type": "PreDispatchIntegrityStop",
+            "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+            "provider_dispatch_started": false,
+            "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+            "stop_origin": "actor-pre-provider-revalidation"
+          },
+          "provider_failure_count": null,
+          "status": "integrity-stopped"
+        },
+        "full:1769977770": {
+          "failure": {
+            "cause_type": "PilotV21110ContinuationError",
+            "error_type": "PreDispatchIntegrityStop",
+            "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+            "provider_dispatch_started": false,
+            "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+            "stop_origin": "actor-pre-provider-revalidation"
+          },
+          "provider_failure_count": null,
+          "status": "integrity-stopped"
+        },
+        "no-memory:1099057501": {
+          "failure": null,
+          "provider_failure_count": 0.0,
+          "status": "complete"
+        },
+        "no-memory:1421875452": {
+          "failure": {
+            "cause_type": "PilotV21110ContinuationError",
+            "error_type": "PreDispatchIntegrityStop",
+            "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+            "provider_dispatch_started": false,
+            "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+            "stop_origin": "actor-pre-provider-revalidation"
+          },
+          "provider_failure_count": null,
+          "status": "integrity-stopped"
+        },
+        "no-memory:1769977770": {
+          "failure": {
+            "cause_type": "PilotV21110ContinuationError",
+            "error_type": "PreDispatchIntegrityStop",
+            "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+            "provider_dispatch_started": false,
+            "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+            "stop_origin": "actor-pre-provider-revalidation"
+          },
+          "provider_failure_count": null,
+          "status": "integrity-stopped"
+        }
+      },
+      "repeatability_or_effect_size_claim_allowed": false,
+      "rule_application_competence": {
+        "conditional_accuracy": 1.0,
+        "conditional_correct": 12,
+        "correct": 12,
+        "denominator": 12,
+        "evaluable_count": 12,
+        "interface_failure_count": 0,
+        "registered_correct": 12,
+        "registered_total": 12,
+        "required": 10
+      },
+      "seed_dispatch_mode": "documented_unsupported_omitted",
+      "source": "V2.11.10 experiment-b first-three preregistered seeds",
+      "usable_paired_seeds": [],
+      "utility_ranking_competence": {
+        "conditional_accuracy": 1.0,
+        "conditional_correct": 12,
+        "correct": 12,
+        "denominator": 12,
+        "evaluable_count": 12,
+        "interface_failure_count": 0,
+        "registered_correct": 12,
+        "registered_total": 12,
+        "required": 10
+      }
+    },
+    "gpt56_diagnostic": {
+      "capability_and_preflight_pass": true,
+      "capability_parse_failure_count": 0,
+      "capability_provider_failure_count": 0,
+      "claim_boundary": "no cross-model effectiveness claim",
+      "direction": "mixed-or-incomplete",
+      "directional_micro_pilot_replication": false,
+      "matched_a_a_null_registered": false,
+      "matched_null_resolution": "directional-only-no-model-specific-repeatability-null",
+      "paired_delta": null,
+      "proposal_competence": {
+        "conditional_accuracy": 1.0,
+        "conditional_correct": 6,
+        "correct": 6,
+        "denominator": 6,
+        "evaluable_count": 6,
+        "interface_failure_count": 0,
+        "registered_correct": 6,
+        "registered_total": 6,
+        "required": 5
+      },
+      "registered_pair_count": 3,
+      "registered_seed_status_and_failures": {
+        "full:1099057501": {
+          "failure": {
+            "blocked_stage": "cross-model",
+            "cause_type": "PilotV21110ContinuationError",
+            "error_type": "PreDispatchIntegrityStop",
+            "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+            "provider_dispatch_started": false,
+            "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+            "source_stage": "experiment-b",
+            "stop_origin": "actor-pre-provider-revalidation"
+          },
+          "provider_failure_count": null,
+          "status": "integrity-stopped"
+        },
+        "full:1421875452": {
+          "failure": {
+            "blocked_stage": "cross-model",
+            "cause_type": "PilotV21110ContinuationError",
+            "error_type": "PreDispatchIntegrityStop",
+            "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+            "provider_dispatch_started": false,
+            "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+            "source_stage": "experiment-b",
+            "stop_origin": "actor-pre-provider-revalidation"
+          },
+          "provider_failure_count": null,
+          "status": "integrity-stopped"
+        },
+        "full:1769977770": {
+          "failure": {
+            "blocked_stage": "cross-model",
+            "cause_type": "PilotV21110ContinuationError",
+            "error_type": "PreDispatchIntegrityStop",
+            "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+            "provider_dispatch_started": false,
+            "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+            "source_stage": "experiment-b",
+            "stop_origin": "actor-pre-provider-revalidation"
+          },
+          "provider_failure_count": null,
+          "status": "integrity-stopped"
+        },
+        "no-memory:1099057501": {
+          "failure": {
+            "blocked_stage": "cross-model",
+            "cause_type": "PilotV21110ContinuationError",
+            "error_type": "PreDispatchIntegrityStop",
+            "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+            "provider_dispatch_started": false,
+            "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+            "source_stage": "experiment-b",
+            "stop_origin": "actor-pre-provider-revalidation"
+          },
+          "provider_failure_count": null,
+          "status": "integrity-stopped"
+        },
+        "no-memory:1421875452": {
+          "failure": {
+            "blocked_stage": "cross-model",
+            "cause_type": "PilotV21110ContinuationError",
+            "error_type": "PreDispatchIntegrityStop",
+            "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+            "provider_dispatch_started": false,
+            "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+            "source_stage": "experiment-b",
+            "stop_origin": "actor-pre-provider-revalidation"
+          },
+          "provider_failure_count": null,
+          "status": "integrity-stopped"
+        },
+        "no-memory:1769977770": {
+          "failure": {
+            "blocked_stage": "cross-model",
+            "cause_type": "PilotV21110ContinuationError",
+            "error_type": "PreDispatchIntegrityStop",
+            "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+            "provider_dispatch_started": false,
+            "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+            "source_stage": "experiment-b",
+            "stop_origin": "actor-pre-provider-revalidation"
+          },
+          "provider_failure_count": null,
+          "status": "integrity-stopped"
+        }
+      },
+      "repeatability_or_effect_size_claim_allowed": false,
+      "rule_application_competence": {
+        "conditional_accuracy": 1.0,
+        "conditional_correct": 12,
+        "correct": 12,
+        "denominator": 12,
+        "evaluable_count": 12,
+        "interface_failure_count": 0,
+        "registered_correct": 12,
+        "registered_total": 12,
+        "required": 10
+      },
+      "seed_dispatch_mode": "documented_unsupported_omitted",
+      "source": "V2.11.10 cross-model",
+      "usable_paired_seeds": [],
+      "utility_ranking_competence": {
+        "conditional_accuracy": 1.0,
+        "conditional_correct": 12,
+        "correct": 12,
+        "denominator": 12,
+        "evaluable_count": 12,
+        "interface_failure_count": 0,
+        "registered_correct": 12,
+        "registered_total": 12,
+        "required": 10
+      }
+    }
+  },
+  "failure_count": 88,
+  "failures": [
+    {
+      "arm_id": "no-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=5, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "93e8ea055c44a0514de9500c5ea526249548552a3f0901ee9c6662b0a007a224",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--no-context--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.5",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=5, agent=2: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "93e8ea055c44a0514de9500c5ea526249548552a3f0901ee9c6662b0a007a224",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.5",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "retrieval-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "VerifiedRunError",
+        "message": "provider action failure at t=2, agent=3: IncompleteCompletionError",
+        "message_bytes": 66,
+        "message_sha256": "14bef66c962cd98cb81a71d94fa5c33decd55a688e579f73cb5ff4d05bc2cd77",
+        "message_truncated": false
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.5--experiment-a--gpt52_main--retrieval-only--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.5",
+      "stage_id": "experiment-a",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-b at t=10, agent=0",
+        "message_bytes": 46,
+        "message_sha256": "0e39b7ac488edcbe1eb792c6b3be9c6804bfcfc547e05811257aaa6d20d31e53",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=6, agent=2",
+        "message_bytes": 50,
+        "message_sha256": "07e68e7e44690ec7c6fbd80bf5ce7abb5076d8dddee8b799241f45873b46e438",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-a at t=7, agent=3",
+        "message_bytes": 45,
+        "message_sha256": "6b2f3151ace5de7490499cc033cd16667f4ef92edb55f5a631048585e9787122",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in erroneous-verified at t=7, agent=1",
+        "message_bytes": 54,
+        "message_sha256": "3bcc849563a50a1ab1a89739c17624eb08da1664cb3c314bcf8d5ecf578d4a4f",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-a--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-a",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=11, agent=3",
+        "message_bytes": 51,
+        "message_sha256": "8061b4dbd55adf4ea8bba079e3041f905270e7dee74384f1343809baa8b8709c",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-a--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-b at t=10, agent=0",
+        "message_bytes": 46,
+        "message_sha256": "0e39b7ac488edcbe1eb792c6b3be9c6804bfcfc547e05811257aaa6d20d31e53",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=6, agent=2",
+        "message_bytes": 50,
+        "message_sha256": "07e68e7e44690ec7c6fbd80bf5ce7abb5076d8dddee8b799241f45873b46e438",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-a at t=7, agent=3",
+        "message_bytes": 45,
+        "message_sha256": "6b2f3151ace5de7490499cc033cd16667f4ef92edb55f5a631048585e9787122",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in erroneous-verified at t=7, agent=1",
+        "message_bytes": 54,
+        "message_sha256": "3bcc849563a50a1ab1a89739c17624eb08da1664cb3c314bcf8d5ecf578d4a4f",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-b--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "matched-b",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=11, agent=3",
+        "message_bytes": 51,
+        "message_sha256": "8061b4dbd55adf4ea8bba079e3041f905270e7dee74384f1343809baa8b8709c",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--matched-b--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-b at t=10, agent=0",
+        "message_bytes": 46,
+        "message_sha256": "0e39b7ac488edcbe1eb792c6b3be9c6804bfcfc547e05811257aaa6d20d31e53",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=6, agent=2",
+        "message_bytes": 50,
+        "message_sha256": "07e68e7e44690ec7c6fbd80bf5ce7abb5076d8dddee8b799241f45873b46e438",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-a at t=7, agent=3",
+        "message_bytes": 45,
+        "message_sha256": "6b2f3151ace5de7490499cc033cd16667f4ef92edb55f5a631048585e9787122",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in erroneous-verified at t=7, agent=1",
+        "message_bytes": 54,
+        "message_sha256": "3bcc849563a50a1ab1a89739c17624eb08da1664cb3c314bcf8d5ecf578d4a4f",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--no-memory--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=11, agent=3",
+        "message_bytes": 51,
+        "message_sha256": "8061b4dbd55adf4ea8bba079e3041f905270e7dee74384f1343809baa8b8709c",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--no-memory--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-b at t=10, agent=0",
+        "message_bytes": 46,
+        "message_sha256": "0e39b7ac488edcbe1eb792c6b3be9c6804bfcfc547e05811257aaa6d20d31e53",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=6, agent=2",
+        "message_bytes": 50,
+        "message_sha256": "07e68e7e44690ec7c6fbd80bf5ce7abb5076d8dddee8b799241f45873b46e438",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-a at t=7, agent=3",
+        "message_bytes": 45,
+        "message_sha256": "6b2f3151ace5de7490499cc033cd16667f4ef92edb55f5a631048585e9787122",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in erroneous-verified at t=7, agent=1",
+        "message_bytes": 54,
+        "message_sha256": "3bcc849563a50a1ab1a89739c17624eb08da1664cb3c314bcf8d5ecf578d4a4f",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "shuffled-episodic",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=11, agent=3",
+        "message_bytes": 51,
+        "message_sha256": "8061b4dbd55adf4ea8bba079e3041f905270e7dee74384f1343809baa8b8709c",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-b at t=10, agent=0",
+        "message_bytes": 46,
+        "message_sha256": "0e39b7ac488edcbe1eb792c6b3be9c6804bfcfc547e05811257aaa6d20d31e53",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=6, agent=2",
+        "message_bytes": 50,
+        "message_sha256": "07e68e7e44690ec7c6fbd80bf5ce7abb5076d8dddee8b799241f45873b46e438",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-a at t=7, agent=3",
+        "message_bytes": 45,
+        "message_sha256": "6b2f3151ace5de7490499cc033cd16667f4ef92edb55f5a631048585e9787122",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in erroneous-verified at t=7, agent=1",
+        "message_bytes": 54,
+        "message_sha256": "3bcc849563a50a1ab1a89739c17624eb08da1664cb3c314bcf8d5ecf578d4a4f",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "wrong-context",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=11, agent=3",
+        "message_bytes": 51,
+        "message_sha256": "8061b4dbd55adf4ea8bba079e3041f905270e7dee74384f1343809baa8b8709c",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-b at t=10, agent=0",
+        "message_bytes": 46,
+        "message_sha256": "0e39b7ac488edcbe1eb792c6b3be9c6804bfcfc547e05811257aaa6d20d31e53",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=6, agent=2",
+        "message_bytes": 50,
+        "message_sha256": "07e68e7e44690ec7c6fbd80bf5ce7abb5076d8dddee8b799241f45873b46e438",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-a at t=7, agent=3",
+        "message_bytes": 45,
+        "message_sha256": "6b2f3151ace5de7490499cc033cd16667f4ef92edb55f5a631048585e9787122",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in erroneous-verified at t=7, agent=1",
+        "message_bytes": 54,
+        "message_sha256": "3bcc849563a50a1ab1a89739c17624eb08da1664cb3c314bcf8d5ecf578d4a4f",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-verified--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-verified",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=11, agent=3",
+        "message_bytes": 51,
+        "message_sha256": "8061b4dbd55adf4ea8bba079e3041f905270e7dee74384f1343809baa8b8709c",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-verified--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-b at t=10, agent=0",
+        "message_bytes": 46,
+        "message_sha256": "0e39b7ac488edcbe1eb792c6b3be9c6804bfcfc547e05811257aaa6d20d31e53",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=6, agent=2",
+        "message_bytes": 50,
+        "message_sha256": "07e68e7e44690ec7c6fbd80bf5ce7abb5076d8dddee8b799241f45873b46e438",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-a at t=7, agent=3",
+        "message_bytes": 45,
+        "message_sha256": "6b2f3151ace5de7490499cc033cd16667f4ef92edb55f5a631048585e9787122",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in erroneous-verified at t=7, agent=1",
+        "message_bytes": 54,
+        "message_sha256": "3bcc849563a50a1ab1a89739c17624eb08da1664cb3c314bcf8d5ecf578d4a4f",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "error-unverified",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=11, agent=3",
+        "message_bytes": 51,
+        "message_sha256": "8061b4dbd55adf4ea8bba079e3041f905270e7dee74384f1343809baa8b8709c",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-b at t=10, agent=0",
+        "message_bytes": 46,
+        "message_sha256": "0e39b7ac488edcbe1eb792c6b3be9c6804bfcfc547e05811257aaa6d20d31e53",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=6, agent=2",
+        "message_bytes": 50,
+        "message_sha256": "07e68e7e44690ec7c6fbd80bf5ce7abb5076d8dddee8b799241f45873b46e438",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-a at t=7, agent=3",
+        "message_bytes": 45,
+        "message_sha256": "6b2f3151ace5de7490499cc033cd16667f4ef92edb55f5a631048585e9787122",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in erroneous-verified at t=7, agent=1",
+        "message_bytes": 54,
+        "message_sha256": "3bcc849563a50a1ab1a89739c17624eb08da1664cb3c314bcf8d5ecf578d4a4f",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=11, agent=3",
+        "message_bytes": 51,
+        "message_sha256": "8061b4dbd55adf4ea8bba079e3041f905270e7dee74384f1343809baa8b8709c",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-b at t=10, agent=0",
+        "message_bytes": 46,
+        "message_sha256": "0e39b7ac488edcbe1eb792c6b3be9c6804bfcfc547e05811257aaa6d20d31e53",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=6, agent=2",
+        "message_bytes": 50,
+        "message_sha256": "07e68e7e44690ec7c6fbd80bf5ce7abb5076d8dddee8b799241f45873b46e438",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-a at t=7, agent=3",
+        "message_bytes": 45,
+        "message_sha256": "6b2f3151ace5de7490499cc033cd16667f4ef92edb55f5a631048585e9787122",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in erroneous-verified at t=7, agent=1",
+        "message_bytes": 54,
+        "message_sha256": "3bcc849563a50a1ab1a89739c17624eb08da1664cb3c314bcf8d5ecf578d4a4f",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=11, agent=3",
+        "message_bytes": 51,
+        "message_sha256": "8061b4dbd55adf4ea8bba079e3041f905270e7dee74384f1343809baa8b8709c",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-b at t=10, agent=0",
+        "message_bytes": 46,
+        "message_sha256": "0e39b7ac488edcbe1eb792c6b3be9c6804bfcfc547e05811257aaa6d20d31e53",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=6, agent=2",
+        "message_bytes": 50,
+        "message_sha256": "07e68e7e44690ec7c6fbd80bf5ce7abb5076d8dddee8b799241f45873b46e438",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-a at t=7, agent=3",
+        "message_bytes": 45,
+        "message_sha256": "6b2f3151ace5de7490499cc033cd16667f4ef92edb55f5a631048585e9787122",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in erroneous-verified at t=7, agent=1",
+        "message_bytes": 54,
+        "message_sha256": "3bcc849563a50a1ab1a89739c17624eb08da1664cb3c314bcf8d5ecf578d4a4f",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=11, agent=3",
+        "message_bytes": 51,
+        "message_sha256": "8061b4dbd55adf4ea8bba079e3041f905270e7dee74384f1343809baa8b8709c",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1099057501,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-b at t=10, agent=0",
+        "message_bytes": 46,
+        "message_sha256": "0e39b7ac488edcbe1eb792c6b3be9c6804bfcfc547e05811257aaa6d20d31e53",
+        "message_truncated": false,
+        "seed": 1099057501
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1421875452,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=6, agent=2",
+        "message_bytes": 50,
+        "message_sha256": "07e68e7e44690ec7c6fbd80bf5ce7abb5076d8dddee8b799241f45873b46e438",
+        "message_truncated": false,
+        "seed": 1421875452
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 1769977770,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in matched-a at t=7, agent=3",
+        "message_bytes": 45,
+        "message_sha256": "6b2f3151ace5de7490499cc033cd16667f4ef92edb55f5a631048585e9787122",
+        "message_truncated": false,
+        "seed": 1769977770
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 959809858,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in erroneous-verified at t=7, agent=1",
+        "message_bytes": 54,
+        "message_sha256": "3bcc849563a50a1ab1a89739c17624eb08da1664cb3c314bcf8d5ecf578d4a4f",
+        "message_truncated": false,
+        "seed": 959809858
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "narrative-content",
+      "environment_seed": 617806385,
+      "failure": {
+        "error_type": "PilotContinuationError",
+        "message": "provider failure in narrative-none at t=11, agent=3",
+        "message_bytes": 51,
+        "message_sha256": "8061b4dbd55adf4ea8bba079e3041f905270e7dee74384f1343809baa8b8709c",
+        "message_truncated": false,
+        "seed": 617806385
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-d",
+      "status": "failed"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 959809858,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 617806385,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "episodic-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 1099057501,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 1421875452,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 1769977770,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 959809858,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "semantic-only",
+      "environment_seed": 617806385,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1099057501,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1421875452,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 1769977770,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 959809858,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "unverified-dual",
+      "environment_seed": 617806385,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--full--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--full--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--full--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 959809858,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--full--none--stage0-selected--s959809858",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 617806385,
+      "failure": {
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt52_main",
+      "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--full--none--stage0-selected--s617806385",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "experiment-b",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "cross-model",
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "source_stage": "experiment-b",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt56_diagnostic",
+      "run_id": "finevo-pilot-v2.11.10--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "cross-model",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "cross-model",
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "source_stage": "experiment-b",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt56_diagnostic",
+      "run_id": "finevo-pilot-v2.11.10--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "cross-model",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "full",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "cross-model",
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "source_stage": "experiment-b",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt56_diagnostic",
+      "run_id": "finevo-pilot-v2.11.10--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "cross-model",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1099057501,
+      "failure": {
+        "blocked_stage": "cross-model",
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "source_stage": "experiment-b",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt56_diagnostic",
+      "run_id": "finevo-pilot-v2.11.10--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1099057501",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "cross-model",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1421875452,
+      "failure": {
+        "blocked_stage": "cross-model",
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "source_stage": "experiment-b",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt56_diagnostic",
+      "run_id": "finevo-pilot-v2.11.10--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1421875452",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "cross-model",
+      "status": "integrity-stopped"
+    },
+    {
+      "arm_id": "no-memory",
+      "environment_seed": 1769977770,
+      "failure": {
+        "blocked_stage": "cross-model",
+        "cause_type": "PilotV21110ContinuationError",
+        "error_type": "PreDispatchIntegrityStop",
+        "message": "completed run finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501 failed semantic replay: evidence stage partition differs from the frozen contract: missing=['cross-model', 'parent-import'], unexpected=['capability-gate', 'closed-loop-preflight', 'controlled-second', 'cross-model-diagnostics', 'experiment-a', 'experiment-c', 'q-ref-resolution', 'secondary-capability-gate', 'secondary-closed-loop-preflight', 'stage0-calibration']",
+        "provider_dispatch_started": false,
+        "run_id": "finevo-pilot-v2.11.10--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "source_stage": "experiment-b",
+        "stop_origin": "actor-pre-provider-revalidation"
+      },
+      "model_id": "gpt56_diagnostic",
+      "run_id": "finevo-pilot-v2.11.10--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1769977770",
+      "source_contract_id": "finevo-pilot-v2.11.10",
+      "stage_id": "cross-model",
+      "status": "integrity-stopped"
+    }
+  ],
+  "schema_version": "finevo-pilot-v2.11.10-evidence-package-v1"
+}

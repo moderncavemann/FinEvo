@@ -1,0 +1,3121 @@
+{
+  "authority_dispatch_artifacts": {
+    "parent_import_receipt": {
+      "content_sha256": "3eb37262ca7a3df78436e964bc202768e7b5ca4417d947c7a61f419eec24a658",
+      "file_sha256": "104966506803b93e009730fb3e2f742a1eded17e6f5c210faacff1f5ffc5ace8",
+      "path": "experiment_results/pilot-v2.11.5/raw/parent-import/parent_import_receipt.json"
+    },
+    "preflight_authority": {
+      "content_sha256": "19e18c1641ecaf55e48340694e126416ff30f0b39307c66f5335c9c9e9a46abc",
+      "file_sha256": "08b33162c91a07b392bacefc40d6abee9d89633600608a3de798f171e427a35a",
+      "path": "experiment_results/pilot-v2.11.5/raw/long-context-preflight/post_gate_authority.json"
+    },
+    "scientific_dispatch_acceptance": {
+      "content_sha256": "41bae59ac6ac34182091aeb1720777f5c391b1f6d1e61df9cdb2d92e537894cf",
+      "file_sha256": "10d9c591d7dea12dc0062fd59f091628f474e5be1720fa9840ddc9361fd6d72d",
+      "path": "experiment_results/pilot-v2.11.5/raw/scientific_dispatch_acceptance.json"
+    }
+  },
+  "authority_raw_inventory": {
+    "canonicalization": "json-sort-keys-compact-utf8-v1",
+    "excluded_operational_paths": [
+      ".real-stage-execution.lock"
+    ],
+    "file_count": 691,
+    "inventory_sha256": "f2fdb1ccedcb70e6793d3b8f3c87425f0d602552f0a3e0e7f35db9c5777c6746",
+    "root": "experiment_results/pilot-v2.11.5/raw",
+    "schema_version": "finevo-raw-tree-inventory-v1",
+    "storage_bytes": 48820556
+  },
+  "authority_release": {
+    "contract_file_sha256": "b96438430231f0c46fd6c5f15ba749713534feb15f964c496aa02606cf11103b",
+    "contract_id": "finevo-pilot-v2.11.5",
+    "contract_path": "experiments/pilot_v2_11_5.yaml",
+    "contract_sha256": "e1ecdec43e3f7a7b9a3d0977e2522d95861e826fc68781377d7eaceeb5e6e2ef",
+    "head_commit": "2351ac2283f9fedb9dce70067174020be56ed9cc",
+    "head_ref": "HEAD",
+    "peeled_commit": "2351ac2283f9fedb9dce70067174020be56ed9cc",
+    "science_commit": "2351ac2283f9fedb9dce70067174020be56ed9cc",
+    "science_tag": "pilot-v2.11.5-science",
+    "science_tag_object": "bccfb13cee7d592470d1873cfacc3b12bed38be4",
+    "source_manifest_content_sha256": "be84d33f561a5ab8927f13e0753f5109b5f018dc790ae180d5e0e6e0228af559",
+    "source_manifest_file_sha256": "fea5a276fb64fdd5bf0539014687ea39a891e9d305205b1d2046a2c15a892d16",
+    "source_manifest_path": "experiments/pilot_v2_11_5_source_manifest.json",
+    "tag_object": "bccfb13cee7d592470d1873cfacc3b12bed38be4",
+    "tag_type": "tag"
+  },
+  "canonical_remaining_cell_mapping": {
+    "mapping_sha256": "7d958b7e1c9caf1ac7a2b019c534b6ff7b599b8ec420c2b9ab386ea678a70346",
+    "row_count": 86,
+    "rows": [
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "c237055696880f1abb7a08a4db9c3c1cc3e6b9bd281fff89d3242238630fd555",
+        "logical_cell_sha256": "0fb4f3dd49e8f294b00f938f48183131f1d650b828ddae2ff2c011eb545dbb29",
+        "normalized_spec": {
+          "arm_id": "full",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt56_diagnostic",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.6-sol",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "cross-model",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "ef97904ccaefa036e0f339c2b229584894104df57f0f628fec49b9de43a1b02d"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "5bc46bfd3d8df759d42a43ae4c8cdd4fa49a09dfae14aaacd362b38ba10af945",
+        "logical_cell_sha256": "21ba188f5aa7a70be0b22206eb4d1dd592c18006562da27ab97ac8a2dbc434ca",
+        "normalized_spec": {
+          "arm_id": "full",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt56_diagnostic",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.6-sol",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "cross-model",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "87c6de168cc1a8c9e0a91280c679297100955ae4ff50fbb7fe491aea85fe35d3"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "d1faeac403072554bd8f24c61ca3a3ca55bd5c5548a766d322c8143b7fee60a1",
+        "logical_cell_sha256": "06bb9d37616920b2e6620f7cada56c1d230c07ad1fb2fd27504661f838422ef2",
+        "normalized_spec": {
+          "arm_id": "full",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt56_diagnostic",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.6-sol",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "cross-model",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--cross-model--gpt56_diagnostic--full--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "307dbb7c8a951da0f5e58a61f147c4b14ca68ba429abd8c3a50ca9738695900d"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "1313963b4d2988847ec7242da83ce3d544ce5c0b95246be0019dedd5559af0b9",
+        "logical_cell_sha256": "de9a6ef4245ac4008b3f3abb99355643fa330b08a902abae99528ff75ed5b3fa",
+        "normalized_spec": {
+          "arm_id": "no-memory",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt56_diagnostic",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.6-sol",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "cross-model",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "e7dee311b686ccfd2dc09e7de92a8b8a614c3f606d19b8afdd474cd34a83b165"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "6c3e4ccd9e032b3b3ddcd2b03b6648d53827ed2cab27fb71a76d278e0e836446",
+        "logical_cell_sha256": "4974337612393a4bdb06cb85044b6a3f17358b14940fa206e08ff2b4233dcaf3",
+        "normalized_spec": {
+          "arm_id": "no-memory",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt56_diagnostic",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.6-sol",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "cross-model",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "1dac6732dc50e0036100bb86a85c316c8933a4ffdf6d6bbc38839b94007c9667"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "aa8fcd795e46ffa11c75ce0c98c2cd1b9347dfc9d02ac9c1ce1db20158b38b19",
+        "logical_cell_sha256": "641abe0a09f78b9fda102b1f36b93fa6759c1b08fe7f08c7ac9c361a8de48470",
+        "normalized_spec": {
+          "arm_id": "no-memory",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt56_diagnostic",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.6-sol",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "cross-model",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--cross-model--gpt56_diagnostic--no-memory--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "6ba561587e13230fa752f37190660e41a8e0c43d9c328ffd2345096a23a23d5b"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "f0a4bbfab2889ee8a5aa5ebec649e8292aa72aec84d2c94a16269ed4c8181a46",
+        "logical_cell_sha256": "e0533991014dffa488732659fa03f6c37d18409706fc84c1c6c7c04a891bc1c2",
+        "normalized_spec": {
+          "arm_id": "episodic-only",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "75379e14bd57fb29d1ca36c2b3ddc5a76cd5ba66f847618641be866cb12fd7ce"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "ecb4c3326f71e22a70e12bdb43e7b452995ae13844871cc62a8c6b9e3920fa8f",
+        "logical_cell_sha256": "e3072191860863b92eddc9cc49a23edcf62274612918f7923ba19d897f6ca02e",
+        "normalized_spec": {
+          "arm_id": "episodic-only",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "252650dbde006459d581b58b27b600f2ab1ad4fcae0175a532efa21457ce0b03"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "d2da95fffdf1f5b82509b10913b828ca915b14672d74858a877c619ba5ca8280",
+        "logical_cell_sha256": "3c743ac2e51474015c7d65e8f53316f4a694ec3112c6b83976aec8c243505884",
+        "normalized_spec": {
+          "arm_id": "episodic-only",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "69c912c498e729e1ac886667032a9511d652551fb4943e6e733ec9e92764dbd9"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s617806385",
+        "child_spec_sha256": "cbc02535f5dbd69d6ee1db0fb6cbf884b18e454d794340285ad712a6f2b6c18f",
+        "logical_cell_sha256": "2e1079cba119b1d4ea9f69e965272e55f1efde2b0e2d83cc4178a3e1149dd076",
+        "normalized_spec": {
+          "arm_id": "episodic-only",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s617806385",
+        "source_spec_sha256": "0d04e7cec2d585192ce53c1125e0fb2a41a529ac673d98720e44ee04b01ddfc8"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s959809858",
+        "child_spec_sha256": "1c7790958056ced5130ecd51d754599eb4d16ce6a033d78ee07657dc633f6e55",
+        "logical_cell_sha256": "fe9b1a43bb5c1948fcfb674c645b5faad259b734842549f6185e7d7c6bf37d8c",
+        "normalized_spec": {
+          "arm_id": "episodic-only",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--episodic-only--none--stage0-selected--s959809858",
+        "source_spec_sha256": "8d713fc1acb0a3760e164ca972e8000af7554a4424fc4cb0dc6854624fb203f2"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--full--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "add43cc49cb740a43a28405e60c565f7bf3ec553c73ae957944a64008594c6f1",
+        "logical_cell_sha256": "94d90a39b874dd8142f76a3d80f90db75dc9b04858ad3ce0162bf4c849fbebcd",
+        "normalized_spec": {
+          "arm_id": "full",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--full--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "1469798b4b639bbd42c11bb0d9fe0be6b469bc644c5ce9eab093a699caffaf0a"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--full--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "76ff1c759cdb9968f0ee6d2103f24738231158b66cae133a5283d648e0c93167",
+        "logical_cell_sha256": "7e2d0d569ec2eb4ccf3f3268bb2b473f59f0baa06df1e2ddb8cb1a32e3226b7e",
+        "normalized_spec": {
+          "arm_id": "full",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--full--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "55f21958df6b10b4f5b531b7bd6c3e7c837748912d7bd86a953bdf4b341f0fe4"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--full--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "d558198e2bc6cc7b177339a023614b04cbdc3ecff3ad8141b02eb09ed6566b13",
+        "logical_cell_sha256": "5f9775700915a363d28537e8d4abc7cd58040548bbbe88791e56a85227b97b84",
+        "normalized_spec": {
+          "arm_id": "full",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--full--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "bdf20afdd89e8ccaf56d314cc8443b926b7875e9c1ec713d5b710b2761abbbfc"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--full--none--stage0-selected--s617806385",
+        "child_spec_sha256": "657d763b196affcd4748254a9a73d0c844c291f2224668af113093d903dff58b",
+        "logical_cell_sha256": "4a8d7555d774168206f246caed2c8087a9d78f9b5bc1ca62bb3974487fdb849b",
+        "normalized_spec": {
+          "arm_id": "full",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--full--none--stage0-selected--s617806385",
+        "source_spec_sha256": "aa1f9b12de3e511e7e8130d32a85d3c4548b42af8b17bbf8449373ecd267888a"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--full--none--stage0-selected--s959809858",
+        "child_spec_sha256": "d96cc242f03242b226e50fb40d26aa1bbcb86f02a55bd5403b4347489f4fa471",
+        "logical_cell_sha256": "00bad0c0fe6749656f7e5e40833dfb66a8e7725738b51e50c398c2dc04ac2147",
+        "normalized_spec": {
+          "arm_id": "full",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--full--none--stage0-selected--s959809858",
+        "source_spec_sha256": "76bbd2e530ed2acb563de102e2e1fe92d603f915b135c05bdb1373256151f7c6"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "b8786f5d3fa9d612546eb85f21aa8364bde0836023690e3c37c6326960adcd19",
+        "logical_cell_sha256": "2904ac512fd2f50525af61f4e8e76365e6930f1a70ec861e2709708f5414a672",
+        "normalized_spec": {
+          "arm_id": "no-memory",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "c53df17c15dd510fce3f41d54ee169352aede4497ce6dc0a391f094706edcb57"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "c5bf19216edb3589e8567148dc9baa0b7acf61d3dbec133a07d4ba61f5be1cb3",
+        "logical_cell_sha256": "1d6af02c2c5ddf3e40806bc5576a810d1e63992597ddf4d9fbeaba74925e9780",
+        "normalized_spec": {
+          "arm_id": "no-memory",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "ed5c6aa9711989babe500c35b2e863f585c1f603c815ae357a57df9640cc9f34"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "fbb8acc5f5c5b05995e27e80e7bf7b86578dbdef2f51469b5a82ea9db108e778",
+        "logical_cell_sha256": "d547c901f54945842713be2b6fde21d0556c47d2e7df1ace7fd2702237c1b87d",
+        "normalized_spec": {
+          "arm_id": "no-memory",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "8fb1d7390501b2e0b6f959a586f092a9e9d7446808a0359f8e3883e267211df8"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--no-memory--none--stage0-selected--s617806385",
+        "child_spec_sha256": "e5a9276fdce530421848583be9a3cb0b4bca2d2359d5bb6360f9b0b72ee8ff8b",
+        "logical_cell_sha256": "c69fe1b67f43c8e926c24ac27f3a321be7338cdc56d454f61cefe022d72569e0",
+        "normalized_spec": {
+          "arm_id": "no-memory",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--no-memory--none--stage0-selected--s617806385",
+        "source_spec_sha256": "6c7e94ead40dd262631e373778d01b5224c0170724922bd57ebe5173ad6ee310"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--no-memory--none--stage0-selected--s959809858",
+        "child_spec_sha256": "9ae91967c0893b12005104dc37bab40ffe3d797e5ce0cd27a0fa266b61edae9e",
+        "logical_cell_sha256": "9484641f7fc3d8465ff7b334c22a5c90ece73dc5f5263bce4930c4c14f935d29",
+        "normalized_spec": {
+          "arm_id": "no-memory",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--no-memory--none--stage0-selected--s959809858",
+        "source_spec_sha256": "fe4ebf27c7e4fb2b728d6a1af5fb4ea4b070cd0977b2edfc31c112f952984817"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "d81327ffdc5bb44bc71bd44803ce9b5bee623ac39fef7348ee7aa822d7ca25d4",
+        "logical_cell_sha256": "458ee688ff68b992094e0a017a6edabb301a163a51afd0db3d7e9ab303dcfa70",
+        "normalized_spec": {
+          "arm_id": "semantic-only",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "bbc09f84d18c41d9da905c4729be90413bcdbd5718907a6b472849e6b7ce4218"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "3424ae0dcd229664e587ebc97e9b2b6c612e6f6c3cb3304f6df94383402dfffa",
+        "logical_cell_sha256": "b25a9de3e3253992f8b98696f76cb198595778d0f4dfc1dd59d1a629cbea2b21",
+        "normalized_spec": {
+          "arm_id": "semantic-only",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "d2fd70e2f5435b46bfcf0c68d6e7a12e56ce554e67cf6ec05598a7ff0e16ccc4"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "71e6f18cf027c61636c9f395aa8f1bf2c14e0400ca6b83a13b4501eb15992a17",
+        "logical_cell_sha256": "a2380373543e319e455efe0bcca0d9810818d6a2feaa9a1e88616d503003b0b3",
+        "normalized_spec": {
+          "arm_id": "semantic-only",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "907e98aaa20d2b40d6d1dcadd7f2f531c816fe59c785a736852e28df245d978b"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s617806385",
+        "child_spec_sha256": "46321c81e4421cc973002c3cee112f6fc79667534e69d92460045817193b9802",
+        "logical_cell_sha256": "689f01823cb996f9c4b81472b0e97d03e8529e02c2823b011692d2fa99c9742d",
+        "normalized_spec": {
+          "arm_id": "semantic-only",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s617806385",
+        "source_spec_sha256": "dd62f9633e2a9ccb77f9baca68c88c0245f602e385d48731471e4340c54274da"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s959809858",
+        "child_spec_sha256": "705c2b8860507802ca2f501850bff01c4e1bf5f7ec06641e23ba4b589be7c2b4",
+        "logical_cell_sha256": "29bde2165f5c3a33188cb1712f28c0b27b8d177ca2db8b999258d589ef9f40fb",
+        "normalized_spec": {
+          "arm_id": "semantic-only",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--semantic-only--none--stage0-selected--s959809858",
+        "source_spec_sha256": "b324af13883050fc52db18ec81b2a0b53c8cdd2ac16e72e2430e95cc8d416faf"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "4f59f3ba77d2b1ad0e111705769a3a6f5d64a322d8df6b32c25f66e45738c8a3",
+        "logical_cell_sha256": "acaafade804e369f03778ef480816d6d31f825524e8cfcaad6cc8174e6c5445e",
+        "normalized_spec": {
+          "arm_id": "unverified-dual",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "6b5a915145d57d4fcc66bee796ce8893b4ed4c4b7749fa145bc277b3311b8529"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "d37b882ff7c3eea10f61427e5f7db81e6bd119f91aaae78fde77b4f058c33656",
+        "logical_cell_sha256": "9de9ee73d32d484d2660fa5131aecbe0846d164aad1ee78623dae4a87fe7967c",
+        "normalized_spec": {
+          "arm_id": "unverified-dual",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "ee9faeb54d5bcbc28c4c8e5b880a375ea8e65b1f62c3bc0fb718a9f40495879f"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "a79c6f690fa5089170035e0555e06241f461200afc603b66b06433b9ee135f25",
+        "logical_cell_sha256": "5292af2f9dfa41b04443c41aa24996389eedd2e1b18576dc23afc5b4639e81ea",
+        "normalized_spec": {
+          "arm_id": "unverified-dual",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "eaa5c6d4b0f991fa09ba09455a2a7effe4e3492dfb72cf0f8295ec4a2992996d"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s617806385",
+        "child_spec_sha256": "a0d6af34dffd760242d39fc0df45f183e27f9791a08569aded89bfa93d53379b",
+        "logical_cell_sha256": "424a776953cfd59e28583d0676518e0bfde9e2048495e99625c8dde7e0e649e0",
+        "normalized_spec": {
+          "arm_id": "unverified-dual",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s617806385",
+        "source_spec_sha256": "a0102d06406f1e1a1c85a5982c181f1790c9a879ce3c68e1c92d5516b792ffbd"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s959809858",
+        "child_spec_sha256": "06605b16cc85520c480814e2065ad77de683c3aab281ab84a722d657771b4440",
+        "logical_cell_sha256": "377d4a6b94cac8452d777c4773c58990f5744d97a42a396c54042c4b769bd270",
+        "normalized_spec": {
+          "arm_id": "unverified-dual",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "actor_run",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-b",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-b--gpt52_main--unverified-dual--none--stage0-selected--s959809858",
+        "source_spec_sha256": "df74706c67ddf12c612dc63ff28fee06b0764ebb6ee867e74350ff9053f64d1b"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "b04c56c428eb31f0069f8f31ae460ca154f731b612a4fa561d443830b9c6b5a5",
+        "logical_cell_sha256": "6104399eb43f76f4e2acbe4f8acc86184e95829ace1358a9fc9a5f9cf135bd4f",
+        "normalized_spec": {
+          "arm_id": "error-unverified",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "8e1c885ad04c1b64686ab5a0083524ad72c83a9f60dc2507f32c12e39baf968f"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "952e1268e952f6f726c391007a16cd62e5e607078e84d97296a7f2c0ca976e48",
+        "logical_cell_sha256": "2d31c9b28c6c7e2d24f3b9747d7e490af1bb7efa4bcecfb109730e26f59c39fd",
+        "normalized_spec": {
+          "arm_id": "error-unverified",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "73abcd4690788e516edfe747211d1a78d70939ec626e3c3f797b263938b6f37f"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "a5e5f2e0a8a2e9b3e3fa9b7c6178ec8c9b24009439f2adf0fbcefc3dd7c8b0ec",
+        "logical_cell_sha256": "29dea5d40b063a84d10fbc1dfaec73614397d67e0c7628c07e4956ac0c4ec1ac",
+        "normalized_spec": {
+          "arm_id": "error-unverified",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "fd7b0129ea10e5cf4743e34c336380c5b0449090b13cbcc92427e8ec3a2274d4"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s617806385",
+        "child_spec_sha256": "f5299e27f65d321e024c50811c8099af4f5c26ee7367192442ca45b6624aed35",
+        "logical_cell_sha256": "626ce8346b2fa5e995e587bd3bc14320bba4ac8313329197bc2bc352dd352d6c",
+        "normalized_spec": {
+          "arm_id": "error-unverified",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s617806385",
+        "source_spec_sha256": "63f4d1b50d00fe812079490b369f990f54658e930ff74587eb8ecbe554a1fbf7"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s959809858",
+        "child_spec_sha256": "093d1ecf00b66dacd558c569483b862890520d4dd539446623a648e03c741ad9",
+        "logical_cell_sha256": "399a57fb5221b0216d5313b7b07a33a28e3489a720d49cb26cdb32d92da5602a",
+        "normalized_spec": {
+          "arm_id": "error-unverified",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--error-unverified--none--stage0-selected--s959809858",
+        "source_spec_sha256": "25d38e9539a5f482ee7e51332aabb97ccae3c7cfbb850be87dadc9be190a294a"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "ba8bc0c1f3b82df0c34f2304b55623b6fabb68515e5656c61bd93e9d3b7fa747",
+        "logical_cell_sha256": "debd93cb686b1cf5e4b1db2712a56d545e1e127fd264a1787f93e65b449cefa8",
+        "normalized_spec": {
+          "arm_id": "error-verified",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "40a13e148304ce1815f61a9bf067cab6939be5db5e2bc6eb41228cc9a30bfc52"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "ffc89beddea1b5997fe4492325dc515674bc4a29f48fa8faf396b2091d643820",
+        "logical_cell_sha256": "e1dce5651a0b50fe7a6d82666da165f55b0d51792c8d2a1dce266ebda0aca187",
+        "normalized_spec": {
+          "arm_id": "error-verified",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "3d8ae60ea3cb2174c7ff75a73847ab4c38fe5ccb1101d2209fb2c47161d563b9"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "8af68c4aa878e87d1c50d8177458afcf494044df838ebc14f318e1ebc5ccbaf1",
+        "logical_cell_sha256": "4b5f43a4cb752fde2388c4dc42bb0a720449cc2df50616429246210ea5678402",
+        "normalized_spec": {
+          "arm_id": "error-verified",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--error-verified--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "2e19df1b2e5728ae6d5722dbcf3e99fa7794a3ba78344cf9206c6217e6649e65"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--error-verified--none--stage0-selected--s617806385",
+        "child_spec_sha256": "0065a6e2c2c78f1d149d258f4b375ecfa9086fce5833be83f7abfcfdc3b53e08",
+        "logical_cell_sha256": "79abfa0f46d774a14b4c9b19c58572755e8cc835a631f4fbe922177dd7887ac9",
+        "normalized_spec": {
+          "arm_id": "error-verified",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--error-verified--none--stage0-selected--s617806385",
+        "source_spec_sha256": "dc04b2d6f2042a9291e6ec149a9e6720fe266cde89d6cec35cce5c70de1c8d67"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--error-verified--none--stage0-selected--s959809858",
+        "child_spec_sha256": "ff7f4c61d913e09a2fa7099068e90f60aa230292c6383ad6e7942fa057a8e1b8",
+        "logical_cell_sha256": "4a1ef73d80438df6982cb96cd67f21d733587b36a5a601d75508d67e04922cfa",
+        "normalized_spec": {
+          "arm_id": "error-verified",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--error-verified--none--stage0-selected--s959809858",
+        "source_spec_sha256": "83d5031ea832101adc6dba0df4fae06fb4626235e92d7f7d7f92b439b938a69f"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "c7406573942a1503f122f7eb6c54da0e2a49576913e8c33973d33b470b066f17",
+        "logical_cell_sha256": "4cf45cf1b23fc3d65ff550dcf95ef3722e42719278ad8f00fd835d2805dea9dd",
+        "normalized_spec": {
+          "arm_id": "matched-a",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "6bc5f0038fee1e372f604f792a27a9c1fe567f93851b2758c3323628b2a25f57"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "faffb164e86db68aa6d1b02d1d9504148cd67af3d600f6f3202a0b5ea465dcfb",
+        "logical_cell_sha256": "c4f83dd8f6438ba3277926d0a535f758f597d29dd1bb167e4170a52991bac7a5",
+        "normalized_spec": {
+          "arm_id": "matched-a",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "2c309a3b44989a2b63398c29e4333289fceed81aaebc1e94e0ec38966d6c3dfc"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "b58d7b485a97754df83d097c59a2bc3cc8f773d59bb82f751c6e4ae7df980517",
+        "logical_cell_sha256": "23a1c58e42c9bcb0602da14fa37005777944cd52fef767468e8d13a4cfc80103",
+        "normalized_spec": {
+          "arm_id": "matched-a",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--matched-a--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "0b3ef6db7cfc7fb363c0aef87d5bfaff10e4c96088efacd61173a2001a200278"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--matched-a--none--stage0-selected--s617806385",
+        "child_spec_sha256": "080f0f176d6103e435e81573a40ef28a366ac3381393d36e184aea4ac8383df9",
+        "logical_cell_sha256": "ce9ae243fad41b1431203e7ad19bece93e930fa56a3ac5d1d970e00660dae508",
+        "normalized_spec": {
+          "arm_id": "matched-a",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--matched-a--none--stage0-selected--s617806385",
+        "source_spec_sha256": "773d3e5151eb1e5d06bb5fa667ec7c1e7cb7350a6ad675dbd0220b1aef4b28f1"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--matched-a--none--stage0-selected--s959809858",
+        "child_spec_sha256": "ac7384955568100c625f78950cb626e26fe7732346399c86be64cfc934d090b0",
+        "logical_cell_sha256": "f5699fd8a697a3b3ac56653b5f105e9f61f79d41d2745e7121a222a59d7b6b22",
+        "normalized_spec": {
+          "arm_id": "matched-a",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--matched-a--none--stage0-selected--s959809858",
+        "source_spec_sha256": "1a38546d5d533f6f157c1edfefc75883d66aa5091dbed7c4b2cc67c801eed6cc"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "55b304916358bde191eeca417e0afefc55606213f7a57c6c9b6effdf53026812",
+        "logical_cell_sha256": "a3435fd5475119b9769cc2cd5c84ab8cf044e5dad142a10185d3e9cb7c37891e",
+        "normalized_spec": {
+          "arm_id": "matched-b",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "a7bda15e72898e0ff4a5be7bab774bff17b03329dbff85a50da8f2d71a2c84d2"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "eebdbebcab6d784948769889c34435ae5090353cdb9e2edb61f1b51a0469b58b",
+        "logical_cell_sha256": "e6543797ef1e69d33344ed634e04cb345c813c0b032a171a77d129374299036a",
+        "normalized_spec": {
+          "arm_id": "matched-b",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "0e060fe53184454defca65f9c2daec01a812d9d7dc2f3636dff5c9b9f3560b15"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "5620432a4459b91783cb00096cf5e45c76ba7bc10f2ea06db5bd3cc6542ad9f4",
+        "logical_cell_sha256": "7c3110ee5902ddc2ca0ffb30a1c3fd1afc094f6e53574f48bf466a125895538a",
+        "normalized_spec": {
+          "arm_id": "matched-b",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--matched-b--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "e430fbaac1992abe636b4d296047a33e4faed42689660d80cfb72b4267563405"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--matched-b--none--stage0-selected--s617806385",
+        "child_spec_sha256": "4146bd241a2d2b23c7c5e9609c25d872b6c4261fc53bbcad9d45cbce30df6a5c",
+        "logical_cell_sha256": "2c48565aaec4a669bf3c3319d41051d7f4e6f986c4e4c5922af2f0ac13844fe0",
+        "normalized_spec": {
+          "arm_id": "matched-b",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--matched-b--none--stage0-selected--s617806385",
+        "source_spec_sha256": "5e2bab6a1e3699c2acbd6a6eaf9efb38cade061bc1c0ff095e3fe1a52f665a97"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--matched-b--none--stage0-selected--s959809858",
+        "child_spec_sha256": "b61df09dda9d59de02153d1cd551d09f7964f54512c53f7a5832102c7d39c823",
+        "logical_cell_sha256": "16c12dc19dae1be3de831c71ecbe127f9603f3c7115fe761077d4be31dcafc07",
+        "normalized_spec": {
+          "arm_id": "matched-b",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--matched-b--none--stage0-selected--s959809858",
+        "source_spec_sha256": "2f71664c6748e345b72f6f0f52f7cf717f49cfce7100f8bd4076a97f8588d7c5"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1099057501",
+        "child_spec_sha256": "e94f2892de101a89ec40d3af2e5a917534535589345a4592b3cc2a804cd5b530",
+        "logical_cell_sha256": "5adad322bf8e7b91140a6a349075000eb909ef288ebc3dc25c75ef366678f7ec",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "aligned",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1099057501",
+        "source_spec_sha256": "40841c9edc49d61f9ed7d5029cbe9a02e4ca93a97ebc4e7ce6cfe3eb370a7029"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1421875452",
+        "child_spec_sha256": "aa7f2a55947dd824aa967833896dcf26bafbbbb57ed25ba241395673d5a40d6e",
+        "logical_cell_sha256": "759ea9b3e4b1ba48901258f1abfd88ee8ac56f8bafb6b9a5d2e596d06fe4d7e4",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "aligned",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1421875452",
+        "source_spec_sha256": "66df841610dd0a1fa6a46165a135f17c3bef823d52c9add31e47a7142af29ba0"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1769977770",
+        "child_spec_sha256": "324c2b6b15b9d2d215b8875b6934bb7746913635d97ec1e1c5c5313fabf7c6e5",
+        "logical_cell_sha256": "b64a5759c5898eaa7ba076b84c83d1ec44f1ac2c74c1e8abc65cfa2485a42936",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "aligned",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s1769977770",
+        "source_spec_sha256": "16dee82ebd0ca996aebf877539e35730fae05d6502d5b8f61d69e90b370762fa"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s617806385",
+        "child_spec_sha256": "7db097c71b0aa6d56275fc27f4fa987cf196f79b3893f4deb28f5182b92e5feb",
+        "logical_cell_sha256": "333fa0ee7b9f8c43069a432231b2d6f6f532c1160df987c6633fa15a62cc62b0",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "aligned",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s617806385",
+        "source_spec_sha256": "ec0b98f7b14988e6c951471137fa2fda11d1f94596440e29959fcc0b515cbaed"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s959809858",
+        "child_spec_sha256": "a24e12a2927967827bb806e32c90f293233fa0de1892d2484fbdf4c120387fe6",
+        "logical_cell_sha256": "e1fc5c389da6e4adfba651318ccd95c30c94524a9f958c3282553689651bf784",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "aligned",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--aligned--stage0-selected--s959809858",
+        "source_spec_sha256": "e2c457a31d4176cad20d25c897cad441a4151e7c0e29ed969e5fab985dc67fd8"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "a055bf9d011198041792710f77adcc8fdac77641bb19cd6fc1707f182be8a19e",
+        "logical_cell_sha256": "90bd0504eeb01076625a9ffed879ef6ff497940ccc4078c671b3d6d1dc5df055",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "d2d9034fa1c7431a4813de348c4f773e0e9ff513713b92d62b898f812022196c"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "d3abe2055ab2119b88e7b24e22a0c1f2d1504f46d6b34833b9753812e4833372",
+        "logical_cell_sha256": "2f2a9512a65148302e47bd84c32e65a532ad5fa616ee20af4b667424787d0bc0",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "5bafb42b71220de3265d760df162ea0294f9f7497bdd9f30e7925d4dc61d347a"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "2d80203e1536a93a5563792f0fe4e570142ea334de95f662cb2b8544317a936b",
+        "logical_cell_sha256": "b1e41972162df28e451571acebfe73b7730f94f6ecf8450fe9e813d72fd422dc",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "5ae5708a0c1b6ff78b573d37f96774cc6d1b2caf01d38a38fe1cc163439a9b98"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s617806385",
+        "child_spec_sha256": "3dd1c9fab264f3aba9b5fd9ea2a0d194891e425a17ee4406a466f8e26991ed12",
+        "logical_cell_sha256": "27d807499a49156912ecd28e686eb3b0f33d394e8a49029926dac90b38c23c94",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s617806385",
+        "source_spec_sha256": "5f62e70315ad736e6c78178767ca1f38272c1121e36b0085e101655d1d6ef4ab"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s959809858",
+        "child_spec_sha256": "7f5836b4d9ca0096b4fd371573e02f8dc88609f1f3fe9bd1d4df4a87a429be12",
+        "logical_cell_sha256": "2d987b1dc54f14ceabc0cc3a027b765bf5c1eac5e8f0af0d128ae4c65b94db0b",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--none--stage0-selected--s959809858",
+        "source_spec_sha256": "e8b0d468aee7b5b3af1aedb9399e197c877e9fae0179986b9dbb8e8111bca84f"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1099057501",
+        "child_spec_sha256": "6a59ccae9d756f5dcd78a91395b191172e1dfccbd25590c9cdf3e23a910399da",
+        "logical_cell_sha256": "d58aea680846ca94dbd0b5fbdc617699071240845e954999dace43d2b443a45e",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "opposite",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1099057501",
+        "source_spec_sha256": "70a1c0b9e79769084c35cd243ef3aa3cd227c3286501c808c767856b9c1fbe32"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1421875452",
+        "child_spec_sha256": "0c9f418bc11b5fa01f0861b7e3f8d0260fbb52441f04ab3ca6e7fd2765e80708",
+        "logical_cell_sha256": "42cff7c68d51203f51ea9286ababbbff950cf59b477e75b8b45d0aaa631a42ec",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "opposite",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1421875452",
+        "source_spec_sha256": "f28d45aee0c00b472a1d2bfdc21e9261153a07751a7d63ffc551f36ea9532cc3"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1769977770",
+        "child_spec_sha256": "c68e78d293b3710cc297dde889cb02ef51b4a7b1d645c50e7fbdb6844d4663f8",
+        "logical_cell_sha256": "2b6de77c71b6c12552ff0b32cf09c667d3dcea48a701c83e0f5aee1a265ea084",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "opposite",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s1769977770",
+        "source_spec_sha256": "a473196c6e3bce46849df44e9d7298d67bd2c079c7bda069fe3f171622edbfa3"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s617806385",
+        "child_spec_sha256": "9fa52fee61e4a4e9b4f65e09c73f52b24621576221f52b72e7b7ff4af7b246f0",
+        "logical_cell_sha256": "ff4ec34018cab0e7ccd506fe0fb8591d28c2f3b341aa21751da2193988efe2f9",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "opposite",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s617806385",
+        "source_spec_sha256": "d70e6a3e1ac76a7078f60ea1963948ca622cef9e5d1e2978568c12a03cea2400"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s959809858",
+        "child_spec_sha256": "fa3a5f5a54376115fc4fdd8646b1183599a0e3f5527c4ea5bf13357138a6dd2a",
+        "logical_cell_sha256": "de442ab1286ca46f90139096428d016fd7c17f6506b60932338fc111fb2aa69d",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "opposite",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--opposite--stage0-selected--s959809858",
+        "source_spec_sha256": "08dcd779c5ebd3f0a23b11f1f443ed0e83de82ee32637fe49027ff56b7878fd8"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1099057501",
+        "child_spec_sha256": "b79ef6a1cd751bd005d4d524ded636967c11b5bd219832664df7dc711c3617cd",
+        "logical_cell_sha256": "90ef8df5e73960374878441b996aa0cf4b84245f48e673416429286fd54352a7",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "paraphrase",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1099057501",
+        "source_spec_sha256": "68b8f2325ee3cbac588275755176fc98784f014d65e2140797aea53d3a349f03"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1421875452",
+        "child_spec_sha256": "bf2ce49b051738b51f1bc8bf8ca0636b17f545c97ba2d15041d29d6a43424e39",
+        "logical_cell_sha256": "9dbc5728bf22d68bd32b6eb92b180f2e72b896d73967664735e288ffc629de89",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "paraphrase",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1421875452",
+        "source_spec_sha256": "e4ff73549992fe024843ce2edcce65f067c1a577f910b550750c82105eabbeed"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1769977770",
+        "child_spec_sha256": "605bcd37f94015ab452b74cff27befcd257c9388e36a962b5b35572c74ca8799",
+        "logical_cell_sha256": "a18e640136c828876930b8141d7c19c99dffe02794de7599dc0b4fee897c9adf",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "paraphrase",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s1769977770",
+        "source_spec_sha256": "ca64e55c83e86455c4d604cd34b3658f967c06821e3a01d50bea58ba9bf43da3"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s617806385",
+        "child_spec_sha256": "88755d82ed85e4d3659da921d87378e1fe3e28ed0c2b7f2b0f6f47b0d9f8c144",
+        "logical_cell_sha256": "1800d4af5fba8b7f0606445d392a85fddcde99050e014b08bede69c1648a0f62",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "paraphrase",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s617806385",
+        "source_spec_sha256": "afac5322df121a8d37498af141d5bb38828353014d0b6e23633fc174c8aac74b"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s959809858",
+        "child_spec_sha256": "ee032ff5eb2dfd23ff325015ac880835cf44dc3cb3f2cdbe9161cc379bdf4841",
+        "logical_cell_sha256": "d954fd4254283949a33465e6890f7aaaaf464833ec2c344d455ca95ca352c16e",
+        "normalized_spec": {
+          "arm_id": "narrative-content",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "paraphrase",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--narrative-content--paraphrase--stage0-selected--s959809858",
+        "source_spec_sha256": "297018418df82c7fd17c018be6733b20a0d06df4b8ba7ee8a7e2bfb8a978f96b"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "9b0e8c0e4a9ac09aac3dfaf7b7e3457dcac5e9a0e1e7304de8ed0c05fac3766a",
+        "logical_cell_sha256": "dff134af4fa0f6df93cfa65e4b3632370b9e1ff3d552166fcf58e98e44dba59c",
+        "normalized_spec": {
+          "arm_id": "no-memory",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "1e7b1acb4f025bcb319a153fd11a54a56071f52777a8caab0fc754cb72491349"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "7880a5b86142c79e136ee5ee9567ddef1a15114c3df50843f9ec8cb7dc8e70e6",
+        "logical_cell_sha256": "2faf7d0247f2265e036688dfd064c2e865dc841195709d1087933ec0fbfde520",
+        "normalized_spec": {
+          "arm_id": "no-memory",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "0dbd1f5d4aa1b91304d3873ee92d30e8d90e728b56b11e2f8f67aecb2ad86546"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "b9a4d891d9c8c98d9211319d0accc689704f6adb69d23bee4f360ee5cadfb53e",
+        "logical_cell_sha256": "78394bf2af168354cfdb626e5b327282a56c1f639aaf5f0c2031753bfbbdbbe7",
+        "normalized_spec": {
+          "arm_id": "no-memory",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--no-memory--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "1aa85fc7b82fd23b784cce3566a2af0befa8882c8fd2fbf5dd2249bea3aa6f87"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--no-memory--none--stage0-selected--s617806385",
+        "child_spec_sha256": "292514f0d98c24992535cfc4cdd7a17ef8389d8966dde93cc862be13c64b4335",
+        "logical_cell_sha256": "48d5694161b23e25f964818c0aaef180f9594f7b0f2751e4dc429109930d172e",
+        "normalized_spec": {
+          "arm_id": "no-memory",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--no-memory--none--stage0-selected--s617806385",
+        "source_spec_sha256": "951a0c20e936cdb454e53b479ce0eb5bdb7775ad174126a7fc2bc2f259af7648"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--no-memory--none--stage0-selected--s959809858",
+        "child_spec_sha256": "a6dd0d0c1836cc906a4a3b20c068ad6a49c666f4c36f5cc79dd0d05fbfc9389b",
+        "logical_cell_sha256": "e67a72cfcf223f8539e7708ef4dee5677df04cc6476464cd94d9ea1c3efc0066",
+        "normalized_spec": {
+          "arm_id": "no-memory",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--no-memory--none--stage0-selected--s959809858",
+        "source_spec_sha256": "8c332463744d96aff52a356738ec434147583c5eaf1740a958d5069723f98a66"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "cea941f4aac929df42e67613d48d4350592db72bdf0eb439bd7b0a302603fa81",
+        "logical_cell_sha256": "379a9c6ecf81ddeae26dda4c54d593dfca09f5706a8207468f23d7b3af3da08c",
+        "normalized_spec": {
+          "arm_id": "shuffled-episodic",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "63758a704d592970e6b540edd1f786c111e4586dbed20b2c3f79178758231cec"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "ab91fca051028971c4a5ea630de10a634879fc430dd6277ce49d55ac3dd393e8",
+        "logical_cell_sha256": "3d0e8ca30027b5401bbaa89b5e3517b8733a4465ef38e5e6c5903950c6096106",
+        "normalized_spec": {
+          "arm_id": "shuffled-episodic",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "8d88e5fca371c530f0fc1efc7b889069371d2a75c272a8dd5d7f824c45b976b6"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "d573c62669f7af4e5a4175a0c10d0b2a1f5c927d6da729db214897976eeed4ec",
+        "logical_cell_sha256": "ff752889cde2b6f7ca1653009e025f25b6498019aa0bda0a5f10d8101f8f7629",
+        "normalized_spec": {
+          "arm_id": "shuffled-episodic",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "ca103f05ad5c4dbbfbe88835ea1116fc18fe30082b37aff0134ca96854e9cc4f"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s617806385",
+        "child_spec_sha256": "b3d1e9baceb758800d3bc1514000e5a4998af7633f1d61b4891bae5a8239d050",
+        "logical_cell_sha256": "e69c2580aafa06546be244e17743beca529a64f935897e31fa36b961fde3c613",
+        "normalized_spec": {
+          "arm_id": "shuffled-episodic",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s617806385",
+        "source_spec_sha256": "2c243569fdbbe3f74088843b82471e80e71b0d072920fd8087a82f37a55dab59"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s959809858",
+        "child_spec_sha256": "aa88b2bb42ac50b5b17c1710ad39fe2c8d2734df3696da27a634e98e709b6ed5",
+        "logical_cell_sha256": "7111154c7e93419cc9031168e00cfad5988c9da74e51fc1c1297ed39f9790296",
+        "normalized_spec": {
+          "arm_id": "shuffled-episodic",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--shuffled-episodic--none--stage0-selected--s959809858",
+        "source_spec_sha256": "46c904c75b2e51cdec11071091efe5355da07d7c56945aa444fbef24de84b1df"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1099057501",
+        "child_spec_sha256": "c8993c01cc011830885a9fa2a5d808c03ad6f2e3233ab92476d43a208eaf0c6f",
+        "logical_cell_sha256": "33b99b68caf9c9b66f2237ba909a5510cdc656635c7cd1ae85b80fb5fec7ebfd",
+        "normalized_spec": {
+          "arm_id": "wrong-context",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1099057501,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1099057501",
+        "source_spec_sha256": "b7c88e3340e262b742df18c82251275fd8482964c421adf265b3610f1ded28b0"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1421875452",
+        "child_spec_sha256": "e48f7ce031d1c231239105fcbc6478a59a3c15d6927d5512125045769d4283bd",
+        "logical_cell_sha256": "e3c618dcc7ca1f150c8367a9131dbba329a26151035a3414bac7f63366e848c8",
+        "normalized_spec": {
+          "arm_id": "wrong-context",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1421875452,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1421875452",
+        "source_spec_sha256": "ee9596f758b64653cca9bf424834cc652d4be6dfedc089fbbe38e1a1b18ced1f"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1769977770",
+        "child_spec_sha256": "94ba5c64e3f10af7b0c0c97744b78de49c42d303e7702fbf0de862ba3fb8c929",
+        "logical_cell_sha256": "e6261fd3d0837ca88580ba4e41cbbb7ce2fcb29e94bc3fc00f81bf9b767390bb",
+        "normalized_spec": {
+          "arm_id": "wrong-context",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 1769977770,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s1769977770",
+        "source_spec_sha256": "88a8dd52b60652dcfd75daea75fdad3a7fd5badd9247ca79efbd91cac1cafcc0"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s617806385",
+        "child_spec_sha256": "0f57d9d05ba080885d1a808808efb09064c24f88d1fbe997546559d62453a2e5",
+        "logical_cell_sha256": "a46266f1b5c67d73d9b0be7b4850abd6e126e07b08011417c83e709abc5fc9ef",
+        "normalized_spec": {
+          "arm_id": "wrong-context",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 617806385,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s617806385",
+        "source_spec_sha256": "24268d28f97bfc018858b3a882eeb1724e423b3eef4a748d0e62fa7586897b02"
+      },
+      {
+        "child_run_id": "finevo-pilot-v2.11.9--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s959809858",
+        "child_spec_sha256": "993b095fd8cca03d6fc76638f0d5eb975795ef4ddbaaa66cef232cbd37717cce",
+        "logical_cell_sha256": "14da3d49cb323f7dad9ecff6632656e7f09a7fd499d3d3f6044926697c655e21",
+        "normalized_spec": {
+          "arm_id": "wrong-context",
+          "budget_bucket": "normalized-hosted-continuation",
+          "decoding_seed": null,
+          "environment_seed": 959809858,
+          "episode_length": 12,
+          "execution_mode": "checkpoint_continuation",
+          "model_id": "gpt52_main",
+          "narrative_id": "none",
+          "num_agents": 4,
+          "requested_model": "gpt-5.2-2025-12-11",
+          "shock_id": "registered-rate-shock",
+          "stage_id": "experiment-d",
+          "utility_profile_id": "stage0-selected"
+        },
+        "source_run_id": "finevo-pilot-v2.11.5--experiment-d--gpt52_main--wrong-context--none--stage0-selected--s959809858",
+        "source_spec_sha256": "fd5a1912c39ed5babbf3fab5b77ebf8a64426af73d9b689f1477f201fc574ddf"
+      }
+    ],
+    "schema_version": "finevo-pilot-v2.11.9-canonical-cell-mapping-v1"
+  },
+  "contract_id": "finevo-pilot-v2.11.9",
+  "current_runtime_sources": {
+    "bound_data_file_set_sha256": "c6a1782a2395d10cbb8ab9e9d1fbad9ea491ef46866916cacd59b2e777e69b50",
+    "bound_data_files": [
+      {
+        "byte_size": 2889,
+        "file_sha256": "b721e8662b7ae68e6b6df192213c4dc959b7f1b43d7bd5e364a8149585a22f0e",
+        "path": "config.yaml"
+      },
+      {
+        "byte_size": 7429,
+        "file_sha256": "1bc90a92ef8e32f3da6e474f787207b79b1c82cc0b7b13c5ea3bd6cd1439b223",
+        "path": "data/profiles.json"
+      }
+    ],
+    "ci_release_receipt_complete_module_ast_binding": {
+      "normalization_schema_version": "finevo-pilot-v2.11.9-complete-ci-module-ast-cycle-normalization-v1",
+      "normalized_ast_sha256": "3a6834c52dde44b4bd1340735f9661181d65e17516034701b7f796128a4b2515",
+      "replaced_cycle_pins": [
+        "content_sha256",
+        "file_sha256"
+      ],
+      "top_level_node_count": 67
+    },
+    "ci_release_receipt_path": "verified_memory/ci_release_receipt.py",
+    "cycle_avoidance": "pilot_contract.py and ci_release_receipt.py are bound by their complete normalized module ASTs; only the V2.11.9 canonical/source manifest hash-cycle values are replaced by a fixed sentinel",
+    "full_file_binding_set_sha256": "36fe2cf11b77df6926265c92daa7dcba16d297485c36ba128b7cfc41cf4e94aa",
+    "full_file_bindings": [
+      {
+        "byte_size": 854,
+        "file_sha256": "da82d8df870c5609ce40ce907d167aec24ce1fe1411a75dd058a62dd80f6adbb",
+        "path": "ai_economist/foundation/__init__.py"
+      },
+      {
+        "byte_size": 437,
+        "file_sha256": "81a32cde3cbfa835d7067ef3379d8a120add2c890050b1516eaf5be5f1d1ae7a",
+        "path": "ai_economist/foundation/agents/__init__.py"
+      },
+      {
+        "byte_size": 573,
+        "file_sha256": "beb617e247e9fa0180a09028c06afb7f0089de2e018edd27c2d8026565aada7c",
+        "path": "ai_economist/foundation/agents/mobiles.py"
+      },
+      {
+        "byte_size": 1446,
+        "file_sha256": "34171d4ca31cdedf7d89c0056996717a7ac02d092666507a33e9c88d32db7408",
+        "path": "ai_economist/foundation/agents/planners.py"
+      },
+      {
+        "byte_size": 219,
+        "file_sha256": "9f9dc5a638f94cafe4ed0884f4b126686ed767f27b5e9ceec158325bbf0f095b",
+        "path": "ai_economist/foundation/base/__init__.py"
+      },
+      {
+        "byte_size": 20638,
+        "file_sha256": "7d96e2ec75c28571eeb85411bc450895f0684bdc2a06316cfc909a3eea03f9c9",
+        "path": "ai_economist/foundation/base/base_agent.py"
+      },
+      {
+        "byte_size": 17296,
+        "file_sha256": "67a3b6d4dd03cfc986aaab4bb02f1bbcd6f60636b2c8e23bc1df5164afa04eb0",
+        "path": "ai_economist/foundation/base/base_component.py"
+      },
+      {
+        "byte_size": 50100,
+        "file_sha256": "a2461ad1fca77055c2ac07bad1f5075b0f4644087aa3b9d91e34dbff3d2e4031",
+        "path": "ai_economist/foundation/base/base_env.py"
+      },
+      {
+        "byte_size": 3104,
+        "file_sha256": "73f78c1c3a345f38288b2bcdeab826528f310e986b7b0dbd7e2dd44dac90b68d",
+        "path": "ai_economist/foundation/base/registrar.py"
+      },
+      {
+        "byte_size": 18926,
+        "file_sha256": "ad217d3d62a29b93370cf3c7d3d4473aee0bca4912e44b24aa394a0f1c1d9f27",
+        "path": "ai_economist/foundation/base/world.py"
+      },
+      {
+        "byte_size": 605,
+        "file_sha256": "aa624906d95a3939240726e17909d4d61593b85f6a1edd961ad1e4848199c3c4",
+        "path": "ai_economist/foundation/components/__init__.py"
+      },
+      {
+        "byte_size": 8803,
+        "file_sha256": "b499fb10e26a5236ccc560ca8e27161b94f7127a143d30cdca81b92b109087a1",
+        "path": "ai_economist/foundation/components/build.py"
+      },
+      {
+        "byte_size": 25995,
+        "file_sha256": "3092d46f94f213127da3dd45b25eb0e821e6549d89dcef4c8439392488fe71f9",
+        "path": "ai_economist/foundation/components/continuous_double_auction.py"
+      },
+      {
+        "byte_size": 7772,
+        "file_sha256": "e892f99c653ee3d9202ae690a7eeed88adfa9efb74769b1826def713f5d77156",
+        "path": "ai_economist/foundation/components/move.py"
+      },
+      {
+        "byte_size": 49921,
+        "file_sha256": "48d111b707796c2f72ebee0868fc86921d15664d3f388adfb033887287cad20d",
+        "path": "ai_economist/foundation/components/redistribution.py"
+      },
+      {
+        "byte_size": 5353,
+        "file_sha256": "09b7d425164d8de65f20fde180755e120670a962e3fc1c7e2f0e881754a0b093",
+        "path": "ai_economist/foundation/components/simple_consumption.py"
+      },
+      {
+        "byte_size": 8083,
+        "file_sha256": "6993391c0c244d2baf5ff5ba60f5bf8093933a19e34530db27593eeb996fa0dd",
+        "path": "ai_economist/foundation/components/simple_labor.py"
+      },
+      {
+        "byte_size": 3203,
+        "file_sha256": "8fa2e69eb175d277a8b289e79612b818f179bd557c51a6b8a6bd5694525f7082",
+        "path": "ai_economist/foundation/components/simple_saving.py"
+      },
+      {
+        "byte_size": 4581,
+        "file_sha256": "9da9f74df8cc9d6f27b283126b90db17ba251b20b4e6e7d7e32d51333ce17e25",
+        "path": "ai_economist/foundation/components/utils.py"
+      },
+      {
+        "byte_size": 346,
+        "file_sha256": "8bbdd9a1d72c50e21491281b35f945671b0b78c49f22a7d324c279c5a191357b",
+        "path": "ai_economist/foundation/entities/__init__.py"
+      },
+      {
+        "byte_size": 1153,
+        "file_sha256": "f3bb80e10aa2740893490812c5d3d4740c393e2e3b166b61a2a917fb9a40a33f",
+        "path": "ai_economist/foundation/entities/endogenous.py"
+      },
+      {
+        "byte_size": 2964,
+        "file_sha256": "6a40975ff4c1af417c41bca34d8282d21b86fbc43d5338f1916e4dd12ce6408e",
+        "path": "ai_economist/foundation/entities/landmarks.py"
+      },
+      {
+        "byte_size": 2125,
+        "file_sha256": "35fa2e392d94f331d2c19ab11c4a73e7a1273976d8a10871fac297cd32e0212f",
+        "path": "ai_economist/foundation/entities/resources.py"
+      },
+      {
+        "byte_size": 570,
+        "file_sha256": "31cdb213028c2300227947156be1af0ab86dcdc17558a88226edc95c9da983f2",
+        "path": "ai_economist/foundation/scenarios/__init__.py"
+      },
+      {
+        "byte_size": 219,
+        "file_sha256": "9f9dc5a638f94cafe4ed0884f4b126686ed767f27b5e9ceec158325bbf0f095b",
+        "path": "ai_economist/foundation/scenarios/one_step_economy/__init__.py"
+      },
+      {
+        "byte_size": 20094,
+        "file_sha256": "7fcb0b5891a0b0d6c95ce20ef2a4b0094723fc8082c97d04987e45c43ff219ba",
+        "path": "ai_economist/foundation/scenarios/one_step_economy/one_step_economy.py"
+      },
+      {
+        "byte_size": 219,
+        "file_sha256": "9f9dc5a638f94cafe4ed0884f4b126686ed767f27b5e9ceec158325bbf0f095b",
+        "path": "ai_economist/foundation/scenarios/simple_wood_and_stone/__init__.py"
+      },
+      {
+        "byte_size": 44129,
+        "file_sha256": "8417b20544006fbbe05b0ae41aa7f1e8cb824917c30369cd2e03c5e37e267a84",
+        "path": "ai_economist/foundation/scenarios/simple_wood_and_stone/dynamic_layout.py"
+      },
+      {
+        "byte_size": 35391,
+        "file_sha256": "90a3945f0495d4da366a2796f4e97ca74d7afca1276bedbf50d6400cdbf5ca99",
+        "path": "ai_economist/foundation/scenarios/simple_wood_and_stone/layout_from_file.py"
+      },
+      {
+        "byte_size": 219,
+        "file_sha256": "9f9dc5a638f94cafe4ed0884f4b126686ed767f27b5e9ceec158325bbf0f095b",
+        "path": "ai_economist/foundation/scenarios/utils/__init__.py"
+      },
+      {
+        "byte_size": 5248,
+        "file_sha256": "43438f961289502f260c71ab1d6185c6d72dcbb0ef6e7dac5fb488246c09cece",
+        "path": "ai_economist/foundation/scenarios/utils/rewards.py"
+      },
+      {
+        "byte_size": 2604,
+        "file_sha256": "962a466ba2ddf6b0f21044aaf646255aa9db47c2e784bac8d3cff5ec77434291",
+        "path": "ai_economist/foundation/scenarios/utils/social_metrics.py"
+      },
+      {
+        "byte_size": 4644,
+        "file_sha256": "61985199cdf521989e40f2271bd325e2c3ac6ffc5417fd8df6f8587c75e2334b",
+        "path": "ai_economist/foundation/utils.py"
+      },
+      {
+        "byte_size": 115184,
+        "file_sha256": "1598098795aea9465468a792e2777a872f070c6f6b6899da14f9d2c4a6b25255",
+        "path": "llm_providers.py"
+      },
+      {
+        "byte_size": 31121,
+        "file_sha256": "853bdfeac71cc1e388f8635660d1cd04c29496afad3af6f4cf3734196e1c98a0",
+        "path": "run_pilot.py"
+      },
+      {
+        "byte_size": 13941,
+        "file_sha256": "008cf71b6bd8ee971f3a151c327028aed25eb58474a7e969381ba7467e1e1518",
+        "path": "scripts/render_pilot_v2119_contract.py"
+      },
+      {
+        "byte_size": 4142,
+        "file_sha256": "e89bb34072bdae70971e1f9f3e5e0b0c49d50f093f579d3c7172a3c6c73d76ce",
+        "path": "scripts/render_pilot_v2119_source_manifest.py"
+      },
+      {
+        "byte_size": 506,
+        "file_sha256": "05f7eb1119f66556405948ff58348fee660bdcbb76f7f8863e7673a499ba8fb9",
+        "path": "verified_memory/__init__.py"
+      },
+      {
+        "byte_size": 6797,
+        "file_sha256": "c4aee21df195d85ddeefb716584e1e0a354210c038e0c7ab115b3c2a2003ab82",
+        "path": "verified_memory/actions.py"
+      },
+      {
+        "byte_size": 28207,
+        "file_sha256": "80ee9829984c05e0b3746a6ca60686583b7d58f842dde5efe38251cdf70dbe3b",
+        "path": "verified_memory/artifacts.py"
+      },
+      {
+        "byte_size": 20151,
+        "file_sha256": "d1d4859697d844875182eeee333b029a40420bd4703df5497394ecbf84778171",
+        "path": "verified_memory/budget.py"
+      },
+      {
+        "byte_size": 5369,
+        "file_sha256": "0fd82ca5cd24286fbc3a49b90690565e61d5c6a0fbd4b2b6470015b106aca937",
+        "path": "verified_memory/failure_artifacts.py"
+      },
+      {
+        "byte_size": 29124,
+        "file_sha256": "b8398e7d3be380f272e450fa648e15f328e1bb7b8fdbc4bb2a58af63df0db5eb",
+        "path": "verified_memory/foundation_adapter.py"
+      },
+      {
+        "byte_size": 26229,
+        "file_sha256": "8c727d466c9e194da671771aa12b3c189a8cf6b9cc1f125b5fff53b3ef4366e0",
+        "path": "verified_memory/m0_utility.py"
+      },
+      {
+        "byte_size": 39784,
+        "file_sha256": "3a449f0cc0461af75863467ecc01b02d2b9bc1c2a8480ae10597d983e9f227d7",
+        "path": "verified_memory/m1_context.py"
+      },
+      {
+        "byte_size": 36812,
+        "file_sha256": "8408b32a9bfe6c532a414cf3c4a14d89ee79dbe1b95cd9825baf874eeafe4d00",
+        "path": "verified_memory/m2_episodic.py"
+      },
+      {
+        "byte_size": 131618,
+        "file_sha256": "d199fa9a17f7eb256094f638e35276cd2bb936c03be2952997b2ce34806d5a18",
+        "path": "verified_memory/m3_semantic.py"
+      },
+      {
+        "byte_size": 122403,
+        "file_sha256": "1e4e57f85f4e0387bbcc8bab4f71c1714e277ebd786fb722b959eea7546499db",
+        "path": "verified_memory/observed_p95_authority.py"
+      },
+      {
+        "byte_size": 20728,
+        "file_sha256": "0db7b3ba6bd334abb109560cc071c3bd8c5e976dabd3b531d5e6ff2c030dd270",
+        "path": "verified_memory/pilot_amendment.py"
+      },
+      {
+        "byte_size": 49159,
+        "file_sha256": "e135566f8f250564e7024dec9084862854dbe8ee8e55cb7f7441220ec2a9a163",
+        "path": "verified_memory/pilot_analysis.py"
+      },
+      {
+        "byte_size": 34726,
+        "file_sha256": "3321e6b322f490416e5101b4f92be9db5a9d6a53e8bca20d313e98f0540b0196",
+        "path": "verified_memory/pilot_budget.py"
+      },
+      {
+        "byte_size": 22450,
+        "file_sha256": "479c589aef03efa9afe4eb20be27491cd49355809fc96b5b09d50cbec1128f84",
+        "path": "verified_memory/pilot_calibration.py"
+      },
+      {
+        "byte_size": 40567,
+        "file_sha256": "ac2df3d574991abb88aed31fb9bd311d96b58aeaa44bbcf25b996d8ac9b547f1",
+        "path": "verified_memory/pilot_capability.py"
+      },
+      {
+        "byte_size": 184919,
+        "file_sha256": "840f16de941c360133b17f622411236a125593d2de73c33cb14c7863c88b05e3",
+        "path": "verified_memory/pilot_checkpoint.py"
+      },
+      {
+        "byte_size": 69842,
+        "file_sha256": "57ea53e8da3833500f8d9108689e87e380bd37747e86918191540b8261b5e538",
+        "path": "verified_memory/pilot_continuation.py"
+      },
+      {
+        "byte_size": 43056,
+        "file_sha256": "bee75185522b1d0d42d4bcadf794dd8a3d6b86e292166971dee8dde69ecaa390",
+        "path": "verified_memory/pilot_evaluation_amendment.py"
+      },
+      {
+        "byte_size": 353793,
+        "file_sha256": "dee96e210e525d99dbc8c854d0a548955bc289db14cf7b55fe6071072f529779",
+        "path": "verified_memory/pilot_evidence.py"
+      },
+      {
+        "byte_size": 13762,
+        "file_sha256": "d774c7e51952dc738427bfd0b8b2005724b7d8dfdd6eeba3b2545dad34aa6b75",
+        "path": "verified_memory/pilot_interface_gate.py"
+      },
+      {
+        "byte_size": 1163899,
+        "file_sha256": "48084114dc74bebcf295b51421699eb4bdada9a28cc8f2f48f5fe26312e38a72",
+        "path": "verified_memory/pilot_orchestrator.py"
+      },
+      {
+        "byte_size": 26598,
+        "file_sha256": "2478b883fbd78db2c8a3f93b7ea480d37fa40aa51b570ea0563c1efb4dc2f4e2",
+        "path": "verified_memory/pilot_preflight_amendment.py"
+      },
+      {
+        "byte_size": 19468,
+        "file_sha256": "97d8c7a52a83c4e2c508a054b0d8e24e60d4f80cd9c1a871124a35792fbc9dcd",
+        "path": "verified_memory/pilot_provider_catalog.py"
+      },
+      {
+        "byte_size": 26052,
+        "file_sha256": "43573cd0b584b3801d1370bb4301c91d02ae2396939abbf9f843e9a1d6476a63",
+        "path": "verified_memory/pilot_release_attestation.py"
+      },
+      {
+        "byte_size": 11896,
+        "file_sha256": "072648d8ed27ef65073d4f18d5aa837846c62e9a7ce1a3b797ef74a83466a355",
+        "path": "verified_memory/pilot_sensitivity.py"
+      },
+      {
+        "byte_size": 95861,
+        "file_sha256": "1bac84b5bde9a9c37d4c4b79534121cab5447f81b2ca2abdc1c45cf779347c24",
+        "path": "verified_memory/pilot_v2101_parent_import.py"
+      },
+      {
+        "byte_size": 107405,
+        "file_sha256": "de8ef67017a14f67cf5abfe76cb244ea11cae1c76812f7b7355705880b472099",
+        "path": "verified_memory/pilot_v2102_parent_import.py"
+      },
+      {
+        "byte_size": 93793,
+        "file_sha256": "dafb13f1323f896ea6424b14403b4879e1a9f41f66ccfbbb57024bd674609ea5",
+        "path": "verified_memory/pilot_v210_parent_import.py"
+      },
+      {
+        "byte_size": 27479,
+        "file_sha256": "99124749475c65e7d3160f75731f6e20a0acde08629aeb51f83773ce7d35aaf0",
+        "path": "verified_memory/pilot_v2111_bootstrap.py"
+      },
+      {
+        "byte_size": 66688,
+        "file_sha256": "94cc7ee4f12f882574d67bf1e8d5041a5278f424ac23fa1a2c6f5d8f148b171f",
+        "path": "verified_memory/pilot_v2111_gate.py"
+      },
+      {
+        "byte_size": 81673,
+        "file_sha256": "323c2f6240177641c15b9e38cdfa27d475615e2b2309afb5273274e3ccf7e48c",
+        "path": "verified_memory/pilot_v2111_parent_import.py"
+      },
+      {
+        "byte_size": 37993,
+        "file_sha256": "63ff19fa9984c59976234252fca9a7d4de09346a7041c788677d356885049b62",
+        "path": "verified_memory/pilot_v2112_bootstrap.py"
+      },
+      {
+        "byte_size": 49273,
+        "file_sha256": "fbe1328d19742cc9df1d9ebed63cb6820b9082df1bf25cad051729463dcbb172",
+        "path": "verified_memory/pilot_v2112_evidence.py"
+      },
+      {
+        "byte_size": 90576,
+        "file_sha256": "b57e7d25bcbcd44110789afc51f2503351009af1b925fb45b4064fc03a73289b",
+        "path": "verified_memory/pilot_v2112_gate.py"
+      },
+      {
+        "byte_size": 94816,
+        "file_sha256": "4d2c1e1fcc94285af618c9e41f41072f02b3dd4f43968788ac17ea2bacbc59f7",
+        "path": "verified_memory/pilot_v2112_parent_import.py"
+      },
+      {
+        "byte_size": 73254,
+        "file_sha256": "344d98b8e319df73c74066ceb4467f742d29e1d0b358d7c3411baacd1bb839c8",
+        "path": "verified_memory/pilot_v2113_acceptance.py"
+      },
+      {
+        "byte_size": 49340,
+        "file_sha256": "3f322d08fab556214b74047e032b4c15f80fcac3f73bd3f290504cb402135318",
+        "path": "verified_memory/pilot_v2113_gate.py"
+      },
+      {
+        "byte_size": 81287,
+        "file_sha256": "dd6ae120e630ac9bbd9ea6fa2cbb0557b8d0e2b4a3b74d877312ecd818152d42",
+        "path": "verified_memory/pilot_v2113_parent_import.py"
+      },
+      {
+        "byte_size": 75584,
+        "file_sha256": "4483eb70bc33d0ce6591deebc3601ba32bd277ac876d5cf11ff7a48592d4ae85",
+        "path": "verified_memory/pilot_v2114_acceptance.py"
+      },
+      {
+        "byte_size": 49340,
+        "file_sha256": "fb215bd7b4a11bda235fee4e8a9c991b4ef04e0a450443d5704b7d978c1b2fd0",
+        "path": "verified_memory/pilot_v2114_gate.py"
+      },
+      {
+        "byte_size": 107891,
+        "file_sha256": "0af47e46f10ed9a316e02917f9712e3590397355d418ae373b735ae7691cafd2",
+        "path": "verified_memory/pilot_v2114_parent_import.py"
+      },
+      {
+        "byte_size": 76161,
+        "file_sha256": "4a61555487a96f5a289f41000181c7db484cc44039625bb3366407e3b63cbb88",
+        "path": "verified_memory/pilot_v2115_acceptance.py"
+      },
+      {
+        "byte_size": 94566,
+        "file_sha256": "242117d8f28c13f8434badbdb49ba48d649495e0c98c4d90305b0a31aebe6993",
+        "path": "verified_memory/pilot_v2115_evidence.py"
+      },
+      {
+        "byte_size": 49340,
+        "file_sha256": "db1908b3ac1e4220f3962772cd31c09bd91e0bf5a0b28305edcf45cf316dbc4f",
+        "path": "verified_memory/pilot_v2115_gate.py"
+      },
+      {
+        "byte_size": 115239,
+        "file_sha256": "8ff4398dc162214e8e5b81c1830f2921fae2e156b3fc08cb1e259a6fbe168d67",
+        "path": "verified_memory/pilot_v2115_parent_import.py"
+      },
+      {
+        "byte_size": 115553,
+        "file_sha256": "2694069dbe907a8b978084bc3e34ce59d9f174123e84a544b90578c409486c46",
+        "path": "verified_memory/pilot_v2116_continuation.py"
+      },
+      {
+        "byte_size": 150421,
+        "file_sha256": "3e17d5bb990e1e368068c832e8caf9090bb990870cd78963e155aebb4e643c9e",
+        "path": "verified_memory/pilot_v2117_continuation.py"
+      },
+      {
+        "byte_size": 107534,
+        "file_sha256": "506b63ecb4e8f1ce9091f07b50c5518e21cb6ded274b96438a85d72bbaef175a",
+        "path": "verified_memory/pilot_v2118_continuation.py"
+      },
+      {
+        "byte_size": 186527,
+        "file_sha256": "35c0babb92f015e2d0e146a52d72a1387213dde824f68d2908e6a134ad2a34cf",
+        "path": "verified_memory/pilot_v2119_continuation.py"
+      },
+      {
+        "byte_size": 100214,
+        "file_sha256": "773d1bf8f5ae3819b71bb744afd13f9d3c0478bbe2331bf5947df679e55bfa7e",
+        "path": "verified_memory/pilot_v2119_evidence.py"
+      },
+      {
+        "byte_size": 91176,
+        "file_sha256": "89a227634fce5bed07d8b30445775280db029ff9aa244ae8847f9d7549b468b0",
+        "path": "verified_memory/pilot_v211_gate.py"
+      },
+      {
+        "byte_size": 41464,
+        "file_sha256": "b0b6ed14179e0e907b6902e4d35c3887277652cfbe493ca34b1a0def3aa2a65a",
+        "path": "verified_memory/pilot_v211_parent_import.py"
+      },
+      {
+        "byte_size": 22713,
+        "file_sha256": "5b9f89a70a7059091c0199ffa7551cde1599453c3843ff7354633b119b019884",
+        "path": "verified_memory/pilot_v211_projection.py"
+      },
+      {
+        "byte_size": 327871,
+        "file_sha256": "7dda601e3da650d22c929d8f1efff4f7b7a4ca1b080e7795262c9add4e8dc178",
+        "path": "verified_memory/pilot_v24_evidence.py"
+      },
+      {
+        "byte_size": 51210,
+        "file_sha256": "451582b9335d28bfb636fb9ec98f75e0355137f54d6eee84f95e5b91fe01650d",
+        "path": "verified_memory/pilot_v24_parent_import.py"
+      },
+      {
+        "byte_size": 64286,
+        "file_sha256": "e93a6f6fe93c607cf4ea60e0c4d259645c2700a98f713aace9fab1924c112a23",
+        "path": "verified_memory/pilot_v25_parent_import.py"
+      },
+      {
+        "byte_size": 62799,
+        "file_sha256": "ac654e2dde00d1d966192efe0d38b02842cc4610ab2b09da0042868da7017f83",
+        "path": "verified_memory/pilot_v26_parent_import.py"
+      },
+      {
+        "byte_size": 79909,
+        "file_sha256": "6461e82031494f7f0f85c63f63e20c7ad9024917e5abdb86932e5c57b4d7ccc2",
+        "path": "verified_memory/pilot_v27_stage0_import.py"
+      },
+      {
+        "byte_size": 120144,
+        "file_sha256": "aee036a087d12b6fa409cc72c29d5f515b98250f8e4e9bdea42f910632a6d7ac",
+        "path": "verified_memory/pilot_v28_stage0_import.py"
+      },
+      {
+        "byte_size": 24846,
+        "file_sha256": "f8dd5d72f52d49485de1702829f85ce7848b556e0aa59b5a5c617aa399faf021",
+        "path": "verified_memory/pilot_v29_qref_projection.py"
+      },
+      {
+        "byte_size": 97260,
+        "file_sha256": "e15eca803b3a978591d2df6895548d6527e29d5035361063eabff2410cd6622c",
+        "path": "verified_memory/pilot_v29_stage0_import.py"
+      },
+      {
+        "byte_size": 7876,
+        "file_sha256": "c80ee87c5425c5d3797cd824c9de07d10c974a95f875847cac40bffefc9de8c6",
+        "path": "verified_memory/prompts.py"
+      },
+      {
+        "byte_size": 52246,
+        "file_sha256": "3d4ef353705b7a0168de79bd73e0f60e7951fd211e1f337904594f19c6972408",
+        "path": "verified_memory/provider_diagnostics.py"
+      },
+      {
+        "byte_size": 44211,
+        "file_sha256": "7140f160955e27e1262708a361e9954902e60452a9dd4cd0268a9b364bc4bfcd",
+        "path": "verified_memory/replay.py"
+      },
+      {
+        "byte_size": 22675,
+        "file_sha256": "5e065e023a342c19de6c726982722e6098350a2777e17b2802d1936440d2d6f5",
+        "path": "verified_memory/replay_experiment.py"
+      },
+      {
+        "byte_size": 186270,
+        "file_sha256": "306cf08fdf9599f14261822ab9557342e9c4bc36a70b36d1a6aa01e12a84f366",
+        "path": "verified_memory/runner.py"
+      },
+      {
+        "byte_size": 136843,
+        "file_sha256": "e5db8728fca99b21165c18a590d201f50fb3c1781a2aff08097fec0fd5d98530",
+        "path": "verified_memory/runner_artifacts.py"
+      },
+      {
+        "byte_size": 85216,
+        "file_sha256": "c25c177d8d816a3ffc20c0aaaaf450e0bfa55f8140b7d064e84bc7b822054c65",
+        "path": "verified_memory/scientific_release_attestation.py"
+      },
+      {
+        "byte_size": 4862,
+        "file_sha256": "7d99ed935d42e05dbab16a00510f1f3a9ce7f99422cabe8a60f48ee0870e0b0b",
+        "path": "verified_memory/scripted_provider.py"
+      },
+      {
+        "byte_size": 44721,
+        "file_sha256": "33f49d378ce70e6249d09566a760549ea516e7a3ec136a97caf417da2453d1ec",
+        "path": "verified_memory/system.py"
+      }
+    ],
+    "pilot_contract_complete_module_ast_bindings": {
+      "authority": {
+        "normalization_schema_version": "finevo-pilot-v2.11.9-complete-module-ast-cycle-normalization-v1",
+        "normalized_ast_sha256": "5e747040110106583225b1964bb49f9bf45f087de86e8a77ad26f71952780b8d",
+        "replaced_cycle_pins": [],
+        "top_level_node_count": 339
+      },
+      "child": {
+        "normalization_schema_version": "finevo-pilot-v2.11.9-complete-module-ast-cycle-normalization-v1",
+        "normalized_ast_sha256": "1ae62568be4b1f2461e380f15800bff6f20264100d5773b7943cea8b0f4c3a1a",
+        "replaced_cycle_pins": [
+          "PILOT_CONTRACT_V2_11_9_CANONICAL_SHA256",
+          "PILOT_V2_11_9_SOURCE_MANIFEST_CONTENT_SHA256",
+          "PILOT_V2_11_9_SOURCE_MANIFEST_FILE_SHA256"
+        ],
+        "top_level_node_count": 387
+      }
+    },
+    "pilot_contract_path": "verified_memory/pilot_contract.py",
+    "release_python_source_path_set_sha256": "9306bc3b545787d74e40c2796e3bd9d0c59188b85c8537c36f106faea8b5e403",
+    "release_python_source_paths": [
+      "ai_economist/foundation/__init__.py",
+      "ai_economist/foundation/agents/__init__.py",
+      "ai_economist/foundation/agents/mobiles.py",
+      "ai_economist/foundation/agents/planners.py",
+      "ai_economist/foundation/base/__init__.py",
+      "ai_economist/foundation/base/base_agent.py",
+      "ai_economist/foundation/base/base_component.py",
+      "ai_economist/foundation/base/base_env.py",
+      "ai_economist/foundation/base/registrar.py",
+      "ai_economist/foundation/base/world.py",
+      "ai_economist/foundation/components/__init__.py",
+      "ai_economist/foundation/components/build.py",
+      "ai_economist/foundation/components/continuous_double_auction.py",
+      "ai_economist/foundation/components/move.py",
+      "ai_economist/foundation/components/redistribution.py",
+      "ai_economist/foundation/components/simple_consumption.py",
+      "ai_economist/foundation/components/simple_labor.py",
+      "ai_economist/foundation/components/simple_saving.py",
+      "ai_economist/foundation/components/utils.py",
+      "ai_economist/foundation/entities/__init__.py",
+      "ai_economist/foundation/entities/endogenous.py",
+      "ai_economist/foundation/entities/landmarks.py",
+      "ai_economist/foundation/entities/resources.py",
+      "ai_economist/foundation/scenarios/__init__.py",
+      "ai_economist/foundation/scenarios/one_step_economy/__init__.py",
+      "ai_economist/foundation/scenarios/one_step_economy/one_step_economy.py",
+      "ai_economist/foundation/scenarios/simple_wood_and_stone/__init__.py",
+      "ai_economist/foundation/scenarios/simple_wood_and_stone/dynamic_layout.py",
+      "ai_economist/foundation/scenarios/simple_wood_and_stone/layout_from_file.py",
+      "ai_economist/foundation/scenarios/utils/__init__.py",
+      "ai_economist/foundation/scenarios/utils/rewards.py",
+      "ai_economist/foundation/scenarios/utils/social_metrics.py",
+      "ai_economist/foundation/utils.py",
+      "llm_providers.py",
+      "run_pilot.py",
+      "scripts/render_pilot_v2119_contract.py",
+      "scripts/render_pilot_v2119_source_manifest.py",
+      "verified_memory/__init__.py",
+      "verified_memory/actions.py",
+      "verified_memory/artifacts.py",
+      "verified_memory/budget.py",
+      "verified_memory/ci_release_receipt.py",
+      "verified_memory/failure_artifacts.py",
+      "verified_memory/foundation_adapter.py",
+      "verified_memory/m0_utility.py",
+      "verified_memory/m1_context.py",
+      "verified_memory/m2_episodic.py",
+      "verified_memory/m3_semantic.py",
+      "verified_memory/observed_p95_authority.py",
+      "verified_memory/pilot_amendment.py",
+      "verified_memory/pilot_analysis.py",
+      "verified_memory/pilot_budget.py",
+      "verified_memory/pilot_calibration.py",
+      "verified_memory/pilot_capability.py",
+      "verified_memory/pilot_checkpoint.py",
+      "verified_memory/pilot_continuation.py",
+      "verified_memory/pilot_contract.py",
+      "verified_memory/pilot_evaluation_amendment.py",
+      "verified_memory/pilot_evidence.py",
+      "verified_memory/pilot_interface_gate.py",
+      "verified_memory/pilot_orchestrator.py",
+      "verified_memory/pilot_preflight_amendment.py",
+      "verified_memory/pilot_provider_catalog.py",
+      "verified_memory/pilot_release_attestation.py",
+      "verified_memory/pilot_sensitivity.py",
+      "verified_memory/pilot_v2101_parent_import.py",
+      "verified_memory/pilot_v2102_parent_import.py",
+      "verified_memory/pilot_v210_parent_import.py",
+      "verified_memory/pilot_v2111_bootstrap.py",
+      "verified_memory/pilot_v2111_gate.py",
+      "verified_memory/pilot_v2111_parent_import.py",
+      "verified_memory/pilot_v2112_bootstrap.py",
+      "verified_memory/pilot_v2112_evidence.py",
+      "verified_memory/pilot_v2112_gate.py",
+      "verified_memory/pilot_v2112_parent_import.py",
+      "verified_memory/pilot_v2113_acceptance.py",
+      "verified_memory/pilot_v2113_gate.py",
+      "verified_memory/pilot_v2113_parent_import.py",
+      "verified_memory/pilot_v2114_acceptance.py",
+      "verified_memory/pilot_v2114_gate.py",
+      "verified_memory/pilot_v2114_parent_import.py",
+      "verified_memory/pilot_v2115_acceptance.py",
+      "verified_memory/pilot_v2115_evidence.py",
+      "verified_memory/pilot_v2115_gate.py",
+      "verified_memory/pilot_v2115_parent_import.py",
+      "verified_memory/pilot_v2116_continuation.py",
+      "verified_memory/pilot_v2117_continuation.py",
+      "verified_memory/pilot_v2118_continuation.py",
+      "verified_memory/pilot_v2119_continuation.py",
+      "verified_memory/pilot_v2119_evidence.py",
+      "verified_memory/pilot_v211_gate.py",
+      "verified_memory/pilot_v211_parent_import.py",
+      "verified_memory/pilot_v211_projection.py",
+      "verified_memory/pilot_v24_evidence.py",
+      "verified_memory/pilot_v24_parent_import.py",
+      "verified_memory/pilot_v25_parent_import.py",
+      "verified_memory/pilot_v26_parent_import.py",
+      "verified_memory/pilot_v27_stage0_import.py",
+      "verified_memory/pilot_v28_stage0_import.py",
+      "verified_memory/pilot_v29_qref_projection.py",
+      "verified_memory/pilot_v29_stage0_import.py",
+      "verified_memory/prompts.py",
+      "verified_memory/provider_diagnostics.py",
+      "verified_memory/replay.py",
+      "verified_memory/replay_experiment.py",
+      "verified_memory/runner.py",
+      "verified_memory/runner_artifacts.py",
+      "verified_memory/scientific_release_attestation.py",
+      "verified_memory/scripted_provider.py",
+      "verified_memory/system.py"
+    ]
+  },
+  "failed_complete_raw_inventory": {
+    "canonicalization": "json-sort-keys-compact-utf8-v1",
+    "excluded_operational_paths": [],
+    "file_count": 6,
+    "inventory_sha256": "aded9bfbdd3cc8ac1f4d4ce83b23b614528dc3848dcf39f744606e3aed2654ca",
+    "root": "experiment_results/pilot-v2.11.8/raw",
+    "storage_bytes": 221987
+  },
+  "failed_raw_inventory": {
+    "canonicalization": "json-sort-keys-compact-utf8-v1",
+    "excluded_operational_paths": [
+      ".real-stage-execution.lock"
+    ],
+    "file_count": 5,
+    "inventory_sha256": "07919624f2bfaeef1c9c54883f089b543f454de4d3775bb73cdf2f7230427596",
+    "root": "experiment_results/pilot-v2.11.8/raw",
+    "storage_bytes": 221847
+  },
+  "failed_release": {
+    "contract_file_sha256": "c355c1f1fe7eaa3571f4101f2770bd3c9ef8a5fc41553c337439b7aa1148390a",
+    "contract_id": "finevo-pilot-v2.11.8",
+    "contract_sha256": "25d43667520633c5dfa299a693fd4a42736524c2737c2acf6422e2d32f0106c8",
+    "head_commit": "67aa0fcce68fa5ac43b48dd3b81b849112137093",
+    "head_ref": "HEAD",
+    "peeled_commit": "67aa0fcce68fa5ac43b48dd3b81b849112137093",
+    "science_tag": "pilot-v2.11.8-science",
+    "source_manifest_content_sha256": "104b63db289234820aebf14f42808c26cd01d9f8a19029fef793887bfff47cd3",
+    "source_manifest_file_sha256": "acfc9dc6c751e8ab9f314133de856bae7a0a4021c067f693ed8ebff938b230a6",
+    "source_manifest_path": "experiments/pilot_v2_11_8_source_manifest.json",
+    "tag_object": "a5564d374762aed5ea2493706888e2950b6e97fa",
+    "tag_type": "tag"
+  },
+  "failed_terminal_no_go": {
+    "acceptance_receipt_present": false,
+    "budget_ledger": {
+      "current_actual": {
+        "cost_usd": 0.0,
+        "hosted_completions": 0,
+        "storage_bytes": 1772
+      },
+      "event_count": 4,
+      "event_head_sha256": "0262f83823ebbcc13a813cc6415b2377b76630e3f99bb8eb444e642094ed0336",
+      "file_sha256": "893c486213f0f348a230e5b5a0996887d359e17d6b50dc3134cbce662f396df1",
+      "ledger_sha256": "341f2e448e2162895fc7a58870b629dda3ebaaad9add453d26fe031d430dc339",
+      "path": "experiment_results/pilot-v2.11.8/raw/budget_ledger.json"
+    },
+    "contract_file_sha256": "c355c1f1fe7eaa3571f4101f2770bd3c9ef8a5fc41553c337439b7aa1148390a",
+    "contract_id": "finevo-pilot-v2.11.8",
+    "contract_path": "experiments/pilot_v2_11_8.yaml",
+    "contract_sha256": "25d43667520633c5dfa299a693fd4a42736524c2737c2acf6422e2d32f0106c8",
+    "failure_reclassification_forbidden": true,
+    "provider_calls": 0,
+    "provider_construction": false,
+    "raw_inventory": {
+      "canonicalization": "json-sort-keys-compact-utf8-v1",
+      "excluded_operational_paths": [
+        ".real-stage-execution.lock"
+      ],
+      "file_count": 5,
+      "inventory_sha256": "07919624f2bfaeef1c9c54883f089b543f454de4d3775bb73cdf2f7230427596",
+      "root": "experiment_results/pilot-v2.11.8/raw",
+      "storage_bytes": 221847
+    },
+    "release_attestation": {
+      "attestation_sha256": "55fd978e7c2692ac80f138ed3837b0768167c9aced0e5f8ab4a5083d4c53b252",
+      "file_sha256": "839b7168ac365e5ad8e23005697facb312ed077b3be3f938107fe02f709ba0f0",
+      "path": "experiment_results/pilot-v2.11.8/raw/release_attestation.json",
+      "status": "pass"
+    },
+    "resume_forbidden": true,
+    "run_ledger": {
+      "event_count": 89,
+      "event_head_sha256": "99d7a1eafba692773d5eba830489770badaef484780480f813508287f127b97e",
+      "file_sha256": "c9f4b2991428e00c367cde3dd770938ba9e88f87d4b68ae2a6d9f3d69a289628",
+      "ledger_sha256": "ab419bf9db32a9948b3ebac6d1ccd055d6e622e3a28a03ba1aae33f0564b7237",
+      "path": "experiment_results/pilot-v2.11.8/raw/run_ledger.json",
+      "registered_rows": 87,
+      "status_counts": {
+        "integrity-stopped": 87
+      }
+    },
+    "science_commit": "67aa0fcce68fa5ac43b48dd3b81b849112137093",
+    "science_reservations": 0,
+    "science_tag": "pilot-v2.11.8-science",
+    "science_tag_object": "a5564d374762aed5ea2493706888e2950b6e97fa",
+    "scientific_evidence": false,
+    "scientific_launch_input": {
+      "file_sha256": "08d1910ffec80269db0671f84596ca3d84017fdf40c9b967bd835a20b54ed278",
+      "launch_input_sha256": "21b31c327999bf3205d6aadf63707cbd088f2c745e6f65d0368b77c6a52d0af8",
+      "path": "experiment_results/pilot-v2.11.8/raw/scientific_launch_input.json"
+    },
+    "source_manifest_content_sha256": "104b63db289234820aebf14f42808c26cd01d9f8a19029fef793887bfff47cd3",
+    "source_manifest_file_sha256": "acfc9dc6c751e8ab9f314133de856bae7a0a4021c067f693ed8ebff938b230a6",
+    "source_manifest_path": "experiments/pilot_v2_11_8_source_manifest.json",
+    "stage_receipt": {
+      "content_sha256": "8bc3e8fb226273878429d944fe3db40c3002d8c204a51b16c52c8ed29c846e68",
+      "execution_progression_go": false,
+      "failure_cause_type": "PilotV2118ContinuationError",
+      "failure_error_type": "V2118ParentImportIntegrityError",
+      "failure_message": "V2.11.5 acceptance revalidation failed: scientific-dispatch acceptance field 'release' differs from source recomputation",
+      "file_sha256": "66394ac6547c4485a12a96187a4af5a1a5db1185eda07d10ac673c3ba920643f",
+      "go": false,
+      "path": "experiment_results/pilot-v2.11.8/raw/parent-import/stage_receipt.json",
+      "status": "integrity-stopped"
+    }
+  },
+  "historical_release_binding_recovery": {
+    "additional_source_release_required": false,
+    "authority_contract_binding_method": "contract.validate_provenance(authority_commit,authority_tag)",
+    "authority_contract_binding_sha256": "a4808230e8aac15da5eb8bba0b844ed9d36e853ca9a2aafbebe23887a4a21d14",
+    "authority_gate_content_sha256": "19e18c1641ecaf55e48340694e126416ff30f0b39307c66f5335c9c9e9a46abc",
+    "authority_gate_path": "experiment_results/pilot-v2.11.5/raw/long-context-preflight/post_gate_authority.json",
+    "authority_release_contract_id": "finevo-pilot-v2.11.5",
+    "failed_release_contract_id": "finevo-pilot-v2.11.8",
+    "failure_cause_type": "PilotV2118ContinuationError",
+    "failure_error_type": "V2118ParentImportIntegrityError",
+    "failure_message": "V2.11.5 acceptance revalidation failed: scientific-dispatch acceptance field 'release' differs from source recomputation",
+    "provider_calls": 0,
+    "provider_construction": false,
+    "rejected_empty_contract_binding_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "repair_changes_scientific_design": false,
+    "scientific_outcomes_inspected_for_repair": false
+  },
+  "integrity": {
+    "canonicalization": "json-sort-keys-utf8-v1",
+    "content_sha256": "36a790fe5edd6269218d6010046ec9293c3c418d8bc58a4dd5d89a6a70a547d6"
+  },
+  "observation_boundary": {
+    "authority_v2115_a_c_outcomes_are_frozen_external_evidence": true,
+    "authority_v2115_a_c_rows_imported_into_child_ledger": 0,
+    "authority_v2115_scheduled_cells_mapped_to_child": 86,
+    "decoded_completion_reuse": false,
+    "failed_v2118_effect_rows_imported": 0,
+    "failed_v2118_is_terminal_lineage_only": true,
+    "profile_input_file_sha256": "1bc90a92ef8e32f3da6e474f787207b79b1c82cc0b7b13c5ea3bd6cd1439b223",
+    "profile_input_path": "data/profiles.json",
+    "profile_input_regular_non_symlink": true,
+    "provider_calls": 0,
+    "provider_construction": false,
+    "runtime_cwd_bound_to_release_root": true
+  },
+  "release_tag": "pilot-v2.11.9-science",
+  "remaining_science_implementation_equivalence": {
+    "byte_identical_files": [
+      {
+        "byte_size": 2889,
+        "file_sha256": "b721e8662b7ae68e6b6df192213c4dc959b7f1b43d7bd5e364a8149585a22f0e",
+        "path": "config.yaml"
+      },
+      {
+        "byte_size": 115184,
+        "file_sha256": "1598098795aea9465468a792e2777a872f070c6f6b6899da14f9d2c4a6b25255",
+        "path": "llm_providers.py"
+      },
+      {
+        "byte_size": 6797,
+        "file_sha256": "c4aee21df195d85ddeefb716584e1e0a354210c038e0c7ab115b3c2a2003ab82",
+        "path": "verified_memory/actions.py"
+      },
+      {
+        "byte_size": 29124,
+        "file_sha256": "b8398e7d3be380f272e450fa648e15f328e1bb7b8fdbc4bb2a58af63df0db5eb",
+        "path": "verified_memory/foundation_adapter.py"
+      },
+      {
+        "byte_size": 28207,
+        "file_sha256": "80ee9829984c05e0b3746a6ca60686583b7d58f842dde5efe38251cdf70dbe3b",
+        "path": "verified_memory/artifacts.py"
+      },
+      {
+        "byte_size": 20151,
+        "file_sha256": "d1d4859697d844875182eeee333b029a40420bd4703df5497394ecbf84778171",
+        "path": "verified_memory/budget.py"
+      },
+      {
+        "byte_size": 5369,
+        "file_sha256": "0fd82ca5cd24286fbc3a49b90690565e61d5c6a0fbd4b2b6470015b106aca937",
+        "path": "verified_memory/failure_artifacts.py"
+      },
+      {
+        "byte_size": 26229,
+        "file_sha256": "8c727d466c9e194da671771aa12b3c189a8cf6b9cc1f125b5fff53b3ef4366e0",
+        "path": "verified_memory/m0_utility.py"
+      },
+      {
+        "byte_size": 39784,
+        "file_sha256": "3a449f0cc0461af75863467ecc01b02d2b9bc1c2a8480ae10597d983e9f227d7",
+        "path": "verified_memory/m1_context.py"
+      },
+      {
+        "byte_size": 36812,
+        "file_sha256": "8408b32a9bfe6c532a414cf3c4a14d89ee79dbe1b95cd9825baf874eeafe4d00",
+        "path": "verified_memory/m2_episodic.py"
+      },
+      {
+        "byte_size": 131618,
+        "file_sha256": "d199fa9a17f7eb256094f638e35276cd2bb936c03be2952997b2ce34806d5a18",
+        "path": "verified_memory/m3_semantic.py"
+      },
+      {
+        "byte_size": 49159,
+        "file_sha256": "e135566f8f250564e7024dec9084862854dbe8ee8e55cb7f7441220ec2a9a163",
+        "path": "verified_memory/pilot_analysis.py"
+      },
+      {
+        "byte_size": 34726,
+        "file_sha256": "3321e6b322f490416e5101b4f92be9db5a9d6a53e8bca20d313e98f0540b0196",
+        "path": "verified_memory/pilot_budget.py"
+      },
+      {
+        "byte_size": 184919,
+        "file_sha256": "840f16de941c360133b17f622411236a125593d2de73c33cb14c7863c88b05e3",
+        "path": "verified_memory/pilot_checkpoint.py"
+      },
+      {
+        "byte_size": 69842,
+        "file_sha256": "57ea53e8da3833500f8d9108689e87e380bd37747e86918191540b8261b5e538",
+        "path": "verified_memory/pilot_continuation.py"
+      },
+      {
+        "byte_size": 19468,
+        "file_sha256": "97d8c7a52a83c4e2c508a054b0d8e24e60d4f80cd9c1a871124a35792fbc9dcd",
+        "path": "verified_memory/pilot_provider_catalog.py"
+      },
+      {
+        "byte_size": 26052,
+        "file_sha256": "43573cd0b584b3801d1370bb4301c91d02ae2396939abbf9f843e9a1d6476a63",
+        "path": "verified_memory/pilot_release_attestation.py"
+      },
+      {
+        "byte_size": 7876,
+        "file_sha256": "c80ee87c5425c5d3797cd824c9de07d10c974a95f875847cac40bffefc9de8c6",
+        "path": "verified_memory/prompts.py"
+      },
+      {
+        "byte_size": 186270,
+        "file_sha256": "306cf08fdf9599f14261822ab9557342e9c4bc36a70b36d1a6aa01e12a84f366",
+        "path": "verified_memory/runner.py"
+      },
+      {
+        "byte_size": 136843,
+        "file_sha256": "e5db8728fca99b21165c18a590d201f50fb3c1781a2aff08097fec0fd5d98530",
+        "path": "verified_memory/runner_artifacts.py"
+      },
+      {
+        "byte_size": 85216,
+        "file_sha256": "c25c177d8d816a3ffc20c0aaaaf450e0bfa55f8140b7d064e84bc7b822054c65",
+        "path": "verified_memory/scientific_release_attestation.py"
+      },
+      {
+        "byte_size": 4862,
+        "file_sha256": "7d99ed935d42e05dbab16a00510f1f3a9ce7f99422cabe8a60f48ee0870e0b0b",
+        "path": "verified_memory/scripted_provider.py"
+      },
+      {
+        "byte_size": 44721,
+        "file_sha256": "33f49d378ce70e6249d09566a760549ea516e7a3ec136a97caf417da2453d1ec",
+        "path": "verified_memory/system.py"
+      }
+    ],
+    "byte_identical_files_sha256": "936067834ee7f0cde408e5944ade36c3869c7fa671f7846439931363cad690e9",
+    "environment_byte_identical_file_set_sha256": "a3ecdb84d1a43f0bf9afd7f642c37d50228f527d4604278e408d7c27b51c9114",
+    "environment_byte_identical_files": [
+      {
+        "byte_size": 854,
+        "file_sha256": "da82d8df870c5609ce40ce907d167aec24ce1fe1411a75dd058a62dd80f6adbb",
+        "path": "ai_economist/foundation/__init__.py"
+      },
+      {
+        "byte_size": 437,
+        "file_sha256": "81a32cde3cbfa835d7067ef3379d8a120add2c890050b1516eaf5be5f1d1ae7a",
+        "path": "ai_economist/foundation/agents/__init__.py"
+      },
+      {
+        "byte_size": 573,
+        "file_sha256": "beb617e247e9fa0180a09028c06afb7f0089de2e018edd27c2d8026565aada7c",
+        "path": "ai_economist/foundation/agents/mobiles.py"
+      },
+      {
+        "byte_size": 1446,
+        "file_sha256": "34171d4ca31cdedf7d89c0056996717a7ac02d092666507a33e9c88d32db7408",
+        "path": "ai_economist/foundation/agents/planners.py"
+      },
+      {
+        "byte_size": 219,
+        "file_sha256": "9f9dc5a638f94cafe4ed0884f4b126686ed767f27b5e9ceec158325bbf0f095b",
+        "path": "ai_economist/foundation/base/__init__.py"
+      },
+      {
+        "byte_size": 20638,
+        "file_sha256": "7d96e2ec75c28571eeb85411bc450895f0684bdc2a06316cfc909a3eea03f9c9",
+        "path": "ai_economist/foundation/base/base_agent.py"
+      },
+      {
+        "byte_size": 17296,
+        "file_sha256": "67a3b6d4dd03cfc986aaab4bb02f1bbcd6f60636b2c8e23bc1df5164afa04eb0",
+        "path": "ai_economist/foundation/base/base_component.py"
+      },
+      {
+        "byte_size": 50100,
+        "file_sha256": "a2461ad1fca77055c2ac07bad1f5075b0f4644087aa3b9d91e34dbff3d2e4031",
+        "path": "ai_economist/foundation/base/base_env.py"
+      },
+      {
+        "byte_size": 3104,
+        "file_sha256": "73f78c1c3a345f38288b2bcdeab826528f310e986b7b0dbd7e2dd44dac90b68d",
+        "path": "ai_economist/foundation/base/registrar.py"
+      },
+      {
+        "byte_size": 18926,
+        "file_sha256": "ad217d3d62a29b93370cf3c7d3d4473aee0bca4912e44b24aa394a0f1c1d9f27",
+        "path": "ai_economist/foundation/base/world.py"
+      },
+      {
+        "byte_size": 605,
+        "file_sha256": "aa624906d95a3939240726e17909d4d61593b85f6a1edd961ad1e4848199c3c4",
+        "path": "ai_economist/foundation/components/__init__.py"
+      },
+      {
+        "byte_size": 8803,
+        "file_sha256": "b499fb10e26a5236ccc560ca8e27161b94f7127a143d30cdca81b92b109087a1",
+        "path": "ai_economist/foundation/components/build.py"
+      },
+      {
+        "byte_size": 25995,
+        "file_sha256": "3092d46f94f213127da3dd45b25eb0e821e6549d89dcef4c8439392488fe71f9",
+        "path": "ai_economist/foundation/components/continuous_double_auction.py"
+      },
+      {
+        "byte_size": 7772,
+        "file_sha256": "e892f99c653ee3d9202ae690a7eeed88adfa9efb74769b1826def713f5d77156",
+        "path": "ai_economist/foundation/components/move.py"
+      },
+      {
+        "byte_size": 49921,
+        "file_sha256": "48d111b707796c2f72ebee0868fc86921d15664d3f388adfb033887287cad20d",
+        "path": "ai_economist/foundation/components/redistribution.py"
+      },
+      {
+        "byte_size": 5353,
+        "file_sha256": "09b7d425164d8de65f20fde180755e120670a962e3fc1c7e2f0e881754a0b093",
+        "path": "ai_economist/foundation/components/simple_consumption.py"
+      },
+      {
+        "byte_size": 8083,
+        "file_sha256": "6993391c0c244d2baf5ff5ba60f5bf8093933a19e34530db27593eeb996fa0dd",
+        "path": "ai_economist/foundation/components/simple_labor.py"
+      },
+      {
+        "byte_size": 3203,
+        "file_sha256": "8fa2e69eb175d277a8b289e79612b818f179bd557c51a6b8a6bd5694525f7082",
+        "path": "ai_economist/foundation/components/simple_saving.py"
+      },
+      {
+        "byte_size": 4581,
+        "file_sha256": "9da9f74df8cc9d6f27b283126b90db17ba251b20b4e6e7d7e32d51333ce17e25",
+        "path": "ai_economist/foundation/components/utils.py"
+      },
+      {
+        "byte_size": 346,
+        "file_sha256": "8bbdd9a1d72c50e21491281b35f945671b0b78c49f22a7d324c279c5a191357b",
+        "path": "ai_economist/foundation/entities/__init__.py"
+      },
+      {
+        "byte_size": 1153,
+        "file_sha256": "f3bb80e10aa2740893490812c5d3d4740c393e2e3b166b61a2a917fb9a40a33f",
+        "path": "ai_economist/foundation/entities/endogenous.py"
+      },
+      {
+        "byte_size": 2964,
+        "file_sha256": "6a40975ff4c1af417c41bca34d8282d21b86fbc43d5338f1916e4dd12ce6408e",
+        "path": "ai_economist/foundation/entities/landmarks.py"
+      },
+      {
+        "byte_size": 2125,
+        "file_sha256": "35fa2e392d94f331d2c19ab11c4a73e7a1273976d8a10871fac297cd32e0212f",
+        "path": "ai_economist/foundation/entities/resources.py"
+      },
+      {
+        "byte_size": 570,
+        "file_sha256": "31cdb213028c2300227947156be1af0ab86dcdc17558a88226edc95c9da983f2",
+        "path": "ai_economist/foundation/scenarios/__init__.py"
+      },
+      {
+        "byte_size": 219,
+        "file_sha256": "9f9dc5a638f94cafe4ed0884f4b126686ed767f27b5e9ceec158325bbf0f095b",
+        "path": "ai_economist/foundation/scenarios/one_step_economy/__init__.py"
+      },
+      {
+        "byte_size": 20094,
+        "file_sha256": "7fcb0b5891a0b0d6c95ce20ef2a4b0094723fc8082c97d04987e45c43ff219ba",
+        "path": "ai_economist/foundation/scenarios/one_step_economy/one_step_economy.py"
+      },
+      {
+        "byte_size": 219,
+        "file_sha256": "9f9dc5a638f94cafe4ed0884f4b126686ed767f27b5e9ceec158325bbf0f095b",
+        "path": "ai_economist/foundation/scenarios/simple_wood_and_stone/__init__.py"
+      },
+      {
+        "byte_size": 44129,
+        "file_sha256": "8417b20544006fbbe05b0ae41aa7f1e8cb824917c30369cd2e03c5e37e267a84",
+        "path": "ai_economist/foundation/scenarios/simple_wood_and_stone/dynamic_layout.py"
+      },
+      {
+        "byte_size": 35391,
+        "file_sha256": "90a3945f0495d4da366a2796f4e97ca74d7afca1276bedbf50d6400cdbf5ca99",
+        "path": "ai_economist/foundation/scenarios/simple_wood_and_stone/layout_from_file.py"
+      },
+      {
+        "byte_size": 219,
+        "file_sha256": "9f9dc5a638f94cafe4ed0884f4b126686ed767f27b5e9ceec158325bbf0f095b",
+        "path": "ai_economist/foundation/scenarios/utils/__init__.py"
+      },
+      {
+        "byte_size": 5248,
+        "file_sha256": "43438f961289502f260c71ab1d6185c6d72dcbb0ef6e7dac5fb488246c09cece",
+        "path": "ai_economist/foundation/scenarios/utils/rewards.py"
+      },
+      {
+        "byte_size": 2604,
+        "file_sha256": "962a466ba2ddf6b0f21044aaf646255aa9db47c2e784bac8d3cff5ec77434291",
+        "path": "ai_economist/foundation/scenarios/utils/social_metrics.py"
+      },
+      {
+        "byte_size": 4644,
+        "file_sha256": "61985199cdf521989e40f2271bd325e2c3ac6ffc5417fd8df6f8587c75e2334b",
+        "path": "ai_economist/foundation/utils.py"
+      },
+      {
+        "byte_size": 7429,
+        "file_sha256": "1bc90a92ef8e32f3da6e474f787207b79b1c82cc0b7b13c5ea3bd6cd1439b223",
+        "path": "data/profiles.json"
+      }
+    ],
+    "equivalence_claim": "science_core_equal_with_release_binding_recovery_adapter",
+    "experiment_d_normalized_plan_receipts": [
+      {
+        "normalized_plan_sha256": "ca1cf08c31f0abbd66f638026604110dc4fb4d881269bdc61bc23449c06b8276",
+        "seed": 1099057501
+      },
+      {
+        "normalized_plan_sha256": "685d4401014c2bf2358eae785e369274c30cf19561409c571f993f536bcaf5a0",
+        "seed": 1421875452
+      },
+      {
+        "normalized_plan_sha256": "8f01895e3211d822ad5bf282faf9c939d7853fc12b0a18689f8d281cb9261486",
+        "seed": 1769977770
+      },
+      {
+        "normalized_plan_sha256": "4cda0b534fdc0b93d77d43d724d6d36ecdbd5047fb567628a205e346be892eb6",
+        "seed": 959809858
+      },
+      {
+        "normalized_plan_sha256": "0fd8e4050a6498cc980691c5190845e2f26a0c615a786d477d470df628aac8f7",
+        "seed": 617806385
+      }
+    ],
+    "experiment_d_normalized_plan_set_sha256": "41198dbd5b006e656c89a1e22f19ad677c7ca3c15fdc08bcfb27b7c505c3e7ee",
+    "full_runtime_byte_identity_claimed": false,
+    "orchestrator_path": "verified_memory/pilot_orchestrator.py",
+    "policy": "science-core-equal-with-release-binding-recovery-adapter-v1",
+    "unchanged_orchestrator_function_sha256": {
+      "_d_continuation_causal_bindings": "f347f5ed3f89db3624fdc3fa4dc336dff6b0a7f8b1bf2389fd77d7a4c1d797f4",
+      "_d_narrative_causal_bindings": "482709c0b0a8af6cd1f468b2f1041968271d35323fd403bb759afe2fe6ee8bef",
+      "_execute_actor_run": "601ea69eb99fc8a9d9d9c65b7b6255e02a013a1b675cefecf4066127859e2e9d",
+      "_shock_events": "eb5ec603a904772001606172e6c0d01e651f8133f0d9dc8ff04a4a1eb3eaa9f5",
+      "config_for_spec": "099db9099b8687e4c4970305a1b81760457aaf986f8a2f0a244632673052e24e",
+      "projection_from_preflight": "c9b3a90eecdb1253d3e74f92c80275b2aa7adc81f0f77f35ffd79079c1a5f13b",
+      "resolve_utility": "84da6cf85755ca64c87a00e8cd1c08949533b4b568542957a8477fe2a23bb739"
+    },
+    "unchanged_orchestrator_set_sha256": "378a43fba55b698585ae7486b3549edb88170571707ac81103310fa374d8e23b"
+  },
+  "schema_version": "finevo-pilot-v2.11.9-source-manifest-v1"
+}

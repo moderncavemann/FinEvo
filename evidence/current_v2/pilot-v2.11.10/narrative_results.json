@@ -1,0 +1,14 @@
+{
+  "claim_boundary": "controlled semantic response only; no real-news understanding claim",
+  "contract_sha256": "76a03b7781b1bea317855010d9a3b34b49fcfba3f27cc344954daf19abcd2b1f",
+  "gate": {
+    "claim_boundary": "no controlled semantic-response claim; never claim real-news understanding",
+    "reasons": [
+      "no complete sealed narrative checkpoint sets"
+    ],
+    "scientific_evidence_complete": false,
+    "semantic_response": false,
+    "status": "no-go"
+  },
+  "schema_version": "finevo-pilot-v2.11.10-evidence-package-v1"
+}

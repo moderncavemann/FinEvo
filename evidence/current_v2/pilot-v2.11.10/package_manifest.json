@@ -1,0 +1,29 @@
+{
+  "all_preregistered_claims_supported": false,
+  "contract_id": "finevo-pilot-v2.11.10",
+  "contract_sha256": "76a03b7781b1bea317855010d9a3b34b49fcfba3f27cc344954daf19abcd2b1f",
+  "failed_lineage_rows": 87,
+  "failed_lineage_rows_imported": 0,
+  "logical_denominator": 136,
+  "published_files": [
+    "aggregate.csv",
+    "aggregate.json",
+    "claim_metric_artifact.json",
+    "contract/pilot_v2_11_10.yaml",
+    "contract/pilot_v2_11_10_source_manifest.json",
+    "contract/pilot_v2_11_5.yaml",
+    "contract/pilot_v2_11_5_source_manifest.json",
+    "contract/pilot_v2_11_9.yaml",
+    "contract/pilot_v2_11_9_source_manifest.json",
+    "failed_release_lineage.json",
+    "failure_ledger.json",
+    "method_differences_scaffold.json",
+    "model_capability_failures.json",
+    "narrative_results.json",
+    "release_controls.json",
+    "reviewer_report.md"
+  ],
+  "raw_provider_calls_during_publication": 0,
+  "schema_version": "finevo-pilot-v2.11.10-evidence-package-v1",
+  "terminal_evidence_complete": true
+}
