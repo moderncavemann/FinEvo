@@ -358,7 +358,13 @@ def test_publication_scan_rejects_absolute_paths_and_secret_shapes() -> None:
         labor._scan_publication_bytes({"bad.json": b'{"path":"/Users/example/raw"}'})
     with pytest.raises(labor.LaborThresholdDiagnosticError, match="secret leaked"):
         labor._scan_publication_bytes(
-            {"bad.json": b'{"api_key":"sk-examplecredential123456789"}'}
+            {
+                "bad.json": (
+                    b'{"api_key":"'
+                    + b"sk-"
+                    + b'examplecredential123456789"}'
+                )
+            }
         )
 
 
