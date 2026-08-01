@@ -1019,7 +1019,35 @@ def test_v2115_missing_c_sensitivity_gets_diagnostic_replay_but_stays_no_go(
     assert control["pass"] is False
     assert control["infrastructure_no_go"] is True
     assert control["diagnostic_replay_status"] == "complete"
+    assert control["diagnostic_only"] is True
+    assert control["diagnostic_stage_authoritative"] is False
     assert control["stage_authoritative"] is True
+
+    report = evidence._report(
+        contract,
+        denominator={"status_counts": {"complete": 25}},
+        gates={
+            name: _no_go_gate(name)
+            for name in (
+                "experiment_a",
+                "experiment_c",
+                "experiment_d",
+                "narrative",
+            )
+        },
+        capability={},
+        cross_model={},
+        release_controls={
+            "experiment_c_sensitivity": control,
+            "science_source": {},
+            "publisher": {},
+            "post_gate": {},
+            "budget": {},
+        },
+    )
+    assert '"publication_time_replay_diagnostic_only": true' in report
+    assert '"publication_time_replay_stage_authoritative": false' in report
+    assert '"diagnostic_only": false' not in report
 
     supported = {
         "status": "supported",

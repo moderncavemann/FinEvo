@@ -1359,6 +1359,12 @@ def _validated_v2115_experiment_c_sensitivity(
         {
             "diagnostic_replay_available": True,
             "diagnostic_replay_status": "complete",
+            # The source-stage control above remains authoritative and absent,
+            # while the newly generated replay is explicitly diagnostic-only.
+            # Keep both scopes visible so downstream prose cannot accidentally
+            # label the publication-time replay as non-diagnostic.
+            "diagnostic_only": True,
+            "diagnostic_stage_authoritative": False,
             "diagnostic_content_sha256": diagnostic["integrity"][
                 "content_sha256"
             ],
@@ -1866,6 +1872,28 @@ def _report(
         "experiment_c_sensitivity",
         {"pass": False, "available": False},
     )
+    original_c_stage = sensitivity_control.get("original_stage_no_go", {})
+    sensitivity_summary = {
+        "source_control_available": sensitivity_control.get("available", False),
+        "source_stage_status": original_c_stage.get("status"),
+        "source_stage_go": original_c_stage.get("go"),
+        "publication_time_replay_available": sensitivity_control.get(
+            "diagnostic_replay_available", False
+        ),
+        "publication_time_replay_status": sensitivity_control.get(
+            "diagnostic_replay_status"
+        ),
+        "publication_time_replay_diagnostic_only": sensitivity_control.get(
+            "diagnostic_only", False
+        ),
+        "publication_time_replay_stage_authoritative": sensitivity_control.get(
+            "diagnostic_stage_authoritative"
+        ),
+        "scientific_evidence": False,
+        "provider_calls": sensitivity_control.get("provider_calls", 0),
+        "source_run_count": sensitivity_control.get("diagnostic_source_run_count"),
+        "grid_cell_count": sensitivity_control.get("diagnostic_grid_cell_count"),
+    }
     lines = [
         "# FinEvo V2.11.5 preregistered mechanism micro-pilot",
         "",
@@ -1891,8 +1919,8 @@ def _report(
         [
             "",
             (
-                "- Experiment C sensitivity control: "
-                f"`{json.dumps(sensitivity_control, sort_keys=True)}`"
+                "- Experiment C sensitivity boundary: "
+                f"`{json.dumps(sensitivity_summary, sort_keys=True)}`"
             ),
             (
                 "- The source Experiment C receipt remains authoritative as "
