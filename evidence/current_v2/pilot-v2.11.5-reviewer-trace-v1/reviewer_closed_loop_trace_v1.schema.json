@@ -1,0 +1,728 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finevo.local/schemas/reviewer_closed_loop_trace_v1.schema.json",
+  "title": "FinEvo V2.11.5 deterministic reviewer closed-loop trace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_id",
+    "status",
+    "publication_provider_calls",
+    "selection_policy",
+    "evidence_scope",
+    "provenance",
+    "source_files",
+    "source_records",
+    "trace",
+    "failure_reason",
+    "link_checks",
+    "claim_boundary",
+    "integrity"
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "git_object": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "string_array": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "source_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "relative_path",
+        "file_sha256",
+        "binding_kind"
+      ],
+      "properties": {
+        "source_id": {"type": "string", "minLength": 1},
+        "relative_path": {"type": "string", "minLength": 1},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "binding_kind": {
+          "enum": [
+            "frozen-hardcoded-file-hash",
+            "frozen-hardcoded-file-and-content-hash",
+            "stage-receipt-and-hardcoded-file-hash",
+            "selected-run-manifest"
+          ]
+        },
+        "line_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "source_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "line_number",
+        "selector",
+        "raw_line_sha256",
+        "native_record_id",
+        "native_record_hash",
+        "copied_to"
+      ],
+      "properties": {
+        "source_id": {"type": "string", "minLength": 1},
+        "line_number": {"type": "integer", "minimum": 1},
+        "selector": {"type": "object"},
+        "raw_line_sha256": {"$ref": "#/$defs/sha256"},
+        "native_record_id": {"type": ["string", "null"]},
+        "native_record_hash": {
+          "oneOf": [
+            {"$ref": "#/$defs/sha256"},
+            {"type": "null"}
+          ]
+        },
+        "copied_to": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "pattern": "^/trace/"}
+        }
+      }
+    },
+    "selection_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "selection_timing",
+        "preregistered",
+        "human_prior_case_awareness",
+        "outcome_fields_used_by_selector",
+        "stage_rule",
+        "model_rule",
+        "arm_rule",
+        "narrative_rule",
+        "utility_rule",
+        "seed_rule",
+        "agent_rule",
+        "decision_t_rule",
+        "next_t_rule",
+        "fallback_policy",
+        "contract_pointers",
+        "excluded_selection_fields",
+        "selected_coordinates",
+        "policy_sha256"
+      ],
+      "properties": {
+        "policy_id": {
+          "const": "finevo-contract-indexed-first-recovery-trace-v1"
+        },
+        "selection_timing": {"const": "publication-time-post-seal"},
+        "preregistered": {"const": false},
+        "human_prior_case_awareness": {"const": true},
+        "outcome_fields_used_by_selector": {"const": false},
+        "stage_rule": {"const": "experiment-a"},
+        "model_rule": {"const": "sole-primary-model-in-experiment-a"},
+        "arm_rule": {"const": "full-mechanism-arm"},
+        "narrative_rule": {"const": "none"},
+        "utility_rule": {"const": "stage0-selected"},
+        "seed_rule": {"const": "first-contract-main-seed"},
+        "agent_rule": {"const": "minimum-agent-id"},
+        "decision_t_rule": {
+          "const": "start-of-first-registered-recovery-interval"
+        },
+        "next_t_rule": {"const": "decision-t-plus-one"},
+        "fallback_policy": {"const": "none-emit-unavailable"},
+        "contract_pointers": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stage", "seed", "recovery"],
+          "properties": {
+            "stage": {"type": "string"},
+            "seed": {"type": "string"},
+            "recovery": {"type": "string"}
+          }
+        },
+        "excluded_selection_fields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        },
+        "selected_coordinates": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stage_id",
+            "model_id",
+            "arm_id",
+            "narrative_id",
+            "utility_profile_id",
+            "seed",
+            "agent_id",
+            "decision_t",
+            "outcome_t",
+            "next_decision_t",
+            "run_id"
+          ],
+          "properties": {
+            "stage_id": {"const": "experiment-a"},
+            "model_id": {"const": "gpt52_main"},
+            "arm_id": {"const": "full"},
+            "narrative_id": {"const": "none"},
+            "utility_profile_id": {"const": "stage0-selected"},
+            "seed": {"type": "integer"},
+            "agent_id": {"type": "integer", "minimum": 0},
+            "decision_t": {"type": "integer", "minimum": 0},
+            "outcome_t": {"type": "integer", "minimum": 1},
+            "next_decision_t": {"type": "integer", "minimum": 1},
+            "run_id": {"type": "string", "minLength": 1}
+          }
+        },
+        "policy_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "evidence_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "diagnostic_only",
+        "descriptive_only",
+        "effectiveness_evidence",
+        "frozen_source_provider_call_scope",
+        "publication_provider_calls",
+        "stage_authoritative"
+      ],
+      "properties": {
+        "diagnostic_only": {"const": true},
+        "descriptive_only": {"const": true},
+        "effectiveness_evidence": {"const": false},
+        "frozen_source_provider_call_scope": {
+          "const": "historical-observations-read-from-sealed-logs"
+        },
+        "publication_provider_calls": {"const": 0},
+        "stage_authoritative": {"const": false}
+      }
+    },
+    "macro_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timestamp",
+        "price",
+        "monthly_inflation",
+        "average_wealth",
+        "low_labor_rate"
+      ],
+      "properties": {
+        "timestamp": {"type": "integer"},
+        "price": {"type": "number"},
+        "monthly_inflation": {"type": "number"},
+        "average_wealth": {"type": "number"},
+        "low_labor_rate": {"type": "number"}
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "context_id",
+        "context_hash",
+        "source_hash",
+        "feature_schema_version",
+        "history_start",
+        "observation_count",
+        "observed_through",
+        "prompt_summary",
+        "context_to_prompt",
+        "context_to_retrieval"
+      ],
+      "properties": {
+        "context_id": {"type": "string"},
+        "context_hash": {"$ref": "#/$defs/sha256"},
+        "source_hash": {"$ref": "#/$defs/sha256"},
+        "feature_schema_version": {"type": "string"},
+        "history_start": {"type": "integer"},
+        "observation_count": {"type": "integer", "minimum": 1},
+        "observed_through": {"type": "integer"},
+        "prompt_summary": {"type": "string"},
+        "context_to_prompt": {"type": "boolean"},
+        "context_to_retrieval": {"type": "boolean"}
+      }
+    },
+    "retrieval_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rank",
+        "episode_id",
+        "score",
+        "context_similarity",
+        "state_similarity",
+        "recency",
+        "importance"
+      ],
+      "properties": {
+        "rank": {"type": "integer", "minimum": 1},
+        "episode_id": {"type": "string"},
+        "score": {"type": "number"},
+        "context_similarity": {"type": "number"},
+        "state_similarity": {"type": "number"},
+        "recency": {"type": "number"},
+        "importance": {"type": "number"}
+      }
+    },
+    "actor_visible": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protected_context_text",
+        "protected_context_hash",
+        "memory_text",
+        "context_packet_hash",
+        "memory_hash",
+        "environment_state_hash",
+        "base_prompt_hash",
+        "full_prompt_hash"
+      ],
+      "properties": {
+        "protected_context_text": {"type": "string"},
+        "protected_context_hash": {"$ref": "#/$defs/sha256"},
+        "memory_text": {"type": "string"},
+        "context_packet_hash": {"$ref": "#/$defs/sha256"},
+        "memory_hash": {"$ref": "#/$defs/sha256"},
+        "environment_state_hash": {"$ref": "#/$defs/sha256"},
+        "base_prompt_hash": {"$ref": "#/$defs/sha256"},
+        "full_prompt_hash": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "provider_call": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "request_profile_id",
+        "requested_model",
+        "served_snapshot",
+        "response_model",
+        "response_provider",
+        "response_route",
+        "attempts",
+        "response_completed",
+        "output_disposition",
+        "parse_mode",
+        "prompt_hash",
+        "raw_output_hash",
+        "seed_dispatch",
+        "request_seed"
+      ],
+      "properties": {
+        "provider": {"type": "string"},
+        "request_profile_id": {"type": "string"},
+        "requested_model": {"type": "string"},
+        "served_snapshot": {"type": "string"},
+        "response_model": {"type": "string"},
+        "response_provider": {"type": "string"},
+        "response_route": {"type": "string"},
+        "attempts": {"type": "integer", "minimum": 0},
+        "response_completed": {"type": "boolean"},
+        "output_disposition": {"type": "string"},
+        "parse_mode": {"type": "string"},
+        "prompt_hash": {"$ref": "#/$defs/sha256"},
+        "raw_output_hash": {"$ref": "#/$defs/sha256"},
+        "seed_dispatch": {},
+        "request_seed": {}
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proposed_work_fraction",
+        "proposed_consumption_fraction",
+        "executed_labor_hours",
+        "executed_consumption_rate",
+        "labor_action_index",
+        "consumption_action_index",
+        "clipped",
+        "repair_attempts",
+        "reflection"
+      ],
+      "properties": {
+        "proposed_work_fraction": {"type": "number"},
+        "proposed_consumption_fraction": {"type": "number"},
+        "executed_labor_hours": {"type": "number"},
+        "executed_consumption_rate": {"type": "number"},
+        "labor_action_index": {"type": "integer"},
+        "consumption_action_index": {"type": "integer"},
+        "clipped": {"type": "boolean"},
+        "repair_attempts": {"type": "integer", "minimum": 0},
+        "reflection": {"type": "string"}
+      }
+    },
+    "rule_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "timestamp",
+        "event_type",
+        "rule_id",
+        "candidate_id",
+        "episode_ids",
+        "from_status",
+        "to_status",
+        "reason",
+        "metrics",
+        "provenance"
+      ],
+      "properties": {
+        "event_id": {"type": "string"},
+        "timestamp": {"type": "integer"},
+        "event_type": {"type": "string"},
+        "rule_id": {"type": "string"},
+        "candidate_id": {"type": ["string", "null"]},
+        "episode_ids": {"$ref": "#/$defs/string_array"},
+        "from_status": {"type": ["string", "null"]},
+        "to_status": {"type": ["string", "null"]},
+        "reason": {"type": "string"},
+        "metrics": {"type": "object"},
+        "provenance": {"type": "object"}
+      }
+    },
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "macro_before",
+        "shock",
+        "focal_state_before",
+        "context",
+        "retrieval",
+        "actor_visible",
+        "frozen_source_provider_call",
+        "action",
+        "outcome",
+        "focal_state_after",
+        "macro_after",
+        "memory_update",
+        "next_decision"
+      ],
+      "properties": {
+        "identity": {"type": "object"},
+        "macro_before": {"$ref": "#/$defs/macro_state"},
+        "shock": {"type": "object"},
+        "focal_state_before": {"type": "object"},
+        "context": {"$ref": "#/$defs/context"},
+        "retrieval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["k", "items", "selected_rules"],
+          "properties": {
+            "k": {"type": "integer", "minimum": 1},
+            "items": {
+              "type": "array",
+              "items": {"$ref": "#/$defs/retrieval_item"}
+            },
+            "selected_rules": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "object"}
+            }
+          }
+        },
+        "actor_visible": {"$ref": "#/$defs/actor_visible"},
+        "frozen_source_provider_call": {"$ref": "#/$defs/provider_call"},
+        "action": {"$ref": "#/$defs/action"},
+        "outcome": {"type": "object"},
+        "focal_state_after": {"type": "object"},
+        "macro_after": {"$ref": "#/$defs/macro_state"},
+        "memory_update": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ingested_episode_id", "verifier_recomputation", "events"],
+          "properties": {
+            "ingested_episode_id": {"type": "string"},
+            "verifier_recomputation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scope_matches",
+                "condition_matches",
+                "guidance_compliant",
+                "guidance_observed_value",
+                "outcome_metric",
+                "outcome_observed_value",
+                "outcome_passed",
+                "classification"
+              ],
+              "properties": {
+                "scope_matches": {"const": true},
+                "condition_matches": {"const": true},
+                "guidance_compliant": {"const": true},
+                "guidance_observed_value": {"type": "number"},
+                "outcome_metric": {"type": "string"},
+                "outcome_observed_value": {"type": "number"},
+                "outcome_passed": {"const": false},
+                "classification": {"const": "harmful_compliance"}
+              }
+            },
+            "events": {
+              "type": "array",
+              "minItems": 2,
+              "items": {"$ref": "#/$defs/rule_event"}
+            }
+          }
+        },
+        "next_decision": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "decision_t",
+            "context",
+            "state_continuity_verified",
+            "retrieval_items",
+            "prior_episode_rank",
+            "selected_rule_ids",
+            "actor_visible",
+            "frozen_source_provider_call",
+            "action"
+          ],
+          "properties": {
+            "decision_t": {"type": "integer"},
+            "context": {"$ref": "#/$defs/context"},
+            "state_continuity_verified": {"const": true},
+            "retrieval_items": {
+              "type": "array",
+              "items": {"$ref": "#/$defs/retrieval_item"}
+            },
+            "prior_episode_rank": {"type": "integer", "minimum": 1},
+            "selected_rule_ids": {"$ref": "#/$defs/string_array"},
+            "actor_visible": {"$ref": "#/$defs/actor_visible"},
+            "frozen_source_provider_call": {"$ref": "#/$defs/provider_call"},
+            "action": {"$ref": "#/$defs/action"}
+          }
+        }
+      }
+    },
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selection_not_preregistered",
+        "human_prior_case_awareness_disclosed",
+        "single_observational_trace",
+        "no_causal_attribution",
+        "not_representative",
+        "stage_decision_unchanged",
+        "allowed",
+        "forbidden"
+      ],
+      "properties": {
+        "selection_not_preregistered": {"const": true},
+        "human_prior_case_awareness_disclosed": {"const": true},
+        "single_observational_trace": {"const": true},
+        "no_causal_attribution": {"const": true},
+        "not_representative": {"const": true},
+        "stage_decision_unchanged": {"const": true},
+        "allowed": {"$ref": "#/$defs/string_array"},
+        "forbidden": {"$ref": "#/$defs/string_array"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_id",
+        "contract_file_sha256",
+        "contract_canonical_sha256",
+        "science_source",
+        "publisher"
+      ],
+      "properties": {
+        "contract_id": {"const": "finevo-pilot-v2.11.5"},
+        "contract_file_sha256": {"$ref": "#/$defs/sha256"},
+        "contract_canonical_sha256": {"$ref": "#/$defs/sha256"},
+        "science_source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_id",
+            "git_tag",
+            "tag_object",
+            "resolved_git_commit",
+            "detached_head",
+            "tracked_worktree_clean"
+          ],
+          "properties": {
+            "source_id": {"const": "sealed-science:pilot-v2.11.5-science"},
+            "git_tag": {"const": "pilot-v2.11.5-science"},
+            "tag_object": {"$ref": "#/$defs/git_object"},
+            "resolved_git_commit": {"$ref": "#/$defs/git_object"},
+            "detached_head": {"const": true},
+            "tracked_worktree_clean": {"const": true}
+          }
+        },
+        "publisher": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "publisher_id",
+            "git_commit",
+            "tracked_worktree_clean",
+            "implementation_base_commit",
+            "required_tracked_head_blobs",
+            "publication_provider_calls"
+          ],
+          "properties": {
+            "publisher_id": {"const": "publication-consumer:reviewer-trace-v1"},
+            "git_commit": {"$ref": "#/$defs/git_object"},
+            "tracked_worktree_clean": {"const": true},
+            "implementation_base_commit": {"$ref": "#/$defs/git_object"},
+            "required_tracked_head_blobs": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {"$ref": "#/$defs/git_object"}
+            },
+            "publication_provider_calls": {"const": 0}
+          }
+        },
+        "run_id": {"type": "string"},
+        "stage_status": {"const": "complete-with-no-go"},
+        "stage_go": {"const": false},
+        "stage_scientific_matrix_complete": {"const": false},
+        "stage_denominator_terminal": {"const": true},
+        "stage_registered_runs": {"const": 20},
+        "stage_complete_runs": {"const": 17},
+        "stage_failed_runs": {"const": 3},
+        "selected_run_complete": {"const": true},
+        "selected_run_validation_status": {"const": "pass"},
+        "selected_run_scientific_evidence": {"const": true},
+        "selected_run_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "central_loader_validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "budget_snapshot_sha256",
+            "config_sha256",
+            "record_counts",
+            "records_sha256",
+            "result_complete",
+            "run_id",
+            "runner_schema_version",
+            "summary_sha256",
+            "validation_status_sha256"
+          ],
+          "properties": {
+            "budget_snapshot_sha256": {"$ref": "#/$defs/sha256"},
+            "config_sha256": {"$ref": "#/$defs/sha256"},
+            "record_counts": {
+              "type": "object",
+              "additionalProperties": {"type": "integer", "minimum": 0}
+            },
+            "records_sha256": {"$ref": "#/$defs/sha256"},
+            "result_complete": {"const": true},
+            "run_id": {"type": "string"},
+            "runner_schema_version": {"const": "verified-simulation-runner-v3"},
+            "summary_sha256": {"$ref": "#/$defs/sha256"},
+            "validation_status_sha256": {"$ref": "#/$defs/sha256"}
+          }
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalization", "content_sha256"],
+      "properties": {
+        "canonicalization": {"const": "json-sort-keys-utf8-v1"},
+        "content_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {"const": "finevo-reviewer-closed-loop-trace-v1"},
+    "artifact_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["complete", "unavailable"]},
+    "publication_provider_calls": {
+      "const": 0,
+      "description": "New provider calls made by the offline publication builder. Historical provider records copied from the sealed run are stored separately under frozen_source_provider_call."
+    },
+    "selection_policy": {"$ref": "#/$defs/selection_policy"},
+    "evidence_scope": {"$ref": "#/$defs/evidence_scope"},
+    "provenance": {"$ref": "#/$defs/provenance"},
+    "source_files": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/source_file"}
+    },
+    "source_records": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/source_record"}
+    },
+    "trace": {
+      "oneOf": [
+        {"$ref": "#/$defs/trace"},
+        {"type": "null"}
+      ]
+    },
+    "failure_reason": {"type": ["string", "null"]},
+    "link_checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["all_pass", "checks"],
+      "properties": {
+        "all_pass": {"type": "boolean"},
+        "checks": {
+          "type": "object",
+          "additionalProperties": {"type": "boolean"}
+        }
+      }
+    },
+    "claim_boundary": {"$ref": "#/$defs/claim_boundary"},
+    "integrity": {"$ref": "#/$defs/integrity"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "complete"}}},
+      "then": {
+        "properties": {
+          "trace": {"$ref": "#/$defs/trace"},
+          "failure_reason": {"type": "null"},
+          "source_files": {"minItems": 17},
+          "source_records": {"minItems": 23},
+          "provenance": {
+            "required": [
+              "run_id",
+              "stage_status",
+              "stage_go",
+              "stage_scientific_matrix_complete",
+              "stage_denominator_terminal",
+              "stage_registered_runs",
+              "stage_complete_runs",
+              "stage_failed_runs",
+              "selected_run_complete",
+              "selected_run_validation_status",
+              "selected_run_scientific_evidence",
+              "selected_run_manifest_sha256",
+              "central_loader_validation"
+            ]
+          },
+          "link_checks": {
+            "properties": {"all_pass": {"const": true}}
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "trace": {"type": "null"},
+          "failure_reason": {"type": "string", "minLength": 1},
+          "source_files": {"maxItems": 0},
+          "source_records": {"maxItems": 0},
+          "link_checks": {
+            "properties": {"all_pass": {"const": false}}
+          }
+        }
+      }
+    }
+  ]
+}

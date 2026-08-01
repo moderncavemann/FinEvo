@@ -1,0 +1,16 @@
+{
+  "files": [
+    {
+      "byte_size": 45993,
+      "path": "reviewer_closed_loop_trace.json",
+      "sha256": "dfbefef8074cf17f1576ac18033e9f0be76c4f2fc035cb86349dcd31c0413f6d"
+    },
+    {
+      "byte_size": 24004,
+      "path": "reviewer_closed_loop_trace_v1.schema.json",
+      "sha256": "c3c4c616844edab0dbdf6a7c6600415769c63bb1627f65ecbd31ed5465335359"
+    }
+  ],
+  "publication_provider_calls": 0,
+  "schema_version": "finevo-reviewer-closed-loop-trace-checksums-v1"
+}
