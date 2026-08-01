@@ -340,8 +340,16 @@ def test_scientific_source_manifest_anchors_match_release_bytes():
         "experiments/pilot_v2_11_4_source_manifest.json",
         "experiments/pilot_v2_11_5_source_manifest.json",
         "experiments/pilot_v2_11_6_source_manifest.json",
+        "experiments/pilot_v2_11_7_source_manifest.json",
     ]
     for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS:
+        if anchor["file_sha256"] is None or anchor["content_sha256"] is None:
+            assert anchor["path"] == (
+                "experiments/pilot_v2_11_7_source_manifest.json"
+            )
+            assert anchor["file_sha256"] is None
+            assert anchor["content_sha256"] is None
+            continue
         raw = (ROOT / anchor["path"]).read_bytes()
         assert hashlib.sha256(raw).hexdigest() == anchor["file_sha256"]
         value = json.loads(raw)
@@ -349,9 +357,26 @@ def test_scientific_source_manifest_anchors_match_release_bytes():
         assert value["integrity"]["content_sha256"] == anchor["content_sha256"]
 
 
+def test_unsealed_scientific_source_manifest_anchor_fails_closed(tmp_path: Path):
+    anchor = {
+        "path": "experiments/pilot_v2_11_7_source_manifest.json",
+        "schema_version": "finevo-pilot-v2.11.7-source-manifest-v1",
+        "file_sha256": None,
+        "content_sha256": None,
+    }
+
+    with pytest.raises(
+        CIReleaseReceiptError,
+        match="anchor hashes must be sealed before CI",
+    ):
+        build_scientific_source_manifest_inventory(tmp_path, anchors=(anchor,))
+
+
 def test_verify_source_manifests_cli_smoke(tmp_path: Path):
     subprocess.run(("git", "init", "-q"), cwd=tmp_path, check=True, capture_output=True)
     for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS:
+        if anchor["file_sha256"] is None or anchor["content_sha256"] is None:
+            continue
         source = ROOT / anchor["path"]
         target = tmp_path / anchor["path"]
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -380,13 +405,24 @@ def test_verify_source_manifests_cli_smoke(tmp_path: Path):
         capture_output=True,
         text=True,
     )
-
-    assert completed.returncode == 0, completed.stderr
-    inventory = json.loads(output.read_text(encoding="utf-8"))
-    assert inventory["source_manifest_count"] == len(
-        SCIENTIFIC_SOURCE_MANIFEST_ANCHORS
-    )
-    assert inventory["source_manifests"] == list(SCIENTIFIC_SOURCE_MANIFEST_ANCHORS)
+    pending = [
+        anchor
+        for anchor in SCIENTIFIC_SOURCE_MANIFEST_ANCHORS
+        if anchor["file_sha256"] is None or anchor["content_sha256"] is None
+    ]
+    if pending:
+        assert completed.returncode != 0
+        assert "anchor hashes must be sealed before CI" in completed.stderr
+        assert not output.exists()
+    else:
+        assert completed.returncode == 0, completed.stderr
+        inventory = json.loads(output.read_text(encoding="utf-8"))
+        assert inventory["source_manifest_count"] == len(
+            SCIENTIFIC_SOURCE_MANIFEST_ANCHORS
+        )
+        assert inventory["source_manifests"] == list(
+            SCIENTIFIC_SOURCE_MANIFEST_ANCHORS
+        )
 
 
 def test_junit_summary_counts_cases_and_rejects_failures(tmp_path: Path):
@@ -837,15 +873,19 @@ def test_verified_memory_ci_uses_descendant_consumer_authority_not_science_contr
     assert "- macos-14" in workflow
 
 
-def test_verified_memory_ci_emits_v2116_scientific_release_receipt() -> None:
+def test_verified_memory_ci_emits_v2117_scientific_release_receipt() -> None:
     workflow = (ROOT / ".github/workflows/verified-memory-ci.yml").read_text(
         encoding="utf-8"
     )
     emit = workflow.split("- name: Emit scientific release CI receipt", 1)[1]
     emit = emit.split("- name: Emit publication consumer CI receipt", 1)[0]
     assert "python -m verified_memory.ci_release_receipt emit" in emit
-    assert "--contract experiments/pilot_v2_11_6.yaml" in emit
+    assert "--contract experiments/pilot_v2_11_7.yaml" in emit
     assert "--output \"${RUNNER_TEMP}/finevo-ci-release-receipt.json\"" in emit
+    assert "Verify V2.11.3 through V2.11.7 scientific source manifests" in workflow
+    assert "Verify immutable V2.11.6 pre-dispatch no-go tag anchor" in workflow
+    assert "6355d2329d800c95595c89f5e41e032ba6129fb7" in workflow
+    assert "0a7eb29a76c5f9c90486052a4c335ad1d2000bf0" in workflow
 
 
 def test_tracked_v2113_frozen_contract_accepts_its_exact_ci_inventory() -> None:
