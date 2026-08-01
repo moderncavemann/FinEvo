@@ -529,11 +529,12 @@ def test_published_reviewer_trace_package_is_self_consistent() -> None:
         "model_id": "gpt52_main",
         "arm_id": "full",
         "narrative_id": "none",
-        "utility_variant_id": "stage0-selected",
-        "environment_seed": 1099057501,
+        "utility_profile_id": "stage0-selected",
+        "seed": 1099057501,
         "agent_id": 0,
         "decision_t": 8,
         "outcome_t": 9,
+        "next_decision_t": 9,
         "run_id": (
             "finevo-pilot-v2.11.5--experiment-a--gpt52_main--full--none--"
             "stage0-selected--s1099057501"
