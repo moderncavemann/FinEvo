@@ -95,7 +95,7 @@ _CI_JOB_RECEIPT_FIELDS = frozenset(
 # Source manifests are preregistration/import authorities, not sealed run
 # manifests.  Keep this inventory separate from the six historical manifests
 # consumed by ``sealed_manifest_inventory`` and its stable receipt schema.
-SCIENTIFIC_SOURCE_MANIFEST_ANCHORS: tuple[Mapping[str, str], ...] = (
+SCIENTIFIC_SOURCE_MANIFEST_ANCHORS: tuple[Mapping[str, Any], ...] = (
     {
         "path": "experiments/pilot_v2_11_3_source_manifest.json",
         "schema_version": "finevo-pilot-v2.11.3-source-manifest-v1",
@@ -134,6 +134,16 @@ SCIENTIFIC_SOURCE_MANIFEST_ANCHORS: tuple[Mapping[str, str], ...] = (
         ),
         "content_sha256": (
             "c510941c565d1120604199139d193990948d6b65be15a823ba1d4850968f2ce0"
+        ),
+    },
+    {
+        "path": "experiments/pilot_v2_11_7_source_manifest.json",
+        "schema_version": "finevo-pilot-v2.11.7-source-manifest-v1",
+        "file_sha256": (
+            "dd124c09359d0bd08411add3486cc43887cbee207fdbb6f9bc929e5c1eb81ef9"
+        ),
+        "content_sha256": (
+            "64be1bf836d131d8ec0542e68388dbc328314af7e891549600f5871f8f61f2b0"
         ),
     },
 )
@@ -190,7 +200,7 @@ def build_source_inventory(paths: Sequence[str]) -> dict[str, Any]:
 def build_scientific_source_manifest_inventory(
     repo_root: Path | str,
     *,
-    anchors: Sequence[Mapping[str, str]] = SCIENTIFIC_SOURCE_MANIFEST_ANCHORS,
+    anchors: Sequence[Mapping[str, Any]] = SCIENTIFIC_SOURCE_MANIFEST_ANCHORS,
 ) -> dict[str, Any]:
     """Verify and inventory release-critical scientific source manifests.
 
@@ -1098,7 +1108,7 @@ def _strict_json_object(raw: bytes, name: str) -> dict[str, Any]:
     return value
 
 
-def _validate_source_manifest_anchor(value: Mapping[str, str]) -> dict[str, str]:
+def _validate_source_manifest_anchor(value: Mapping[str, Any]) -> dict[str, str]:
     if set(value) != {
         "path",
         "schema_version",
@@ -1130,6 +1140,10 @@ def _validate_source_manifest_anchor(value: Mapping[str, str]) -> dict[str, str]
     ):
         raise CIReleaseReceiptError(
             "scientific source manifest schema must be normalized text"
+        )
+    if value.get("file_sha256") is None or value.get("content_sha256") is None:
+        raise CIReleaseReceiptError(
+            "scientific source manifest anchor hashes must be sealed before CI"
         )
     return {
         "path": path,
