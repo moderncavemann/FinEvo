@@ -1,0 +1,184 @@
+{
+  "schema_version": "egrm-source-provenance-v1",
+  "extracted_on": "2026-08-02",
+  "source_repository": "https://github.com/moderncavemann/FinEvo.git",
+  "source_commit": "ffc063acf19c778f109ae6a8552bab6d192175fc",
+  "source_tag": "pilot-v2.11.11-science",
+  "source_tree_state": "committed origin/main; no uncommitted worktree files used",
+  "modules": [
+    {
+      "source": "verified_memory/m0_utility.py",
+      "destination": "src/egrm/m0_utility.py",
+      "git_blob": "a379a44e1bb5086f30b8f2cf97c474471f926dad",
+      "source_sha256": "8c727d466c9e194da671771aa12b3c189a8cf6b9cc1f125b5fff53b3ef4366e0",
+      "destination_sha256": "8c727d466c9e194da671771aa12b3c189a8cf6b9cc1f125b5fff53b3ef4366e0",
+      "changes": []
+    },
+    {
+      "source": "verified_memory/m1_context.py",
+      "destination": "src/egrm/m1_context.py",
+      "git_blob": "679237210dfa340e5760adc4ba1756e8286cf3af",
+      "source_sha256": "3a449f0cc0461af75863467ecc01b02d2b9bc1c2a8480ae10597d983e9f227d7",
+      "destination_sha256": "3a449f0cc0461af75863467ecc01b02d2b9bc1c2a8480ae10597d983e9f227d7",
+      "changes": []
+    },
+    {
+      "source": "verified_memory/m2_episodic.py",
+      "destination": "src/egrm/m2_episodic.py",
+      "git_blob": "3310fa3f94c51759c86072544c7a0f33f3fe81d0",
+      "source_sha256": "8408b32a9bfe6c532a414cf3c4a14d89ee79dbe1b95cd9825baf874eeafe4d00",
+      "destination_sha256": "8408b32a9bfe6c532a414cf3c4a14d89ee79dbe1b95cd9825baf874eeafe4d00",
+      "changes": []
+    },
+    {
+      "source": "verified_memory/m3_semantic.py",
+      "destination": "src/egrm/m3_semantic.py",
+      "git_blob": "8c6285fc0a16144e6161c88327c71801be033a04",
+      "source_sha256": "d199fa9a17f7eb256094f638e35276cd2bb936c03be2952997b2ce34806d5a18",
+      "destination_sha256": "b63bb83bb98cc2341798298d20e657f4aac0caa89fc26254b01a3c2bb63dc8d7",
+      "changes": [
+        "changed one absolute verified_memory import to the local relative egrm import"
+      ]
+    },
+    {
+      "source": "verified_memory/system.py",
+      "destination": "src/egrm/system.py",
+      "git_blob": "43f56225308f0b68b0406c07977287b3f6cd3a8f",
+      "source_sha256": "33f49d378ce70e6249d09566a760549ea516e7a3ec136a97caf417da2453d1ec",
+      "destination_sha256": "33f49d378ce70e6249d09566a760549ea516e7a3ec136a97caf417da2453d1ec",
+      "changes": []
+    },
+    {
+      "source": "verified_memory/actions.py",
+      "destination": "src/egrm/actions.py",
+      "git_blob": "5508e8d27d3d46c851a3834df76a3d7a4c25762a",
+      "source_sha256": "c4aee21df195d85ddeefb716584e1e0a354210c038e0c7ab115b3c2a2003ab82",
+      "destination_sha256": "c4aee21df195d85ddeefb716584e1e0a354210c038e0c7ab115b3c2a2003ab82",
+      "changes": []
+    },
+    {
+      "source": "verified_memory/prompts.py",
+      "destination": "src/egrm/prompts.py",
+      "git_blob": "ef38618f0e613e74ac27c5f0db319d07bad146be",
+      "source_sha256": "c80ee87c5425c5d3797cd824c9de07d10c974a95f875847cac40bffefc9de8c6",
+      "destination_sha256": "c80ee87c5425c5d3797cd824c9de07d10c974a95f875847cac40bffefc9de8c6",
+      "changes": []
+    },
+    {
+      "source": "verified_memory/replay.py",
+      "destination": "src/egrm/replay.py",
+      "git_blob": "58f77ebf5e8570aded73bb21dc9402da83c0eaa7",
+      "source_sha256": "7140f160955e27e1262708a361e9954902e60452a9dd4cd0268a9b364bc4bfcd",
+      "destination_sha256": "7140f160955e27e1262708a361e9954902e60452a9dd4cd0268a9b364bc4bfcd",
+      "changes": []
+    },
+    {
+      "source": "verified_memory/artifacts.py",
+      "destination": "src/egrm/artifacts.py",
+      "git_blob": "f3c7464fe2909279fe7a48e353dfe0339fc90dd2",
+      "source_sha256": "80ee9829984c05e0b3746a6ca60686583b7d58f842dde5efe38251cdf70dbe3b",
+      "destination_sha256": "80ee9829984c05e0b3746a6ca60686583b7d58f842dde5efe38251cdf70dbe3b",
+      "changes": []
+    },
+    {
+      "source": "verified_memory/failure_artifacts.py",
+      "destination": "src/egrm/failure_artifacts.py",
+      "git_blob": "9526de873de1b8530488811f33613c178fec666e",
+      "source_sha256": "0fd82ca5cd24286fbc3a49b90690565e61d5c6a0fbd4b2b6470015b106aca937",
+      "destination_sha256": "0fd82ca5cd24286fbc3a49b90690565e61d5c6a0fbd4b2b6470015b106aca937",
+      "changes": []
+    },
+    {
+      "source": "verified_memory/budget.py",
+      "destination": "src/egrm/budget.py",
+      "git_blob": "4003c4e3e86c55af7338c886c2a8c4f839017d35",
+      "source_sha256": "d1d4859697d844875182eeee333b029a40420bd4703df5497394ecbf84778171",
+      "destination_sha256": "d1d4859697d844875182eeee333b029a40420bd4703df5497394ecbf84778171",
+      "changes": []
+    }
+  ],
+  "inherited_tests": [
+    {
+      "source": "tests/test_counterfactual_replay.py",
+      "destination": "tests/test_extracted_counterfactual_replay.py",
+      "git_blob": "ee9e4e129f741872d0f08f068fae6f01251dbe51",
+      "source_sha256": "b975d51b23928d0e0863391e8bfc47eb01347db62b9687660f0d494f07bf9e24",
+      "destination_sha256": "187f5ae3ea01828542e2a2f00882a4a90e0f31ef361e3732614b6bfc53f7a7d3",
+      "changes": ["changed the package import from verified_memory to egrm"]
+    },
+    {
+      "source": "tests/test_m0_ledger.py",
+      "destination": "tests/test_extracted_m0_ledger.py",
+      "git_blob": "e4d44fb059ad7a0976fca2273035f1d0a90d2b39",
+      "source_sha256": "c184daf0b227782daeea3b9280d9fd0fcc0403fc1773f473c97f107c02f76d37",
+      "destination_sha256": "08dcd7a8423a8fddca51031fefe4bcd92b6732d0d6b93d780846d1eecf5f5ef8",
+      "changes": ["changed the package import from verified_memory to egrm"]
+    },
+    {
+      "source": "tests/test_m0_utility.py",
+      "destination": "tests/test_extracted_m0_utility.py",
+      "git_blob": "e68b5f67771be483799bc6a8f1993d12a3de7f6c",
+      "source_sha256": "ee4e3c0ca0b39049eb4767137402ffc6e4f0ac04a0eafda5c51f3b02f31ce7b1",
+      "destination_sha256": "0551b96465d8e2872bf58fbffe0bd32f148d58a67f5145637a9c9cadb52aacb9",
+      "changes": ["changed the package import from verified_memory to egrm"]
+    },
+    {
+      "source": "tests/test_m1_context.py",
+      "destination": "tests/test_extracted_m1_context.py",
+      "git_blob": "55085a3add9d8240766d800ccf9e40e1daa53197",
+      "source_sha256": "4fda0aad343af15509af0ddb5bc7e88b8660065b8c50487def73bb91fec70a65",
+      "destination_sha256": "932b8a7da7b1c737aa7363b27249ae85dc5cba5aa273cac19f9bc7155f4a8803",
+      "changes": ["changed the package import from verified_memory to egrm"]
+    },
+    {
+      "source": "tests/test_m2_episodic.py",
+      "destination": "tests/test_extracted_m2_episodic.py",
+      "git_blob": "0785848fad401168e26cecf9aed7bc14defc008a",
+      "source_sha256": "2c79ac0c3912d18dc2c15aaf72aa2c6148e042ad3d6decb0d93f6fcdd574ccb6",
+      "destination_sha256": "48bd92476aa40f5ce960d16e76dbebcccfe35b5cbb9c26ad2431dcdf0938b287",
+      "changes": ["changed the package import from verified_memory to egrm"]
+    },
+    {
+      "source": "tests/test_m3_semantic.py",
+      "destination": "tests/test_extracted_m3_semantic.py",
+      "git_blob": "b5639d3bf957fbc331da8b9b31460b42eedd3600",
+      "source_sha256": "ff75bc07b4ce0747ce7a728e80e2cc8f0acdb1e48e4979cbbe916f1eed882e9c",
+      "destination_sha256": "2aaf2eb32c51e4ab4a0a8662a570c3a30c0679fac05ddfd1ee1ec1e28e5714c0",
+      "changes": ["changed two package imports from verified_memory to egrm"]
+    },
+    {
+      "source": "tests/test_verified_artifacts.py",
+      "destination": "tests/test_extracted_artifacts.py",
+      "git_blob": "c8f379c327c7a9f099b0fb08f556d9c061d07a49",
+      "source_sha256": "7f2c25d11214ab86b1a49a91405570516eebfbd6280a4cbbfb2cede06b372c4f",
+      "destination_sha256": "a45ce7f460119987618d2f241a270ac5f03f0e5192f7fbf364232066e6452f87",
+      "changes": ["changed two package imports from verified_memory to egrm"]
+    },
+    {
+      "source": "tests/test_verified_memory_system.py",
+      "destination": "tests/test_extracted_memory_system.py",
+      "git_blob": "cf0fcd02fd2f9ca24f88eefe92376f95a0eddfc5",
+      "source_sha256": "5b803a86f402b1465593368f1d7d467e7a6e70a9cc63f5254c1d60da3b3eaa35",
+      "destination_sha256": "ef268b65e37c04311e5ec8fac38aa25cdf8e917393355a3229f10f90e9eab6e5",
+      "changes": ["changed two package imports from verified_memory to egrm"]
+    }
+  ],
+  "new_egrm_modules": [
+    "src/egrm/__init__.py",
+    "src/egrm/benchmark.py",
+    "src/egrm/cli.py",
+    "src/egrm/contracts.py",
+    "src/egrm/design.py",
+    "src/egrm/interventions.py",
+    "src/egrm/metrics.py",
+    "src/egrm/provenance.py"
+  ],
+  "explicitly_excluded": [
+    "memory_module.py and simulate.py legacy paths",
+    "run_pilot.py and all historical pilot contracts/results",
+    "runner/provider/Foundation integration",
+    "ai_economist and all third-party simulator code",
+    "historical paper tables, figures, reviewer responses, and raw artifacts"
+  ],
+  "scientific_evidence_imported": false
+}

@@ -1,0 +1,154 @@
+\documentclass[sigconf,anonymous,review]{acmart}
+
+\settopmatter{printacmref=true,printfolios=true}
+\setcopyright{none}
+\acmConference[ICAIF '26]{The 7th ACM International Conference on AI in
+Finance}{November 14--17, 2026}{Milan, Italy}
+\acmYear{2026}
+\acmDOI{}
+\acmISBN{}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\setlength{\emergencystretch}{1em}
+
+\title{When Should an Economic Agent Trust Its Memory? Evidence-Grounded Rule
+Evolution under Endogenous Feedback}
+
+\begin{document}
+
+\begin{abstract}
+Long-horizon language-model agents often turn a small number of action--outcome
+experiences into reusable natural-language rules. A biased reflection can then
+become a persistent instruction, alter later actions, and change the environment
+that generates subsequent evidence. We formulate this as a rule-reliability
+problem using Evidence-Grounded Rule Memory (EGRM), a source-pinned lifecycle
+implementation inherited from FinEvo. We do not claim that lifecycle code as a
+new implementation contribution. The candidate contribution is the reliability
+formulation plus an oracle-labeled switching benchmark, registered policy
+comparisons, controlled false rules, and matched checkpoint continuations. The
+primary outcomes are unsupported activation, harmful exposure, retirement
+latency, and paired downstream utility loss. This pre-experiment manuscript
+defines the protocol; effectiveness results are not yet available.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+Persistent memory lets an economic agent reuse experience across long horizons,
+but it also creates a closed-loop failure mode: the agent writes a rule from its
+own outcomes, follows that rule later, and thereby changes the evidence used to
+judge it. Retrieval quality alone cannot answer when such a rule deserves
+authority. We ask when a self-generated rule should be admitted, activated,
+revised, or retired.
+
+The evaluated rule lifecycle is inherited from a source-pinned FinEvo
+implementation; this paper does not claim its code or module structure as a new
+implementation contribution. Our candidate contribution is threefold. First,
+we formalize rule reliability under endogenous feedback. Second, an
+oracle-labeled regime-switch benchmark exposes known validity and
+counterevidence. Third, predeclared verifier comparisons, a forced-active test,
+and hash-bound continuations hold the environment, model, prompt, decoding, and
+random state fixed across memory treatments. These
+remain design contributions until the protocol is completed, preregistered, and
+executed.
+
+\section{Related Work and Scope}
+Economic LLM agents model heterogeneous economic decisions and retain market
+experience~\cite{li2024econagent}, while recent work studies
+sentiment, memory weighting, and dynamic economic adaptation~\cite{liu2026econai}.
+Experience-based agents store verbal reflections~\cite{shinn2023reflexion},
+extract reusable insights~\cite{zhao2024expel}, and learn instructions from
+past reflections~\cite{gupta2024metareflection}. Recent empirical work studies
+experience following and its errors, including misaligned replay and feedback
+from later evaluations~\cite{xiong2026memory}. These works rule out any claim
+that EGRM is the first system for reflection from experience, memory of rules,
+or feedback-based regulation.
+
+General agent-memory research further addresses dynamic
+organization~\cite{xu2025amem}, incremental memory
+evaluation~\cite{hu2025memoryagentbench}, and safety under contaminated
+memories~\cite{wei2025amemguard,xie2026memevobench}. The candidate distinction
+here is narrower: reliability of self-generated action--outcome rules when rule
+use changes the endogenous environment producing later evidence, evaluated
+with known truth and matched interventions. This remains a scoped hypothesis,
+not a universal novelty claim.
+
+\section{Problem Setup}
+At decision time $t$, agent $i$ observes state $s_{i,t}$, retrieves finalized
+episodes, and executes action $a_{i,t}$. Only after the environment transition
+is an episode $e_{i,t}=(s_{i,t},a_{i,t},s_{i,t+1},u_{i,t+1})$ eligible as
+evidence. A candidate rule contains a context scope, state predicate, action
+guidance, rationale, and cited episode identifiers. The verifier fixes the
+outcome criterion before proposal generation.
+
+\section{Evidence-Grounded Rule Memory}
+The lifecycle evaluated here is inherited from the source-pinned FinEvo
+implementation. The description below defines the evaluation subject and its
+registered controls; it is not a claim that EGRM newly implements these
+lifecycle mechanisms.
+
+For each in-scope episode, EGRM records one of five mutually exclusive classes:
+support, harmful compliance, alternative success, alternative failure, or
+irrelevant. The default positive and negative scores are
+\begin{equation}
+ S= n_{\mathrm{sup}},\qquad
+ C=n_{\mathrm{harm}}+0.5n_{\mathrm{alt\mbox{-}succ}},
+\end{equation}
+with margin $S-C$ and smoothed confidence
+$(S+1)/(S+C+2)$. Alternative failure and irrelevant observations remain in the
+audit denominator with zero evidentiary weight.
+
+A proposal can be rejected or provisional, never directly active. Activation
+requires distinct post-proposal support plus frozen margin and confidence
+thresholds. Repeated harmful compliance or confidence decay retires a rule.
+New versions must identify the superseded rule and cite genuinely new support.
+An unverified-immediate control uses the same structured rule language but
+bypasses evidence admission and retirement.
+
+\section{Evaluation Protocol}
+The controlled benchmark contains oracle-labeled rule families and regime
+switches. The closed-loop study uses fresh paired seeds and predeclares verifier
+on/off $\times$ error on/off contrasts, candidate-admission tests, and
+forced-active false-rule treatments. From a shared checkpoint, matched A/A and
+error branches with and without verification continue all agents for six
+periods with identical random states.
+
+A fixed false-rule injection tests how the registered policies respond to a
+controlled known error. It does not estimate the frequency or character of
+naturally hallucinated LLM proposals, and it cannot by itself establish that the
+method mitigates such hallucinations. That broader claim would require a
+separately registered natural-proposal audit.
+
+The seed is the primary inference unit. Parse, provider, integrity, and budget
+failures remain in the intention-to-treat denominator; failed seeds are not
+replaced. A downstream effect must exceed the maximum matched A/A null, exceed
+one discrete action bin, and agree in at least four of five seeds. Otherwise an
+action-only change is described as prompt sensitivity.
+
+\section{Results}
+\textbf{Result status: not run.} The final version will report every registered
+cell, raw paired deltas, direction counts, mean, median, and range. Historical
+macroeconomic tables are excluded from EGRM results. If the evidence-aware arm
+does not reduce unsupported activation, harmful exposure, and paired utility
+loss under the registered go rule, the corresponding effectiveness claim will
+be withdrawn.
+
+\section{Limitations and Responsible Claims}
+Evidence consistency does not establish truth, optimality, or hallucination
+immunity. The verifier can inherit a misspecified outcome criterion, and
+endogenous feedback complicates external validity. Small paired pilots support
+mechanism diagnosis rather than population level significance or
+backbone-independent claims. Prompt replay alone establishes action sensitivity;
+utility language requires exact checkpoint continuation. Controlled fixed-rule
+injection supports only a controlled-error response claim, not mitigation of
+naturally generated proposal hallucinations.
+
+\section{Conclusion}
+EGRM reframes agent memory from storage and retrieval to an auditable question
+of rule authority under feedback. The planned evaluation is designed to test
+whether, and under which registered conditions, that lifecycle reduces exposure
+to self-reinforcing errors.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}

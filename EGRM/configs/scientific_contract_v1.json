@@ -1,0 +1,194 @@
+{
+  "schema_version": "egrm-experiment-contract-v1",
+  "study_id": "egrm-icaif2026-scientific-v1",
+  "status": "design_draft_not_run",
+  "scientific_evidence": false,
+  "source": {
+    "extraction_repository": "https://github.com/moderncavemann/FinEvo.git",
+    "extraction_commit": "ffc063acf19c778f109ae6a8552bab6d192175fc",
+    "provenance_manifest": "provenance/SOURCE_PROVENANCE.json"
+  },
+  "randomization": {
+    "seeds": [238947103, 718302411, 1204938571, 1640093317, 2008129019],
+    "paired": true
+  },
+  "units": {
+    "primary": "seed",
+    "rule": "seed-agent-rule-family",
+    "intervention": "seed-checkpoint"
+  },
+  "arms": [
+    {
+      "name": "full-egrm",
+      "policy": "evidence-grounded proposal admission and delayed activation",
+      "implementation_status": "implemented"
+    },
+    {
+      "name": "no-postproposal-delay",
+      "policy": "evidence admission without the distinct post-proposal activation delay",
+      "implementation_status": "planned"
+    },
+    {
+      "name": "no-retirement",
+      "policy": "evidence admission and delayed activation without counterevidence retirement",
+      "implementation_status": "planned"
+    },
+    {
+      "name": "unverified-immediate",
+      "policy": "schema-valid proposal activates immediately",
+      "implementation_status": "implemented"
+    },
+    {
+      "name": "verified-error-candidate",
+      "policy": "unsupported false candidate passes through evidence admission",
+      "implementation_status": "implemented"
+    },
+    {
+      "name": "verified-error-forced-active",
+      "policy": "same false rule starts active and remains counterevidence-aware",
+      "implementation_status": "implemented"
+    },
+    {
+      "name": "unverified-error-forced-active",
+      "policy": "same false rule starts active without retirement",
+      "implementation_status": "implemented"
+    },
+    {
+      "name": "matched-aa-a",
+      "policy": "unchanged checkpoint continuation replicate A",
+      "implementation_status": "manifest_only"
+    },
+    {
+      "name": "matched-aa-b",
+      "policy": "unchanged checkpoint continuation replicate B",
+      "implementation_status": "manifest_only"
+    }
+  ],
+  "metrics": {
+    "primary": [
+      "unsupported_rule_ever_active",
+      "harmful_exposure_steps",
+      "retirement_latency",
+      "paired_six_step_discounted_utility_loss"
+    ],
+    "secondary": [
+      "rule_admission_precision",
+      "alternative_success_rate",
+      "provenance_coverage",
+      "focal_action_delta",
+      "population_utility_delta"
+    ]
+  },
+  "denominator": {
+    "registered_cells": 105,
+    "include_parse_failures": true,
+    "include_provider_failures": true,
+    "failed_seed_replacement": false
+  },
+  "stop_rules": [
+    "do not dispatch hosted calls until capability and cost gates pass",
+    "stop rather than reduce seeds or substitute a model when a registered cell cannot run",
+    "withdraw the rule-reliability claim if EGRM does not reduce false activation, harmful exposure, or paired utility loss",
+    "treat effects below the matched A/A null or one action bin as prompt sensitivity only"
+  ],
+  "claim_boundary": {
+    "allowed": [
+      "mitigation of unsupported action-outcome rule candidates in a future frozen testbed if all gates pass",
+      "checkpoint-matched downstream effects if they exceed the registered A/A null",
+      "exploratory population feedback reported separately from primary rule outcomes"
+    ],
+    "forbidden": [
+      "guaranteed correctness, hallucination immunity, or universal safety",
+      "backbone-independent effectiveness",
+      "reuse of FinEvo macroeconomic tables as EGRM evidence",
+      "scientific effectiveness before terminal receipts cover the full denominator"
+    ]
+  },
+  "fixture": {
+    "design_type": "fresh_egrm_scientific_design",
+    "hosted_calls_enabled": false,
+    "models": {
+      "primary": "gpt-5.2-2025-12-11",
+      "diagnostic": "gpt-5.6-sol"
+    },
+    "stages": [
+      {
+        "name": "E0-known-truth-ruleswitch",
+        "registered_cells": 48,
+        "description": "12 planned oracle scenario families replayed through four lifecycle policies",
+        "unit_axis": "scenario_id",
+        "unit_values": [
+          "interest-upshift-liquidity",
+          "interest-downshift-liquidity",
+          "inflation-upshift-purchasing-power",
+          "inflation-downshift-purchasing-power",
+          "unemployment-upshift-income-risk",
+          "unemployment-downshift-income-risk",
+          "income-loss-consumption-buffer",
+          "income-recovery-consumption-buffer",
+          "wealth-drawdown-risk-control",
+          "wealth-recovery-risk-control",
+          "negative-sentiment-precaution",
+          "positive-sentiment-normalization"
+        ],
+        "arms": [
+          "full-egrm",
+          "no-postproposal-delay",
+          "no-retirement",
+          "unverified-immediate"
+        ],
+        "model": "deterministic-oracle-stream"
+      },
+      {
+        "name": "E1-fresh-closed-loop",
+        "registered_cells": 25,
+        "description": "five GPT-5.2 arms by five paired seeds",
+        "unit_axis": "seed",
+        "unit_values": [238947103, 718302411, 1204938571, 1640093317, 2008129019],
+        "arms": [
+          "full-egrm",
+          "unverified-immediate",
+          "verified-error-candidate",
+          "verified-error-forced-active",
+          "unverified-error-forced-active"
+        ],
+        "model": "gpt-5.2-2025-12-11"
+      },
+      {
+        "name": "E2-checkpoint-continuation",
+        "registered_cells": 20,
+        "description": "four planned hash-bound branches by five paired seed-checkpoints",
+        "unit_axis": "seed",
+        "unit_values": [238947103, 718302411, 1204938571, 1640093317, 2008129019],
+        "arms": [
+          "matched-aa-a",
+          "matched-aa-b",
+          "verified-error-forced-active",
+          "unverified-error-forced-active"
+        ],
+        "model": "gpt-5.2-2025-12-11"
+      },
+      {
+        "name": "E3-second-model-diagnostic",
+        "registered_cells": 12,
+        "description": "four planned central branches by three model-specific seed-checkpoints",
+        "unit_axis": "seed",
+        "unit_values": [238947103, 718302411, 1204938571],
+        "arms": [
+          "matched-aa-a",
+          "matched-aa-b",
+          "verified-error-forced-active",
+          "unverified-error-forced-active"
+        ],
+        "model": "gpt-5.6-sol"
+      }
+    ],
+    "estimated_hosted_call_upper_bound": 2500,
+    "budget_authorization": "not_authorized_by_this_release",
+    "release_binding": {
+      "status": "unbound_draft",
+      "required_annotated_tag": "egrm-science-v1",
+      "required_git_commit": null
+    }
+  }
+}

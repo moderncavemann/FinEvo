@@ -449,6 +449,7 @@ jobs:
           fi
 
       - name: Emit V2.11.11 scientific release CI receipt
+        if: github.sha == 'ffc063acf19c778f109ae6a8552bab6d192175fc'
         run: >-
           python -m verified_memory.ci_release_receipt emit
           --collection "${RUNNER_TEMP}/finevo-test-collection.json"
@@ -458,6 +459,7 @@ jobs:
           --output "${RUNNER_TEMP}/finevo-v2.11.11-ci-release-receipt.json"
 
       - name: Emit publication consumer CI receipt
+        if: github.sha == 'ffc063acf19c778f109ae6a8552bab6d192175fc'
         run: >-
           python -m verified_memory.ci_release_receipt emit-publication-consumer
           --collection "${RUNNER_TEMP}/finevo-test-collection.json"
