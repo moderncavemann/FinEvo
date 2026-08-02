@@ -53,7 +53,7 @@ V2115_SCIENCE_COMMIT = "2351ac2283f9fedb9dce70067174020be56ed9cc"
 V2115_CONSUMER_HEAD = "7" * 40
 
 
-def test_tracked_publication_authority_matches_current_release_inventory() -> None:
+def test_tracked_publication_authority_matches_frozen_release_inventory() -> None:
     authority = load_publication_consumer_ci_authority(
         ROOT,
         ROOT / PUBLICATION_CONSUMER_CI_AUTHORITY_RELATIVE,
@@ -65,9 +65,32 @@ def test_tracked_publication_authority_matches_current_release_inventory() -> No
     assert expected_ci is not None
     assert authority["expected_ci"] == dict(expected_ci)
 
-    source_inventory = build_source_inventory(
-        ci_receipts.discover_tracked_files(ROOT, ("*.py",))
+    frozen_head = subprocess.check_output(
+        (
+            "git",
+            "rev-parse",
+            f"{contract.release_requirements.tag}^{{commit}}",
+        ),
+        cwd=ROOT,
+        text=True,
+    ).strip()
+    assert frozen_head == "ffc063acf19c778f109ae6a8552bab6d192175fc"
+    frozen_sources = tuple(
+        raw.decode("utf-8", "strict")
+        for raw in subprocess.check_output(
+            (
+                "git",
+                "ls-tree",
+                "-r",
+                "-z",
+                "--name-only",
+                frozen_head,
+            ),
+            cwd=ROOT,
+        ).split(b"\0")
+        if raw and raw.endswith(b".py")
     )
+    source_inventory = build_source_inventory(frozen_sources)
     assert (
         authority["expected_ci"]["compiled_source_count"]
         == source_inventory["compiled_source_count"]
@@ -937,6 +960,10 @@ def test_verified_memory_ci_preserves_v21110_release_and_emits_only_v21111() -> 
     assert current_emit_command in current_emit
     assert "--contract experiments/pilot_v2_11_11.yaml" in current_emit
     assert "--contract experiments/pilot_v2_11_10.yaml" not in current_emit
+    assert (
+        "if: github.sha == 'ffc063acf19c778f109ae6a8552bab6d192175fc'"
+        in current_emit
+    )
     assert "pilot-v2.11.11-science" not in workflow
     assert "--contract experiments/pilot_v2_11_10.yaml" not in workflow
     assert "timeout-minutes: 30" in workflow
@@ -948,6 +975,14 @@ def test_verified_memory_ci_preserves_v21110_release_and_emits_only_v21111() -> 
     assert "aa05e94ee6097916db53c40c0276b044c05a44cc" in workflow
     assert "ce04fba5f4882449d96cdde4ad747fa0b399a260" in workflow
     assert "aefdf4fa39280b21ef696fb1b64da3acbb8d47f9" in workflow
+
+    publication_emit = workflow.split(
+        "- name: Emit publication consumer CI receipt", 1
+    )[1]
+    assert (
+        "if: github.sha == 'ffc063acf19c778f109ae6a8552bab6d192175fc'"
+        in publication_emit
+    )
 
     assert (
         subprocess.check_output(

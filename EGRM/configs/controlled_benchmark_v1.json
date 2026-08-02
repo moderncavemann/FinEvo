@@ -1,0 +1,134 @@
+{
+  "schema_version": "egrm-experiment-contract-v1",
+  "study_id": "egrm-controlled-rule-switch-v1",
+  "status": "implementation_fixture",
+  "scientific_evidence": false,
+  "source": {
+    "extraction_repository": "https://github.com/moderncavemann/FinEvo.git",
+    "extraction_commit": "ffc063acf19c778f109ae6a8552bab6d192175fc",
+    "provenance_manifest": "provenance/SOURCE_PROVENANCE.json"
+  },
+  "randomization": {
+    "seeds": [20260802],
+    "paired": true
+  },
+  "units": {
+    "primary": "deterministic-fixture",
+    "rule": "fixture-rule-family",
+    "intervention": "fixture-decision"
+  },
+  "arms": [
+    {
+      "name": "egrm",
+      "policy": "evidence admission, delayed activation, counterevidence retirement",
+      "implementation_status": "implemented"
+    },
+    {
+      "name": "unverified-immediate",
+      "policy": "schema-valid candidates activate immediately and never retire",
+      "implementation_status": "implemented"
+    }
+  ],
+  "metrics": {
+    "primary": [
+      "rule_admission_precision",
+      "unsupported_activation_rate",
+      "harmful_compliance_events",
+      "retirement_latency_steps"
+    ],
+    "secondary": [
+      "provenance_coverage",
+      "event_type_counts"
+    ]
+  },
+  "denominator": {
+    "registered_cells": 2,
+    "include_parse_failures": true,
+    "include_provider_failures": true,
+    "failed_seed_replacement": false
+  },
+  "stop_rules": [
+    "stop if the contract does not validate",
+    "stop if referential integrity does not reproduce",
+    "stop if the expected lifecycle manipulation check fails"
+  ],
+  "claim_boundary": {
+    "allowed": [
+      "the extracted implementation reproduces the declared lifecycle fixture",
+      "the fixture distinguishes evidence-grounded and unverified policies by construction"
+    ],
+    "forbidden": [
+      "EGRM improves real or simulated economic performance",
+      "EGRM prevents hallucinations or guarantees rule correctness",
+      "the deterministic fixture is scientific effectiveness evidence"
+    ]
+  },
+  "fixture": {
+    "lifecycle": {
+      "min_candidate_support": 2,
+      "activation_min_support": 3,
+      "activation_min_margin": 1.0,
+      "activation_confidence_threshold": 0.6,
+      "proposal_confidence_floor": 0.5,
+      "retirement_patience": 2,
+      "retirement_confidence_threshold": 0.45
+    },
+    "discovery_episodes": [
+      {
+        "decision_t": 0,
+        "interest_rate": 0.08,
+        "consumption_fraction": 0.2,
+        "flow_utility": 1.0
+      },
+      {
+        "decision_t": 1,
+        "interest_rate": 0.08,
+        "consumption_fraction": 0.2,
+        "flow_utility": 3.0
+      }
+    ],
+    "post_proposal_episodes": [
+      {
+        "decision_t": 2,
+        "interest_rate": 0.08,
+        "consumption_fraction": 0.2,
+        "flow_utility": 5.0
+      },
+      {
+        "decision_t": 3,
+        "interest_rate": 0.08,
+        "consumption_fraction": 0.2,
+        "flow_utility": -10.0
+      },
+      {
+        "decision_t": 4,
+        "interest_rate": 0.08,
+        "consumption_fraction": 0.2,
+        "flow_utility": -11.0
+      }
+    ],
+    "supported_rule": {
+      "condition_operator": ">=",
+      "condition_value": 0.08,
+      "action_direction": "at_most",
+      "action_threshold": 0.3
+    },
+    "unsupported_rule": {
+      "condition_operator": ">=",
+      "condition_value": 0.08,
+      "action_direction": "at_least",
+      "action_threshold": 0.8
+    },
+    "expected": {
+      "supported_lifecycle": [
+        "provisional",
+        "active",
+        "active",
+        "retired"
+      ],
+      "unsupported_final_status": "rejected",
+      "verified_unsupported_ever_active_count": 0,
+      "unverified_unsupported_ever_active_count": 1
+    }
+  }
+}
